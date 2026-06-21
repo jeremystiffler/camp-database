@@ -1,26 +1,79 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  --color-night-900: #0B1622;
+  --color-night-800: #122A31;
+  --color-night-700: #1A3040;
+  --color-night-600: #223A4A;
+  --color-night-500: #2A4458;
+
+  --color-ember-500: #F0894A;
+  --color-ember-400: #F4A06A;
+  --color-ember-300: #F7B88A;
+  --color-ember-600: #D4723A;
+  --color-ember-700: #B85C2A;
+
+  --color-gold-500: #E8A84C;
+  --color-gold-400: #F0BE6E;
+  --color-gold-600: #D0923A;
+
+  --color-cream: #F4E9D6;
+  --color-muted: #A0B4C4;
+  --color-success: #4CAF50;
+  --color-error: #E53935;
+  --color-info: #42A5F5;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-night-800);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-night-500);
+  border-radius: 3px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Smooth transitions */
+* {
+  scroll-behavior: smooth;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Ember glow for CTAs */
+.ember-glow {
+  box-shadow: 0 0 20px rgba(240, 137, 74, 0.3), 0 0 60px rgba(240, 137, 74, 0.1);
+}
+
+.ember-glow:hover {
+  box-shadow: 0 0 30px rgba(240, 137, 74, 0.5), 0 0 80px rgba(240, 137, 74, 0.2);
+}
+
+/* Card glass effect */
+.glass-card {
+  background: rgba(26, 48, 64, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Floating ember particles */
+@keyframes float-up {
+  0% { transform: translateY(0) scale(1); opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+}
+
+.ember-particle {
+  animation: float-up linear infinite;
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-ember-500);
+  box-shadow: 0 0 6px var(--color-ember-500);
 }

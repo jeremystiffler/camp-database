@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("free")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  camps     Camp[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String?
+  passwordHash   String?
+  avatar         String?
+  role           String       @default("owner")
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  campMembers    CampMember[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Camp {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name             String
+  slug             String       @unique
+  startDate        DateTime?
+  endDate          DateTime?
+  status           String       @default("draft")
+  registrationOpen Boolean      @default(false)
+  primaryColor     String       @default("#F0894A")
+  accentColor      String       @default("#E8A84C")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  members          CampMember[]
+  ageGroups        AgeGroup[]
+  rooms            Room[]
+  persons          Person[]
+  courses          Course[]
+  sessionTemplates SessionTemplate[]
+  sessions         Session[]
+  campers          Camper[]
+  enrollments      Enrollment[]
+  registrationLinks RegistrationLink[]
+}
+
+model CampMember {
+  id        String   @id @default(cuid())
+  campId    String
+  camp      Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  @@unique([campId, userId])
+}
+
+model AgeGroup {
+  id           String   @id @default(cuid())
+  campId       String
+  camp         Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  name         String
+  minAge       Int?
+  maxAge       Int?
+  displayOrder Int      @default(0)
+  color        String   @default("#6366f1")
+  createdAt    DateTime @default(now())
+  courses      Course[]
+  campers      Camper[]
+}
+
+model Room {
+  id          String    @id @default(cuid())
+  campId      String
+  camp        Camp      @relation(fields: [campId], references: [id], onDelete: Cascade)
+  name        String
+  capacity    Int?
+  description String?
+  createdAt   DateTime  @default(now())
+  courses     Course[]
+  sessions    Session[]
+}
+
+model Person {
+  id             String          @id @default(cuid())
+  campId         String
+  camp           Camp            @relation(fields: [campId], references: [id], onDelete: Cascade)
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  role           String          @default("teacher")
+  bio            String?
+  createdAt      DateTime        @default(now())
+  courseTeachers CourseTeacher[]
+  sessionTeachers SessionTeacher[]
+}
+
+model Course {
+  id             String          @id @default(cuid())
+  campId         String
+  camp           Camp            @relation(fields: [campId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  ageGroupId     String?
+  ageGroup       AgeGroup?       @relation(fields: [ageGroupId], references: [id], onDelete: SetNull)
+  roomId         String?
+  room           Room?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  cap            Int?
+  color          String          @default("#6366f1")
+  icon           String?
+  createdAt      DateTime        @default(now())
+  courseTeachers CourseTeacher[]
+  sessions       Session[]
+}
+
+model CourseTeacher {
+  courseId  String
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  personId  String
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  @@id([courseId, personId])
+}
+
+model SessionTemplate {
+  id         String    @id @default(cuid())
+  campId     String
+  camp       Camp      @relation(fields: [campId], references: [id], onDelete: Cascade)
+  dayOfWeek  Int?
+  startTime  String
+  endTime    String
+  label      String?
+  createdAt  DateTime  @default(now())
+  sessions   Session[]
+}
+
+model Session {
+  id                String          @id @default(cuid())
+  campId            String
+  camp              Camp            @relation(fields: [campId], references: [id], onDelete: Cascade)
+  courseId          String?
+  course            Course?         @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  sessionTemplateId String?
+  sessionTemplate   SessionTemplate? @relation(fields: [sessionTemplateId], references: [id], onDelete: SetNull)
+  roomId            String?
+  room              Room?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  date              DateTime?
+  startTime         String?
+  endTime           String?
+  status            String          @default("scheduled")
+  enrolledCount     Int             @default(0)
+  createdAt         DateTime        @default(now())
+  sessionTeachers   SessionTeacher[]
+  enrollments       Enrollment[]
+}
+
+model SessionTeacher {
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  personId  String
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  @@id([sessionId, personId])
+}
+
+model Camper {
+  id              String       @id @default(cuid())
+  campId          String
+  camp            Camp         @relation(fields: [campId], references: [id], onDelete: Cascade)
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime?
+  ageGroupId      String?
+  ageGroup        AgeGroup?    @relation(fields: [ageGroupId], references: [id], onDelete: SetNull)
+  guardianName    String?
+  guardianEmail   String?
+  guardianPhone   String?
+  emergencyPhone  String?
+  tshirtSize      String?
+  photoConsent    Boolean      @default(false)
+  medicalNotes    String?
+  dietaryNotes    String?
+  createdAt       DateTime     @default(now())
+  enrollments     Enrollment[]
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  campId    String
+  camp      Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  camperId  String
+  camper    Camper   @relation(fields: [camperId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status    String   @default("enrolled")
+  createdAt DateTime @default(now())
+  @@unique([camperId, sessionId])
+}
+
+model RegistrationLink {
+  id           String    @id @default(cuid())
+  campId       String
+  camp         Camp      @relation(fields: [campId], references: [id], onDelete: Cascade)
+  token        String    @unique @default(cuid())
+  parentEmail  String?
+  expiresAt    DateTime?
+  maxStudents  Int       @default(1)
+  usedCount    Int       @default(0)
+  createdAt    DateTime  @default(now())
+}
