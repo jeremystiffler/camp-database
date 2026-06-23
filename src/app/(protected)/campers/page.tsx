@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+
+interface AgeGroup {
+  id: string;
+  name: string;
+  color: string;
+}
 
 interface Camper {
   id: string;
@@ -9,252 +16,349 @@ interface Camper {
   fullName: string;
   guardianName: string;
   guardianEmail: string;
-  emergencyPhone: string | null;
-  tshirtSize: string | null;
-  ageGroup: string;
+  guardianPhone?: string;
+  emergencyPhone?: string;
+  tshirtSize?: string;
   photoConsent: boolean;
-  editToken: string;
+  medicalNotes?: string;
+  dietaryNotes?: string;
+  dateOfBirth?: string;
+  ageGroup?: AgeGroup | null;
   createdAt: string;
 }
 
-const tshirtSizes = ["XS", "S", "M", "L", "XL", "XXL"];
-const ageGroups = ["elementary", "middle", "high", "both"];
+const TSHIRT_SIZES = ["YXS", "YS", "YM", "YL", "AS", "AM", "AL", "AXL", "A2XL"];
 
-function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
-  if (!open) return null;
+function age(dob: string) {
+  const d = new Date(dob);
+  const now = new Date();
+  let a = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) a--;
+  return a;
+}
+
+function CamperDrawer({
+  camper,
+  onClose,
+}: {
+  camper: Camper;
+  onClose: () => void;
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
-        className="relative bg-night-700 border border-night-500 rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-heading font-semibold text-xl text-cream">{title}</h2>
-          <button onClick={onClose} className="text-muted hover:text-cream text-xl">✕</button>
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl">
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-berry-500 flex items-center justify-center text-white font-bold">
+              {camper.firstName[0]}{camper.lastName[0]}
+            </div>
+            <div>
+              <h2 className="font-bold text-slate-800">{camper.fullName}</h2>
+              {camper.ageGroup && <p className="text-xs text-slate-500">{camper.ageGroup.name}</p>}
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">✕</button>
         </div>
-        {children}
+        <div className="px-6 py-5 space-y-5">
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Camper Info</h3>
+            <div className="space-y-2.5">
+              {camper.dateOfBirth && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-500">Age</span>
+                  <span className="text-sm font-medium text-slate-800">{age(camper.dateOfBirth)} years old</span>
+                </div>
+              )}
+              {camper.tshirtSize && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-500">T-Shirt Size</span>
+                  <span className="text-sm font-medium text-slate-800">{camper.tshirtSize}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-500">Photo Consent</span>
+                <span className={`text-sm font-medium ${camper.photoConsent ? "text-forest-600" : "text-red-500"}`}>
+                  {camper.photoConsent ? "✓ Granted" : "✗ Not granted"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-500">Registered</span>
+                <span className="text-sm font-medium text-slate-800">
+                  {new Date(camper.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Guardian</h3>
+            <div className="space-y-2.5">
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-500">Name</span>
+                <span className="text-sm font-medium text-slate-800">{camper.guardianName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-slate-500">Email</span>
+                <a href={`mailto:${camper.guardianEmail}`} className="text-sm font-medium text-sky-600 hover:underline">{camper.guardianEmail}</a>
+              </div>
+              {camper.guardianPhone && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-500">Phone</span>
+                  <a href={`tel:${camper.guardianPhone}`} className="text-sm font-medium text-slate-800">{camper.guardianPhone}</a>
+                </div>
+              )}
+              {camper.emergencyPhone && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-500">Emergency</span>
+                  <a href={`tel:${camper.emergencyPhone}`} className="text-sm font-medium text-red-600">{camper.emergencyPhone}</a>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {(camper.medicalNotes || camper.dietaryNotes) && (
+            <div>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Notes</h3>
+              {camper.medicalNotes && (
+                <div className="mb-2">
+                  <p className="text-xs font-medium text-slate-500 mb-1">Medical</p>
+                  <p className="text-sm text-slate-700 bg-red-50 rounded-xl px-3 py-2">{camper.medicalNotes}</p>
+                </div>
+              )}
+              {camper.dietaryNotes && (
+                <div>
+                  <p className="text-xs font-medium text-slate-500 mb-1">Dietary</p>
+                  <p className="text-sm text-slate-700 bg-sunset-50 rounded-xl px-3 py-2">{camper.dietaryNotes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-export default function CampersPage() {
+function CampersContent() {
+  const searchParams = useSearchParams();
+  const campId = searchParams.get("campId") || "";
+
   const [campers, setCampers] = useState<Camper[]>([]);
+  const [ageGroups, setAgeGroups] = useState<AgeGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Camper | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Camper | null>(null);
-  const [form, setForm] = useState({
-    firstName: "", lastName: "", guardianName: "", guardianEmail: "",
-    emergencyPhone: "", tshirtSize: "", ageGroup: "both", photoConsent: false,
-  });
+  const [search, setSearch] = useState("");
+  const [filterAge, setFilterAge] = useState("");
+  const [filterSize, setFilterSize] = useState("");
+  const [selectedCamper, setSelectedCamper] = useState<Camper | null>(null);
+  const [sortField, setSortField] = useState<"lastName" | "createdAt">("lastName");
 
-  const fetchCampers = async () => {
-    try {
-      const res = await fetch("/api/campers");
-      const data = await res.json();
-      setCampers(Array.isArray(data) ? data : []);
-    } catch { /* ignore */ }
-    setLoading(false);
+  const load = () => {
+    if (!campId) return;
+    setLoading(true);
+    Promise.all([
+      fetch(`/api/camps/${campId}/campers`).then((r) => r.json()),
+      fetch(`/api/camps/${campId}/age-groups`).then((r) => r.json()),
+    ]).then(([c, ag]) => {
+      setCampers(Array.isArray(c) ? c : []);
+      setAgeGroups(Array.isArray(ag) ? ag : []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
   };
 
-  useEffect(() => { fetchCampers(); }, []);
+  useEffect(() => { load(); }, [campId]);
 
-  const openCreate = () => {
-    setEditing(null);
-    setForm({ firstName: "", lastName: "", guardianName: "", guardianEmail: "", emergencyPhone: "", tshirtSize: "", ageGroup: "both", photoConsent: false });
-    setModalOpen(true);
-  };
-
-  const openEdit = (c: Camper) => {
-    setEditing(c);
-    setForm({
-      firstName: c.firstName, lastName: c.lastName, guardianName: c.guardianName,
-      guardianEmail: c.guardianEmail, emergencyPhone: c.emergencyPhone || "",
-      tshirtSize: c.tshirtSize || "", ageGroup: c.ageGroup, photoConsent: c.photoConsent,
+  const filtered = campers
+    .filter((c) => {
+      const q = search.toLowerCase();
+      const matchSearch =
+        !q ||
+        c.fullName.toLowerCase().includes(q) ||
+        c.guardianName.toLowerCase().includes(q) ||
+        c.guardianEmail.toLowerCase().includes(q);
+      const matchAge = !filterAge || c.ageGroup?.id === filterAge;
+      const matchSize = !filterSize || c.tshirtSize === filterSize;
+      return matchSearch && matchAge && matchSize;
+    })
+    .sort((a, b) => {
+      if (sortField === "lastName") return a.lastName.localeCompare(b.lastName);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-    setModalOpen(true);
-  };
 
-  const handleSave = async () => {
-    const url = editing ? `/api/campers/${editing.id}` : "/api/campers";
-    const method = editing ? "PUT" : "POST";
-    try {
-      await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      setModalOpen(false);
-      fetchCampers();
-    } catch { /* ignore */ }
-  };
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      await fetch(`/api/campers/${deleteTarget.id}`, { method: "DELETE" });
-      setDeleteTarget(null);
-      fetchCampers();
-    } catch { /* ignore */ }
-  };
-
-  if (loading) {
+  if (!campId) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-10 h-10 border-2 border-ember-500 border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-64 text-slate-400">
+        <div className="text-center">
+          <span className="text-4xl mb-3 block">👦</span>
+          <p>Select a camp from the sidebar to view campers.</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-heading font-bold text-3xl text-cream mb-2">Campers</h1>
-          <p className="text-muted">Manage registered campers</p>
+          <h1 className="text-2xl font-bold text-slate-800">Campers</h1>
+          <p className="text-slate-500 text-sm mt-0.5">{campers.length} registered</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-ember-500 to-gold-500 text-night-900 rounded-xl hover:opacity-90 transition-opacity"
-        >
-          + Add Camper
-        </button>
-      </div>
-
-      {campers.length === 0 ? (
-        <div className="glass-card rounded-2xl p-12 text-center">
-          <span className="text-5xl mb-4 block">👦</span>
-          <h2 className="font-heading font-semibold text-xl text-cream mb-2">No campers yet</h2>
-          <p className="text-muted mb-6">Add campers manually or share the registration form link.</p>
-          <button onClick={openCreate} className="px-6 py-2.5 text-sm font-medium bg-gradient-to-r from-ember-500 to-gold-500 text-night-900 rounded-xl hover:opacity-90">
-            + Add Camper
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const csv = [
+                ["Last Name", "First Name", "Age Group", "T-Shirt", "Guardian", "Guardian Email", "Guardian Phone", "Emergency", "Photo Consent"].join(","),
+                ...filtered.map((c) => [
+                  c.lastName, c.firstName,
+                  c.ageGroup?.name || "",
+                  c.tshirtSize || "",
+                  c.guardianName, c.guardianEmail,
+                  c.guardianPhone || "",
+                  c.emergencyPhone || "",
+                  c.photoConsent ? "Yes" : "No",
+                ].map((v) => `"${v}"`).join(",")),
+              ].join("\n");
+              const blob = new Blob([csv], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url; a.download = "campers.csv"; a.click();
+            }}
+            className="px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+          >
+            ↓ Export CSV
           </button>
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search campers, guardians..."
+          className="flex-1 min-w-[200px] max-w-sm px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400"
+        />
+        <select
+          value={filterAge}
+          onChange={(e) => setFilterAge(e.target.value)}
+          className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+        >
+          <option value="">All Age Groups</option>
+          {ageGroups.map((ag) => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
+        </select>
+        <select
+          value={filterSize}
+          onChange={(e) => setFilterSize(e.target.value)}
+          className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+        >
+          <option value="">All Sizes</option>
+          {TSHIRT_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select
+          value={sortField}
+          onChange={(e) => setSortField(e.target.value as "lastName" | "createdAt")}
+          className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+        >
+          <option value="lastName">Sort: Last Name</option>
+          <option value="createdAt">Sort: Newest First</option>
+        </select>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        {ageGroups.map((ag) => {
+          const count = campers.filter((c) => c.ageGroup?.id === ag.id).length;
+          return (
+            <div key={ag.id} className="bg-white rounded-xl border border-slate-200 px-4 py-3">
+              <div className="text-lg font-bold text-slate-800">{count}</div>
+              <div className="text-xs text-slate-500">{ag.name}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-48">
+          <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="camp-card p-12 text-center">
+          <span className="text-5xl mb-4 block">👦</span>
+          <h3 className="font-bold text-slate-700 mb-2">{search || filterAge || filterSize ? "No campers match your filters" : "No campers yet"}</h3>
+          <p className="text-slate-400 text-sm">Campers will appear here once they register through the public registration form.</p>
+        </div>
       ) : (
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-night-600">
-                  <th className="text-left px-6 py-3 text-xs font-medium text-muted uppercase tracking-wider">Name</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-muted uppercase tracking-wider">Guardian</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-muted uppercase tracking-wider">Age Group</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-muted uppercase tracking-wider">T-Shirt</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-muted uppercase tracking-wider">Photo</th>
-                  <th className="text-right px-6 py-3 text-xs font-medium text-muted uppercase tracking-wider">Actions</th>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Camper</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Age Group</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Guardian</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">T-Shirt</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Photo</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map((camper) => (
+                <tr key={camper.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-berry-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {camper.firstName[0]}{camper.lastName[0]}
+                      </div>
+                      <span className="font-medium text-slate-800">{camper.fullName}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    {camper.ageGroup ? (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                        {camper.ageGroup.name}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    <div className="text-slate-800">{camper.guardianName}</div>
+                    <div className="text-slate-400 text-xs">{camper.guardianEmail}</div>
+                  </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    <span className="text-slate-600">{camper.tshirtSize || "—"}</span>
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <span className={camper.photoConsent ? "text-forest-600" : "text-red-400"}>
+                      {camper.photoConsent ? "✓" : "✗"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => setSelectedCamper(camper)}
+                      className="px-3 py-1 text-xs font-medium text-sky-600 bg-sky-50 rounded-lg hover:bg-sky-100 transition-colors"
+                    >
+                      View
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {campers.map((c) => (
-                  <tr key={c.id} className="border-b border-night-700 hover:bg-night-700/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-cream">{c.fullName}</div>
-                      <div className="text-xs text-muted">{c.emergencyPhone || "—"}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-cream">{c.guardianName}</div>
-                      <div className="text-xs text-muted">{c.guardianEmail}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-ember-500/10 text-ember-400 border border-ember-500/30">
-                        {c.ageGroup}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted">{c.tshirtSize || "—"}</td>
-                    <td className="px-6 py-4">
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${c.photoConsent ? "bg-success/10 text-success border border-success/30" : "bg-night-500/20 text-muted border border-night-500/30"}`}>
-                        {c.photoConsent ? "Yes" : "No"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button onClick={() => openEdit(c)} className="text-xs text-cream border border-night-500 rounded-lg px-3 py-1 hover:bg-night-600 mr-2">
-                        Edit
-                      </button>
-                      <button onClick={() => setDeleteTarget(c)} className="text-xs text-error border border-error/30 rounded-lg px-3 py-1 hover:bg-error/10">
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Add/Edit Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Camper" : "Add Camper"}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-muted mb-1.5">First Name</label>
-              <input type="text" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                className="w-full px-3 py-2 bg-night-800 border border-night-500 rounded-xl text-cream text-sm focus:border-ember-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm text-muted mb-1.5">Last Name</label>
-              <input type="text" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                className="w-full px-3 py-2 bg-night-800 border border-night-500 rounded-xl text-cream text-sm focus:border-ember-500 focus:outline-none" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-muted mb-1.5">Guardian Name</label>
-              <input type="text" value={form.guardianName} onChange={(e) => setForm({ ...form, guardianName: e.target.value })}
-                className="w-full px-3 py-2 bg-night-800 border border-night-500 rounded-xl text-cream text-sm focus:border-ember-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm text-muted mb-1.5">Guardian Email</label>
-              <input type="email" value={form.guardianEmail} onChange={(e) => setForm({ ...form, guardianEmail: e.target.value })}
-                className="w-full px-3 py-2 bg-night-800 border border-night-500 rounded-xl text-cream text-sm focus:border-ember-500 focus:outline-none" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm text-muted mb-1.5">Emergency Phone</label>
-            <input type="tel" value={form.emergencyPhone} onChange={(e) => setForm({ ...form, emergencyPhone: e.target.value })}
-              className="w-full px-3 py-2 bg-night-800 border border-night-500 rounded-xl text-cream text-sm focus:border-ember-500 focus:outline-none" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-muted mb-1.5">T-Shirt Size</label>
-              <select value={form.tshirtSize} onChange={(e) => setForm({ ...form, tshirtSize: e.target.value })}
-                className="w-full px-3 py-2 bg-night-800 border border-night-500 rounded-xl text-cream text-sm focus:border-ember-500 focus:outline-none">
-                <option value="">Select...</option>
-                {tshirtSizes.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-muted mb-1.5">Age Group</label>
-              <select value={form.ageGroup} onChange={(e) => setForm({ ...form, ageGroup: e.target.value })}
-                className="w-full px-3 py-2 bg-night-800 border border-night-500 rounded-xl text-cream text-sm focus:border-ember-500 focus:outline-none">
-                {ageGroups.map((g) => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.photoConsent} onChange={(e) => setForm({ ...form, photoConsent: e.target.checked })}
-              className="w-4 h-4 rounded border-night-500 bg-night-800 text-ember-500 focus:ring-ember-500" />
-            <span className="text-sm text-muted">Photo consent granted</span>
-          </label>
-          <div className="flex gap-3 pt-2">
-            <button onClick={() => setModalOpen(false)} className="flex-1 px-4 py-2.5 text-sm text-muted border border-night-500 rounded-xl hover:bg-night-600">Cancel</button>
-            <button onClick={handleSave} className="flex-1 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-ember-500 to-gold-500 text-night-900 rounded-xl hover:opacity-90">
-              {editing ? "Save Changes" : "Add Camper"}
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Delete Confirmation */}
-      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Delete Camper">
-        <p className="text-muted mb-6">Are you sure you want to delete &quot;{deleteTarget?.fullName}&quot;? This action cannot be undone.</p>
-        <div className="flex gap-3 justify-end">
-          <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 text-sm text-muted border border-night-500 rounded-xl hover:bg-night-600">Cancel</button>
-          <button onClick={handleDelete} className="px-4 py-2 text-sm font-medium bg-error text-white rounded-xl hover:opacity-90">Delete</button>
-        </div>
-      </Modal>
+      {selectedCamper && (
+        <CamperDrawer camper={selectedCamper} onClose={() => setSelectedCamper(null)} />
+      )}
     </div>
+  );
+}
+
+export default function CampersPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <CampersContent />
+    </Suspense>
   );
 }

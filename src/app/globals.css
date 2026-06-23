@@ -5,75 +5,139 @@
   --font-body: var(--font-body);
   --font-mono: var(--font-mono);
 
+  /* === Dark / Dusk Campfire (used on public landing/auth pages) === */
   --color-night-900: #0B1622;
   --color-night-800: #122A31;
   --color-night-700: #1A3040;
   --color-night-600: #223A4A;
   --color-night-500: #2A4458;
-
   --color-ember-500: #F0894A;
   --color-ember-400: #F4A06A;
   --color-ember-300: #F7B88A;
   --color-ember-600: #D4723A;
   --color-ember-700: #B85C2A;
-
   --color-gold-500: #E8A84C;
   --color-gold-400: #F0BE6E;
   --color-gold-600: #D0923A;
-
   --color-cream: #F4E9D6;
   --color-muted: #A0B4C4;
-  --color-success: #4CAF50;
+  --color-success: #22C55E;
   --color-error: #E53935;
   --color-info: #42A5F5;
+
+  /* === Colorful SaaS (used on dashboard / admin pages) === */
+  --color-forest-50:  #F0FDF4;
+  --color-forest-100: #DCFCE7;
+  --color-forest-500: #22C55E;
+  --color-forest-600: #16A34A;
+  --color-forest-700: #15803D;
+  --color-sky-50:  #F0F9FF;
+  --color-sky-100: #E0F2FE;
+  --color-sky-500: #0EA5E9;
+  --color-sky-600: #0284C7;
+  --color-sunset-50:  #FFF7ED;
+  --color-sunset-100: #FFEDD5;
+  --color-sunset-500: #F97316;
+  --color-sunset-600: #EA580C;
+  --color-berry-50:  #FAF5FF;
+  --color-berry-100: #F3E8FF;
+  --color-berry-500: #A855F7;
+  --color-berry-600: #9333EA;
+  --color-earth-500: #EAB308;
+  --color-earth-600: #CA8A04;
+  --color-slate-50:  #F8FAFC;
+  --color-slate-100: #F1F5F9;
+  --color-slate-200: #E2E8F0;
+  --color-slate-400: #94A3B8;
+  --color-slate-500: #64748B;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-night-800);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-night-500);
-  border-radius: 3px;
-}
+/* ===================== Scrollbar ===================== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+* { scroll-behavior: smooth; }
 
-/* Smooth transitions */
-* {
-  scroll-behavior: smooth;
-}
-
-/* Ember glow for CTAs */
-.ember-glow {
-  box-shadow: 0 0 20px rgba(240, 137, 74, 0.3), 0 0 60px rgba(240, 137, 74, 0.1);
-}
-
-.ember-glow:hover {
-  box-shadow: 0 0 30px rgba(240, 137, 74, 0.5), 0 0 80px rgba(240, 137, 74, 0.2);
-}
-
-/* Card glass effect */
+/* ===================== Dark theme (public/auth) ===================== */
 .glass-card {
   background: rgba(26, 48, 64, 0.6);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Floating ember particles */
-@keyframes float-up {
-  0% { transform: translateY(0) scale(1); opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+.ember-glow {
+  box-shadow: 0 0 20px rgba(240, 137, 74, 0.3), 0 0 60px rgba(240, 137, 74, 0.1);
+}
+.ember-glow:hover {
+  box-shadow: 0 0 30px rgba(240, 137, 74, 0.5), 0 0 80px rgba(240, 137, 74, 0.2);
 }
 
+@keyframes float-up {
+  0%   { transform: translateY(0) scale(1); opacity: 0.7; }
+  50%  { opacity: 1; }
+  100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+}
 .ember-particle {
   animation: float-up linear infinite;
   position: absolute;
-  width: 4px;
-  height: 4px;
   border-radius: 50%;
   background: var(--color-ember-500);
   box-shadow: 0 0 6px var(--color-ember-500);
+}
+
+/* ===================== Colorful SaaS (dashboard) ===================== */
+.camp-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.camp-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.stat-forest { background: linear-gradient(135deg, #22C55E, #16A34A); }
+.stat-sky    { background: linear-gradient(135deg, #0EA5E9, #0284C7); }
+.stat-sunset { background: linear-gradient(135deg, #F97316, #EA580C); }
+.stat-berry  { background: linear-gradient(135deg, #A855F7, #9333EA); }
+.stat-earth  { background: linear-gradient(135deg, #EAB308, #CA8A04); }
+
+.icon-badge-forest { background: #DCFCE7; color: #16A34A; }
+.icon-badge-sky    { background: #E0F2FE; color: #0284C7; }
+.icon-badge-sunset { background: #FFEDD5; color: #EA580C; }
+.icon-badge-berry  { background: #F3E8FF; color: #9333EA; }
+
+@keyframes animate-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+.animate-float { animation: animate-float 3s ease-in-out infinite; }
+
+@keyframes animate-gradient {
+  0%, 100% { background-size: 200% 200%; background-position: left center; }
+  50%       { background-size: 200% 200%; background-position: right center; }
+}
+.animate-gradient { animation: animate-gradient 8s ease infinite; }
+
+/* Camp dot pattern */
+.camp-dots {
+  background-image: radial-gradient(circle, #94a3b8 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Badge pill */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
