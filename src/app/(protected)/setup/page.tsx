@@ -32,6 +32,14 @@ interface Room {
   description?: string;
 }
 
+interface SessionTemplate {
+  id: string;
+  label: string;
+  day: string;
+  startTime: string;
+  endTime: string;
+}
+
 function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="camp-card p-6 mb-5">
@@ -51,6 +59,7 @@ function SetupContent() {
   const [camp,      setCamp]      = useState<Camp | null>(null);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>([]);
   const [rooms,     setRooms]     = useState<Room[]>([]);
+  const [slots,     setSlots]     = useState<SessionTemplate[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -72,6 +81,13 @@ function SetupContent() {
   const [newAgeMax,   setNewAgeMax]   = useState("");
   const [newAgeColor, setNewAgeColor] = useState("#22C55E");
 
+  // New time slot form
+  const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const [newSlotLabel, setNewSlotLabel] = useState("");
+  const [newSlotDay,   setNewSlotDay]   = useState("Monday");
+  const [newSlotStart, setNewSlotStart] = useState("09:00");
+  const [newSlotEnd,   setNewSlotEnd]   = useState("10:00");
+
   const load = () => {
     if (!campId) return;
     setLoading(true);
@@ -79,7 +95,8 @@ function SetupContent() {
       fetch(`/api/camps/${campId}`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/age-groups`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/rooms`).then((r) => r.json()),
-    ]).then(([c, ag, r]) => {
+      fetch(`/api/camps/${campId}/session-templates`).then((r) => r.json()),
+    ]).then(([c, ag, r, st]) => {
       if (c && !c.error) {
         setCamp(c);
         setCampName(c.name || "");
@@ -90,6 +107,7 @@ function SetupContent() {
       }
       setAgeGroups(Array.isArray(ag) ? ag : []);
       setRooms(Array.isArray(r) ? r : []);
+      setSlots(Array.isArray(st) ? st : []);
       setLoading(false);
     }).catch(() => setLoading(false));
   };
@@ -136,6 +154,22 @@ function SetupContent() {
   const deleteAgeGroup = async (id: string) => {
     if (!confirm("Delete this age group?")) return;
     await fetch(`/api/camps/${campId}/age-groups/${id}`, { method: "DELETE" });
+    load();
+  };
+
+  const addSlot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch(`/api/camps/${campId}/session-templates`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: newSlotLabel, day: newSlotDay, startTime: newSlotStart, endTime: newSlotEnd }),
+    });
+    if (res.ok) { setNewSlotLabel(""); setNewSlotStart("09:00"); setNewSlotEnd("10:00"); load(); }
+  };
+
+  const deleteSlot = async (id: string) => {
+    if (!confirm("Delete this time slot?")) return;
+    await fetch(`/api/camps/${campId}/session-templates/${id}`, { method: "DELETE" });
     load();
   };
 
@@ -321,6 +355,66 @@ function SetupContent() {
           </div>
           <button type="submit" className="px-4 py-2 bg-forest-500 text-white rounded-xl text-sm font-semibold hover:bg-forest-600 transition-colors">
             + Add Group
+          </button>
+        </form>
+      </Section>
+
+      {/* ── Time Slots ── */}
+      <Section title="🕐 Time Slots">
+        <p className="text-xs text-slate-400 mb-4">Define the recurring time blocks for your camp schedule. These are the slots you&apos;ll assign activities to.</p>
+
+        {slots.length === 0 && (
+          <p className="text-slate-400 text-sm mb-4">No time slots yet. Add your first one below.</p>
+        )}
+
+        {/* Group slots by day */}
+        {DAYS.filter(d => slots.some(s => s.day === d)).map(day => (
+          <div key={day} className="mb-4">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{day}</p>
+            <div className="space-y-2">
+              {slots
+                .filter(s => s.day === day)
+                .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                .map(slot => (
+                  <div key={slot.id} className="flex items-center justify-between py-2.5 px-4 bg-slate-50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-100 text-sky-700 rounded-lg text-xs font-semibold">
+                        🕐 {slot.startTime} – {slot.endTime}
+                      </span>
+                      <span className="font-medium text-slate-800 text-sm">{slot.label}</span>
+                    </div>
+                    <button onClick={() => deleteSlot(slot.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1">🗑️</button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ))}
+
+        <form onSubmit={addSlot} className="flex gap-3 items-end flex-wrap mt-2 pt-4 border-t border-slate-100">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Label</label>
+            <input type="text" value={newSlotLabel} onChange={e => setNewSlotLabel(e.target.value)} required placeholder="e.g. Morning Session"
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Day</label>
+            <select value={newSlotDay} onChange={e => setNewSlotDay(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/30">
+              {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Start Time</label>
+            <input type="time" value={newSlotStart} onChange={e => setNewSlotStart(e.target.value)} required
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">End Time</label>
+            <input type="time" value={newSlotEnd} onChange={e => setNewSlotEnd(e.target.value)} required
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+          </div>
+          <button type="submit" className="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors">
+            + Add Slot
           </button>
         </form>
       </Section>
