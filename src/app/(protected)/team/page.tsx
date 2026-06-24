@@ -41,7 +41,7 @@ function TeamContent() {
   const [inviteEmail, setInviteEmail]   = useState("");
   const [inviteRole,  setInviteRole]    = useState<CampRole>("editor");
   const [inviting,    setInviting]      = useState(false);
-  const [inviteMsg,   setInviteMsg]     = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [inviteMsg,   setInviteMsg]     = useState<{ type: "success" | "error" | "warn"; text: string; link?: string } | null>(null);
 
   const canManage = myRole === "owner" || myRole === "admin";
 
@@ -74,8 +74,15 @@ function TeamContent() {
     if (res.ok) {
       if (data.added) {
         setInviteMsg({ type: "success", text: `${data.user.name || data.user.email} was added to the team immediately (they already have an account).` });
-      } else {
+      } else if (data.emailSent) {
         setInviteMsg({ type: "success", text: `Invite sent to ${inviteEmail}! They'll receive an email with a link to join.` });
+      } else {
+        // Email failed — show the manual link
+        setInviteMsg({
+          type: "warn",
+          text: `Invite created but email delivery failed${data.emailError ? ` (${data.emailError})` : ""}. Share this link manually:`,
+          link: data.inviteUrl,
+        });
       }
       setInviteEmail("");
       load();
@@ -163,8 +170,22 @@ function TeamContent() {
             </button>
           </form>
           {inviteMsg && (
-            <div className={`mt-3 px-4 py-2.5 rounded-xl text-sm ${inviteMsg.type === "success" ? "bg-forest-50 text-forest-700 border border-forest-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+            <div className={`mt-3 px-4 py-2.5 rounded-xl text-sm ${
+              inviteMsg.type === "success" ? "bg-forest-50 text-forest-700 border border-forest-200"
+              : inviteMsg.type === "warn" ? "bg-amber-50 text-amber-800 border border-amber-200"
+              : "bg-red-50 text-red-600 border border-red-200"
+            }`}>
               {inviteMsg.text}
+              {inviteMsg.link && (
+                <div className="mt-2 flex items-center gap-2">
+                  <input readOnly value={inviteMsg.link}
+                    className="flex-1 text-xs bg-white border border-amber-200 rounded-lg px-2 py-1 text-amber-900 font-mono" />
+                  <button onClick={() => { navigator.clipboard.writeText(inviteMsg.link!); }}
+                    className="text-xs px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg font-semibold">
+                    Copy
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -5,15 +5,15 @@ import { useSearchParams, useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 
 const TEMPLATE_HEADERS = [
-  "activity_name","activity_description","activity_icon","activity_capacity",
+  "activity_name","activity_description","activity_capacity",
   "room_name","age_group_name",
   "teacher_first_name","teacher_last_name","teacher_email","teacher_role",
   "assistant_first_name","assistant_last_name","assistant_email",
-  "slot_label","slot_day","slot_start_time","slot_end_time",
+  "session_label","session_day","session_start_time","session_end_time",
 ];
 
 const EXAMPLE_ROW = [
-  "Watercolor Painting","Learn basic watercolor techniques","🎨","15",
+  "Watercolor Painting","Learn basic watercolor techniques","15",
   "Art Room","Elementary",
   "Jane","Smith","jane@camp.com","teacher",
   "Bob","Jones","bob@camp.com",
@@ -24,9 +24,9 @@ const COLUMN_NOTES: Record<string, string> = {
   activity_name: "Required. Must be unique per camp.",
   activity_capacity: "Number e.g. 20",
   teacher_role: "teacher, assistant, director, or staff",
-  slot_day: "Mon, Tue, Wed, Thu, Fri, Sat, Sun — or 0-6",
-  slot_start_time: "e.g. 9:00 AM or 09:00",
-  slot_end_time: "e.g. 10:00 AM or 10:00",
+  session_day: "Mon, Tue, Wed, Thu, Fri, Sat, Sun — or 0-6",
+  session_start_time: "e.g. 9:00 AM or 09:00",
+  session_end_time: "e.g. 10:00 AM or 10:00",
 };
 
 interface ImportResult {

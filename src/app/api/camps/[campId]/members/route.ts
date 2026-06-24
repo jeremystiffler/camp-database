@@ -64,18 +64,39 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const inviteUrl = `${process.env.NEXTAUTH_URL || "https://camp-database.vercel.app"}/invite/${invite.token}`;
 
   // Send invite email if Resend configured
+  let emailSent = false;
+  let emailError = "";
   if (process.env.RESEND_API_KEY) {
-    const { getResend, FROM_EMAIL } = await import("@/lib/email");
-    const resend = getResend();
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: email,
-      subject: `You're invited to join ${camp?.name || "a camp"} on Camp Creator`,
-      html: buildInviteEmail({ email, campName: camp?.name || "a camp", role: inviteRole, inviteUrl, inviterName: session.name }),
-    });
+    try {
+      const { getResend } = await import("@/lib/email");
+      const resend = getResend();
+      // Must use a verified domain — onboarding@resend.dev is sandbox only
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "Camp Creator <noreply@camp-database.vercel.app>";
+      const result = await resend.emails.send({
+        from: fromEmail,
+        to: email,
+        subject: `You're invited to join ${camp?.name || "a camp"} on Camp Creator`,
+        html: buildInviteEmail({ email, campName: camp?.name || "a camp", role: inviteRole, inviteUrl, inviterName: session.name }),
+      });
+      if (result.error) {
+        emailError = result.error.message;
+      } else {
+        emailSent = true;
+      }
+    } catch (e) {
+      emailError = e instanceof Error ? e.message : "Email send failed";
+    }
   }
 
-  return NextResponse.json({ invited: true, token: invite.token, inviteUrl });
+  return NextResponse.json({
+    invited: true,
+    token: invite.token,
+    inviteUrl,
+    emailSent,
+    emailError: emailError || undefined,
+    // Always return the invite URL so admin can share it manually
+    manualInstructions: !emailSent ? `Share this link directly: ${inviteUrl}` : undefined,
+  });
 }
 
 function buildInviteEmail({ email, campName, role, inviteUrl, inviterName }: {

@@ -21,6 +21,7 @@ interface AgeGroup {
   maxAge?: number;
   color: string;
   displayOrder: number;
+  noSchedule: boolean;
 }
 
 interface Room {
@@ -305,8 +306,34 @@ function SettingsContent() {
                       {ag.minAge ?? "?"}-{ag.maxAge ?? "?"} yrs
                     </span>
                   )}
+                  {ag.noSchedule && (
+                    <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
+                      Registration only
+                    </span>
+                  )}
                 </div>
-                <button onClick={() => deleteAgeGroup(ag.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1">🗑️</button>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 cursor-pointer" title="No schedule — registration, t-shirts, nametags only">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={ag.noSchedule}
+                      onClick={async () => {
+                        await fetch(`/api/camps/${campId}/age-groups/${ag.id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ noSchedule: !ag.noSchedule }),
+                        });
+                        setAgeGroups(prev => prev.map(g => g.id === ag.id ? { ...g, noSchedule: !g.noSchedule } : g));
+                      }}
+                      className={`relative w-8 h-4 rounded-full transition-colors flex-shrink-0 ${ag.noSchedule ? "bg-amber-400" : "bg-slate-200"}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${ag.noSchedule ? "translate-x-4" : ""}`} />
+                    </button>
+                    <span className="text-xs text-slate-500 whitespace-nowrap">Reg. only</span>
+                  </label>
+                  <button onClick={() => deleteAgeGroup(ag.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1">🗑️</button>
+                </div>
               </div>
             ))}
         </div>

@@ -11,9 +11,10 @@ const navItems = [
   { href: "/teachers",   label: "Teachers",     icon: "🧑‍🏫" },
   { href: "/campers",    label: "Campers",      icon: "👦" },
   { href: "/schedule",   label: "Schedule",     icon: "📅" },
-  { href: "/print",      label: "Print Center", icon: "🖨️" },
-  { href: "/import",     label: "Import (Beta)", icon: "📥" },
-  { href: "/team",       label: "Team",         icon: "👥" },
+  { href: "/print",        label: "Print Center",   icon: "🖨️" },
+  { href: "/registration", label: "Reg. Form",      icon: "📋" },
+  { href: "/import",       label: "Import (Beta)",  icon: "📥" },
+  { href: "/team",         label: "Team",           icon: "👥" },
   { href: "/settings",   label: "Settings",     icon: "⚙️" },
 ];
 

@@ -48,6 +48,7 @@ model Camp {
   updatedAt        DateTime     @updatedAt
   members          CampMember[]
   invites          CampInvite[]
+  registrationForm RegistrationForm?
   ageGroups        AgeGroup[]
   rooms            Room[]
   persons          Person[]
@@ -79,6 +80,7 @@ model AgeGroup {
   maxAge       Int?
   displayOrder Int      @default(0)
   color        String   @default("#6366f1")
+  noSchedule   Boolean  @default(false)
   createdAt    DateTime @default(now())
   courses      Course[]
   courseAgeGroups CourseAgeGroup[]
@@ -229,6 +231,15 @@ model Enrollment {
   status    String   @default("enrolled")
   createdAt DateTime @default(now())
   @@unique([camperId, sessionId])
+}
+
+model RegistrationForm {
+  id        String   @id @default(cuid())
+  campId    String   @unique
+  camp      Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  fields    String   @default("[]") // JSON array of field definitions
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model CampInvite {

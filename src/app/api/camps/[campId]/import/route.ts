@@ -24,12 +24,9 @@ function parseDay(val: string | undefined): number | undefined {
 interface ImportRow {
   activity_name?: string;
   activity_description?: string;
-  activity_icon?: string;
-  activity_color?: string;
   activity_capacity?: string;
   room_name?: string;
   age_group_name?: string;
-  age_group_color?: string;
   teacher_first_name?: string;
   teacher_last_name?: string;
   teacher_email?: string;
@@ -37,10 +34,10 @@ interface ImportRow {
   assistant_first_name?: string;
   assistant_last_name?: string;
   assistant_email?: string;
-  slot_label?: string;
-  slot_day?: string;
-  slot_start_time?: string;
-  slot_end_time?: string;
+  session_label?: string;
+  session_day?: string;
+  session_start_time?: string;
+  session_end_time?: string;
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ campId: string }> }) {
@@ -146,13 +143,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
       // ── e. Session Template ──────────────────────────────────────────────
       let sessionTemplateId: string | undefined;
-      if (row.slot_start_time?.trim() && row.slot_end_time?.trim()) {
-        const dayOfWeek = parseDay(row.slot_day);
+      if (row.session_start_time?.trim() && row.session_end_time?.trim()) {
+        const dayOfWeek = parseDay(row.session_day);
         const existing = await prisma.sessionTemplate.findFirst({
           where: {
             campId,
-            startTime: row.slot_start_time.trim(),
-            endTime: row.slot_end_time.trim(),
+            startTime: row.session_start_time.trim(),
+            endTime: row.session_end_time.trim(),
             ...(dayOfWeek !== undefined ? { dayOfWeek } : {}),
           },
         });
@@ -162,10 +159,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           const created = await prisma.sessionTemplate.create({
             data: {
               campId,
-              startTime: row.slot_start_time.trim(),
-              endTime: row.slot_end_time.trim(),
+              startTime: row.session_start_time.trim(),
+              endTime: row.session_end_time.trim(),
               dayOfWeek: dayOfWeek ?? null,
-              label: row.slot_label?.trim() || undefined,
+              label: row.session_label?.trim() || undefined,
             },
           });
           sessionTemplateId = created.id;
@@ -182,7 +179,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           where: { id: existing.id },
           data: {
             description: row.activity_description?.trim() || existing.description || undefined,
-            icon: row.activity_icon?.trim() || existing.icon || undefined,
+            icon: existing.icon || undefined,
             cap: row.activity_capacity ? parseInt(row.activity_capacity) : existing.cap,
             roomId: roomId ?? existing.roomId,
           },
@@ -195,7 +192,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
             campId,
             name: row.activity_name.trim(),
             description: row.activity_description?.trim() || undefined,
-            icon: row.activity_icon?.trim() || "🎯",
+            icon: "🎯",
             color: randomColor(ACTIVITY_COLORS),
             cap: row.activity_capacity ? parseInt(row.activity_capacity) : 20,
             roomId: roomId || undefined,
