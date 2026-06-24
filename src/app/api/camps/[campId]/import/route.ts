@@ -2,23 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
-const DAY_MAP: Record<string, number> = {
-  sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tuesday: 2,
-  wed: 3, wednesday: 3, thu: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6,
-};
-
-const ACTIVITY_COLORS = ["#22C55E","#0EA5E9","#F97316","#A855F7","#EAB308","#EC4899","#14B8A6","#6366F1"];
+const ACTIVITY_COLORS  = ["#22C55E","#0EA5E9","#F97316","#A855F7","#EAB308","#EC4899","#14B8A6","#6366F1"];
 const AGE_GROUP_COLORS = ["#6366F1","#22C55E","#0EA5E9","#F97316","#A855F7","#EC4899","#EAB308","#14B8A6"];
 
 function randomColor(palette: string[]): string {
   return palette[Math.floor(Math.random() * palette.length)];
-}
-
-function parseDay(val: string | undefined): number | undefined {
-  if (!val) return undefined;
-  const n = parseInt(val);
-  if (!isNaN(n) && n >= 0 && n <= 6) return n;
-  return DAY_MAP[val.toLowerCase().trim()] ?? undefined;
 }
 
 interface ImportRow {
@@ -34,10 +22,6 @@ interface ImportRow {
   assistant_first_name?: string;
   assistant_last_name?: string;
   assistant_email?: string;
-  session_label?: string;
-  session_day?: string;
-  session_start_time?: string;
-  session_end_time?: string;
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ campId: string }> }) {
@@ -54,12 +38,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   }
 
   let coursesCreated = 0, coursesUpdated = 0, teachersCreated = 0;
-  let roomsCreated = 0, slotsCreated = 0, ageGroupsCreated = 0;
+  let roomsCreated = 0, ageGroupsCreated = 0;
   const errors: string[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const rowNum = i + 2; // 1-indexed, +1 for header row
+    const rowNum = i + 2;
 
     if (!row.activity_name?.trim()) {
       errors.push(`Row ${rowNum}: activity_name is required — skipped`);
@@ -141,36 +125,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         }
       }
 
-      // ── e. Session Template ──────────────────────────────────────────────
-      let sessionTemplateId: string | undefined;
-      if (row.session_start_time?.trim() && row.session_end_time?.trim()) {
-        const dayOfWeek = parseDay(row.session_day);
-        const existing = await prisma.sessionTemplate.findFirst({
-          where: {
-            campId,
-            startTime: row.session_start_time.trim(),
-            endTime: row.session_end_time.trim(),
-            ...(dayOfWeek !== undefined ? { dayOfWeek } : {}),
-          },
-        });
-        if (existing) {
-          sessionTemplateId = existing.id;
-        } else {
-          const created = await prisma.sessionTemplate.create({
-            data: {
-              campId,
-              startTime: row.session_start_time.trim(),
-              endTime: row.session_end_time.trim(),
-              dayOfWeek: dayOfWeek ?? null,
-              label: row.session_label?.trim() || undefined,
-            },
-          });
-          sessionTemplateId = created.id;
-          slotsCreated++;
-        }
-      }
-
-      // ── f. Course ────────────────────────────────────────────────────────
+      // ── e. Course ────────────────────────────────────────────────────────
       const existing = await prisma.course.findFirst({ where: { campId, name: row.activity_name.trim() } });
       let courseId: string;
 
@@ -179,7 +134,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           where: { id: existing.id },
           data: {
             description: row.activity_description?.trim() || existing.description || undefined,
-            icon: existing.icon || undefined,
             cap: row.activity_capacity ? parseInt(row.activity_capacity) : existing.cap,
             roomId: roomId ?? existing.roomId,
           },
@@ -202,7 +156,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         coursesCreated++;
       }
 
-      // ── g–j. Join records (upsert pattern: find or create) ───────────────
+      // ── f. Join records ──────────────────────────────────────────────────
       if (ageGroupId) {
         const exists = await prisma.courseAgeGroup.findFirst({ where: { courseId, ageGroupId } });
         if (!exists) await prisma.courseAgeGroup.create({ data: { courseId, ageGroupId } });
@@ -215,10 +169,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         const exists = await prisma.courseTeacher.findFirst({ where: { courseId, personId: assistantId } });
         if (!exists) await prisma.courseTeacher.create({ data: { courseId, personId: assistantId } });
       }
-      if (sessionTemplateId) {
-        const exists = await prisma.courseSessionTemplate.findFirst({ where: { courseId, sessionTemplateId } });
-        if (!exists) await prisma.courseSessionTemplate.create({ data: { courseId, sessionTemplateId } });
-      }
 
     } catch (err) {
       errors.push(`Row ${rowNum} (${row.activity_name}): ${err instanceof Error ? err.message : "Unknown error"}`);
@@ -227,7 +177,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
   return NextResponse.json({
     coursesCreated, coursesUpdated, teachersCreated,
-    roomsCreated, slotsCreated, ageGroupsCreated, errors,
+    roomsCreated, ageGroupsCreated, errors,
     total: rows.length,
   });
 }
