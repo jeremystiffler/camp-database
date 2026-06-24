@@ -183,7 +183,34 @@ function ImportContent() {
     return Array.from(map.values()).sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [sessionTemplates]);
 
-  // Which session groups are checked for a course (has ANY of the group's template IDs)
+  // Delete selected courses
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+
+  const toggleSelectCourse = (id: string) => {
+    setSelectedCourseIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedCourseIds(prev =>
+      prev.size === courses.length ? new Set() : new Set(courses.map(c => c.id))
+    );
+  };
+
+  const deleteSelected = async () => {
+    if (!confirm(`Delete ${selectedCourseIds.size} activit${selectedCourseIds.size === 1 ? "y" : "ies"}? This cannot be undone.`)) return;
+    setDeleting(true);
+    await Promise.all([...selectedCourseIds].map(id =>
+      fetch(`/api/camps/${campId}/courses/${id}`, { method: "DELETE" })
+    ));
+    setSelectedCourseIds(new Set());
+    setDeleting(false);
+    loadGridData();
+  };
   const courseCheckedGroups = (course: Course): Set<string> => {
     const assignedIds = new Set(course.courseSessionTemplates.map(cst => cst.sessionTemplateId));
     const checked = new Set<string>();
@@ -537,9 +564,34 @@ function ImportContent() {
 
         {courses.length > 0 && sessionGroups.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-slate-200">
+              {/* Delete toolbar */}
+              {selectedCourseIds.size > 0 && (
+                <div className="flex items-center justify-between px-4 py-2.5 bg-red-50 border-b border-red-200">
+                  <span className="text-sm font-medium text-red-700">
+                    {selectedCourseIds.size} activit{selectedCourseIds.size === 1 ? "y" : "ies"} selected
+                  </span>
+                  <button
+                    onClick={deleteSelected}
+                    disabled={deleting}
+                    className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 disabled:opacity-60 flex items-center gap-1.5 transition-colors"
+                  >
+                    {deleting ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Deleting…</> : <>🗑️ Delete Selected</>}
+                  </button>
+                </div>
+              )}
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-50">
+                  {/* Select-all checkbox */}
+                  <th className="py-3 px-3 border-b border-slate-200 w-10">
+                    <input
+                      type="checkbox"
+                      checked={courses.length > 0 && selectedCourseIds.size === courses.length}
+                      ref={el => { if (el) el.indeterminate = selectedCourseIds.size > 0 && selectedCourseIds.size < courses.length; }}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded cursor-pointer accent-red-500"
+                    />
+                  </th>
                   {/* Activity column */}
                   <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[180px]">
                     Activity
@@ -585,8 +637,18 @@ function ImportContent() {
               <tbody>
                 {courses.map((course, i) => {
                   const checked = courseCheckedGroups(course);
+                  const isSelected = selectedCourseIds.has(course.id);
                   return (
-                    <tr key={course.id} className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} hover:bg-sky-50/20 transition-colors`}>
+                    <tr key={course.id} className={`${isSelected ? "bg-red-50" : i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} hover:bg-sky-50/20 transition-colors`}>
+                      {/* Row select checkbox */}
+                      <td className="py-3 px-3 border-b border-slate-100">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectCourse(course.id)}
+                          className="w-4 h-4 rounded cursor-pointer accent-red-500"
+                        />
+                      </td>
                       {/* Activity name + age groups + lead teacher */}
                       <td className="py-3 px-4 border-b border-slate-100">
                         <div className="font-semibold text-slate-800 text-sm">{course.name}</div>
