@@ -125,8 +125,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         }
       }
 
-      // ── e. Course ────────────────────────────────────────────────────────
-      const existing = await prisma.course.findFirst({ where: { campId, name: row.activity_name.trim() } });
+      // ── e. Course (unique by name + age group) ──────────────────────────
+      // Two courses can share a name if they serve different age groups
+      // (e.g. "Arts and Crafts Older" vs "Arts and Crafts Younger"), but we
+      // also handle the case where the name alone is used as a differentiator.
+      // Composite match: same name AND same first age group (if provided).
+      let existing = null;
+      if (ageGroupId) {
+        // Try exact name + age group match first
+        const linked = await prisma.courseAgeGroup.findFirst({
+          where: { ageGroupId, course: { campId, name: row.activity_name.trim() } },
+          include: { course: true },
+        });
+        existing = linked?.course ?? null;
+      }
+      if (!existing) {
+        // Fall back to name-only match (no age group specified, or no match above)
+        const byName = await prisma.course.findFirst({ where: { campId, name: row.activity_name.trim() } });
+        // Only use name-only match if this course has NO age groups yet (avoids merging split classes)
+        if (byName) {
+          const hasAgeGroups = await prisma.courseAgeGroup.findFirst({ where: { courseId: byName.id } });
+          if (!hasAgeGroups || !ageGroupId) existing = byName;
+        }
+      }
       let courseId: string;
 
       if (existing) {
