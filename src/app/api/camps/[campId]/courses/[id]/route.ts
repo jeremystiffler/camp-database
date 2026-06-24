@@ -10,13 +10,39 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
 
   const { ageGroupIds, teacherIds, sessionTemplateIds, ...data } = await req.json();
 
+  // ── Load current course state for conflict check ───────────────────────────
+  // The caller may only send ONE of {roomId, teacherIds, sessionTemplateIds}.
+  // We must merge the incoming partial update with the existing values so the
+  // conflict engine always sees the full picture (room + all teachers + all slots).
+  const existing = await prisma.course.findUnique({
+    where: { id },
+    include: {
+      courseTeachers:         { select: { personId: true } },
+      courseSessionTemplates: { select: { sessionTemplateId: true } },
+    },
+  });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Resolved values: prefer what was sent, fall back to what already exists
+  const resolvedRoomId = "roomId" in data
+    ? (data.roomId || undefined)
+    : (existing.roomId || undefined);
+
+  const resolvedTeacherIds = Array.isArray(teacherIds)
+    ? teacherIds
+    : existing.courseTeachers.map(ct => ct.personId);
+
+  const resolvedSlotIds = Array.isArray(sessionTemplateIds)
+    ? sessionTemplateIds
+    : existing.courseSessionTemplates.map(cst => cst.sessionTemplateId);
+
   // ── Conflict check (exclude self) ────────────────────────────────────────
   const conflicts = await checkSchedulingConflicts({
     campId,
     excludeCourseId: id,
-    roomId: data.roomId || undefined,
-    teacherIds: Array.isArray(teacherIds) ? teacherIds : [],
-    sessionTemplateIds: Array.isArray(sessionTemplateIds) ? sessionTemplateIds : [],
+    roomId:              resolvedRoomId,
+    teacherIds:          resolvedTeacherIds,
+    sessionTemplateIds:  resolvedSlotIds,
   });
   if (conflicts.length > 0) {
     return NextResponse.json({ error: "scheduling_conflict", conflicts }, { status: 409 });
@@ -47,10 +73,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const full = await prisma.course.findUnique({
     where: { id },
     include: {
-      ageGroup: true,
-      courseAgeGroups: { include: { ageGroup: true } },
-      room: true,
-      courseTeachers: { include: { person: true } },
+      ageGroup:               true,
+      courseAgeGroups:        { include: { ageGroup: true } },
+      room:                   true,
+      courseTeachers:         { include: { person: true } },
       courseSessionTemplates: { include: { sessionTemplate: true } },
     },
   });
