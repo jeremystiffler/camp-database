@@ -43,6 +43,8 @@ interface Course {
   id: string; name: string; roomId: string | null;
   room: { id: string; name: string } | null;
   courseSessionTemplates: { sessionTemplateId: string }[];
+  courseAgeGroups: { ageGroup: { id: string; name: string } }[];
+  courseTeachers: { person: { id: string; firstName: string; lastName: string; role: string } }[];
 }
 interface ImportResult {
   coursesCreated: number; coursesUpdated: number; teachersCreated: number;
@@ -189,6 +191,29 @@ function ImportContent() {
       if (sg.ids.some(id => assignedIds.has(id))) checked.add(sg.key);
     }
     return checked;
+  };
+
+  // Is every activity assigned to this session group?
+  const isColumnFull = (sg: SessionGroup): boolean => {
+    if (courses.length === 0) return false;
+    return courses.every(c => courseCheckedGroups(c).has(sg.key));
+  };
+
+  // Is at least one (but not all) activity assigned to this session group?
+  const isColumnPartial = (sg: SessionGroup): boolean => {
+    if (courses.length === 0) return false;
+    const count = courses.filter(c => courseCheckedGroups(c).has(sg.key)).length;
+    return count > 0 && count < courses.length;
+  };
+
+  // Toggle every activity in a session group on or off
+  const toggleColumnAll = async (sg: SessionGroup, enable: boolean) => {
+    for (const course of courses) {
+      const checked = courseCheckedGroups(course);
+      const alreadyOn = checked.has(sg.key);
+      if (enable === alreadyOn) continue;
+      await toggleSlotGroup(course, sg, enable);
+    }
   };
 
   // Toggle a session group for a course
@@ -529,11 +554,29 @@ function ImportContent() {
                       .filter(st => sg.ids.includes(st.id) && st.dayOfWeek !== null)
                       .map(st => DAY_ABBR[st.dayOfWeek!])
                       .join(", ");
+                    const full    = isColumnFull(sg);
+                    const partial = isColumnPartial(sg);
                     return (
-                      <th key={sg.key} className="text-center py-3 px-3 border-b border-slate-200 min-w-[100px]">
+                      <th key={sg.key} className="text-center py-3 px-3 border-b border-slate-200 min-w-[110px]">
                         <div className="font-semibold text-slate-700 text-xs">{sg.label}</div>
                         <div className="text-slate-400 text-xs font-normal">{sg.startTime}–{sg.endTime}</div>
                         {days && <div className="text-slate-300 text-xs font-normal">{days}</div>}
+                        {/* Default-on toggle */}
+                        <div className="mt-2 flex flex-col items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => toggleColumnAll(sg, !full)}
+                            title={full ? "Remove all from this session" : "Assign all activities to this session"}
+                            className={`relative w-9 h-[18px] rounded-full transition-colors flex-shrink-0 ${
+                              full ? "bg-sky-500" : partial ? "bg-sky-200" : "bg-slate-200"
+                            }`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${full ? "translate-x-[18px]" : ""}`} />
+                          </button>
+                          <span className="text-[10px] font-medium text-slate-400">
+                            {full ? "all on" : partial ? "partial" : "all off"}
+                          </span>
+                        </div>
                       </th>
                     );
                   })}
@@ -544,9 +587,22 @@ function ImportContent() {
                   const checked = courseCheckedGroups(course);
                   return (
                     <tr key={course.id} className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} hover:bg-sky-50/20 transition-colors`}>
-                      {/* Activity name */}
+                      {/* Activity name + age groups + lead teacher */}
                       <td className="py-3 px-4 border-b border-slate-100">
-                        <span className="font-semibold text-slate-800 text-sm">{course.name}</span>
+                        <div className="font-semibold text-slate-800 text-sm">{course.name}</div>
+                        {course.courseAgeGroups.length > 0 && (
+                          <div className="text-xs text-berry-600 font-medium mt-0.5">
+                            {course.courseAgeGroups.map(cag => cag.ageGroup.name).join(" · ")}
+                          </div>
+                        )}
+                        {(() => {
+                          const lead = course.courseTeachers.find(ct => ct.person.role === "teacher" || ct.person.role === "director");
+                          return lead ? (
+                            <div className="text-xs text-slate-400 mt-0.5">
+                              🧑‍🏫 {lead.person.firstName} {lead.person.lastName}
+                            </div>
+                          ) : null;
+                        })()}
                       </td>
                       {/* Room dropdown */}
                       <td className="py-3 px-4 border-b border-slate-100">
@@ -593,8 +649,11 @@ function ImportContent() {
         )}
 
         {courses.length > 0 && sessionGroups.length > 0 && (
-          <p className="text-xs text-slate-400 mt-3">
-            ✓ = runs that session on all scheduled days &nbsp;·&nbsp; room and slot changes save instantly
+          <p className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
+            <span>✓ checkbox = runs that session on all scheduled days</span>
+            <span>· room and slot changes save instantly</span>
+            <span>· <span className="inline-block w-6 h-[14px] rounded-full bg-sky-500 align-middle" /> column toggle = assign/remove ALL activities at once</span>
+            <span>· <span className="inline-block w-6 h-[14px] rounded-full bg-sky-200 align-middle" /> = partial</span>
           </p>
         )}
       </div>
