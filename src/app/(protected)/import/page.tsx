@@ -154,6 +154,7 @@ function ImportContent() {
   const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
   const [assignSaving,     setAssignSaving]     = useState<Record<string, boolean>>({});
   const [conflictToast,    setConflictToast]    = useState<{ courseName: string; sessionLabel: string; conflicts: { type: string; detail: string; activityName: string; slotLabel: string; locationNote?: string }[] } | null>(null);
+  const [activityFilter,   setActivityFilter]   = useState("");
 
   const loadGridData = () => {
     if (!campId) return;
@@ -162,7 +163,9 @@ function ImportContent() {
       fetch(`/api/camps/${campId}/rooms`).then(r => r.json()),
       fetch(`/api/camps/${campId}/session-templates`).then(r => r.json()),
     ]).then(([c, r, st]) => {
-      setCourses(Array.isArray(c) ? c : []);
+      // Sort alphabetically once on load — never reorders on room/slot changes
+      const sorted = Array.isArray(c) ? [...c].sort((a: Course, b: Course) => a.name.localeCompare(b.name)) : [];
+      setCourses(sorted);
       setRooms(Array.isArray(r) ? r : []);
       setSessionTemplates(Array.isArray(st) ? st : []);
     });
@@ -570,6 +573,27 @@ function ImportContent() {
 
         {courses.length > 0 && sessionGroups.length > 0 && (
           <>
+            {/* Filter bar */}
+            <div className="mb-3 flex items-center gap-3">
+              <div className="relative flex-1 max-w-xs">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+                <input
+                  type="text"
+                  value={activityFilter}
+                  onChange={e => setActivityFilter(e.target.value)}
+                  placeholder="Filter activities…"
+                  className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-400/30"
+                />
+                {activityFilter && (
+                  <button onClick={() => setActivityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+                )}
+              </div>
+              {activityFilter && (
+                <span className="text-xs text-slate-400">
+                  {courses.filter(c => c.name.toLowerCase().includes(activityFilter.toLowerCase())).length} of {courses.length}
+                </span>
+              )}
+            </div>
             {/* Conflict toast */}
             {conflictToast && (
               <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4">
@@ -670,7 +694,9 @@ function ImportContent() {
                 </tr>
               </thead>
               <tbody>
-                {courses.map((course, i) => {
+                {courses
+                  .filter(c => c.name.toLowerCase().includes(activityFilter.toLowerCase()))
+                  .map((course, i) => {
                   const checked = courseCheckedGroups(course);
                   const isSelected = selectedCourseIds.has(course.id);
                   return (
