@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { checkSchedulingConflicts } from "@/lib/scheduling-conflicts";
 
 const ACTIVITY_COLORS  = ["#22C55E","#0EA5E9","#F97316","#A855F7","#EAB308","#EC4899","#14B8A6","#6366F1"];
 const AGE_GROUP_COLORS = ["#6366F1","#22C55E","#0EA5E9","#F97316","#A855F7","#EC4899","#EAB308","#14B8A6"];
@@ -178,6 +179,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       }
 
       // ── f. Join records ──────────────────────────────────────────────────
+      // Collect the full set of teacher IDs and session template IDs this course
+      // will have after this import row, then run the conflict engine before
+      // writing anything — same guard as POST/PATCH /courses.
+      const existingTeacherIds = (await prisma.courseTeacher.findMany({ where: { courseId } })).map(ct => ct.personId);
+      const existingSlotIds    = (await prisma.courseSessionTemplate.findMany({ where: { courseId } })).map(cst => cst.sessionTemplateId);
+      const incomingTeacherIds = [...new Set([...existingTeacherIds, ...(teacherId ? [teacherId] : []), ...(assistantId ? [assistantId] : [])])];
+
+      if (incomingTeacherIds.length > 0 || (roomId ?? null)) {
+        const conflicts = await checkSchedulingConflicts({
+          campId,
+          excludeCourseId: courseId,
+          roomId: roomId ?? undefined,
+          teacherIds: incomingTeacherIds,
+          sessionTemplateIds: existingSlotIds,
+        });
+        if (conflicts.length > 0) {
+          const reasons = conflicts.map(c =>
+            c.type === "room"
+              ? `Room "${c.detail}" already booked by "${c.activityName}" at ${c.slotLabel}`
+              : `Teacher "${c.detail}" already teaching "${c.activityName}" at ${c.slotLabel}`
+          ).join("; ");
+          errors.push(`Row ${rowNum} (${row.activity_name}): scheduling conflict — ${reasons}`);
+          continue;
+        }
+      }
+
       if (ageGroupId) {
         const exists = await prisma.courseAgeGroup.findFirst({ where: { courseId, ageGroupId } });
         if (!exists) await prisma.courseAgeGroup.create({ data: { courseId, ageGroupId } });
