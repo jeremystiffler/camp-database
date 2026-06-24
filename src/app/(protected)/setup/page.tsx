@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -34,11 +34,31 @@ interface Room {
 
 interface SessionTemplate {
   id: string;
-  label: string;
-  day: string;
+  label: string | null;
+  day: string | null;
+  dayOfWeek: number | null;
   startTime: string;
   endTime: string;
 }
+
+interface SessionRow {
+  key: string;
+  label: string;
+  startTime: string;
+  endTime: string;
+  days: Set<number>;
+  slotIds: Map<number, string>;
+}
+
+interface DraftRow {
+  id: string;
+  label: string;
+  start: string;
+  end: string;
+}
+
+const DAY_INT_TO_NAME = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const DAY_ABBR        = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
@@ -65,11 +85,11 @@ function SetupContent() {
   const [saved,     setSaved]     = useState(false);
 
   // Camp form state
-  const [campName,          setCampName]          = useState("");
-  const [startDate,         setStartDate]         = useState("");
-  const [endDate,           setEndDate]           = useState("");
-  const [registrationOpen,  setRegistrationOpen]  = useState(false);
-  const [status,            setStatus]            = useState("draft");
+  const [campName,         setCampName]         = useState("");
+  const [startDate,        setStartDate]        = useState("");
+  const [endDate,          setEndDate]          = useState("");
+  const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [status,           setStatus]           = useState("draft");
 
   // New room form
   const [newRoomName, setNewRoomName] = useState("");
@@ -77,10 +97,10 @@ function SetupContent() {
   const [newRoomDesc, setNewRoomDesc] = useState("");
 
   // Room inline editing
-  const [editingRoomId,   setEditingRoomId]   = useState<string | null>(null);
-  const [editRoomName,    setEditRoomName]    = useState("");
-  const [editRoomCap,     setEditRoomCap]     = useState("");
-  const [editRoomDesc,    setEditRoomDesc]    = useState("");
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [editRoomName,  setEditRoomName]  = useState("");
+  const [editRoomCap,   setEditRoomCap]   = useState("");
+  const [editRoomDesc,  setEditRoomDesc]  = useState("");
 
   // New age group form
   const [newAgeName,  setNewAgeName]  = useState("");
@@ -88,13 +108,9 @@ function SetupContent() {
   const [newAgeMax,   setNewAgeMax]   = useState("");
   const [newAgeColor, setNewAgeColor] = useState("#22C55E");
 
-  // New time slot form
-  const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-  const [newSlotLabel, setNewSlotLabel] = useState("");
-  const [newSlotDay,   setNewSlotDay]   = useState("Monday");
-  const [newSlotStart, setNewSlotStart] = useState("09:00");
-  const [newSlotEnd,   setNewSlotEnd]   = useState("10:00");
-  const [slotEveryDay, setSlotEveryDay] = useState(false);
+  // Time Slots grid state
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [draftRows,  setDraftRows]  = useState<DraftRow[]>([]);
 
   const load = () => {
     if (!campId) return;
@@ -121,6 +137,67 @@ function SetupContent() {
   };
 
   useEffect(() => { load(); }, [campId]);
+
+  // ── Derived: all dates between startDate and endDate ──
+  const campDates = useMemo(() => {
+    if (!startDate || !endDate) return [];
+    const [sy, sm, sd] = startDate.split("-").map(Number);
+    const [ey, em, ed] = endDate.split("-").map(Number);
+    const start = new Date(sy, sm - 1, sd);
+    const end   = new Date(ey, em - 1, ed);
+    if (start > end) return [];
+    const dates: Date[] = [];
+    const d = new Date(start);
+    while (d <= end && dates.length < 365) {
+      dates.push(new Date(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return dates;
+  }, [startDate, endDate]);
+
+  // Reset pagination when date range changes
+  useEffect(() => { setWeekOffset(0); }, [campDates]);
+
+  // ── Derived: 7-day window for current page ──
+  const visibleDates = useMemo(
+    () => campDates.slice(weekOffset * 7, weekOffset * 7 + 7),
+    [campDates, weekOffset]
+  );
+
+  // ── Derived: unique days-of-week in the whole camp ──
+  const campDayOfWeeks = useMemo(
+    () => new Set(campDates.map(d => d.getDay())),
+    [campDates]
+  );
+
+  // ── Derived: session rows grouped by label|startTime|endTime ──
+  const sessionRows = useMemo((): SessionRow[] => {
+    const map = new Map<string, SessionRow>();
+    for (const slot of slots) {
+      const key = `${slot.label ?? ""}|${slot.startTime}|${slot.endTime}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          label:     slot.label ?? "",
+          startTime: slot.startTime,
+          endTime:   slot.endTime,
+          days:    new Set(),
+          slotIds: new Map(),
+        });
+      }
+      const row = map.get(key)!;
+      if (slot.dayOfWeek !== null && slot.dayOfWeek !== undefined) {
+        row.days.add(slot.dayOfWeek);
+        row.slotIds.set(slot.dayOfWeek, slot.id);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [slots]);
+
+  const isEveryDayForRow = (row: SessionRow) =>
+    campDayOfWeeks.size > 0 && [...campDayOfWeeks].every(d => row.days.has(d));
+
+  // ── Handlers ──
 
   const saveCamp = async () => {
     setSaving(true);
@@ -182,23 +259,84 @@ function SetupContent() {
     load();
   };
 
-  const addSlot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const daysToAdd = slotEveryDay ? DAYS : [newSlotDay];
-    await Promise.all(daysToAdd.map(day =>
-      fetch(`/api/camps/${campId}/session-templates`, {
+  // Toggle a single day checkbox for an existing session row
+  const toggleDayForSession = async (row: SessionRow, dayOfWeek: number) => {
+    if (row.days.has(dayOfWeek)) {
+      const slotId = row.slotIds.get(dayOfWeek);
+      if (slotId) await fetch(`/api/camps/${campId}/session-templates/${slotId}`, { method: "DELETE" });
+    } else {
+      await fetch(`/api/camps/${campId}/session-templates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: newSlotLabel, day, startTime: newSlotStart, endTime: newSlotEnd }),
-      })
-    ));
-    setNewSlotLabel(""); setNewSlotStart("09:00"); setNewSlotEnd("10:00");
+        body: JSON.stringify({ label: row.label, startTime: row.startTime, endTime: row.endTime, day: DAY_INT_TO_NAME[dayOfWeek] }),
+      });
+    }
     load();
   };
 
-  const deleteSlot = async (id: string) => {
-    if (!confirm("Delete this time slot?")) return;
-    await fetch(`/api/camps/${campId}/session-templates/${id}`, { method: "DELETE" });
+  // Per-row "every day" toggle
+  const setEveryDayForRow = async (row: SessionRow, enable: boolean) => {
+    if (enable) {
+      const missing = [...campDayOfWeeks].filter(d => !row.days.has(d));
+      await Promise.all(missing.map(dow =>
+        fetch(`/api/camps/${campId}/session-templates`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ label: row.label, startTime: row.startTime, endTime: row.endTime, day: DAY_INT_TO_NAME[dow] }),
+        })
+      ));
+    } else {
+      await Promise.all([...row.slotIds.values()].map(id =>
+        fetch(`/api/camps/${campId}/session-templates/${id}`, { method: "DELETE" })
+      ));
+    }
+    load();
+  };
+
+  // Delete an entire session row (all its slots)
+  const deleteSessionRow = async (row: SessionRow) => {
+    if (!confirm(`Delete "${row.label}" and all its scheduled days?`)) return;
+    await Promise.all([...row.slotIds.values()].map(id =>
+      fetch(`/api/camps/${campId}/session-templates/${id}`, { method: "DELETE" })
+    ));
+    load();
+  };
+
+  // Draft row management
+  const addDraftRow = () => {
+    const num = sessionRows.length + draftRows.length + 1;
+    setDraftRows(prev => [...prev, { id: Math.random().toString(36).slice(2), label: `Session ${num}`, start: "09:00", end: "10:00" }]);
+  };
+
+  const updateDraft = (id: string, field: keyof Omit<DraftRow, "id">, value: string) => {
+    setDraftRows(prev => prev.map(d => d.id === id ? { ...d, [field]: value } : d));
+  };
+
+  const removeDraft = (id: string) => setDraftRows(prev => prev.filter(d => d.id !== id));
+
+  // First checkbox click on a draft row → saves to DB
+  const commitDraftDay = async (draft: DraftRow, dayOfWeek: number) => {
+    if (!draft.label.trim() || !draft.start || !draft.end) return;
+    await fetch(`/api/camps/${campId}/session-templates`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: draft.label.trim(), startTime: draft.start, endTime: draft.end, day: DAY_INT_TO_NAME[dayOfWeek] }),
+    });
+    setDraftRows(prev => prev.filter(d => d.id !== draft.id));
+    load();
+  };
+
+  // "Fill every day" on a draft row
+  const commitDraftEveryDay = async (draft: DraftRow) => {
+    if (!draft.label.trim() || !draft.start || !draft.end) return;
+    await Promise.all([...campDayOfWeeks].map(dow =>
+      fetch(`/api/camps/${campId}/session-templates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: draft.label.trim(), startTime: draft.start, endTime: draft.end, day: DAY_INT_TO_NAME[dow] }),
+      })
+    ));
+    setDraftRows(prev => prev.filter(d => d.id !== draft.id));
     load();
   };
 
@@ -213,6 +351,8 @@ function SetupContent() {
       <div className="w-8 h-8 border-2 border-berry-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
+
+  const totalPages = Math.ceil(campDates.length / 7);
 
   return (
     <div>
@@ -295,7 +435,6 @@ function SetupContent() {
           {rooms.map(room => (
             <div key={room.id}>
               {editingRoomId === room.id ? (
-                /* ── inline edit row ── */
                 <div className="flex flex-col gap-2 py-3 px-4 bg-sky-50 border border-sky-200 rounded-xl">
                   <div className="flex gap-3 items-end flex-wrap">
                     <div>
@@ -326,7 +465,6 @@ function SetupContent() {
                   </div>
                 </div>
               ) : (
-                /* ── read-only row ── */
                 <div className="flex items-center justify-between py-2.5 px-4 bg-slate-50 rounded-xl">
                   <div>
                     <span className="font-medium text-slate-800 text-sm">{room.name}</span>
@@ -434,74 +572,216 @@ function SetupContent() {
 
       {/* ── Time Slots ── */}
       <Section title="🕐 Time Slots">
-        <p className="text-xs text-slate-400 mb-4">Define the recurring time blocks for your camp schedule. These are the slots you&apos;ll assign activities to.</p>
+        <p className="text-xs text-slate-400 mb-4">
+          Each row is a session (e.g. "Morning Session"). Check the days it runs. Toggle the switch on a row to fill every day of camp instantly.
+        </p>
 
-        {slots.length === 0 && (
-          <p className="text-slate-400 text-sm mb-4">No time slots yet. Add your first one below.</p>
+        {/* No dates warning */}
+        {campDates.length === 0 && (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 mb-4">
+            <span className="text-lg">📅</span>
+            <span>Set your camp <strong>Start Date</strong> and <strong>End Date</strong> above to use the schedule grid.</span>
+          </div>
         )}
 
-        {/* Group slots by day */}
-        {DAYS.filter(d => slots.some(s => s.day === d)).map(day => (
-          <div key={day} className="mb-4">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{day}</p>
-            <div className="space-y-2">
-              {slots
-                .filter(s => s.day === day)
-                .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                .map(slot => (
-                  <div key={slot.id} className="flex items-center justify-between py-2.5 px-4 bg-slate-50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-100 text-sky-700 rounded-lg text-xs font-semibold">
-                        🕐 {slot.startTime} – {slot.endTime}
-                      </span>
-                      <span className="font-medium text-slate-800 text-sm">{slot.label}</span>
-                    </div>
-                    <button onClick={() => deleteSlot(slot.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1">🗑️</button>
-                  </div>
-                ))}
-            </div>
-          </div>
-        ))}
+        {campDates.length > 0 && (
+          <>
+            {/* Pagination bar */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mb-3 px-1">
+                <button
+                  onClick={() => setWeekOffset(w => Math.max(0, w - 1))}
+                  disabled={weekOffset === 0}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Prev
+                </button>
+                <span className="text-sm font-semibold text-slate-600">
+                  Week {weekOffset + 1} of {totalPages}
+                  {visibleDates.length > 0 && (
+                    <span className="font-normal text-slate-400 ml-2">
+                      ({(visibleDates[0].getMonth()+1)}/{visibleDates[0].getDate()} – {(visibleDates[visibleDates.length-1].getMonth()+1)}/{visibleDates[visibleDates.length-1].getDate()})
+                    </span>
+                  )}
+                </span>
+                <button
+                  onClick={() => setWeekOffset(w => Math.min(totalPages - 1, w + 1))}
+                  disabled={weekOffset >= totalPages - 1}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
 
-        <form onSubmit={addSlot} className="flex gap-3 items-end flex-wrap mt-2 pt-4 border-t border-slate-100">
-          {/* Every day toggle */}
-          <div className="w-full flex items-center gap-3 mb-1">
-            <button type="button" role="switch" aria-checked={slotEveryDay}
-              onClick={() => setSlotEveryDay(v => !v)}
-              className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${slotEveryDay ? "bg-sky-500" : "bg-slate-200"}`}>
-              <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${slotEveryDay ? "translate-x-5" : ""}`} />
-            </button>
-            <span className="text-sm font-medium text-slate-700">Same slot every day of camp</span>
-            {slotEveryDay && <span className="text-xs text-sky-600 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">Creates slot for Mon–Sun</span>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Label</label>
-            <input type="text" value={newSlotLabel} onChange={e => setNewSlotLabel(e.target.value)} required placeholder="e.g. Morning Session"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
-          </div>
-          {!slotEveryDay && (
-            <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Day</label>
-              <select value={newSlotDay} onChange={e => setNewSlotDay(e.target.value)}
-                className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30">
-                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+            {/* Grid */}
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-50">
+                    {/* Session column header */}
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 w-52 min-w-[200px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-6 h-3 rounded-full bg-slate-200 inline-block" title="Every-day toggle" />
+                        Session
+                      </div>
+                    </th>
+                    {/* Date column headers */}
+                    {visibleDates.map(d => (
+                      <th key={d.toISOString()} className="text-center py-3 px-2 border-b border-slate-200 min-w-[72px]">
+                        <div className="font-semibold text-slate-700 text-xs">{DAY_ABBR[d.getDay()]}</div>
+                        <div className="text-slate-400 text-xs font-normal">{d.getMonth()+1}/{d.getDate()}</div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Existing session rows */}
+                  {sessionRows.map((row, i) => {
+                    const everyDay = isEveryDayForRow(row);
+                    return (
+                      <tr key={row.key} className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/40"} hover:bg-sky-50/30 transition-colors`}>
+                        {/* Session info cell */}
+                        <td className="py-3 px-4 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            {/* Every-day toggle */}
+                            <button
+                              type="button"
+                              onClick={() => setEveryDayForRow(row, !everyDay)}
+                              title={everyDay ? "Clear all days" : "Fill every day of camp"}
+                              className={`relative w-8 h-4 rounded-full transition-colors flex-shrink-0 ${everyDay ? "bg-sky-500" : "bg-slate-200"}`}
+                            >
+                              <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${everyDay ? "translate-x-4" : ""}`} />
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-slate-800 text-xs truncate">{row.label}</div>
+                              <div className="text-xs text-slate-400">{row.startTime} – {row.endTime}</div>
+                            </div>
+                            <button
+                              onClick={() => deleteSessionRow(row)}
+                              className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 text-xs"
+                              title="Delete session"
+                            >🗑️</button>
+                          </div>
+                        </td>
+                        {/* Checkbox cells */}
+                        {visibleDates.map(d => {
+                          const dow = d.getDay();
+                          const checked = row.days.has(dow);
+                          return (
+                            <td key={d.toISOString()} className="text-center py-3 px-2 border-b border-slate-100">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleDayForSession(row, dow)}
+                                className="w-4 h-4 rounded cursor-pointer accent-sky-500"
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+
+                  {/* Draft (new) session rows */}
+                  {draftRows.map(draft => {
+                    const valid = draft.label.trim().length > 0 && draft.start && draft.end;
+                    return (
+                      <tr key={draft.id} className="bg-sky-50/60">
+                        {/* Draft session input cell */}
+                        <td className="py-3 px-4 border-b border-sky-100">
+                          <div className="space-y-1.5">
+                            <input
+                              type="text"
+                              value={draft.label}
+                              onChange={e => updateDraft(draft.id, "label", e.target.value)}
+                              placeholder="Session name"
+                              className="w-full px-2.5 py-1.5 border border-sky-200 rounded-lg text-xs text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-1 focus:ring-sky-400 bg-white"
+                            />
+                            <div className="flex gap-1 items-center">
+                              <input
+                                type="time"
+                                value={draft.start}
+                                onChange={e => updateDraft(draft.id, "start", e.target.value)}
+                                className="flex-1 px-2 py-1 border border-sky-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-400 bg-white"
+                              />
+                              <span className="text-slate-300 text-xs">–</span>
+                              <input
+                                type="time"
+                                value={draft.end}
+                                onChange={e => updateDraft(draft.id, "end", e.target.value)}
+                                className="flex-1 px-2 py-1 border border-sky-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-400 bg-white"
+                              />
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {valid && (
+                                <button
+                                  type="button"
+                                  onClick={() => commitDraftEveryDay(draft)}
+                                  className="text-xs text-sky-600 hover:text-sky-800 font-medium transition-colors"
+                                >
+                                  ↺ Every day
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removeDraft(draft.id)}
+                                className="text-xs text-slate-400 hover:text-red-400 transition-colors"
+                              >
+                                ✕ Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                        {/* Draft checkboxes — disabled until label+times filled */}
+                        {visibleDates.map(d => (
+                          <td key={d.toISOString()} className="text-center py-3 px-2 border-b border-sky-100">
+                            <input
+                              type="checkbox"
+                              disabled={!valid}
+                              onChange={valid ? () => commitDraftDay(draft, d.getDay()) : undefined}
+                              className="w-4 h-4 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed accent-sky-500"
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+
+                  {/* Empty state */}
+                  {sessionRows.length === 0 && draftRows.length === 0 && (
+                    <tr>
+                      <td colSpan={visibleDates.length + 1} className="text-center py-8 text-slate-400 text-sm">
+                        No sessions yet — click <strong>+ Add Session</strong> below to get started.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={visibleDates.length + 1} className="px-4 py-3 bg-slate-50/50 rounded-b-xl border-t border-slate-200">
+                      <button
+                        type="button"
+                        onClick={addDraftRow}
+                        className="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors"
+                      >
+                        + Add Session
+                      </button>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
-          )}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Start Time</label>
-            <input type="time" value={newSlotStart} onChange={e => setNewSlotStart(e.target.value)} required
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">End Time</label>
-            <input type="time" value={newSlotEnd} onChange={e => setNewSlotEnd(e.target.value)} required
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
-          </div>
-          <button type="submit" className="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors">
-            + Add Slot
-          </button>
-        </form>
+
+            {/* Legend */}
+            <p className="text-xs text-slate-400 mt-3 flex items-center gap-4">
+              <span>
+                <span className="inline-block w-5 h-2.5 rounded-full bg-sky-500 align-middle mr-1" /> toggle = every day of camp
+              </span>
+              <span>checkboxes save instantly</span>
+            </p>
+          </>
+        )}
       </Section>
     </div>
   );
