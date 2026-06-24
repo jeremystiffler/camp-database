@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface AgeGroup { id: string; name: string; color: string; }
 interface Room     { id: string; name: string; capacity: number; }
-interface Person   { id: string; firstName: string; lastName: string; role: string; }
-interface SessionTemplate { id: string; label: string; dayOfWeek: number; startTime: string; endTime: string; }
+interface Person   { id: string; firstName: string; lastName: string; email?: string; role: string; }
+interface SessionTemplate { id: string; label?: string; dayOfWeek?: number | null; startTime: string; endTime: string; }
 
 interface Course {
   id: string;
@@ -27,56 +27,87 @@ const COLORS = ["#22C55E","#0EA5E9","#F97316","#A855F7","#EAB308","#EC4899","#14
 const ICONS  = ["🎨","🎭","🎵","📖","🏃","🎯","🔬","🏕️","⚽","🎤","🎺","✏️"];
 const DAYS   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-// ─── Quick-add teacher inline ─────────────────────────────────────────────────
+// ─── Quick-add person inline ──────────────────────────────────────────────────
 
-function QuickAddTeacher({ campId, onAdded }: { campId: string; onAdded: (p: Person) => void }) {
-  const [open, setOpen] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName]   = useState("");
-  const [saving, setSaving]       = useState(false);
+function QuickAddPerson({
+  campId,
+  defaultRole,
+  onAdded,
+}: {
+  campId: string;
+  defaultRole: "teacher" | "assistant";
+  onAdded: (p: Person) => void;
+}) {
+  const [open, setOpen]         = useState(false);
+  const [firstName, setFirst]   = useState("");
+  const [lastName, setLast]     = useState("");
+  const [email, setEmail]       = useState("");
+  const [role, setRole]         = useState<"teacher" | "assistant">(defaultRole);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState("");
 
   const save = async () => {
-    if (!firstName.trim() || !lastName.trim()) return;
-    setSaving(true);
+    if (!firstName.trim() || !lastName.trim()) { setError("Name required"); return; }
+    if (!email.trim()) { setError("Email required to send schedule"); return; }
+    setSaving(true); setError("");
     const res = await fetch(`/api/camps/${campId}/persons`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), role: "teacher" }),
+      body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), role }),
     });
     if (res.ok) {
       const p = await res.json();
       onAdded(p);
-      setFirstName(""); setLastName(""); setOpen(false);
+      setFirst(""); setLast(""); setEmail(""); setOpen(false);
+    } else {
+      setError("Failed to save");
     }
     setSaving(false);
   };
 
   if (!open) return (
     <button type="button" onClick={() => setOpen(true)}
-      className="text-xs text-forest-600 hover:text-forest-700 font-semibold flex items-center gap-1">
-      + Add new teacher
+      className="text-xs text-forest-600 hover:text-forest-700 font-semibold flex items-center gap-1 mt-1">
+      + Add new {defaultRole === "assistant" ? "assistant" : "teacher"}
     </button>
   );
 
   return (
-    <div className="flex gap-2 items-center mt-1 p-2 bg-forest-50 rounded-xl border border-forest-200">
-      <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First"
-        className="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
-      <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last"
-        className="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
-      <button type="button" onClick={save} disabled={saving || !firstName.trim() || !lastName.trim()}
-        className="px-3 py-1.5 bg-forest-500 text-white text-xs rounded-lg font-semibold hover:bg-forest-600 disabled:opacity-40">
-        {saving ? "..." : "Add"}
-      </button>
-      <button type="button" onClick={() => setOpen(false)}
-        className="text-slate-400 hover:text-red-400 text-xs px-1">✕</button>
+    <div className="mt-2 p-3 bg-forest-50 rounded-xl border border-forest-200 space-y-2">
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <div className="grid grid-cols-2 gap-2">
+        <input value={firstName} onChange={e => setFirst(e.target.value)} placeholder="First name *"
+          className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
+        <input value={lastName} onChange={e => setLast(e.target.value)} placeholder="Last name *"
+          className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
+      </div>
+      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address * (required for schedule)"
+        className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
+      <div className="flex items-center gap-2">
+        <select value={role} onChange={e => setRole(e.target.value as "teacher" | "assistant")}
+          className="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:outline-none">
+          <option value="teacher">Lead Teacher</option>
+          <option value="assistant">Teaching Assistant</option>
+        </select>
+        <button type="button" onClick={save} disabled={saving}
+          className="px-3 py-1.5 bg-forest-500 text-white text-xs rounded-lg font-semibold hover:bg-forest-600 disabled:opacity-40">
+          {saving ? "..." : "Add"}
+        </button>
+        <button type="button" onClick={() => { setOpen(false); setError(""); }}
+          className="text-slate-400 hover:text-red-400 text-xs px-1">✕</button>
+      </div>
     </div>
   );
 }
 
 // ─── Course Modal ─────────────────────────────────────────────────────────────
 
-function CourseModal({ course, campId, ageGroups, rooms, persons, sessionTemplates, onClose, onSaved, onPersonsChanged }: {
+type SlotMode = "same" | "different";
+
+function CourseModal({
+  course, campId, ageGroups, rooms, persons, sessionTemplates,
+  onClose, onSaved, onPersonsChanged,
+}: {
   course?: Course | null;
   campId: string;
   ageGroups: AgeGroup[];
@@ -96,22 +127,123 @@ function CourseModal({ course, campId, ageGroups, rooms, persons, sessionTemplat
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState("");
 
-  // Multi-select state
-  const [selectedAgeGroups, setSelectedAgeGroups]           = useState<string[]>(
+  // Age groups
+  const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>(
     course?.courseAgeGroups?.map(cag => cag.ageGroup.id) || []
   );
-  const [selectedTeachers, setSelectedTeachers]             = useState<string[]>(
+
+  // Teachers split by role — both stored in same selectedTeachers array
+  const [selectedTeachers, setSelectedTeachers] = useState<string[]>(
     course?.courseTeachers?.map(ct => ct.person.id) || []
   );
-  const [selectedSlots, setSelectedSlots]                   = useState<string[]>(
-    course?.courseSessionTemplates?.map(cst => cst.sessionTemplate.id) || []
-  );
-  const [localPersons, setLocalPersons]                     = useState<Person[]>(persons);
-
+  const [localPersons, setLocalPersons] = useState<Person[]>(persons);
   useEffect(() => { setLocalPersons(persons); }, [persons]);
+
+  // Time slots
+  const existingSlotIds = course?.courseSessionTemplates?.map(cst => cst.sessionTemplate.id) || [];
+
+  // Derive slot mode from existing data: if all selected slots share same time → "same", else "different"
+  const deriveInitialMode = (): SlotMode => {
+    if (existingSlotIds.length === 0) return "same";
+    const times = existingSlotIds.map(id => {
+      const st = sessionTemplates.find(s => s.id === id);
+      return st ? `${st.startTime}|${st.endTime}` : "";
+    });
+    return new Set(times).size === 1 ? "same" : "different";
+  };
+
+  const [slotMode, setSlotMode]     = useState<SlotMode>(deriveInitialMode);
+  const [selectedSlots, setSelectedSlots] = useState<string[]>(existingSlotIds);
+
+  // ── Derived: unique times across all session templates ──
+  const uniqueTimes = useMemo(() => {
+    const map = new Map<string, { startTime: string; endTime: string; label?: string }>();
+    for (const st of sessionTemplates) {
+      const key = `${st.startTime}|${st.endTime}`;
+      if (!map.has(key)) map.set(key, { startTime: st.startTime, endTime: st.endTime, label: st.label });
+    }
+    return [...map.entries()].map(([key, v]) => ({ key, ...v }));
+  }, [sessionTemplates]);
+
+  // ── Current selected time key (for "same" mode) ──
+  const [sameTimeKey, setSameTimeKey] = useState<string>(() => {
+    if (existingSlotIds.length > 0) {
+      const st = sessionTemplates.find(s => s.id === existingSlotIds[0]);
+      if (st) return `${st.startTime}|${st.endTime}`;
+    }
+    return uniqueTimes[0]?.key || "";
+  });
+
+  // When sameTimeKey changes, auto-select all templates with that time
+  useEffect(() => {
+    if (slotMode !== "same" || !sameTimeKey) return;
+    const [start, end] = sameTimeKey.split("|");
+    const ids = sessionTemplates.filter(s => s.startTime === start && s.endTime === end).map(s => s.id);
+    setSelectedSlots(ids);
+  }, [sameTimeKey, slotMode, sessionTemplates]);
+
+  // ── Derived: days that have templates, with their template options ──
+  const dayTemplates = useMemo(() => {
+    const map = new Map<number, SessionTemplate[]>();
+    for (const st of sessionTemplates) {
+      const day = st.dayOfWeek ?? -1;
+      if (!map.has(day)) map.set(day, []);
+      map.get(day)!.push(st);
+    }
+    return map;
+  }, [sessionTemplates]);
+
+  // Track which day is selected (for "different" mode) and its chosen slot
+  const [daySlotPicks, setDaySlotPicks] = useState<Record<number, string>>(() => {
+    if (existingSlotIds.length === 0) return {};
+    const picks: Record<number, string> = {};
+    for (const id of existingSlotIds) {
+      const st = sessionTemplates.find(s => s.id === id);
+      if (st && st.dayOfWeek != null) picks[st.dayOfWeek] = id;
+    }
+    return picks;
+  });
+  const [selectedDays, setSelectedDays] = useState<number[]>(() => Object.keys(daySlotPicks).map(Number));
+
+  // When daySlotPicks changes in "different" mode, sync selectedSlots
+  useEffect(() => {
+    if (slotMode !== "different") return;
+    setSelectedSlots(Object.values(daySlotPicks).filter(Boolean));
+  }, [daySlotPicks, slotMode]);
+
+  const toggleDay = (day: number) => {
+    if (selectedDays.includes(day)) {
+      setSelectedDays(prev => prev.filter(d => d !== day));
+      setDaySlotPicks(prev => { const n = { ...prev }; delete n[day]; return n; });
+    } else {
+      setSelectedDays(prev => [...prev, day]);
+      // Auto-pick first slot for that day
+      const slots = dayTemplates.get(day) || [];
+      if (slots[0]) setDaySlotPicks(prev => ({ ...prev, [day]: slots[0].id }));
+    }
+  };
+
+  const switchMode = (mode: SlotMode) => {
+    setSlotMode(mode);
+    setSelectedSlots([]);
+    setSelectedDays([]);
+    setDaySlotPicks({});
+    if (mode === "same" && uniqueTimes[0]) setSameTimeKey(uniqueTimes[0].key);
+  };
 
   const toggleItem = (id: string, list: string[], setList: (v: string[]) => void) =>
     setList(list.includes(id) ? list.filter(x => x !== id) : [...list, id]);
+
+  // Split persons by role
+  const leadTeachers = localPersons.filter(p => p.role === "teacher" || p.role === "director");
+  const assistants   = localPersons.filter(p => p.role === "assistant" || p.role === "staff");
+
+  const handlePersonAdded = (p: Person) => {
+    const updated = [...localPersons, p];
+    setLocalPersons(updated);
+    setSelectedTeachers(prev => [...prev, p.id]);
+    onPersonsChanged(updated);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,16 +269,13 @@ function CourseModal({ course, campId, ageGroups, rooms, persons, sessionTemplat
     finally { setLoading(false); }
   };
 
-  const formatSlot = (s: SessionTemplate) =>
-    `${s.label || ""} ${DAYS[s.dayOfWeek ?? 0]} ${s.startTime}–${s.endTime}`.trim();
-
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-4">
         <div className="px-6 py-5 border-b border-slate-100">
           <h2 className="font-bold text-lg text-slate-800">{course ? "Edit Activity" : "New Activity"}</h2>
         </div>
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5 max-h-[82vh] overflow-y-auto">
           {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>}
 
           {/* Name + Icon */}
@@ -191,7 +320,7 @@ function CourseModal({ course, campId, ageGroups, rooms, persons, sessionTemplat
             </div>
           </div>
 
-          {/* Age Groups — checkbox multi-select */}
+          {/* Age Groups */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Age Groups
@@ -221,46 +350,146 @@ function CourseModal({ course, campId, ageGroups, rooms, persons, sessionTemplat
             )}
           </div>
 
-          {/* Time Slots — checkbox multi-select */}
+          {/* ── Time Schedule ── */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Time Slots
-              <span className="ml-1 text-xs font-normal text-slate-400">(when does this activity run?)</span>
+              Time Schedule
+              <span className="ml-1 text-xs font-normal text-slate-400">(when does this activity meet?)</span>
             </label>
+
             {sessionTemplates.length === 0 ? (
               <p className="text-xs text-slate-400 italic">No time slots set up yet — add them in Settings.</p>
             ) : (
-              <div className="space-y-1.5">
-                {sessionTemplates.map(st => {
-                  const checked = selectedSlots.includes(st.id);
-                  return (
-                    <label key={st.id}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 cursor-pointer transition-all ${
-                        checked ? "border-sky-400 bg-sky-50" : "border-slate-100 bg-slate-50 hover:border-slate-200"
-                      }`}>
-                      <input type="checkbox" checked={checked}
-                        onChange={() => toggleItem(st.id, selectedSlots, setSelectedSlots)}
-                        className="w-4 h-4 accent-sky-500 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium text-sm text-slate-800">{st.label || "Slot"}</span>
-                        <span className="ml-2 text-xs text-slate-500">{DAYS[st.dayOfWeek ?? 0]} · {st.startTime}–{st.endTime}</span>
+              <>
+                {/* Mode toggle */}
+                <div className="flex rounded-xl border border-slate-200 overflow-hidden mb-3">
+                  <button type="button"
+                    onClick={() => switchMode("same")}
+                    className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${
+                      slotMode === "same"
+                        ? "bg-sky-500 text-white"
+                        : "bg-white text-slate-500 hover:bg-slate-50"
+                    }`}>
+                    🔁 Same time every day
+                  </button>
+                  <button type="button"
+                    onClick={() => switchMode("different")}
+                    className={`flex-1 px-3 py-2 text-xs font-semibold border-l border-slate-200 transition-colors ${
+                      slotMode === "different"
+                        ? "bg-sky-500 text-white"
+                        : "bg-white text-slate-500 hover:bg-slate-50"
+                    }`}>
+                    📅 Different time each day
+                  </button>
+                </div>
+
+                {/* ── Same time every day ── */}
+                {slotMode === "same" && (
+                  <div className="space-y-2">
+                    {uniqueTimes.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic">No time slots configured in Settings.</p>
+                    ) : (
+                      <>
+                        <p className="text-xs text-slate-500">Select a time — it will be applied to all days of camp:</p>
+                        <div className="space-y-1.5">
+                          {uniqueTimes.map(ut => {
+                            const active = sameTimeKey === ut.key;
+                            const matchingCount = sessionTemplates.filter(s => s.startTime === ut.startTime && s.endTime === ut.endTime).length;
+                            return (
+                              <label key={ut.key}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 cursor-pointer transition-all ${
+                                  active ? "border-sky-400 bg-sky-50" : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                                }`}>
+                                <input type="radio" checked={active}
+                                  onChange={() => setSameTimeKey(ut.key)}
+                                  className="w-4 h-4 accent-sky-500 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <span className="font-semibold text-sm text-slate-800">{ut.startTime} – {ut.endTime}</span>
+                                  {ut.label && <span className="ml-2 text-xs text-slate-400">{ut.label}</span>}
+                                </div>
+                                <span className="text-xs text-slate-400">{matchingCount} day{matchingCount !== 1 ? "s" : ""}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        {selectedSlots.length > 0 && (
+                          <p className="text-xs text-sky-600 font-medium mt-1">
+                            ✓ Will run on {selectedSlots.length} day{selectedSlots.length !== 1 ? "s" : ""} at this time
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Different time each day ── */}
+                {slotMode === "different" && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-500">Choose which days this activity meets and pick a time for each:</p>
+
+                    {/* Day pills */}
+                    <div className="flex flex-wrap gap-2">
+                      {[...dayTemplates.entries()].sort((a, b) => a[0] - b[0]).map(([day]) => {
+                        const isSelected = selectedDays.includes(day);
+                        return (
+                          <button key={day} type="button"
+                            onClick={() => toggleDay(day)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
+                              isSelected
+                                ? "bg-sky-500 border-sky-500 text-white shadow-sm"
+                                : "bg-white border-slate-200 text-slate-600 hover:border-sky-300"
+                            }`}>
+                            {day === -1 ? "All Days" : DAYS[day]}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Time slot picker per selected day */}
+                    {selectedDays.length > 0 && (
+                      <div className="space-y-2">
+                        {selectedDays.sort((a, b) => a - b).map(day => {
+                          const slots = dayTemplates.get(day) || [];
+                          return (
+                            <div key={day} className="flex items-center gap-3 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                              <span className="text-xs font-bold text-sky-700 w-8 flex-shrink-0">
+                                {day === -1 ? "All" : DAYS[day]}
+                              </span>
+                              <select
+                                value={daySlotPicks[day] || ""}
+                                onChange={e => setDaySlotPicks(prev => ({ ...prev, [day]: e.target.value }))}
+                                className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-sky-500/40">
+                                {slots.map(s => (
+                                  <option key={s.id} value={s.id}>
+                                    {s.label ? `${s.label} — ` : ""}{s.startTime} – {s.endTime}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </label>
-                  );
-                })}
-              </div>
+                    )}
+                    {selectedDays.length === 0 && (
+                      <p className="text-xs text-slate-400 italic">Select at least one day above.</p>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* Teachers — checkbox multi-select + inline add */}
+          {/* ── Lead Teachers ── */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Teachers
-              <span className="ml-1 text-xs font-normal text-slate-400">(assign who teaches this)</span>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Lead Teacher(s)
+              <span className="ml-1 text-xs font-normal text-slate-400">(teaches the class)</span>
             </label>
-            {localPersons.length > 0 && (
+            {leadTeachers.length === 0 ? (
+              <p className="text-xs text-slate-400 italic mb-1">No teachers added yet.</p>
+            ) : (
               <div className="space-y-1.5 mb-2">
-                {localPersons.map(p => {
+                {leadTeachers.map(p => {
                   const checked = selectedTeachers.includes(p.id);
                   return (
                     <label key={p.id}
@@ -270,23 +499,60 @@ function CourseModal({ course, campId, ageGroups, rooms, persons, sessionTemplat
                       <input type="checkbox" checked={checked}
                         onChange={() => toggleItem(p.id, selectedTeachers, setSelectedTeachers)}
                         className="w-4 h-4 accent-berry-500 flex-shrink-0" />
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {p.firstName[0]}{p.lastName[0]}
                         </div>
-                        <span className="text-sm font-medium text-slate-800">{p.firstName} {p.lastName}</span>
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium text-slate-800">{p.firstName} {p.lastName}</span>
+                          {p.email && <span className="text-xs text-slate-400 ml-1.5 truncate">{p.email}</span>}
+                          {!p.email && <span className="text-xs text-amber-500 ml-1.5">⚠️ no email</span>}
+                        </div>
                       </div>
                     </label>
                   );
                 })}
               </div>
             )}
-            <QuickAddTeacher campId={campId} onAdded={p => {
-              const updated = [...localPersons, p];
-              setLocalPersons(updated);
-              setSelectedTeachers(prev => [...prev, p.id]);
-              onPersonsChanged(updated);
-            }} />
+            <QuickAddPerson campId={campId} defaultRole="teacher" onAdded={handlePersonAdded} />
+          </div>
+
+          {/* ── Teaching Assistants ── */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Teaching Assistants
+              <span className="ml-1 text-xs font-normal text-slate-400">(helpers, aides)</span>
+            </label>
+            {assistants.length === 0 ? (
+              <p className="text-xs text-slate-400 italic mb-1">No assistants added yet.</p>
+            ) : (
+              <div className="space-y-1.5 mb-2">
+                {assistants.map(p => {
+                  const checked = selectedTeachers.includes(p.id);
+                  return (
+                    <label key={p.id}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-xl border-2 cursor-pointer transition-all ${
+                        checked ? "border-sky-400 bg-sky-50" : "border-slate-100 bg-slate-50 hover:border-slate-200"
+                      }`}>
+                      <input type="checkbox" checked={checked}
+                        onChange={() => toggleItem(p.id, selectedTeachers, setSelectedTeachers)}
+                        className="w-4 h-4 accent-sky-500 flex-shrink-0" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-sky-400 to-forest-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                          {p.firstName[0]}{p.lastName[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium text-slate-800">{p.firstName} {p.lastName}</span>
+                          {p.email && <span className="text-xs text-slate-400 ml-1.5 truncate">{p.email}</span>}
+                          {!p.email && <span className="text-xs text-amber-500 ml-1.5">⚠️ no email</span>}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <QuickAddPerson campId={campId} defaultRole="assistant" onAdded={handlePersonAdded} />
           </div>
 
           {/* Color */}
@@ -324,15 +590,15 @@ function ActivitiesContent() {
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
 
-  const [courses, setCourses]                     = useState<Course[]>([]);
-  const [ageGroups, setAgeGroups]                 = useState<AgeGroup[]>([]);
-  const [rooms, setRooms]                         = useState<Room[]>([]);
-  const [persons, setPersons]                     = useState<Person[]>([]);
-  const [sessionTemplates, setSessionTemplates]   = useState<SessionTemplate[]>([]);
-  const [loading, setLoading]                     = useState(true);
-  const [search, setSearch]                       = useState("");
-  const [editingCourse, setEditingCourse]         = useState<Course | null | undefined>(undefined);
-  const [showModal, setShowModal]                 = useState(false);
+  const [courses, setCourses]                   = useState<Course[]>([]);
+  const [ageGroups, setAgeGroups]               = useState<AgeGroup[]>([]);
+  const [rooms, setRooms]                       = useState<Room[]>([]);
+  const [persons, setPersons]                   = useState<Person[]>([]);
+  const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
+  const [loading, setLoading]                   = useState(true);
+  const [search, setSearch]                     = useState("");
+  const [editingCourse, setEditingCourse]       = useState<Course | null | undefined>(undefined);
+  const [showModal, setShowModal]               = useState(false);
 
   const load = () => {
     if (!campId) return;
@@ -361,9 +627,7 @@ function ActivitiesContent() {
     load();
   };
 
-  const filtered = courses.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = courses.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
@@ -408,64 +672,71 @@ function ActivitiesContent() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(course => (
-            <div key={course.id} className="camp-card p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl text-white flex-shrink-0"
-                    style={{ backgroundColor: course.color || "#22C55E" }}>
-                    {course.icon || "🎯"}
+          {filtered.map(course => {
+            const teachers   = course.courseTeachers?.filter(ct => ct.person.role === "teacher" || ct.person.role === "director") || [];
+            const aides      = course.courseTeachers?.filter(ct => ct.person.role === "assistant" || ct.person.role === "staff") || [];
+            return (
+              <div key={course.id} className="camp-card p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl text-white flex-shrink-0"
+                      style={{ backgroundColor: course.color || "#22C55E" }}>
+                      {course.icon || "🎯"}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm leading-tight">{course.name}</h3>
+                      {course.courseAgeGroups && course.courseAgeGroups.length > 0 && (
+                        <div className="flex gap-1 flex-wrap mt-0.5">
+                          {course.courseAgeGroups.map(cag => (
+                            <span key={cag.ageGroup.id} className="text-xs px-1.5 py-0.5 rounded-full text-white font-medium"
+                              style={{ backgroundColor: cag.ageGroup.color }}>
+                              {cag.ageGroup.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-800 text-sm leading-tight">{course.name}</h3>
-                    {course.courseAgeGroups && course.courseAgeGroups.length > 0 && (
-                      <div className="flex gap-1 flex-wrap mt-0.5">
-                        {course.courseAgeGroups.map(cag => (
-                          <span key={cag.ageGroup.id} className="text-xs px-1.5 py-0.5 rounded-full text-white font-medium"
-                            style={{ backgroundColor: cag.ageGroup.color }}>
-                            {cag.ageGroup.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => { setEditingCourse(course); setShowModal(true); }}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors text-sm">✏️</button>
+                    <button onClick={() => deleteCourse(course.id)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm">🗑️</button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => { setEditingCourse(course); setShowModal(true); }}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors text-sm">✏️</button>
-                  <button onClick={() => deleteCourse(course.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm">🗑️</button>
-                </div>
-              </div>
 
-              {course.description && (
-                <p className="text-slate-500 text-xs mb-3 leading-relaxed line-clamp-2">{course.description}</p>
-              )}
+                {course.description && (
+                  <p className="text-slate-500 text-xs mb-3 leading-relaxed line-clamp-2">{course.description}</p>
+                )}
 
-              <div className="flex flex-wrap gap-2 text-xs">
-                {course.room && (
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {course.room && (
+                    <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg text-slate-600">
+                      📍 {course.room.name}
+                    </span>
+                  )}
                   <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg text-slate-600">
-                    📍 {course.room.name}
+                    👥 {course.cap}
                   </span>
-                )}
-                <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg text-slate-600">
-                  👥 {course.cap}
-                </span>
-                {course.courseTeachers && course.courseTeachers.length > 0 && (
-                  <span className="flex items-center gap-1 bg-berry-50 border border-berry-100 px-2 py-1 rounded-lg text-berry-700">
-                    🧑‍🏫 {course.courseTeachers.map(t => t.person.firstName).join(", ")}
-                  </span>
-                )}
-                {course.courseSessionTemplates && course.courseSessionTemplates.length > 0 && (
-                  <span className="flex items-center gap-1 bg-sky-50 border border-sky-100 px-2 py-1 rounded-lg text-sky-700">
-                    ⏰ {course.courseSessionTemplates.map(cst =>
-                      cst.sessionTemplate.label || `${DAYS[cst.sessionTemplate.dayOfWeek ?? 0]} ${cst.sessionTemplate.startTime}`
-                    ).join(", ")}
-                  </span>
-                )}
+                  {teachers.length > 0 && (
+                    <span className="flex items-center gap-1 bg-berry-50 border border-berry-100 px-2 py-1 rounded-lg text-berry-700">
+                      🧑‍🏫 {teachers.map(t => t.person.firstName).join(", ")}
+                    </span>
+                  )}
+                  {aides.length > 0 && (
+                    <span className="flex items-center gap-1 bg-sky-50 border border-sky-100 px-2 py-1 rounded-lg text-sky-700">
+                      🤝 {aides.map(t => t.person.firstName).join(", ")}
+                    </span>
+                  )}
+                  {course.courseSessionTemplates && course.courseSessionTemplates.length > 0 && (
+                    <span className="flex items-center gap-1 bg-amber-50 border border-amber-100 px-2 py-1 rounded-lg text-amber-700">
+                      ⏰ {course.courseSessionTemplates.length} slot{course.courseSessionTemplates.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
