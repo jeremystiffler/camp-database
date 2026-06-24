@@ -296,12 +296,12 @@ function SetupContent() {
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Name</label>
                       <input type="text" value={editRoomName} onChange={e => setEditRoomName(e.target.value)} required
-                        className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+                        className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Capacity</label>
                       <input type="number" value={editRoomCap} onChange={e => setEditRoomCap(e.target.value)} min={1}
-                        className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+                        className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => saveRoom(room.id)}
@@ -317,7 +317,7 @@ function SetupContent() {
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Location / Description</label>
                     <input type="text" value={editRoomDesc} onChange={e => setEditRoomDesc(e.target.value)} placeholder="e.g. North wing, second floor"
-                      className="w-full max-w-md px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+                      className="w-full max-w-md px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
                   </div>
                 </div>
               ) : (
