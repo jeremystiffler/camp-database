@@ -10,6 +10,101 @@ interface Room     { id: string; name: string; capacity: number; }
 interface Person   { id: string; firstName: string; lastName: string; email?: string; role: string; }
 interface SessionTemplate { id: string; label?: string; dayOfWeek?: number | null; startTime: string; endTime: string; }
 
+interface SchedulingConflict {
+  type: "room" | "teacher";
+  slotLabel: string;
+  activityName: string;
+  detail: string;
+  locationNote?: string;
+}
+
+// ─── Conflict Modal ───────────────────────────────────────────────────────────
+
+function ConflictModal({ conflicts, onClose }: { conflicts: SchedulingConflict[]; onClose: () => void }) {
+  const roomConflicts    = conflicts.filter(c => c.type === "room");
+  const teacherConflicts = conflicts.filter(c => c.type === "teacher");
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-red-100 bg-red-50 rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-xl flex-shrink-0">⚠️</div>
+            <div>
+              <h2 className="font-bold text-base text-red-800">Scheduling Conflict</h2>
+              <p className="text-sm text-red-600 mt-0.5">
+                {conflicts.length} conflict{conflicts.length !== 1 ? "s" : ""} must be resolved before saving.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+
+          {/* Room conflicts */}
+          {roomConflicts.length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                <span>📍</span> Room Already Booked
+              </h3>
+              <div className="space-y-2">
+                {roomConflicts.map((c, i) => (
+                  <div key={i} className="bg-orange-50 border border-orange-200 rounded-xl p-3.5">
+                    <p className="text-sm font-semibold text-orange-900">{c.detail}</p>
+                    <p className="text-xs text-orange-700 mt-1">
+                      Already booked for <strong>{c.activityName}</strong>
+                    </p>
+                    <p className="text-xs text-orange-600 mt-0.5 flex items-center gap-1">
+                      <span>🕐</span> {c.slotLabel}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Teacher conflicts */}
+          {teacherConflicts.length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                <span>🧑‍🏫</span> Teacher Already Scheduled
+              </h3>
+              <div className="space-y-2">
+                {teacherConflicts.map((c, i) => (
+                  <div key={i} className="bg-red-50 border border-red-200 rounded-xl p-3.5">
+                    <p className="text-sm font-semibold text-red-900">{c.detail}</p>
+                    <p className="text-xs text-red-700 mt-1">
+                      Already teaching <strong>{c.activityName}</strong>
+                      {c.locationNote && <span className="text-red-500"> in {c.locationNote}</span>}
+                    </p>
+                    <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
+                      <span>🕐</span> {c.slotLabel}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-1 border-t border-slate-100">
+            <p className="text-xs text-slate-500 leading-relaxed">
+              To fix these conflicts: choose a different room, change the time slots, or reassign the teacher to a different activity.
+            </p>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 border-t border-slate-100">
+          <button onClick={onClose}
+            className="w-full px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+            Got It — Go Fix It
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Course {
   id: string;
   name: string;
@@ -126,6 +221,7 @@ function CourseModal({
   const [roomId, setRoomId]           = useState(course?.room?.id || "");
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState("");
+  const [conflicts, setConflicts]     = useState<SchedulingConflict[]>([]);
 
   // Age groups
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>(
@@ -247,7 +343,7 @@ function CourseModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setConflicts([]);
     try {
       const url    = course ? `/api/camps/${campId}/courses/${course.id}` : `/api/camps/${campId}/courses`;
       const method = course ? "PATCH" : "POST";
@@ -263,8 +359,15 @@ function CourseModal({
           sessionTemplateIds: selectedSlots,
         }),
       });
-      if (res.ok) { onSaved(); onClose(); }
-      else { const d = await res.json(); setError(d.error || "Failed to save"); }
+      if (res.status === 409) {
+        const d = await res.json();
+        setConflicts(Array.isArray(d.conflicts) ? d.conflicts : []);
+      } else if (res.ok) {
+        onSaved(); onClose();
+      } else {
+        const d = await res.json();
+        setError(d.error || "Failed to save");
+      }
     } catch { setError("Something went wrong"); }
     finally { setLoading(false); }
   };
@@ -575,11 +678,16 @@ function CourseModal({
             </button>
             <button type="submit" disabled={loading}
               className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
-              {loading ? "Saving..." : course ? "Save Changes" : "Create Activity"}
+              {loading ? "Checking..." : course ? "Save Changes" : "Create Activity"}
             </button>
           </div>
         </form>
       </div>
+
+      {/* Conflict modal — rendered on top of the course modal */}
+      {conflicts.length > 0 && (
+        <ConflictModal conflicts={conflicts} onClose={() => setConflicts([])} />
+      )}
     </div>
   );
 }
