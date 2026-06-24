@@ -94,6 +94,7 @@ function SetupContent() {
   const [newSlotDay,   setNewSlotDay]   = useState("Monday");
   const [newSlotStart, setNewSlotStart] = useState("09:00");
   const [newSlotEnd,   setNewSlotEnd]   = useState("10:00");
+  const [slotEveryDay, setSlotEveryDay] = useState(false);
 
   const load = () => {
     if (!campId) return;
@@ -183,12 +184,16 @@ function SetupContent() {
 
   const addSlot = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch(`/api/camps/${campId}/session-templates`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ label: newSlotLabel, day: newSlotDay, startTime: newSlotStart, endTime: newSlotEnd }),
-    });
-    if (res.ok) { setNewSlotLabel(""); setNewSlotStart("09:00"); setNewSlotEnd("10:00"); load(); }
+    const daysToAdd = slotEveryDay ? DAYS : [newSlotDay];
+    await Promise.all(daysToAdd.map(day =>
+      fetch(`/api/camps/${campId}/session-templates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: newSlotLabel, day, startTime: newSlotStart, endTime: newSlotEnd }),
+      })
+    ));
+    setNewSlotLabel(""); setNewSlotStart("09:00"); setNewSlotEnd("10:00");
+    load();
   };
 
   const deleteSlot = async (id: string) => {
@@ -317,7 +322,7 @@ function SetupContent() {
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Location / Description</label>
                     <input type="text" value={editRoomDesc} onChange={e => setEditRoomDesc(e.target.value)} placeholder="e.g. North wing, second floor"
-                      className="w-full max-w-md px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+                      className="w-full max-w-md px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
                   </div>
                 </div>
               ) : (
@@ -341,17 +346,17 @@ function SetupContent() {
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Room Name</label>
             <input type="text" value={newRoomName} onChange={e => setNewRoomName(e.target.value)} required placeholder="e.g. Main Hall"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Capacity</label>
             <input type="number" value={newRoomCap} onChange={e => setNewRoomCap(e.target.value)} min={1}
-              className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Location / Description</label>
             <input type="text" value={newRoomDesc} onChange={e => setNewRoomDesc(e.target.value)} placeholder="e.g. North wing"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <button type="submit" className="px-4 py-2 bg-forest-500 text-white rounded-xl text-sm font-semibold hover:bg-forest-600 transition-colors">
             + Add Room
@@ -404,17 +409,17 @@ function SetupContent() {
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Group Name</label>
             <input type="text" value={newAgeName} onChange={e => setNewAgeName(e.target.value)} required placeholder="e.g. Younger Campers"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Min Age</label>
             <input type="number" value={newAgeMin} onChange={e => setNewAgeMin(e.target.value)} min={1} placeholder="6"
-              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Max Age</label>
             <input type="number" value={newAgeMax} onChange={e => setNewAgeMax(e.target.value)} min={1} placeholder="12"
-              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Color</label>
@@ -459,18 +464,30 @@ function SetupContent() {
         ))}
 
         <form onSubmit={addSlot} className="flex gap-3 items-end flex-wrap mt-2 pt-4 border-t border-slate-100">
+          {/* Every day toggle */}
+          <div className="w-full flex items-center gap-3 mb-1">
+            <button type="button" role="switch" aria-checked={slotEveryDay}
+              onClick={() => setSlotEveryDay(v => !v)}
+              className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${slotEveryDay ? "bg-sky-500" : "bg-slate-200"}`}>
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${slotEveryDay ? "translate-x-5" : ""}`} />
+            </button>
+            <span className="text-sm font-medium text-slate-700">Same slot every day of camp</span>
+            {slotEveryDay && <span className="text-xs text-sky-600 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">Creates slot for Mon–Sun</span>}
+          </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Label</label>
             <input type="text" value={newSlotLabel} onChange={e => setNewSlotLabel(e.target.value)} required placeholder="e.g. Morning Session"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Day</label>
-            <select value={newSlotDay} onChange={e => setNewSlotDay(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30">
-              {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
-          </div>
+          {!slotEveryDay && (
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Day</label>
+              <select value={newSlotDay} onChange={e => setNewSlotDay(e.target.value)}
+                className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30">
+                {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Start Time</label>
             <input type="time" value={newSlotStart} onChange={e => setNewSlotStart(e.target.value)} required
