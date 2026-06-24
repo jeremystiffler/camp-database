@@ -153,7 +153,7 @@ function ImportContent() {
   const [rooms,            setRooms]            = useState<Room[]>([]);
   const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
   const [assignSaving,     setAssignSaving]     = useState<Record<string, boolean>>({});
-  const [assignErrors,     setAssignErrors]     = useState<Record<string, string>>({});
+  const [conflictToast,    setConflictToast]    = useState<{ courseName: string; sessionLabel: string; conflicts: { type: string; detail: string; activityName: string; slotLabel: string; locationNote?: string }[] } | null>(null);
 
   const loadGridData = () => {
     if (!campId) return;
@@ -247,7 +247,7 @@ function ImportContent() {
   const toggleSlotGroup = async (course: Course, group: SessionGroup, checked: boolean) => {
     const saveKey = `${course.id}:${group.key}`;
     setAssignSaving(prev => ({ ...prev, [saveKey]: true }));
-    setAssignErrors(prev => { const n = { ...prev }; delete n[saveKey]; return n; });
+    setConflictToast(null);
 
     const assignedIds = new Set(course.courseSessionTemplates.map(cst => cst.sessionTemplateId));
     let newIds: string[];
@@ -265,12 +265,18 @@ function ImportContent() {
       });
       if (!res.ok) {
         const d = await res.json();
-        setAssignErrors(prev => ({ ...prev, [saveKey]: d.error === "scheduling_conflict" ? "Conflict!" : "Save failed" }));
+        if (d.error === "scheduling_conflict" && Array.isArray(d.conflicts)) {
+          setConflictToast({
+            courseName:   course.name,
+            sessionLabel: group.label,
+            conflicts:    d.conflicts,
+          });
+        }
       } else {
         loadGridData();
       }
     } catch {
-      setAssignErrors(prev => ({ ...prev, [saveKey]: "Network error" }));
+      setConflictToast({ courseName: course.name, sessionLabel: group.label, conflicts: [{ type: "error", detail: "Network error", activityName: "", slotLabel: "" }] });
     } finally {
       setAssignSaving(prev => { const n = { ...prev }; delete n[saveKey]; return n; });
     }
@@ -563,6 +569,35 @@ function ImportContent() {
         )}
 
         {courses.length > 0 && sessionGroups.length > 0 && (
+          <>
+            {/* Conflict toast */}
+            {conflictToast && (
+              <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg flex-shrink-0">🚫</span>
+                    <div>
+                      <p className="text-sm font-semibold text-red-800">
+                        Can&apos;t assign <span className="italic">{conflictToast.courseName}</span> to <span className="italic">{conflictToast.sessionLabel}</span>
+                      </p>
+                      <ul className="mt-2 space-y-1.5">
+                        {conflictToast.conflicts.map((c, i) => (
+                          <li key={i} className="text-xs text-red-700 flex items-start gap-1.5">
+                            <span className="flex-shrink-0">{c.type === "room" ? "📍" : c.type === "teacher" ? "🧑‍🏫" : "⚠️"}</span>
+                            <span>
+                              {c.type === "room" && <>Room <strong>{c.detail}</strong> is already booked by <strong>{c.activityName}</strong> during <em>{c.slotLabel}</em>.</>}
+                              {c.type === "teacher" && <><strong>{c.detail}</strong> is already teaching <strong>{c.activityName}</strong> during <em>{c.slotLabel}</em>{c.locationNote ? ` (in ${c.locationNote})` : ""}.</>}
+                              {c.type === "error" && c.detail}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <button onClick={() => setConflictToast(null)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-lg leading-none">✕</button>
+                </div>
+              </div>
+            )}
           <div className="overflow-x-auto rounded-xl border border-slate-200">
               {/* Delete toolbar */}
               {selectedCourseIds.size > 0 && (
@@ -681,16 +716,13 @@ function ImportContent() {
                       </td>
                       {/* Session checkboxes */}
                       {sessionGroups.map(sg => {
-                        const saveKey  = `${course.id}:${sg.key}`;
-                        const isSaving = assignSaving[saveKey];
-                        const err      = assignErrors[saveKey];
-                        const isChecked = checked.has(sg.key);
+                          const saveKey  = `${course.id}:${sg.key}`;
+                          const isSaving = assignSaving[saveKey];
+                          const isChecked = checked.has(sg.key);
                         return (
                           <td key={sg.key} className="text-center py-3 px-3 border-b border-slate-100">
                             {isSaving ? (
                               <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" />
-                            ) : err ? (
-                              <span className="text-xs text-red-500" title={err}>⚠️</span>
                             ) : (
                               <input
                                 type="checkbox"
@@ -708,6 +740,7 @@ function ImportContent() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {courses.length > 0 && sessionGroups.length > 0 && (
