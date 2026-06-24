@@ -7,6 +7,13 @@ const DAY_MAP: Record<string, number> = {
   wed: 3, wednesday: 3, thu: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6,
 };
 
+const ACTIVITY_COLORS = ["#22C55E","#0EA5E9","#F97316","#A855F7","#EAB308","#EC4899","#14B8A6","#6366F1"];
+const AGE_GROUP_COLORS = ["#6366F1","#22C55E","#0EA5E9","#F97316","#A855F7","#EC4899","#EAB308","#14B8A6"];
+
+function randomColor(palette: string[]): string {
+  return palette[Math.floor(Math.random() * palette.length)];
+}
+
 function parseDay(val: string | undefined): number | undefined {
   if (!val) return undefined;
   const n = parseInt(val);
@@ -84,7 +91,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           ageGroupId = existing.id;
         } else {
           const created = await prisma.ageGroup.create({
-            data: { campId, name: row.age_group_name.trim(), color: row.age_group_color?.trim() || "#6366f1" },
+            data: { campId, name: row.age_group_name.trim(), color: randomColor(AGE_GROUP_COLORS) },
           });
           ageGroupId = created.id;
           ageGroupsCreated++;
@@ -176,7 +183,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           data: {
             description: row.activity_description?.trim() || existing.description || undefined,
             icon: row.activity_icon?.trim() || existing.icon || undefined,
-            color: row.activity_color?.trim() || existing.color,
             cap: row.activity_capacity ? parseInt(row.activity_capacity) : existing.cap,
             roomId: roomId ?? existing.roomId,
           },
@@ -190,7 +196,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
             name: row.activity_name.trim(),
             description: row.activity_description?.trim() || undefined,
             icon: row.activity_icon?.trim() || "🎯",
-            color: row.activity_color?.trim() || "#22C55E",
+            color: randomColor(ACTIVITY_COLORS),
             cap: row.activity_capacity ? parseInt(row.activity_capacity) : 20,
             roomId: roomId || undefined,
           },

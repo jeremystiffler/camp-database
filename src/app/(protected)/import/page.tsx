@@ -5,16 +5,16 @@ import { useSearchParams, useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 
 const TEMPLATE_HEADERS = [
-  "activity_name","activity_description","activity_icon","activity_color","activity_capacity",
-  "room_name","age_group_name","age_group_color",
+  "activity_name","activity_description","activity_icon","activity_capacity",
+  "room_name","age_group_name",
   "teacher_first_name","teacher_last_name","teacher_email","teacher_role",
   "assistant_first_name","assistant_last_name","assistant_email",
   "slot_label","slot_day","slot_start_time","slot_end_time",
 ];
 
 const EXAMPLE_ROW = [
-  "Watercolor Painting","Learn basic watercolor techniques","🎨","#A855F7","15",
-  "Art Room","Elementary","#22C55E",
+  "Watercolor Painting","Learn basic watercolor techniques","🎨","15",
+  "Art Room","Elementary",
   "Jane","Smith","jane@camp.com","teacher",
   "Bob","Jones","bob@camp.com",
   "Morning Session","Mon","9:00 AM","10:00 AM",
@@ -22,9 +22,7 @@ const EXAMPLE_ROW = [
 
 const COLUMN_NOTES: Record<string, string> = {
   activity_name: "Required. Must be unique per camp.",
-  activity_color: "Hex color e.g. #A855F7",
   activity_capacity: "Number e.g. 20",
-  age_group_color: "Hex color e.g. #22C55E",
   teacher_role: "teacher, assistant, director, or staff",
   slot_day: "Mon, Tue, Wed, Thu, Fri, Sat, Sun — or 0-6",
   slot_start_time: "e.g. 9:00 AM or 09:00",
@@ -44,11 +42,20 @@ interface ImportResult {
 
 function downloadTemplate() {
   const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, EXAMPLE_ROW]);
-  // Column widths
   ws["!cols"] = TEMPLATE_HEADERS.map(h => ({ wch: Math.max(h.length + 2, 18) }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Camp Import");
-  XLSX.writeFile(wb, "camp-import-template.xlsx");
+  // Use write→Blob→anchor instead of writeFile (writeFile uses Node fs, breaks in browser)
+  const buf  = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer;
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = "camp-import-template.xlsx";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function ImportContent() {
