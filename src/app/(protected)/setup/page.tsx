@@ -261,7 +261,7 @@ function SetupContent() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
               <select value={status} onChange={e => setStatus(e.target.value)}
-                className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-berry-500/30">
+                className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30">
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
                 <option value="archived">Archived</option>
@@ -341,17 +341,17 @@ function SetupContent() {
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Room Name</label>
             <input type="text" value={newRoomName} onChange={e => setNewRoomName(e.target.value)} required placeholder="e.g. Main Hall"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Capacity</label>
             <input type="number" value={newRoomCap} onChange={e => setNewRoomCap(e.target.value)} min={1}
-              className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Location / Description</label>
             <input type="text" value={newRoomDesc} onChange={e => setNewRoomDesc(e.target.value)} placeholder="e.g. North wing"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <button type="submit" className="px-4 py-2 bg-forest-500 text-white rounded-xl text-sm font-semibold hover:bg-forest-600 transition-colors">
             + Add Room
@@ -404,17 +404,17 @@ function SetupContent() {
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Group Name</label>
             <input type="text" value={newAgeName} onChange={e => setNewAgeName(e.target.value)} required placeholder="e.g. Younger Campers"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Min Age</label>
             <input type="number" value={newAgeMin} onChange={e => setNewAgeMin(e.target.value)} min={1} placeholder="6"
-              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Max Age</label>
             <input type="number" value={newAgeMax} onChange={e => setNewAgeMax(e.target.value)} min={1} placeholder="12"
-              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Color</label>
@@ -462,24 +462,24 @@ function SetupContent() {
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Label</label>
             <input type="text" value={newSlotLabel} onChange={e => setNewSlotLabel(e.target.value)} required placeholder="e.g. Morning Session"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Day</label>
             <select value={newSlotDay} onChange={e => setNewSlotDay(e.target.value)}
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/30">
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30">
               {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Start Time</label>
             <input type="time" value={newSlotStart} onChange={e => setNewSlotStart(e.target.value)} required
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">End Time</label>
             <input type="time" value={newSlotEnd} onChange={e => setNewSlotEnd(e.target.value)} required
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
           </div>
           <button type="submit" className="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors">
             + Add Slot
