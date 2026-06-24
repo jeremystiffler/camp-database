@@ -44,6 +44,7 @@ model Camp {
   registrationOpen Boolean      @default(false)
   primaryColor     String       @default("#F0894A")
   accentColor      String       @default("#E8A84C")
+  fontFamily       String       @default("Inter")
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   members          CampMember[]
