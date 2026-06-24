@@ -29,9 +29,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   if (!member || !hasPermission(member.role, "editor")) {
     return NextResponse.json({ error: "Editors and above can edit camps" }, { status: 403 });
   }
-  const data = await req.json();
-  const camp = await prisma.camp.updateMany({ where: { id: campId }, data });
-  return NextResponse.json(camp);
+
+  try {
+    const body = await req.json();
+
+    // Whitelist all known Camp fields — never spread unknown keys into Prisma
+    const allowed: Record<string, unknown> = {};
+    const ALLOWED_KEYS = [
+      "name", "startDate", "endDate", "status", "registrationOpen",
+      "primaryColor", "accentColor", "fontFamily",
+    ];
+    for (const key of ALLOWED_KEYS) {
+      if (key in body) allowed[key] = body[key];
+    }
+
+    // Coerce date strings to Date objects
+    if (allowed.startDate) allowed.startDate = allowed.startDate ? new Date(allowed.startDate as string) : null;
+    if (allowed.endDate)   allowed.endDate   = allowed.endDate   ? new Date(allowed.endDate   as string) : null;
+
+    await prisma.camp.update({ where: { id: campId }, data: allowed });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Camp PATCH error:", err);
+    return NextResponse.json({ error: "Failed to update camp", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ campId: string }> }) {

@@ -138,10 +138,14 @@ function SettingsContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ primaryColor: appearance.primaryColor, accentColor: appearance.accentColor, fontFamily: appearance.fontFamily }),
     });
+    const data = await res.json();
     setAppearanceSaving(false);
-    if (res.ok) setAppearanceMsg({ type: "success", text: "Appearance saved!" });
-    else setAppearanceMsg({ type: "error", text: "Failed to save appearance" });
-    setTimeout(() => setAppearanceMsg(null), 2500);
+    if (res.ok) {
+      setAppearanceMsg({ type: "success", text: "Appearance saved!" });
+    } else {
+      setAppearanceMsg({ type: "error", text: data.detail || data.error || "Failed to save appearance" });
+    }
+    setTimeout(() => setAppearanceMsg(null), 3000);
   };
 
   const inputCls = "w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400";
