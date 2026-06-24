@@ -13,8 +13,27 @@ interface Person {
   bio?: string;
 }
 
-const ROLES = ["teacher", "assistant", "director", "staff"];
+interface CoursePreview {
+  id: string;
+  name: string;
+  description?: string | null;
+  color: string;
+  room?: string | null;
+  ageGroups: string[];
+  timeSlots: Array<{ label?: string | null; dayOfWeek?: number | null; startTime: string; endTime: string }>;
+  campers: Array<{ firstName: string; lastName: string; ageGroup?: string | null; guardianName?: string | null; guardianEmail?: string | null; medicalNotes?: string | null }>;
+}
 
+interface SchedulePreview {
+  person: Person;
+  camp: { name: string; startDate?: string | null; endDate?: string | null };
+  courses: CoursePreview[];
+}
+
+const ROLES = ["teacher", "assistant", "director", "staff"];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// ── Teacher add/edit modal ─────────────────────────────────────────────────
 function TeacherModal({ person, campId, onClose, onSaved }: {
   person?: Person | null;
   campId: string;
@@ -110,15 +129,192 @@ function TeacherModal({ person, campId, onClose, onSaved }: {
   );
 }
 
+// ── Schedule preview + send modal ─────────────────────────────────────────
+function SendScheduleModal({ person, campId, onClose }: {
+  person: Person;
+  campId: string;
+  onClose: () => void;
+}) {
+  const [preview,   setPreview]   = useState<SchedulePreview | null>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [note,      setNote]      = useState("");
+  const [sending,   setSending]   = useState(false);
+  const [sent,      setSent]      = useState(false);
+  const [error,     setError]     = useState("");
+
+  useEffect(() => {
+    fetch(`/api/camps/${campId}/persons/${person.id}/send-schedule`)
+      .then(r => r.json())
+      .then(d => { setPreview(d); setLoading(false); })
+      .catch(() => { setError("Failed to load schedule preview"); setLoading(false); });
+  }, [campId, person.id]);
+
+  const handleSend = async () => {
+    if (!person.email) { setError("This teacher has no email address. Edit their profile to add one."); return; }
+    setSending(true); setError("");
+    try {
+      const res = await fetch(`/api/camps/${campId}/persons/${person.id}/send-schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note }),
+      });
+      if (res.ok) { setSent(true); }
+      else { const d = await res.json(); setError(d.error || "Failed to send email"); }
+    } catch { setError("Something went wrong"); }
+    finally { setSending(false); }
+  };
+
+  const totalCampers = preview?.courses.reduce((s, c) => s + c.campers.length, 0) ?? 0;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h2 className="font-bold text-lg text-slate-800">📧 Send Schedule to {person.firstName}</h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {person.email
+                ? <>Will send to <strong className="text-slate-700">{person.email}</strong></>
+                : <span className="text-amber-600 font-medium">⚠️ No email on file — edit teacher to add one</span>}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 text-lg">✕</button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {loading && (
+            <div className="flex items-center justify-center h-48">
+              <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+
+          {!loading && sent && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <span className="text-6xl mb-4">✅</span>
+              <h3 className="font-bold text-lg text-slate-800 mb-1">Email Sent!</h3>
+              <p className="text-slate-500 text-sm">Schedule delivered to {person.email}</p>
+            </div>
+          )}
+
+          {!loading && !sent && preview && (
+            <>
+              {/* Summary stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-forest-50 border border-forest-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-forest-700">{preview.courses.length}</p>
+                  <p className="text-xs text-forest-600 mt-0.5">Activities</p>
+                </div>
+                <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-sky-700">{totalCampers}</p>
+                  <p className="text-xs text-sky-600 mt-0.5">Total Students</p>
+                </div>
+                <div className="bg-berry-50 border border-berry-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-berry-700">
+                    {preview.courses.reduce((s, c) => s + c.timeSlots.length, 0)}
+                  </p>
+                  <p className="text-xs text-berry-600 mt-0.5">Time Slots</p>
+                </div>
+              </div>
+
+              {/* Course list preview */}
+              <div className="space-y-3">
+                {preview.courses.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                    No activities assigned to this teacher yet.
+                  </div>
+                ) : preview.courses.map(course => (
+                  <div key={course.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                    <div className="flex items-center gap-3 px-4 py-3" style={{ borderLeft: `4px solid ${course.color}` }}>
+                      <div>
+                        <p className="font-semibold text-slate-800 text-sm">{course.name}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {course.room && <span className="text-xs text-slate-500">📍 {course.room}</span>}
+                          {course.timeSlots.map((ts, i) => (
+                            <span key={i} className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full px-2 py-0.5">
+                              {ts.label || ""} {ts.dayOfWeek != null ? DAYS[ts.dayOfWeek] + " " : ""}{ts.startTime}–{ts.endTime}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="ml-auto text-right flex-shrink-0">
+                        <p className="text-sm font-semibold text-slate-800">{course.campers.length}</p>
+                        <p className="text-xs text-slate-400">students</p>
+                      </div>
+                    </div>
+                    {course.campers.length > 0 && (
+                      <div className="px-4 pb-3 pt-1 bg-slate-50 border-t border-slate-100">
+                        <p className="text-xs font-medium text-slate-500 mb-1.5">Enrolled students:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {course.campers.map((c, i) => (
+                            <span key={i} className="text-xs bg-white border border-slate-200 rounded-full px-2.5 py-1 text-slate-700">
+                              {c.firstName} {c.lastName}
+                              {c.medicalNotes && <span className="text-red-500 ml-1">⚠️</span>}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Optional note */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Add a personal note <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
+                <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
+                  placeholder="e.g. Please arrive 15 minutes early on the first day..."
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 resize-none" />
+              </div>
+            </>
+          )}
+
+          {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>}
+        </div>
+
+        {/* Footer */}
+        {!sent && !loading && (
+          <div className="px-6 py-4 border-t border-slate-100 flex gap-3 flex-shrink-0">
+            <button onClick={onClose}
+              className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50">
+              Cancel
+            </button>
+            <button onClick={handleSend} disabled={sending || !person.email}
+              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+              {sending ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending...</>
+              ) : (
+                <>📧 Send Schedule Email</>
+              )}
+            </button>
+          </div>
+        )}
+        {sent && (
+          <div className="px-6 py-4 border-t border-slate-100 flex-shrink-0">
+            <button onClick={onClose} className="w-full px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
 function TeachersContent() {
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
 
-  const [persons,  setPersons]  = useState<Person[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState("");
-  const [editing,  setEditing]  = useState<Person | null | undefined>(undefined);
-  const [showModal, setShowModal] = useState(false);
+  const [persons,    setPersons]    = useState<Person[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState("");
+  const [editing,    setEditing]    = useState<Person | null | undefined>(undefined);
+  const [showModal,  setShowModal]  = useState(false);
+  const [scheduling, setScheduling] = useState<Person | null>(null);
 
   const load = () => {
     if (!campId) return;
@@ -204,16 +400,29 @@ function TeachersContent() {
                       {p.role}
                     </span>
                   </div>
-                  {p.email && <p className="text-xs text-slate-500 mt-0.5 truncate">{p.email}</p>}
+                  {p.email
+                    ? <p className="text-xs text-slate-500 mt-0.5 truncate">{p.email}</p>
+                    : <p className="text-xs text-amber-500 mt-0.5 italic">No email — add one to send schedule</p>}
                   {p.phone && <p className="text-xs text-slate-400">{p.phone}</p>}
                   {p.bio && <p className="text-xs text-slate-500 mt-1 line-clamp-2 italic">{p.bio}</p>}
                 </div>
-                <div className="flex gap-1 flex-shrink-0">
+                <div className="flex flex-col gap-1 flex-shrink-0">
+                  <button onClick={() => setScheduling(p)}
+                    title="Send schedule email"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">📧</button>
                   <button onClick={() => { setEditing(p); setShowModal(true); }}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">✏️</button>
                   <button onClick={() => deletePerson(p.id)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 text-sm">🗑️</button>
                 </div>
+              </div>
+
+              {/* Send Schedule shortcut button */}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <button onClick={() => setScheduling(p)}
+                  className="w-full px-3 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">
+                  📧 Send Schedule & Roster
+                </button>
               </div>
             </div>
           ))}
@@ -226,6 +435,14 @@ function TeachersContent() {
           campId={campId}
           onClose={() => { setShowModal(false); setEditing(undefined); }}
           onSaved={load}
+        />
+      )}
+
+      {scheduling && (
+        <SendScheduleModal
+          person={scheduling}
+          campId={campId}
+          onClose={() => setScheduling(null)}
         />
       )}
     </div>
