@@ -33,8 +33,12 @@ export async function POST(req: NextRequest) {
       slug,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-      members: { create: { userId: session.userId, role: "admin" } },
     },
+  });
+
+  // Separate create to avoid implicit transaction (not supported in HTTP mode)
+  await prisma.campMember.create({
+    data: { campId: camp.id, userId: session.userId, role: "admin" },
   });
 
   return NextResponse.json(camp, { status: 201 });

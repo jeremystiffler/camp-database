@@ -27,14 +27,16 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      await prisma.camp.create({
+      const newCamp = await prisma.camp.create({
         data: {
           organizationId: org.id,
           name: "My Camp",
           slug: campSlug,
           status: "draft",
-          members: { create: { userId: user.id, role: "admin" } },
         },
+      });
+      await prisma.campMember.create({
+        data: { campId: newCamp.id, userId: user.id, role: "admin" },
       });
     }
 

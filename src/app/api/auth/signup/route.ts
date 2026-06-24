@@ -27,14 +27,17 @@ export async function POST(req: NextRequest) {
     });
 
     const campSlug = "my-camp-" + Date.now();
-    await prisma.camp.create({
+    const camp = await prisma.camp.create({
       data: {
         organizationId: org.id,
         name: "My Camp",
         slug: campSlug,
         status: "draft",
-        members: { create: { userId: user.id, role: "admin" } },
       },
+    });
+    // Separate create — nested creates use implicit transactions (not supported in HTTP mode)
+    await prisma.campMember.create({
+      data: { campId: camp.id, userId: user.id, role: "admin" },
     });
 
     const token = await signToken({
