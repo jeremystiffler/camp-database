@@ -47,6 +47,7 @@ model Camp {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   members          CampMember[]
+  invites          CampInvite[]
   ageGroups        AgeGroup[]
   rooms            Room[]
   persons          Person[]
@@ -228,6 +229,19 @@ model Enrollment {
   status    String   @default("enrolled")
   createdAt DateTime @default(now())
   @@unique([camperId, sessionId])
+}
+
+model CampInvite {
+  id          String    @id @default(cuid())
+  campId      String
+  camp        Camp      @relation(fields: [campId], references: [id], onDelete: Cascade)
+  email       String
+  role        String    @default("editor")
+  token       String    @unique @default(cuid())
+  invitedById String?
+  acceptedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
 }
 
 model RegistrationLink {
