@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import NewCampWizard from "@/components/NewCampWizard";
 
 interface Camp {
   id: string;
@@ -93,96 +94,7 @@ function CampCard({ camp }: { camp: Camp }) {
   );
 }
 
-function NewCampModal({ onClose, onCreated }: { onClose: () => void; onCreated: (camp: Camp) => void }) {
-  const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/camps", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, startDate: startDate || undefined, endDate: endDate || undefined }),
-      });
-      if (res.ok) {
-        const camp = await res.json();
-        onCreated(camp);
-        onClose();
-      } else {
-        const data = await res.json();
-        setError(data.error || "Failed to create camp");
-      }
-    } catch {
-      setError("Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-        <h2 className="font-bold text-xl text-slate-800 mb-5">Create New Camp</h2>
-        <form onSubmit={handleCreate} className="space-y-4">
-          {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Camp Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              placeholder="e.g. Creator's Camp 2027"
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Start Date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">End Date</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
-            >
-              {loading ? "Creating..." : "Create Camp"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+// NewCampModal replaced by NewCampWizard component
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -281,11 +193,11 @@ function DashboardContent() {
       )}
 
       {showNewCamp && (
-        <NewCampModal
+        <NewCampWizard
           onClose={() => setShowNewCamp(false)}
-          onCreated={(camp) => {
-            setCamps((prev) => [camp, ...prev]);
-            router.push(`/activities?campId=${camp.id}`);
+          onCreated={(campId, campName) => {
+            setShowNewCamp(false);
+            router.push(`/activities?campId=${campId}`);
           }}
         />
       )}
