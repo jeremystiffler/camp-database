@@ -92,7 +92,7 @@ function Step1({
           onChange={(e) => setName(e.target.value)}
           required
           placeholder="e.g. Creator's Camp 2027"
-          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400"
+          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400 text-slate-800 placeholder:text-slate-400"
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -182,7 +182,7 @@ function Step2({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && add()}
               placeholder="Group name *"
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
             />
           </div>
           <div>
@@ -192,7 +192,7 @@ function Step2({
               onChange={(e) => setMinAge(e.target.value)}
               placeholder="Min age"
               min={1} max={99}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
             />
           </div>
           <div>
@@ -202,7 +202,7 @@ function Step2({
               onChange={(e) => setMaxAge(e.target.value)}
               placeholder="Max age"
               min={1} max={99}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
             />
           </div>
         </div>
@@ -290,7 +290,7 @@ function Step3({
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && add()}
             placeholder="Room name (e.g. Main Hall) *"
-            className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white"
+            className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
           />
           <input
             type="number"
@@ -298,7 +298,7 @@ function Step3({
             onChange={(e) => setCapacity(e.target.value)}
             min={1}
             placeholder="Cap"
-            className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white"
+            className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
           />
           <button
             type="button"
@@ -410,7 +410,7 @@ function Step4({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Period 1"
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white"
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
           />
         </div>
 
@@ -421,7 +421,7 @@ function Step4({
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
             />
           </div>
           <div>
@@ -430,7 +430,7 @@ function Step4({
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
             />
           </div>
         </div>

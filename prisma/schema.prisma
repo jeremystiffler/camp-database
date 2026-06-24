@@ -80,6 +80,7 @@ model AgeGroup {
   color        String   @default("#6366f1")
   createdAt    DateTime @default(now())
   courses      Course[]
+  courseAgeGroups CourseAgeGroup[]
   campers      Camper[]
 }
 
@@ -125,6 +126,8 @@ model Course {
   icon           String?
   createdAt      DateTime        @default(now())
   courseTeachers CourseTeacher[]
+  courseAgeGroups CourseAgeGroup[]
+  courseSessionTemplates CourseSessionTemplate[]
   sessions       Session[]
 }
 
@@ -134,6 +137,22 @@ model CourseTeacher {
   personId  String
   person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
   @@id([courseId, personId])
+}
+
+model CourseAgeGroup {
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  ageGroupId  String
+  ageGroup    AgeGroup @relation(fields: [ageGroupId], references: [id], onDelete: Cascade)
+  @@id([courseId, ageGroupId])
+}
+
+model CourseSessionTemplate {
+  courseId           String
+  course             Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  sessionTemplateId  String
+  sessionTemplate    SessionTemplate @relation(fields: [sessionTemplateId], references: [id], onDelete: Cascade)
+  @@id([courseId, sessionTemplateId])
 }
 
 model SessionTemplate {
@@ -146,6 +165,7 @@ model SessionTemplate {
   label      String?
   createdAt  DateTime  @default(now())
   sessions   Session[]
+  courseSessionTemplates CourseSessionTemplate[]
 }
 
 model Session {

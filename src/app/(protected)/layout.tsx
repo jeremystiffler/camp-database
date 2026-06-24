@@ -6,12 +6,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊" },
-  { href: "/activities", label: "Activities", icon: "🎯" },
-  { href: "/campers", label: "Campers", icon: "👦" },
-  { href: "/schedule", label: "Schedule", icon: "📅" },
-  { href: "/print", label: "Print Center", icon: "🖨️" },
-  { href: "/settings", label: "Settings", icon: "⚙️" },
+  { href: "/dashboard",  label: "Dashboard",    icon: "📊" },
+  { href: "/activities", label: "Activities",   icon: "🎯" },
+  { href: "/teachers",   label: "Teachers",     icon: "🧑‍🏫" },
+  { href: "/campers",    label: "Campers",      icon: "👦" },
+  { href: "/schedule",   label: "Schedule",     icon: "📅" },
+  { href: "/print",      label: "Print Center", icon: "🖨️" },
+  { href: "/settings",   label: "Settings",     icon: "⚙️" },
 ];
 
 interface AuthUser {

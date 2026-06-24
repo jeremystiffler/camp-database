@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
-const PROTECTED = ["/dashboard", "/camp", "/activities", "/campers", "/schedule", "/print", "/settings"];
+const PROTECTED = ["/dashboard", "/camp", "/activities", "/teachers", "/campers", "/schedule", "/print", "/settings"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -22,5 +22,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/camp/:path*", "/activities/:path*", "/campers/:path*", "/schedule/:path*", "/print/:path*", "/settings/:path*"],
+  matcher: ["/dashboard/:path*", "/camp/:path*", "/activities/:path*", "/teachers/:path*", "/campers/:path*", "/schedule/:path*", "/print/:path*", "/settings/:path*"],
 };
