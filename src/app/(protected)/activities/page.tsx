@@ -707,6 +707,18 @@ function ActivitiesContent() {
   const [search, setSearch]                     = useState("");
   const [editingCourse, setEditingCourse]       = useState<Course | null | undefined>(undefined);
   const [showModal, setShowModal]               = useState(false);
+  const [sortCol, setSortCol]                   = useState("name");
+  const [sortDir, setSortDir]                   = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (col: string) => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortCol !== col) return <span className="text-slate-300 ml-1">⇅</span>;
+    return <span className="text-forest-600 ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>;
+  };
 
   const load = () => {
     if (!campId) return;
@@ -735,7 +747,28 @@ function ActivitiesContent() {
     load();
   };
 
-  const filtered = courses.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+  const sortedFiltered = courses
+    .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      let av = "", bv = "";
+      if (sortCol === "name") { av = a.name; bv = b.name; }
+      else if (sortCol === "room") { av = a.room?.name || ""; bv = b.room?.name || ""; }
+      else if (sortCol === "teacher") {
+        const ta = a.courseTeachers?.find(ct => ct.person.role === "teacher" || ct.person.role === "director");
+        const tb = b.courseTeachers?.find(ct => ct.person.role === "teacher" || ct.person.role === "director");
+        av = ta?.person.lastName || ""; bv = tb?.person.lastName || "";
+      } else if (sortCol === "time") {
+        av = a.courseSessionTemplates?.[0]?.sessionTemplate?.startTime || "";
+        bv = b.courseSessionTemplates?.[0]?.sessionTemplate?.startTime || "";
+      } else if (sortCol === "cap") {
+        return sortDir === "asc" ? (a.cap || 0) - (b.cap || 0) : (b.cap || 0) - (a.cap || 0);
+      } else if (sortCol === "agegroup") {
+        av = a.courseAgeGroups?.[0]?.ageGroup?.name || "";
+        bv = b.courseAgeGroups?.[0]?.ageGroup?.name || "";
+      }
+      const cmp = av.localeCompare(bv);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
@@ -756,17 +789,24 @@ function ActivitiesContent() {
         </button>
       </div>
 
-      <div className="mb-5">
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
         <input type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search activities..."
-          className="w-full max-w-sm px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
+          className="w-full max-w-xs px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
+        {(sortCol !== "name" || sortDir !== "asc") && (
+          <button onClick={() => { setSortCol("name"); setSortDir("asc"); }}
+            className="text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50">
+            ✕ Clear sort
+          </button>
+        )}
+        <span className="text-xs text-slate-400 ml-auto">Click column headers to sort ⇅</span>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-48">
           <div className="w-8 h-8 border-2 border-forest-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : sortedFiltered.length === 0 ? (
         <div className="camp-card p-12 text-center">
           <span className="text-5xl mb-4 block">🎯</span>
           <h3 className="font-bold text-slate-700 mb-2">{search ? "No activities match" : "No activities yet"}</h3>
@@ -779,72 +819,114 @@ function ActivitiesContent() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(course => {
-            const teachers   = course.courseTeachers?.filter(ct => ct.person.role === "teacher" || ct.person.role === "director") || [];
-            const aides      = course.courseTeachers?.filter(ct => ct.person.role === "assistant" || ct.person.role === "staff") || [];
-            return (
-              <div key={course.id} className="camp-card p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl text-white flex-shrink-0"
-                      style={{ backgroundColor: course.color || "#22C55E" }}>
-                      {course.icon || "🎯"}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-800 text-sm leading-tight">{course.name}</h3>
-                      {course.courseAgeGroups && course.courseAgeGroups.length > 0 && (
-                        <div className="flex gap-1 flex-wrap mt-0.5">
-                          {course.courseAgeGroups.map(cag => (
-                            <span key={cag.ageGroup.id} className="text-xs px-1.5 py-0.5 rounded-full text-white font-medium"
-                              style={{ backgroundColor: cag.ageGroup.color }}>
-                              {cag.ageGroup.name}
-                            </span>
-                          ))}
+        <div className="camp-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  {[
+                    { key: "name",     label: "Activity" },
+                    { key: "room",     label: "Room" },
+                    { key: "agegroup", label: "Age Groups" },
+                    { key: "time",     label: "Time Slots" },
+                    { key: "teacher",  label: "Lead Teacher" },
+                    { key: "ta",       label: "Asst." },
+                    { key: "cap",      label: "Cap" },
+                  ].map(col => (
+                    <th key={col.key}
+                      className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:text-slate-700"
+                      onClick={() => toggleSort(col.key)}>
+                      {col.label}<SortIcon col={col.key} />
+                    </th>
+                  ))}
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedFiltered.map(course => {
+                  const teachers = course.courseTeachers?.filter(ct => ct.person.role === "teacher" || ct.person.role === "director") || [];
+                  const aides    = course.courseTeachers?.filter(ct => ct.person.role === "assistant" || ct.person.role === "staff") || [];
+                  const slots    = course.courseSessionTemplates || [];
+                  return (
+                    <tr key={course.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      {/* Activity */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base text-white flex-shrink-0"
+                            style={{ backgroundColor: course.color || "#22C55E" }}>
+                            {course.icon || "🎯"}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-800 truncate max-w-[180px]">{course.name}</p>
+                            {course.description && <p className="text-xs text-slate-400 truncate max-w-[180px]">{course.description}</p>}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => { setEditingCourse(course); setShowModal(true); }}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors text-sm">✏️</button>
-                    <button onClick={() => deleteCourse(course.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm">🗑️</button>
-                  </div>
-                </div>
-
-                {course.description && (
-                  <p className="text-slate-500 text-xs mb-3 leading-relaxed line-clamp-2">{course.description}</p>
-                )}
-
-                <div className="flex flex-wrap gap-2 text-xs">
-                  {course.room && (
-                    <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg text-slate-600">
-                      📍 {course.room.name}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg text-slate-600">
-                    👥 {course.cap}
-                  </span>
-                  {teachers.length > 0 && (
-                    <span className="flex items-center gap-1 bg-berry-50 border border-berry-100 px-2 py-1 rounded-lg text-berry-700">
-                      🧑‍🏫 {teachers.map(t => t.person.firstName).join(", ")}
-                    </span>
-                  )}
-                  {aides.length > 0 && (
-                    <span className="flex items-center gap-1 bg-sky-50 border border-sky-100 px-2 py-1 rounded-lg text-sky-700">
-                      🤝 {aides.map(t => t.person.firstName).join(", ")}
-                    </span>
-                  )}
-                  {course.courseSessionTemplates && course.courseSessionTemplates.length > 0 && (
-                    <span className="flex items-center gap-1 bg-amber-50 border border-amber-100 px-2 py-1 rounded-lg text-amber-700">
-                      ⏰ {course.courseSessionTemplates.length} slot{course.courseSessionTemplates.length !== 1 ? "s" : ""}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                      </td>
+                      {/* Room */}
+                      <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">
+                        {course.room ? <span className="flex items-center gap-1">📍 {course.room.name}</span> : <span className="text-slate-300">—</span>}
+                      </td>
+                      {/* Age Groups */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex gap-1 flex-wrap min-w-[80px]">
+                          {course.courseAgeGroups && course.courseAgeGroups.length > 0
+                            ? course.courseAgeGroups.map(cag => (
+                                <span key={cag.ageGroup.id}
+                                  className="text-xs px-1.5 py-0.5 rounded-full text-white font-medium whitespace-nowrap"
+                                  style={{ backgroundColor: cag.ageGroup.color }}>
+                                  {cag.ageGroup.name}
+                                </span>
+                              ))
+                            : <span className="text-slate-300 text-xs">—</span>}
+                        </div>
+                      </td>
+                      {/* Time Slots */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        {slots.length === 0
+                          ? <span className="text-slate-300 text-xs">—</span>
+                          : slots.length === 1
+                            ? <span className="text-xs bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full">
+                                {slots[0].sessionTemplate.label || `${slots[0].sessionTemplate.startTime}–${slots[0].sessionTemplate.endTime}`}
+                              </span>
+                            : <span className="text-xs bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full">
+                                ⏰ {slots.length} slots
+                              </span>}
+                      </td>
+                      {/* Lead Teacher */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        {teachers.length > 0
+                          ? <span className="flex items-center gap-1.5 text-berry-700">
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                {teachers[0].person.firstName[0]}
+                              </div>
+                              {teachers[0].person.firstName} {teachers[0].person.lastName}
+                              {teachers.length > 1 && <span className="text-xs text-slate-400">+{teachers.length - 1}</span>}
+                            </span>
+                          : <span className="text-slate-300 text-xs">—</span>}
+                      </td>
+                      {/* TA */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        {aides.length > 0
+                          ? <span className="text-sky-700 text-xs">{aides[0].person.firstName} {aides[0].person.lastName}{aides.length > 1 ? ` +${aides.length - 1}` : ""}</span>
+                          : <span className="text-slate-300 text-xs">—</span>}
+                      </td>
+                      {/* Cap */}
+                      <td className="px-4 py-3.5 whitespace-nowrap text-slate-600 text-xs">
+                        👥 {course.cap}
+                      </td>
+                      {/* Actions */}
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                        <button onClick={() => { setEditingCourse(course); setShowModal(true); }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors text-sm mr-1">✏️</button>
+                        <button onClick={() => deleteCourse(course.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm">🗑️</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

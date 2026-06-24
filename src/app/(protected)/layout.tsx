@@ -12,6 +12,7 @@ const navItems = [
   { href: "/campers",    label: "Campers",      icon: "👦" },
   { href: "/schedule",   label: "Schedule",     icon: "📅" },
   { href: "/print",      label: "Print Center", icon: "🖨️" },
+  { href: "/import",     label: "Import (Beta)", icon: "📥" },
   { href: "/team",       label: "Team",         icon: "👥" },
   { href: "/settings",   label: "Settings",     icon: "⚙️" },
 ];
