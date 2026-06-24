@@ -160,6 +160,25 @@ function SetupContent() {
         </div>
       </div>
 
+      {/* ── Import shortcut ── */}
+      <div className="camp-card p-5 border-2 border-dashed border-slate-200 bg-slate-50/50 mb-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-forest-400 flex items-center justify-center text-white text-xl flex-shrink-0">
+              📥
+            </div>
+            <div>
+              <p className="font-semibold text-slate-800 text-sm">Bulk Import</p>
+              <p className="text-xs text-slate-500 mt-0.5">Upload a spreadsheet to create activities, teachers, rooms, and time slots all at once.</p>
+            </div>
+          </div>
+          <Link href={`/import?campId=${campId}`}
+            className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+            Go to Import →
+          </Link>
+        </div>
+      </div>
+
       {/* ── Camp Details ── */}
       <Section title="🏕️ Camp Details">
         <div className="space-y-4">
@@ -305,25 +324,6 @@ function SetupContent() {
           </button>
         </form>
       </Section>
-
-      {/* ── Import shortcut ── */}
-      <div className="camp-card p-5 border-2 border-dashed border-slate-200 bg-slate-50/50">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-forest-400 flex items-center justify-center text-white text-xl flex-shrink-0">
-              📥
-            </div>
-            <div>
-              <p className="font-semibold text-slate-800 text-sm">Bulk Import</p>
-              <p className="text-xs text-slate-500 mt-0.5">Upload a spreadsheet to create activities, teachers, rooms, and time slots all at once.</p>
-            </div>
-          </div>
-          <Link href={`/import?campId=${campId}`}
-            className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm flex items-center gap-2 whitespace-nowrap flex-shrink-0">
-            Go to Import →
-          </Link>
-        </div>
-      </div>
     </div>
   );
 }

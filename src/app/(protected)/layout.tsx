@@ -7,15 +7,15 @@ import { Suspense } from "react";
 
 const navItems = [
   { href: "/dashboard",    label: "Dashboard",      icon: "📊" },
-  { href: "/activities",   label: "Activities",     icon: "🎯" },
+  { href: "/setup",        label: "Camp Setup",     icon: "🏕️" },
   { href: "/teachers",     label: "Teachers",       icon: "🧑‍🏫" },
+  { href: "/activities",   label: "Activities",     icon: "🎯" },
   { href: "/campers",      label: "Campers",        icon: "👦" },
   { href: "/schedule",     label: "Schedule",       icon: "📅" },
-  { href: "/print",        label: "Print Center",   icon: "🖨️" },
   { href: "/registration", label: "Reg. Form",      icon: "📋" },
-  { href: "/setup",        label: "Camp Setup",     icon: "🏕️" },
-  { href: "/import",       label: "Import (Beta)",  icon: "📥" },
+  { href: "/print",        label: "Print Center",   icon: "🖨️" },
   { href: "/team",         label: "Team",           icon: "👥" },
+  { href: "/import",       label: "Import",         icon: "📥" },
   { href: "/settings",     label: "Settings",       icon: "⚙️" },
 ];
 
