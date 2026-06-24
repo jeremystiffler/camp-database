@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
     await setSessionCookie(token);
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Signup error:", err);
-    return NextResponse.json({ error: "Signup failed" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Signup error:", msg);
+    return NextResponse.json({ error: "Signup failed", detail: msg }, { status: 500 });
   }
 }
