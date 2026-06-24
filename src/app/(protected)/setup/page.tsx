@@ -74,6 +74,13 @@ function SetupContent() {
   // New room form
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomCap,  setNewRoomCap]  = useState("30");
+  const [newRoomDesc, setNewRoomDesc] = useState("");
+
+  // Room inline editing
+  const [editingRoomId,   setEditingRoomId]   = useState<string | null>(null);
+  const [editRoomName,    setEditRoomName]    = useState("");
+  const [editRoomCap,     setEditRoomCap]     = useState("");
+  const [editRoomDesc,    setEditRoomDesc]    = useState("");
 
   // New age group form
   const [newAgeName,  setNewAgeName]  = useState("");
@@ -130,9 +137,26 @@ function SetupContent() {
     const res = await fetch(`/api/camps/${campId}/rooms`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newRoomName, capacity: parseInt(newRoomCap) }),
+      body: JSON.stringify({ name: newRoomName, capacity: parseInt(newRoomCap), description: newRoomDesc || undefined }),
     });
-    if (res.ok) { setNewRoomName(""); setNewRoomCap("30"); load(); }
+    if (res.ok) { setNewRoomName(""); setNewRoomCap("30"); setNewRoomDesc(""); load(); }
+  };
+
+  const startEditRoom = (room: Room) => {
+    setEditingRoomId(room.id);
+    setEditRoomName(room.name);
+    setEditRoomCap(room.capacity?.toString() ?? "");
+    setEditRoomDesc(room.description ?? "");
+  };
+
+  const saveRoom = async (id: string) => {
+    await fetch(`/api/camps/${campId}/rooms/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editRoomName, capacity: editRoomCap ? parseInt(editRoomCap) : undefined, description: editRoomDesc || undefined }),
+    });
+    setEditingRoomId(null);
+    load();
   };
 
   const deleteRoom = async (id: string) => {
@@ -264,17 +288,56 @@ function SetupContent() {
         <div className="space-y-3 mb-4">
           {rooms.length === 0 && <p className="text-slate-400 text-sm">No rooms yet. Add your first room below.</p>}
           {rooms.map(room => (
-            <div key={room.id} className="flex items-center justify-between py-2.5 px-4 bg-slate-50 rounded-xl">
-              <div>
-                <span className="font-medium text-slate-800 text-sm">{room.name}</span>
-                <span className="text-slate-400 text-xs ml-3">cap: {room.capacity}</span>
-                {room.description && <span className="text-slate-400 text-xs ml-3">{room.description}</span>}
-              </div>
-              <button onClick={() => deleteRoom(room.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1">🗑️</button>
+            <div key={room.id}>
+              {editingRoomId === room.id ? (
+                /* ── inline edit row ── */
+                <div className="flex flex-col gap-2 py-3 px-4 bg-sky-50 border border-sky-200 rounded-xl">
+                  <div className="flex gap-3 items-end flex-wrap">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Name</label>
+                      <input type="text" value={editRoomName} onChange={e => setEditRoomName(e.target.value)} required
+                        className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Capacity</label>
+                      <input type="number" value={editRoomCap} onChange={e => setEditRoomCap(e.target.value)} min={1}
+                        className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => saveRoom(room.id)}
+                        className="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors">
+                        ✓ Save
+                      </button>
+                      <button onClick={() => setEditingRoomId(null)}
+                        className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-colors">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Location / Description</label>
+                    <input type="text" value={editRoomDesc} onChange={e => setEditRoomDesc(e.target.value)} placeholder="e.g. North wing, second floor"
+                      className="w-full max-w-md px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
+                  </div>
+                </div>
+              ) : (
+                /* ── read-only row ── */
+                <div className="flex items-center justify-between py-2.5 px-4 bg-slate-50 rounded-xl">
+                  <div>
+                    <span className="font-medium text-slate-800 text-sm">{room.name}</span>
+                    {room.capacity && <span className="text-slate-400 text-xs ml-3">cap: {room.capacity}</span>}
+                    {room.description && <span className="text-slate-400 text-xs ml-3">· {room.description}</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => startEditRoom(room)} className="text-slate-400 hover:text-sky-500 transition-colors text-sm p-1" title="Edit">✏️</button>
+                    <button onClick={() => deleteRoom(room.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">🗑️</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
-        <form onSubmit={addRoom} className="flex gap-3 items-end flex-wrap">
+        <form onSubmit={addRoom} className="flex gap-3 items-end flex-wrap pt-4 border-t border-slate-100">
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Room Name</label>
             <input type="text" value={newRoomName} onChange={e => setNewRoomName(e.target.value)} required placeholder="e.g. Main Hall"
@@ -284,6 +347,11 @@ function SetupContent() {
             <label className="block text-xs font-medium text-slate-500 mb-1">Capacity</label>
             <input type="number" value={newRoomCap} onChange={e => setNewRoomCap(e.target.value)} min={1}
               className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Location / Description</label>
+            <input type="text" value={newRoomDesc} onChange={e => setNewRoomDesc(e.target.value)} placeholder="e.g. North wing"
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <button type="submit" className="px-4 py-2 bg-forest-500 text-white rounded-xl text-sm font-semibold hover:bg-forest-600 transition-colors">
             + Add Room
