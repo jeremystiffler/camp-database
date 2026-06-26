@@ -40,6 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     roomId: data.roomId || undefined,
     teacherIds: Array.isArray(teacherIds) ? teacherIds : [],
     sessionTemplateIds: Array.isArray(sessionTemplateIds) ? sessionTemplateIds : [],
+    ageGroupIds: Array.isArray(ageGroupIds) ? ageGroupIds : [],
   });
   if (conflicts.length > 0) {
     return NextResponse.json({ error: "scheduling_conflict", conflicts }, { status: 409 });

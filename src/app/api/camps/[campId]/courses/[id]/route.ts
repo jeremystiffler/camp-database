@@ -19,6 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     include: {
       courseTeachers:         { select: { personId: true } },
       courseSessionTemplates: { select: { sessionTemplateId: true } },
+      courseAgeGroups:        { select: { ageGroupId: true } },
     },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -33,6 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     : existing.courseTeachers.map(ct => ct.personId);
 
   const existingSlotIds = existing.courseSessionTemplates.map((cst: { sessionTemplateId: string }) => cst.sessionTemplateId);
+  const existingAgeGroupIds = existing.courseAgeGroups.map((cag: { ageGroupId: string }) => cag.ageGroupId);
   const resolvedSlotIds = Array.isArray(sessionTemplateIds)
     ? sessionTemplateIds
     : existingSlotIds;
@@ -49,6 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const conflictSlotIds = isSlotOnlyUpdate
     ? sessionTemplateIds.filter((slotId: string) => !existingSlotIds.includes(slotId))
     : resolvedSlotIds;
+  const resolvedAgeGroupIds = Array.isArray(ageGroupIds) ? ageGroupIds : existingAgeGroupIds;
 
   // ── Conflict check (exclude self) ────────────────────────────────────────
   const conflicts = await checkSchedulingConflicts({
@@ -57,6 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     roomId:              resolvedRoomId,
     teacherIds:          resolvedTeacherIds,
     sessionTemplateIds:  conflictSlotIds,
+    ageGroupIds:         resolvedAgeGroupIds,
   });
   if (conflicts.length > 0) {
     return NextResponse.json({ error: "scheduling_conflict", conflicts }, { status: 409 });

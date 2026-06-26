@@ -1,12 +1,12 @@
 import { prisma } from "./db";
 
 export interface SchedulingConflict {
-  type: "room" | "teacher";
+  type: "room" | "teacher" | "ageGroup";
   /** Formatted day + time e.g. "Mon 9:00 AM – 10:00 AM" */
   slotLabel: string;
   /** The other activity that owns this slot */
   activityName: string;
-  /** For room conflicts: the room name. For teacher conflicts: the teacher's full name */
+  /** For room conflicts: the room name. For teacher conflicts: the teacher's full name. For age group conflicts: the group name. */
   detail: string;
   /** For teacher conflicts: the room the teacher is already in (if any) */
   locationNote?: string;
@@ -30,12 +30,16 @@ export async function checkSchedulingConflicts({
   roomId,
   teacherIds,
   sessionTemplateIds,
+  ageGroupIds = [],
+  excludeMandatorySessionId,
 }: {
   campId: string;
   excludeCourseId?: string;   // when editing, exclude self
+  excludeMandatorySessionId?: string; // when editing a required assembly, exclude self
   roomId?: string;
   teacherIds: string[];
   sessionTemplateIds: string[];
+  ageGroupIds?: string[];
 }): Promise<SchedulingConflict[]> {
   if (sessionTemplateIds.length === 0) return [];
 
@@ -64,6 +68,8 @@ export async function checkSchedulingConflicts({
           name: true,
           roomId: true,
           room: { select: { name: true } },
+          ageGroup: { select: { id: true, name: true } },
+          courseAgeGroups: { select: { ageGroup: { select: { id: true, name: true } } } },
           courseTeachers: {
             select: {
               person: { select: { id: true, firstName: true, lastName: true } },
@@ -97,6 +103,27 @@ export async function checkSchedulingConflicts({
       }
     }
 
+    // ── Age group conflict with a required assembly ─────────────────────────
+    if (ageGroupIds.length > 0) {
+      const courseGroups = [
+        ...(course.ageGroup ? [course.ageGroup] : []),
+        ...course.courseAgeGroups.map(cag => cag.ageGroup),
+      ];
+      const overlappingGroup = courseGroups.find(group => ageGroupIds.includes(group.id));
+      if (overlappingGroup) {
+        const key = `ageGroup|${overlappingGroup.id}|${course.id}|${link.sessionTemplateId}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          conflicts.push({
+            type: "ageGroup",
+            slotLabel,
+            activityName: course.name,
+            detail: overlappingGroup.name,
+          });
+        }
+      }
+    }
+
     // ── Teacher conflicts ──────────────────────────────────────────────────
     for (const ct of course.courseTeachers) {
       if (teacherIds.includes(ct.person.id)) {
@@ -111,6 +138,59 @@ export async function checkSchedulingConflicts({
             locationNote: course.room?.name,
           });
         }
+      }
+    }
+  }
+
+  const mandatoryBlocks = await prisma.mandatorySession.findMany({
+    where: {
+      campId,
+      sessionTemplateId: { in: sessionTemplateIds },
+      ...(excludeMandatorySessionId ? { id: { not: excludeMandatorySessionId } } : {}),
+    },
+    select: {
+      id: true,
+      title: true,
+      sessionTemplateId: true,
+      roomId: true,
+      room: { select: { name: true } },
+      ageGroup: { select: { id: true, name: true } },
+      leader: { select: { id: true, firstName: true, lastName: true } },
+    },
+  });
+
+  for (const block of mandatoryBlocks) {
+    const tmpl = templateMap.get(block.sessionTemplateId);
+    if (!tmpl) continue;
+    const slotLabel = formatSlot(tmpl.dayOfWeek ?? null, tmpl.startTime, tmpl.endTime, tmpl.label);
+
+    if (roomId && block.roomId === roomId) {
+      const key = `mandatory-room|${block.id}|${block.sessionTemplateId}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        conflicts.push({ type: "room", slotLabel, activityName: block.title, detail: block.room?.name || "this room" });
+      }
+    }
+
+    if (block.leader?.id && teacherIds.includes(block.leader.id)) {
+      const key = `mandatory-teacher|${block.leader.id}|${block.sessionTemplateId}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        conflicts.push({
+          type: "teacher",
+          slotLabel,
+          activityName: block.title,
+          detail: `${block.leader.firstName} ${block.leader.lastName}`,
+          locationNote: block.room?.name,
+        });
+      }
+    }
+
+    if (ageGroupIds.includes(block.ageGroup.id)) {
+      const key = `mandatory-ageGroup|${block.ageGroup.id}|${block.sessionTemplateId}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        conflicts.push({ type: "ageGroup", slotLabel, activityName: block.title, detail: block.ageGroup.name });
       }
     }
   }

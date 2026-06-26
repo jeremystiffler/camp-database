@@ -38,6 +38,13 @@ interface RegistrationSession {
   startTime: string;
   endTime: string;
   mandatory: boolean;
+  mandatorySessions?: {
+    id: string;
+    title: string;
+    ageGroupId: string;
+    room?: { name: string } | null;
+    leader?: { firstName: string; lastName: string } | null;
+  }[];
   optionCountsByAgeGroup: Record<string, number>;
   optionsByAgeGroup: Record<string, SessionOption[]>;
 }
@@ -172,8 +179,13 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
       optionCount,
       options,
     };
-  }).filter(session => !session.mandatory);
-  const requiredSessions = selectableSessions.filter(session => session.optionCount > 0);
+  });
+  const mandatoryWeeklySessions = selectableSessions.filter(session =>
+    session.mandatory || Boolean(session.mandatorySessions?.some(ms => ms.ageGroupId === selectedAgeGroupId))
+  );
+  const requiredSessions = selectableSessions.filter(session =>
+    !session.mandatory && !session.mandatorySessions?.some(ms => ms.ageGroupId === selectedAgeGroupId) && session.optionCount > 0
+  );
 
   const validateStep = (targetStep: Step): boolean => {
     const errs: Record<string, string> = {};
@@ -392,11 +404,32 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
                   <div className="px-4 py-6 bg-amber-50 border border-amber-200 rounded-xl text-center text-sm text-amber-700">This age group is marked “No Schedule,” so no class choices are required.</div>
                 ) : registrationSessions.length === 0 ? (
                   <div className="px-4 py-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-sm text-slate-500">No class sessions are currently available.</div>
-                ) : requiredSessions.length === 0 ? (
-                  <div className="px-4 py-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-sm text-slate-500">All sessions are marked mandatory, so no class choices are required.</div>
                 ) : (
                   <div className="space-y-5">
-                    {requiredSessions.map(session => (
+                    {mandatoryWeeklySessions.length > 0 && (
+                      <div className="rounded-2xl border border-forest-200 bg-forest-50 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-forest-100">
+                          <p className="font-bold text-forest-800 text-sm">🔒 Included automatically</p>
+                          <p className="text-xs text-forest-700">These required assemblies are assigned to this age group and are not parent choices.</p>
+                        </div>
+                        <div className="divide-y divide-forest-100">
+                          {mandatoryWeeklySessions.map(session => {
+                            const block = session.mandatorySessions?.find(ms => ms.ageGroupId === selectedAgeGroupId);
+                            return <div key={session.id} className="px-4 py-3 text-sm text-forest-900">
+                              <p className="font-semibold">{block?.title || session.label || "Required session"} · {session.startTime}–{session.endTime}</p>
+                              <p className="text-xs text-forest-700 mt-0.5">
+                                {block?.room?.name ? `Location: ${block.room.name}` : "Location assigned by camp"}
+                                {block?.leader ? ` · Leader: ${block.leader.firstName} ${block.leader.lastName}` : ""}
+                              </p>
+                            </div>;
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {requiredSessions.length === 0 ? (
+                      <div className="px-4 py-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-sm text-slate-500">No class choices are required for this age group.</div>
+                    ) : requiredSessions.map(session => (
                       <div key={session.id} className="rounded-2xl border border-slate-200 overflow-hidden">
                         <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
                           <p className="font-bold text-slate-800 text-sm">{sessionLabel(session)}</p>

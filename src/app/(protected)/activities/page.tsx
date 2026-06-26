@@ -11,7 +11,7 @@ interface Person   { id: string; firstName: string; lastName: string; email?: st
 interface SessionTemplate { id: string; label?: string; dayOfWeek?: number | null; startTime: string; endTime: string; }
 
 interface SchedulingConflict {
-  type: "room" | "teacher";
+  type: "room" | "teacher" | "ageGroup";
   slotLabel: string;
   activityName: string;
   detail: string;
@@ -23,6 +23,7 @@ interface SchedulingConflict {
 function ConflictModal({ conflicts, onClose }: { conflicts: SchedulingConflict[]; onClose: () => void }) {
   const roomConflicts    = conflicts.filter(c => c.type === "room");
   const teacherConflicts = conflicts.filter(c => c.type === "teacher");
+  const ageGroupConflicts = conflicts.filter(c => c.type === "ageGroup");
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
@@ -87,9 +88,31 @@ function ConflictModal({ conflicts, onClose }: { conflicts: SchedulingConflict[]
             </div>
           )}
 
+          {/* Age-group mandatory/session conflicts */}
+          {ageGroupConflicts.length > 0 && (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
+                <span>👥</span> Age Group Already Scheduled
+              </h3>
+              <div className="space-y-2">
+                {ageGroupConflicts.map((c, i) => (
+                  <div key={i} className="bg-amber-50 border border-amber-200 rounded-xl p-3.5">
+                    <p className="text-sm font-semibold text-amber-900">{c.detail}</p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Already assigned to <strong>{c.activityName}</strong>
+                    </p>
+                    <p className="text-xs text-amber-600 mt-0.5 flex items-center gap-1">
+                      <span>🕐</span> {c.slotLabel}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="pt-1 border-t border-slate-100">
             <p className="text-xs text-slate-500 leading-relaxed">
-              To fix these conflicts: choose a different room, change the time slots, or reassign the teacher to a different activity.
+              To fix these conflicts: choose a different room, change the time slots, reassign the teacher, or move the mandatory assembly.
             </p>
           </div>
         </div>
@@ -116,6 +139,15 @@ interface Course {
   courseAgeGroups?: { ageGroup: AgeGroup }[];
   courseTeachers?: { person: Person }[];
   courseSessionTemplates?: { sessionTemplate: SessionTemplate }[];
+}
+
+interface MandatorySession {
+  id: string;
+  title: string;
+  ageGroup: AgeGroup;
+  room?: Room | null;
+  leader?: Person | null;
+  sessionTemplate: SessionTemplate;
 }
 
 const COLORS = ["#22C55E","#0EA5E9","#F97316","#A855F7","#EAB308","#EC4899","#14B8A6","#6366F1"];
@@ -692,6 +724,122 @@ function CourseModal({
   );
 }
 
+
+// ─── Mandatory Assembly Modal ─────────────────────────────────────────────────
+
+function MandatorySessionModal({
+  item, campId, ageGroups, rooms, persons, sessionTemplates, onClose, onSaved,
+}: {
+  item?: MandatorySession | null;
+  campId: string;
+  ageGroups: AgeGroup[];
+  rooms: Room[];
+  persons: Person[];
+  sessionTemplates: SessionTemplate[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [title, setTitle] = useState(item?.title || "Opening Assembly");
+  const [ageGroupId, setAgeGroupId] = useState(item?.ageGroup.id || ageGroups[0]?.id || "");
+  const [sessionTemplateId, setSessionTemplateId] = useState(item?.sessionTemplate.id || sessionTemplates[0]?.id || "");
+  const [roomId, setRoomId] = useState(item?.room?.id || "");
+  const [leaderId, setLeaderId] = useState(item?.leader?.id || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [conflicts, setConflicts] = useState<SchedulingConflict[]>([]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true); setError(""); setConflicts([]);
+    try {
+      const url = item ? `/api/camps/${campId}/mandatory-sessions/${item.id}` : `/api/camps/${campId}/mandatory-sessions`;
+      const method = item ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, ageGroupId, sessionTemplateId, roomId: roomId || undefined, leaderId: leaderId || undefined }),
+      });
+      if (res.status === 409) {
+        const d = await res.json();
+        if (Array.isArray(d.conflicts)) setConflicts(d.conflicts);
+        else setError(d.error || "Scheduling conflict");
+      } else if (res.ok) {
+        onSaved(); onClose();
+      } else {
+        const d = await res.json();
+        setError(d.error || "Failed to save required session");
+      }
+    } catch {
+      setError("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-4">
+        <div className="px-6 py-5 border-b border-slate-100">
+          <h2 className="font-bold text-lg text-slate-800">{item ? "Edit Required Assembly" : "New Required Assembly"}</h2>
+          <p className="text-xs text-slate-500 mt-1">Automatically assigns an age group to a required block with no parent choice.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+          {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Assembly Name *</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} required placeholder="e.g. Opening Assembly"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Age Group *</label>
+              <select value={ageGroupId} onChange={e => setAgeGroupId(e.target.value)} required
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30">
+                {ageGroups.map(ag => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Time Slot *</label>
+              <select value={sessionTemplateId} onChange={e => setSessionTemplateId(e.target.value)} required
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30">
+                {sessionTemplates.map(st => <option key={st.id} value={st.id}>{st.dayOfWeek == null ? "All" : DAYS[st.dayOfWeek]} · {st.label ? `${st.label} — ` : ""}{st.startTime}–{st.endTime}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Location</label>
+              <select value={roomId} onChange={e => setRoomId(e.target.value)}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30">
+                <option value="">No room assigned</option>
+                {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Leader</label>
+              <select value={leaderId} onChange={e => setLeaderId(e.target.value)}
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30">
+                <option value="">No leader assigned</option>
+                {persons.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="bg-forest-50 border border-forest-100 rounded-xl p-3 text-xs text-forest-700">
+            Parents will not choose this session. Campers in the selected age group are enrolled automatically when they register.
+          </div>
+          <div className="flex gap-3 pt-2 border-t border-slate-100">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
+              {loading ? "Checking..." : item ? "Save Assembly" : "Create Assembly"}
+            </button>
+          </div>
+        </form>
+      </div>
+      {conflicts.length > 0 && <ConflictModal conflicts={conflicts} onClose={() => setConflicts([])} />}
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 function ActivitiesContent() {
@@ -699,6 +847,7 @@ function ActivitiesContent() {
   const campId = searchParams.get("campId") || "";
 
   const [courses, setCourses]                   = useState<Course[]>([]);
+  const [mandatorySessions, setMandatorySessions] = useState<MandatorySession[]>([]);
   const [ageGroups, setAgeGroups]               = useState<AgeGroup[]>([]);
   const [rooms, setRooms]                       = useState<Room[]>([]);
   const [persons, setPersons]                   = useState<Person[]>([]);
@@ -706,7 +855,9 @@ function ActivitiesContent() {
   const [loading, setLoading]                   = useState(true);
   const [search, setSearch]                     = useState("");
   const [editingCourse, setEditingCourse]       = useState<Course | null | undefined>(undefined);
+  const [editingMandatory, setEditingMandatory] = useState<MandatorySession | null | undefined>(undefined);
   const [showModal, setShowModal]               = useState(false);
+  const [showMandatoryModal, setShowMandatoryModal] = useState(false);
   const [sortCol, setSortCol]                   = useState("name");
   const [sortDir, setSortDir]                   = useState<"asc" | "desc">("asc");
 
@@ -725,12 +876,14 @@ function ActivitiesContent() {
     setLoading(true);
     Promise.all([
       fetch(`/api/camps/${campId}/courses`).then(r => r.json()),
+      fetch(`/api/camps/${campId}/mandatory-sessions`).then(r => r.json()),
       fetch(`/api/camps/${campId}/age-groups`).then(r => r.json()),
       fetch(`/api/camps/${campId}/rooms`).then(r => r.json()),
       fetch(`/api/camps/${campId}/persons`).then(r => r.json()),
       fetch(`/api/camps/${campId}/session-templates`).then(r => r.json()),
-    ]).then(([c, ag, r, p, st]) => {
+    ]).then(([c, ms, ag, r, p, st]) => {
       setCourses(Array.isArray(c) ? c : []);
+      setMandatorySessions(Array.isArray(ms) ? ms : []);
       setAgeGroups(Array.isArray(ag) ? ag : []);
       setRooms(Array.isArray(r) ? r : []);
       setPersons(Array.isArray(p) ? p : []);
@@ -744,6 +897,12 @@ function ActivitiesContent() {
   const deleteCourse = async (id: string) => {
     if (!confirm("Delete this activity?")) return;
     await fetch(`/api/camps/${campId}/courses/${id}`, { method: "DELETE" });
+    load();
+  };
+
+  const deleteMandatorySession = async (id: string) => {
+    if (!confirm("Delete this required assembly? Existing automatic enrollments remain until manually adjusted.")) return;
+    await fetch(`/api/camps/${campId}/mandatory-sessions/${id}`, { method: "DELETE" });
     load();
   };
 
@@ -783,10 +942,16 @@ function ActivitiesContent() {
           <h1 className="text-2xl font-bold text-slate-800">Activities</h1>
           <p className="text-slate-500 text-sm mt-0.5">{courses.length} {courses.length === 1 ? "activity" : "activities"}</p>
         </div>
-        <button onClick={() => { setEditingCourse(null); setShowModal(true); }}
-          className="px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
-          + New Activity
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); }}
+            className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
+            + Required Assembly
+          </button>
+          <button onClick={() => { setEditingCourse(null); setShowModal(true); }}
+            className="px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
+            + New Activity
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 mb-5 flex-wrap">
@@ -801,6 +966,40 @@ function ActivitiesContent() {
         )}
         <span className="text-xs text-slate-400 ml-auto">Click column headers to sort ⇅</span>
       </div>
+
+      {mandatorySessions.length > 0 && (
+        <div className="camp-card p-4 mb-5 border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h2 className="font-bold text-amber-900 text-sm">🔒 Required Assemblies</h2>
+              <p className="text-xs text-amber-700">Automatic age-group assignments; parents won’t choose these during registration.</p>
+            </div>
+            <span className="text-xs text-amber-700 font-semibold bg-white/70 border border-amber-200 rounded-full px-2.5 py-1">{mandatorySessions.length} block{mandatorySessions.length !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {mandatorySessions.map(item => (
+              <div key={item.id} className="bg-white/85 border border-amber-200 rounded-xl p-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-slate-800 text-sm">{item.title}</p>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full text-white font-medium" style={{ backgroundColor: item.ageGroup.color }}>{item.ageGroup.name}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {item.sessionTemplate.dayOfWeek == null ? "All" : DAYS[item.sessionTemplate.dayOfWeek]} · {item.sessionTemplate.label ? `${item.sessionTemplate.label} — ` : ""}{item.sessionTemplate.startTime}–{item.sessionTemplate.endTime}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {item.room?.name ? `📍 ${item.room.name}` : "📍 No room"}{item.leader ? ` · 👤 ${item.leader.firstName} ${item.leader.lastName}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => { setEditingMandatory(item); setShowMandatoryModal(true); }} className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors text-sm">✏️</button>
+                  <button onClick={() => deleteMandatorySession(item.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm">🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center h-48">
@@ -941,6 +1140,19 @@ function ActivitiesContent() {
           onClose={() => { setShowModal(false); setEditingCourse(undefined); }}
           onSaved={load}
           onPersonsChanged={setPersons}
+        />
+      )}
+
+      {showMandatoryModal && (
+        <MandatorySessionModal
+          item={editingMandatory}
+          campId={campId}
+          ageGroups={ageGroups}
+          rooms={rooms}
+          persons={persons}
+          sessionTemplates={sessionTemplates}
+          onClose={() => { setShowMandatoryModal(false); setEditingMandatory(undefined); }}
+          onSaved={load}
         />
       )}
     </div>

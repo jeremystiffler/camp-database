@@ -146,12 +146,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   });
 
   const selections: Array<{ sessionTemplateId: string; course: typeof sessionTemplates[number]["courseSessionTemplates"][number]["course"] }> = [];
+  const mandatoryAssignments = ageGroup.noSchedule ? [] : await prisma.mandatorySession.findMany({
+    where: { campId, ageGroupId: ageGroup.id },
+    include: {
+      sessionTemplate: true,
+      room: true,
+      leader: true,
+      sessions: { where: { campId }, select: { id: true } },
+    },
+    orderBy: [{ sessionTemplate: { startTime: "asc" } }, { title: "asc" }],
+  });
+  const mandatoryTemplateIds = new Set(mandatoryAssignments.map(ms => ms.sessionTemplateId));
   const selectedCourseWeeklySlots = new Map<string, Set<string>>();
   const selectedWeeklySlotCourse = new Map<string, string>();
 
   if (!ageGroup.noSchedule && sessionTemplates.length > 0) {
     for (const template of sessionTemplates) {
-      if (template.mandatory) continue;
+      if (template.mandatory || mandatoryTemplateIds.has(template.id)) continue;
       const eligibleCourses = template.courseSessionTemplates
         .map(cst => cst.course)
         .filter(course => ageMatches(course, ageGroup.id));
@@ -290,7 +301,39 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     }
   }
 
-  const courseNames = selections.map(s => s.course.name);
+  for (const assignment of mandatoryAssignments) {
+    let session = assignment.sessions[0]
+      ? await prisma.session.findUnique({ where: { id: assignment.sessions[0].id } })
+      : null;
+
+    if (!session) {
+      session = await prisma.session.create({
+        data: {
+          campId,
+          courseId: null,
+          mandatorySessionId: assignment.id,
+          sessionTemplateId: assignment.sessionTemplateId,
+          roomId: assignment.roomId,
+          startTime: assignment.sessionTemplate.startTime,
+          endTime: assignment.sessionTemplate.endTime,
+        },
+      });
+    }
+
+    if (enrolledSessionIds.has(session.id)) continue;
+    enrolledSessionIds.add(session.id);
+
+    const already = await prisma.enrollment.findFirst({ where: { camperId: camper.id, sessionId: session.id } });
+    if (!already) {
+      await prisma.enrollment.create({ data: { campId, camperId: camper.id, sessionId: session.id, status: "enrolled" } });
+      await prisma.session.update({ where: { id: session.id }, data: { enrolledCount: { increment: 1 } } });
+    }
+  }
+
+  const courseNames = [
+    ...mandatoryAssignments.map(a => `${a.title} (required)`),
+    ...selections.map(s => s.course.name),
+  ];
   let emailSent = false;
   try {
     const result = await sendConfirmationEmail({ campName: camp.name, data: { ...data, firstName, lastName, guardianEmail }, courseNames, updated: updating });

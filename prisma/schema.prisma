@@ -56,6 +56,7 @@ model Camp {
   courses          Course[]
   sessionTemplates SessionTemplate[]
   sessions         Session[]
+  mandatorySessions MandatorySession[]
   campers          Camper[]
   enrollments      Enrollment[]
   registrationLinks RegistrationLink[]
@@ -86,6 +87,7 @@ model AgeGroup {
   courses      Course[]
   courseAgeGroups CourseAgeGroup[]
   campers      Camper[]
+  mandatorySessions MandatorySession[]
 }
 
 model Room {
@@ -98,6 +100,7 @@ model Room {
   createdAt   DateTime  @default(now())
   courses     Course[]
   sessions    Session[]
+  mandatorySessions MandatorySession[]
 }
 
 model Person {
@@ -113,6 +116,7 @@ model Person {
   createdAt      DateTime        @default(now())
   courseTeachers CourseTeacher[]
   sessionTeachers SessionTeacher[]
+  mandatorySessions MandatorySession[]
 }
 
 model Course {
@@ -171,6 +175,7 @@ model SessionTemplate {
   createdAt  DateTime  @default(now())
   sessions   Session[]
   courseSessionTemplates CourseSessionTemplate[]
+  mandatorySessions MandatorySession[]
 }
 
 model Session {
@@ -181,6 +186,8 @@ model Session {
   course            Course?         @relation(fields: [courseId], references: [id], onDelete: SetNull)
   sessionTemplateId String?
   sessionTemplate   SessionTemplate? @relation(fields: [sessionTemplateId], references: [id], onDelete: SetNull)
+  mandatorySessionId String?
+  mandatorySession  MandatorySession? @relation(fields: [mandatorySessionId], references: [id], onDelete: SetNull)
   roomId            String?
   room              Room?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
   date              DateTime?
@@ -191,6 +198,25 @@ model Session {
   createdAt         DateTime        @default(now())
   sessionTeachers   SessionTeacher[]
   enrollments       Enrollment[]
+}
+
+model MandatorySession {
+  id                String          @id @default(cuid())
+  campId            String
+  camp              Camp            @relation(fields: [campId], references: [id], onDelete: Cascade)
+  title             String
+  ageGroupId        String
+  ageGroup          AgeGroup        @relation(fields: [ageGroupId], references: [id], onDelete: Cascade)
+  sessionTemplateId String
+  sessionTemplate   SessionTemplate @relation(fields: [sessionTemplateId], references: [id], onDelete: Cascade)
+  roomId            String?
+  room              Room?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  leaderId          String?
+  leader            Person?         @relation(fields: [leaderId], references: [id], onDelete: SetNull)
+  createdAt         DateTime        @default(now())
+  sessions          Session[]
+
+  @@unique([ageGroupId, sessionTemplateId])
 }
 
 model SessionTeacher {

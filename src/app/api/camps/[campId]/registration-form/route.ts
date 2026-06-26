@@ -28,6 +28,15 @@ function ageMatches(course: { ageGroupId: string | null; courseAgeGroups: { ageG
   return course.ageGroupId === ageGroupId || course.courseAgeGroups.some(ag => ag.ageGroupId === ageGroupId);
 }
 
+type RegistrationOption = {
+  courseId: string;
+  name: string;
+  description: string | null;
+  cap: number | null;
+  enrolledCount: number;
+  seatsLeft: number | null;
+};
+
 // GET — public (no auth) — used by the public registration page
 export async function GET(_: NextRequest, { params }: { params: Promise<{ campId: string }> }) {
   const { campId } = await params;
@@ -47,6 +56,15 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
           startTime: true,
           endTime: true,
           mandatory: true,
+          mandatorySessions: {
+            select: {
+              id: true,
+              title: true,
+              ageGroupId: true,
+              room: { select: { name: true } },
+              leader: { select: { firstName: true, lastName: true } },
+            },
+          },
         },
         orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
       },
@@ -67,23 +85,27 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   });
   if (!camp) return NextResponse.json({ error: "Camp not found" }, { status: 404 });
 
-  const registrationSessions = camp.sessionTemplates.map(session => ({
+  const registrationSessions = camp.sessionTemplates.map(session => {
+    const mandatoryAgeGroupIds = new Set(session.mandatorySessions.map(ms => ms.ageGroupId));
+    return {
     ...session,
+    mandatorySessions: session.mandatorySessions,
     optionCountsByAgeGroup: camp.ageGroups.reduce<Record<string, number>>((acc, ageGroup) => {
+      if (session.mandatory || mandatoryAgeGroupIds.has(ageGroup.id)) {
+        acc[ageGroup.id] = 0;
+        return acc;
+      }
       acc[ageGroup.id] = camp.courses
         .filter(course => ageMatches(course, ageGroup.id))
         .filter(course => course.courseSessionTemplates.some(cst => cst.sessionTemplateId === session.id))
         .length;
       return acc;
     }, {}),
-    optionsByAgeGroup: camp.ageGroups.reduce<Record<string, Array<{
-      courseId: string;
-      name: string;
-      description: string | null;
-      cap: number | null;
-      enrolledCount: number;
-      seatsLeft: number | null;
-    }>>>((acc, ageGroup) => {
+    optionsByAgeGroup: camp.ageGroups.reduce<Record<string, RegistrationOption[]>>((acc, ageGroup) => {
+      if (session.mandatory || mandatoryAgeGroupIds.has(ageGroup.id)) {
+        acc[ageGroup.id] = [];
+        return acc;
+      }
       acc[ageGroup.id] = camp.courses
         .filter(course => ageMatches(course, ageGroup.id))
         .filter(course => course.courseSessionTemplates.some(cst => cst.sessionTemplateId === session.id))
@@ -97,7 +119,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
         .sort((a, b) => a.name.localeCompare(b.name));
       return acc;
     }, {}),
-  }));
+  };
+  });
 
   const fields = camp.registrationForm?.fields || DEFAULT_FIELDS;
   return NextResponse.json({
