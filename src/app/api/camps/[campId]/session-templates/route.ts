@@ -12,7 +12,7 @@ const DAY_INT_TO_NAME: Record<number, string> = {
   4: "Thursday", 5: "Friday", 6: "Saturday",
 };
 
-function toSlotShape(s: { id: string; campId: string; dayOfWeek: number | null; startTime: string; endTime: string; label: string | null; createdAt: Date }) {
+function toSlotShape(s: { id: string; campId: string; dayOfWeek: number | null; startTime: string; endTime: string; label: string | null; mandatory: boolean; createdAt: Date }) {
   return { ...s, day: s.dayOfWeek !== null ? DAY_INT_TO_NAME[s.dayOfWeek] ?? null : null };
 }
 
@@ -34,8 +34,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const { day, label, startTime, endTime } = await req.json();
+  const { day, label, startTime, endTime, mandatory } = await req.json();
   const dayOfWeek = day !== undefined ? (DAY_NAME_TO_INT[String(day).toLowerCase()] ?? null) : null;
-  const item = await prisma.sessionTemplate.create({ data: { campId, label, startTime, endTime, dayOfWeek } });
+  const item = await prisma.sessionTemplate.create({ data: { campId, label, startTime, endTime, dayOfWeek, mandatory: Boolean(mandatory) } });
   return NextResponse.json(toSlotShape(item), { status: 201 });
 }

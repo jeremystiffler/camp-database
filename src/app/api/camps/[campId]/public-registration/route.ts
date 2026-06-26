@@ -16,6 +16,7 @@ interface RegistrationPayload {
   dietaryNotes?: string;
   photoConsent?: boolean;
   selectedCourseIds?: string[];
+  selectedSessionCourseIds?: Record<string, string>;
   customData?: Record<string, unknown>;
   updateExisting?: boolean;
   existingCamperId?: string;
@@ -29,6 +30,10 @@ function normalizedDate(value?: string): Date | undefined {
   if (!value) return undefined;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function ageMatches(course: { ageGroupId: string | null; courseAgeGroups: { ageGroupId: string }[] }, ageGroupId: string) {
+  return course.ageGroupId === ageGroupId || course.courseAgeGroups.some(ag => ag.ageGroupId === ageGroupId);
 }
 
 async function sendConfirmationEmail({
@@ -111,22 +116,96 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     }, { status: 409 });
   }
 
-  const courseIds = [...new Set((Array.isArray(data.selectedCourseIds) ? data.selectedCourseIds : []).filter(Boolean))];
-  const courses = courseIds.length ? await prisma.course.findMany({
-    where: {
-      id: { in: courseIds },
-      campId,
-      OR: [
-        { ageGroupId: data.ageGroupId || undefined },
-        { courseAgeGroups: { some: { ageGroupId: data.ageGroupId || undefined } } },
-      ],
-    },
-    include: { courseSessionTemplates: { include: { sessionTemplate: true } } },
-    orderBy: { name: "asc" },
-  }) : [];
+  const selectedBySession = Object.fromEntries(
+    Object.entries(data.selectedSessionCourseIds || {}).filter(([sessionTemplateId, courseId]) => sessionTemplateId && courseId)
+  );
+  const fallbackCourseIds = [...new Set((Array.isArray(data.selectedCourseIds) ? data.selectedCourseIds : []).filter(Boolean))];
 
-  if (courses.length !== courseIds.length) {
-    return NextResponse.json({ error: "One or more selected classes are not available for this age group" }, { status: 400 });
+  const ageGroup = await prisma.ageGroup.findFirst({ where: { id: data.ageGroupId, campId }, select: { id: true, noSchedule: true } });
+  if (!ageGroup) return NextResponse.json({ error: "Selected age group is not available for this camp" }, { status: 400 });
+
+  const sessionTemplates = await prisma.sessionTemplate.findMany({
+    where: { campId },
+    include: {
+      courseSessionTemplates: {
+        include: {
+          course: {
+            include: {
+              courseAgeGroups: true,
+              sessions: { where: { campId }, select: { id: true, sessionTemplateId: true, enrolledCount: true } },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+  });
+
+  const selections: Array<{ sessionTemplateId: string; course: typeof sessionTemplates[number]["courseSessionTemplates"][number]["course"] }> = [];
+
+  if (!ageGroup.noSchedule && sessionTemplates.length > 0) {
+    for (const template of sessionTemplates) {
+      if (template.mandatory) continue;
+      const eligibleCourses = template.courseSessionTemplates
+        .map(cst => cst.course)
+        .filter(course => ageMatches(course, ageGroup.id));
+      if (eligibleCourses.length === 0) continue;
+
+      const openCourses = eligibleCourses
+        .filter(course => {
+          const existingSession = course.sessions.find(s => s.sessionTemplateId === template.id);
+          if (course.cap === null) return true;
+          return (course.cap ?? 0) > (existingSession?.enrolledCount ?? 0);
+        });
+
+      if (openCourses.length === 0) {
+        return NextResponse.json({ error: `No open classes remain for ${template.label || "a required session"}` }, { status: 400 });
+      }
+
+      const selectedCourseId = selectedBySession[template.id];
+      if (!selectedCourseId) {
+        return NextResponse.json({ error: "Please choose one class for each non-mandatory session" }, { status: 400 });
+      }
+
+      const selectedCourse = template.courseSessionTemplates.map(cst => cst.course).find(course => course.id === selectedCourseId);
+      if (!selectedCourse || !ageMatches(selectedCourse, ageGroup.id)) {
+        return NextResponse.json({ error: "One or more selected classes are not available for this age group/session" }, { status: 400 });
+      }
+      selections.push({ sessionTemplateId: template.id, course: selectedCourse });
+    }
+  } else if (fallbackCourseIds.length > 0) {
+    const courses = await prisma.course.findMany({
+      where: {
+        id: { in: fallbackCourseIds },
+        campId,
+        OR: [
+          { ageGroupId: data.ageGroupId || undefined },
+          { courseAgeGroups: { some: { ageGroupId: data.ageGroupId || undefined } } },
+        ],
+      },
+      include: { courseAgeGroups: true, courseSessionTemplates: true, sessions: { where: { campId }, select: { id: true, sessionTemplateId: true, enrolledCount: true } } },
+      orderBy: { name: "asc" },
+    });
+    if (courses.length !== fallbackCourseIds.length) {
+      return NextResponse.json({ error: "One or more selected classes are not available for this age group" }, { status: 400 });
+    }
+    for (const course of courses) {
+      for (const cst of course.courseSessionTemplates) selections.push({ sessionTemplateId: cst.sessionTemplateId, course });
+    }
+  }
+
+  const updating = Boolean(existing && (data.updateExisting || data.existingCamperId === existing.id));
+  const existingEnrollmentSessionIds = updating ? new Set((await prisma.enrollment.findMany({
+    where: { camperId: existing!.id, campId },
+    select: { sessionId: true },
+  })).map(e => e.sessionId)) : new Set<string>();
+
+  for (const selection of selections) {
+    const currentSession = selection.course.sessions.find(s => s.sessionTemplateId === selection.sessionTemplateId);
+    const alreadyInThisSession = currentSession ? existingEnrollmentSessionIds.has(currentSession.id) : false;
+    if (!alreadyInThisSession && selection.course.cap !== null && (currentSession?.enrolledCount ?? 0) >= (selection.course.cap ?? 0)) {
+      return NextResponse.json({ error: `${selection.course.name} just filled up. Please choose a different class.` }, { status: 409 });
+    }
   }
 
   const camperData = {
@@ -145,7 +224,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     customData: data.customData ? JSON.stringify(data.customData) : undefined,
   };
 
-  const updating = Boolean(existing && (data.updateExisting || data.existingCamperId === existing.id));
   const camper = updating
     ? await prisma.camper.update({ where: { id: existing!.id }, data: camperData })
     : await prisma.camper.create({ data: { ...camperData, campId } });
@@ -159,47 +237,43 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   }
 
   const enrolledSessionIds = new Set<string>();
-  for (const course of courses) {
-    const templates = course.courseSessionTemplates.length > 0
-      ? course.courseSessionTemplates
-      : [{ sessionTemplateId: null, sessionTemplate: null }];
+  for (const selection of selections) {
+    let session = await prisma.session.findFirst({
+      where: {
+        campId,
+        courseId: selection.course.id,
+        sessionTemplateId: selection.sessionTemplateId,
+      },
+    });
 
-    for (const cst of templates) {
-      let session = await prisma.session.findFirst({
-        where: {
+    if (!session) {
+      const template = sessionTemplates.find(t => t.id === selection.sessionTemplateId);
+      session = await prisma.session.create({
+        data: {
           campId,
-          courseId: course.id,
-          sessionTemplateId: cst.sessionTemplateId,
+          courseId: selection.course.id,
+          sessionTemplateId: selection.sessionTemplateId,
+          roomId: selection.course.roomId,
+          startTime: template?.startTime,
+          endTime: template?.endTime,
         },
       });
+    }
 
-      if (!session) {
-        session = await prisma.session.create({
-          data: {
-            campId,
-            courseId: course.id,
-            sessionTemplateId: cst.sessionTemplateId,
-            roomId: course.roomId,
-            startTime: cst.sessionTemplate?.startTime,
-            endTime: cst.sessionTemplate?.endTime,
-          },
-        });
-      }
+    if (enrolledSessionIds.has(session.id)) continue;
+    enrolledSessionIds.add(session.id);
 
-      if (enrolledSessionIds.has(session.id)) continue;
-      enrolledSessionIds.add(session.id);
-
-      const already = await prisma.enrollment.findFirst({ where: { camperId: camper.id, sessionId: session.id } });
-      if (!already) {
-        await prisma.enrollment.create({ data: { campId, camperId: camper.id, sessionId: session.id, status: "enrolled" } });
-        await prisma.session.update({ where: { id: session.id }, data: { enrolledCount: { increment: 1 } } });
-      }
+    const already = await prisma.enrollment.findFirst({ where: { camperId: camper.id, sessionId: session.id } });
+    if (!already) {
+      await prisma.enrollment.create({ data: { campId, camperId: camper.id, sessionId: session.id, status: "enrolled" } });
+      await prisma.session.update({ where: { id: session.id }, data: { enrolledCount: { increment: 1 } } });
     }
   }
 
+  const courseNames = selections.map(s => s.course.name);
   let emailSent = false;
   try {
-    const result = await sendConfirmationEmail({ campName: camp.name, data: { ...data, firstName, lastName, guardianEmail }, courseNames: courses.map(c => c.name), updated: updating });
+    const result = await sendConfirmationEmail({ campName: camp.name, data: { ...data, firstName, lastName, guardianEmail }, courseNames, updated: updating });
     emailSent = result.sent;
   } catch (error) {
     console.error("Registration confirmation email failed", error);

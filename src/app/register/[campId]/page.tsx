@@ -14,7 +14,7 @@ interface FormField {
   helpText?: string;
 }
 
-interface AgeGroup { id: string; name: string; }
+interface AgeGroup { id: string; name: string; noSchedule?: boolean; }
 interface Course {
   id: string;
   name: string;
@@ -22,6 +22,24 @@ interface Course {
   cap?: number | null;
   ageGroupId?: string | null;
   courseAgeGroups?: { ageGroupId: string }[];
+}
+interface SessionOption {
+  courseId: string;
+  name: string;
+  description?: string | null;
+  cap?: number | null;
+  enrolledCount: number;
+  seatsLeft: number | null;
+}
+interface RegistrationSession {
+  id: string;
+  label?: string | null;
+  dayOfWeek?: number | null;
+  startTime: string;
+  endTime: string;
+  mandatory: boolean;
+  optionCountsByAgeGroup: Record<string, number>;
+  optionsByAgeGroup: Record<string, SessionOption[]>;
 }
 
 type FieldValue = string | boolean;
@@ -31,6 +49,7 @@ const PARENT_FIELD_IDS = new Set(["f5", "f6", "f7"]);
 const STUDENT_FIELD_IDS = new Set(["f1", "f2", "f3", "f4"]);
 const CONSENT_FIELD_IDS = new Set(["f8", "f9", "f10", "f11", "f12"]);
 const SYSTEM_FIELD_IDS = new Set(["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"]);
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function isInputField(field: FormField) {
   return field.type !== "heading" && field.type !== "divider";
@@ -41,16 +60,22 @@ function ageMatches(course: Course, ageGroupId: string) {
   return course.ageGroupId === ageGroupId || Boolean(course.courseAgeGroups?.some(ag => ag.ageGroupId === ageGroupId));
 }
 
+function sessionLabel(session: RegistrationSession) {
+  const day = session.dayOfWeek === null || session.dayOfWeek === undefined ? "" : `${DAY_ABBR[session.dayOfWeek]} · `;
+  return `${day}${session.label || "Session"} · ${session.startTime}–${session.endTime}`;
+}
+
 export default function PublicRegistrationPage({ params }: { params: Promise<{ campId: string }> }) {
   const [campId, setCampId]         = useState("");
   const [campName, setCampName]     = useState("");
   const [fields, setFields]         = useState<FormField[]>([]);
   const [ageGroups, setAgeGroups]   = useState<AgeGroup[]>([]);
   const [courses, setCourses]       = useState<Course[]>([]);
+  const [registrationSessions, setRegistrationSessions] = useState<RegistrationSession[]>([]);
   const [regOpen, setRegOpen]       = useState(false);
   const [loading, setLoading]       = useState(true);
   const [values, setValues]         = useState<Record<string, FieldValue>>({});
-  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
+  const [selectedBySession, setSelectedBySession] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted]   = useState(false);
   const [submittedUpdated, setSubmittedUpdated] = useState(false);
@@ -68,6 +93,7 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
           setRegOpen(d.registrationOpen || false);
           setAgeGroups(Array.isArray(d.ageGroups) ? d.ageGroups : []);
           setCourses(Array.isArray(d.courses) ? d.courses : []);
+          setRegistrationSessions(Array.isArray(d.registrationSessions) ? d.registrationSessions : []);
           try {
             const parsed = typeof d.fields === "string" ? JSON.parse(d.fields) : d.fields;
             setFields(Array.isArray(parsed) ? parsed : []);
@@ -81,7 +107,7 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
   const setValue = (id: string, val: FieldValue) => {
     setValues(prev => {
       const next = { ...prev, [id]: val };
-      if (id === "f4") setSelectedCourseIds([]);
+      if (id === "f4") setSelectedBySession({});
       return next;
     });
     if (errors[id]) setErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
@@ -94,6 +120,18 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
     if (targetStep === 3) return CONSENT_FIELD_IDS.has(field.id) || (!field.system && isInputField(field));
     return false;
   });
+
+  const selectedAgeGroupId = String(values.f4 || "");
+  const selectedAgeGroup = ageGroups.find(ag => ag.id === selectedAgeGroupId);
+  const availableCourses = courses.filter(course => ageMatches(course, selectedAgeGroupId));
+  const selectableSessions = selectedAgeGroup?.noSchedule ? [] : registrationSessions
+    .map(session => ({
+      ...session,
+      optionCount: session.optionCountsByAgeGroup?.[selectedAgeGroupId] || 0,
+      options: session.optionsByAgeGroup?.[selectedAgeGroupId] || [],
+    }))
+    .filter(session => !session.mandatory);
+  const requiredSessions = selectableSessions.filter(session => session.optionCount > 0);
 
   const validateStep = (targetStep: Step): boolean => {
     const errs: Record<string, string> = {};
@@ -109,7 +147,12 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
         if (fields.some(f => f.id === requiredId) && !values[requiredId]) errs[requiredId] = "Required";
       }
     }
-    if (targetStep === 2 && selectedCourseIds.length === 0) errs._form = "Please choose at least one class.";
+    if (targetStep === 2 && !selectedAgeGroup?.noSchedule) {
+      const unavailable = requiredSessions.filter(session => session.options.length === 0);
+      const missing = requiredSessions.filter(session => session.options.length > 0 && !selectedBySession[session.id]);
+      if (unavailable.length > 0) errs._form = "One or more sessions has no open classes left. Please contact the camp before registering.";
+      else if (missing.length > 0) errs._form = "Please choose one class for each session.";
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -127,12 +170,12 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const availableCourses = courses.filter(course => ageMatches(course, String(values.f4 || "")));
-
-  const toggleCourse = (courseId: string) => {
-    setSelectedCourseIds(prev => prev.includes(courseId) ? prev.filter(id => id !== courseId) : [...prev, courseId]);
+  const selectCourseForSession = (sessionId: string, courseId: string) => {
+    setSelectedBySession(prev => ({ ...prev, [sessionId]: courseId }));
     if (errors._form) setErrors(prev => { const n = { ...prev }; delete n._form; return n; });
   };
+
+  const selectedCourseIds = Object.values(selectedBySession).filter(Boolean);
 
   const submitRegistration = async (updateExisting = false, existingCamperId?: string) => {
     setSubmitting(true);
@@ -154,6 +197,7 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
           medicalNotes: values.f10 || undefined,
           dietaryNotes: values.f11 || undefined,
           photoConsent: Boolean(values.f12),
+          selectedSessionCourseIds: selectedBySession,
           selectedCourseIds,
           updateExisting,
           existingCamperId,
@@ -206,7 +250,7 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
         <span className="text-6xl mb-4 block">🎉</span>
         <h1 className="text-2xl font-bold text-slate-800 mb-2">{submittedUpdated ? "Registration updated!" : "You're registered!"}</h1>
         <p className="text-slate-500 mb-6">Your registration for <strong>{campName}</strong> has been {submittedUpdated ? "updated" : "submitted"}. Check your email for a confirmation copy.</p>
-        <button onClick={() => { setSubmitted(false); setSubmittedUpdated(false); setValues({}); setSelectedCourseIds([]); setStep(1); }}
+        <button onClick={() => { setSubmitted(false); setSubmittedUpdated(false); setValues({}); setSelectedBySession({}); setStep(1); }}
           className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
           Register Another Camper
         </button>
@@ -284,7 +328,7 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
             {step === 1 && (
               <>
                 <h2 className="text-xl font-bold text-slate-800">Parent + student info</h2>
-                <p className="text-sm text-slate-500">Choose an age group here; the next step will only show classes for that group.</p>
+                <p className="text-sm text-slate-500">Choose an age group here; the next step will show each session with the open classes for that time.</p>
                 {fieldsForStep(1).map(renderField)}
                 <button type="button" onClick={nextStep} className="w-full py-3.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">Continue to Classes →</button>
               </>
@@ -292,24 +336,47 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
 
             {step === 2 && (
               <>
-                <h2 className="text-xl font-bold text-slate-800">Choose classes</h2>
-                <p className="text-sm text-slate-500">Only classes available for the selected age group are shown. A class can only be selected once.</p>
-                {availableCourses.length === 0 ? (
-                  <div className="px-4 py-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-sm text-slate-500">No classes are currently available for this age group.</div>
+                <h2 className="text-xl font-bold text-slate-800">Choose classes by session</h2>
+                <p className="text-sm text-slate-500">Pick one class for each session. Full classes are hidden automatically; if seats are added later, they reappear here.</p>
+                {selectedAgeGroup?.noSchedule ? (
+                  <div className="px-4 py-6 bg-amber-50 border border-amber-200 rounded-xl text-center text-sm text-amber-700">This age group is marked “No Schedule,” so no class choices are required.</div>
+                ) : registrationSessions.length === 0 ? (
+                  <div className="px-4 py-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-sm text-slate-500">No class sessions are currently available.</div>
+                ) : requiredSessions.length === 0 ? (
+                  <div className="px-4 py-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-sm text-slate-500">All sessions are marked mandatory, so no class choices are required.</div>
                 ) : (
-                  <div className="space-y-3">
-                    {availableCourses.map(course => {
-                      const checked = selectedCourseIds.includes(course.id);
-                      return <label key={course.id} className={`block p-4 rounded-xl border cursor-pointer transition-all ${checked ? "border-forest-400 bg-forest-50" : "border-slate-200 hover:border-forest-200"}`}>
-                        <div className="flex items-start gap-3">
-                          <input type="checkbox" checked={checked} onChange={() => toggleCourse(course.id)} className="mt-1 w-4 h-4 accent-forest-500" />
-                          <div>
-                            <p className="font-semibold text-slate-800">{course.name}</p>
-                            {course.description && <p className="text-sm text-slate-500 mt-0.5">{course.description}</p>}
-                          </div>
+                  <div className="space-y-5">
+                    {requiredSessions.map(session => (
+                      <div key={session.id} className="rounded-2xl border border-slate-200 overflow-hidden">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                          <p className="font-bold text-slate-800 text-sm">{sessionLabel(session)}</p>
+                          <p className="text-xs text-slate-500">Choose one class for this session.</p>
                         </div>
-                      </label>;
-                    })}
+                        {session.options.length === 0 ? (
+                          <div className="px-4 py-5 text-sm text-amber-700 bg-amber-50">No open seats remain for this session.</div>
+                        ) : (
+                          <div className="divide-y divide-slate-100">
+                            {session.options.map(option => {
+                              const checked = selectedBySession[session.id] === option.courseId;
+                              return <label key={option.courseId} className={`block p-4 cursor-pointer transition-all ${checked ? "bg-forest-50" : "hover:bg-slate-50"}`}>
+                                <div className="flex items-start gap-3">
+                                  <input type="radio" name={`session-${session.id}`} checked={checked} onChange={() => selectCourseForSession(session.id, option.courseId)} className="mt-1 w-4 h-4 accent-forest-500" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <p className="font-semibold text-slate-800">{option.name}</p>
+                                      <span className="text-xs font-bold text-forest-700 bg-forest-100 px-2 py-1 rounded-full whitespace-nowrap">
+                                        {option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} left`}
+                                      </span>
+                                    </div>
+                                    {option.description && <p className="text-sm text-slate-500 mt-0.5">{option.description}</p>}
+                                  </div>
+                                </div>
+                              </label>;
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
                 <div className="flex gap-3">

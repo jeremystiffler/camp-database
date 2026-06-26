@@ -39,6 +39,7 @@ interface SessionTemplate {
   dayOfWeek: number | null;
   startTime: string;
   endTime: string;
+  mandatory: boolean;
 }
 
 interface SessionRow {
@@ -46,6 +47,7 @@ interface SessionRow {
   label: string;
   startTime: string;
   endTime: string;
+  mandatory: boolean;
   days: Set<number>;
   slotIds: Map<number, string>;
 }
@@ -181,6 +183,7 @@ function SetupContent() {
           label:     slot.label ?? "",
           startTime: slot.startTime,
           endTime:   slot.endTime,
+          mandatory: Boolean(slot.mandatory),
           days:    new Set(),
           slotIds: new Map(),
         });
@@ -256,6 +259,18 @@ function SetupContent() {
   const deleteAgeGroup = async (id: string) => {
     if (!confirm("Delete this age group?")) return;
     await fetch(`/api/camps/${campId}/age-groups/${id}`, { method: "DELETE" });
+    load();
+  };
+
+  // Toggle whether a session row is mandatory. Mandatory sessions appear on schedules but parents do not choose a class for them.
+  const setMandatoryForRow = async (row: SessionRow, mandatory: boolean) => {
+    await Promise.all([...row.slotIds.values()].map(id =>
+      fetch(`/api/camps/${campId}/session-templates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandatory }),
+      })
+    ));
     load();
   };
 
@@ -654,9 +669,20 @@ function SetupContent() {
                               <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${everyDay ? "translate-x-4" : ""}`} />
                             </button>
                             <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-slate-800 text-xs truncate">{row.label}</div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="font-semibold text-slate-800 text-xs truncate">{row.label}</div>
+                                {row.mandatory && <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">Mandatory</span>}
+                              </div>
                               <div className="text-xs text-slate-400">{row.startTime} – {row.endTime}</div>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => setMandatoryForRow(row, !row.mandatory)}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${row.mandatory ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                              title={row.mandatory ? "Parents will not choose a class for this session" : "Mark this session as mandatory"}
+                            >
+                              {row.mandatory ? "Required" : "Optional"}
+                            </button>
                             <button
                               onClick={() => deleteSessionRow(row)}
                               className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 text-xs"

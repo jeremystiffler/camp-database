@@ -167,6 +167,7 @@ model SessionTemplate {
   startTime  String
   endTime    String
   label      String?
+  mandatory  Boolean   @default(false)
   createdAt  DateTime  @default(now())
   sessions   Session[]
   courseSessionTemplates CourseSessionTemplate[]
