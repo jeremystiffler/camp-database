@@ -50,6 +50,13 @@ interface ImportResult {
   coursesCreated: number; coursesUpdated: number; teachersCreated: number;
   roomsCreated: number; ageGroupsCreated: number; errors: string[]; total: number;
 }
+interface SchedulingConflict {
+  type: string;
+  detail: string;
+  activityName: string;
+  slotLabel: string;
+  locationNote?: string;
+}
 
 const DAY_ABBR = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
@@ -153,8 +160,9 @@ function ImportContent() {
   const [rooms,            setRooms]            = useState<Room[]>([]);
   const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
   const [assignSaving,     setAssignSaving]     = useState<Record<string, boolean>>({});
-  const [conflictToast,    setConflictToast]    = useState<{ courseName: string; sessionLabel: string; conflicts: { type: string; detail: string; activityName: string; slotLabel: string; locationNote?: string }[] } | null>(null);
+  const [conflictToast,    setConflictToast]    = useState<{ courseName: string; sessionLabel: string; message: string } | null>(null);
   const [activityFilter,   setActivityFilter]   = useState("");
+  const [blockedCells,     setBlockedCells]     = useState<Set<string>>(new Set());
 
   const loadGridData = () => {
     if (!campId) return;
@@ -168,6 +176,7 @@ function ImportContent() {
       setCourses(sorted);
       setRooms(Array.isArray(r) ? r : []);
       setSessionTemplates(Array.isArray(st) ? st : []);
+      setBlockedCells(new Set());
     });
   };
 
@@ -246,9 +255,23 @@ function ImportContent() {
     }
   };
 
+  const cellKey = (courseId: string, groupKey: string) => `${courseId}:${groupKey}`;
+
+  const simpleConflictMessage = (conflicts: SchedulingConflict[]): string => {
+    const conflict = conflicts.find(c => c.type === "teacher") || conflicts.find(c => c.type === "room") || conflicts[0];
+    if (!conflict) return "That time slot is already taken.";
+    if (conflict.type === "teacher") {
+      return `${conflict.detail} is already teaching ${conflict.activityName} during this time.`;
+    }
+    if (conflict.type === "room") {
+      return `${conflict.detail} is already booked by ${conflict.activityName} during this time.`;
+    }
+    return conflict.detail || "That time slot is already taken.";
+  };
+
   // Toggle a session group for a course
   const toggleSlotGroup = async (course: Course, group: SessionGroup, checked: boolean) => {
-    const saveKey = `${course.id}:${group.key}`;
+    const saveKey = cellKey(course.id, group.key);
     setAssignSaving(prev => ({ ...prev, [saveKey]: true }));
     setConflictToast(null);
 
@@ -269,17 +292,18 @@ function ImportContent() {
       if (!res.ok) {
         const d = await res.json();
         if (d.error === "scheduling_conflict" && Array.isArray(d.conflicts)) {
+          setBlockedCells(prev => new Set(prev).add(saveKey));
           setConflictToast({
             courseName:   course.name,
             sessionLabel: group.label,
-            conflicts:    d.conflicts,
+            message:      simpleConflictMessage(d.conflicts),
           });
         }
       } else {
         loadGridData();
       }
     } catch {
-      setConflictToast({ courseName: course.name, sessionLabel: group.label, conflicts: [{ type: "error", detail: "Network error", activityName: "", slotLabel: "" }] });
+      setConflictToast({ courseName: course.name, sessionLabel: group.label, message: "Network error. Please try again." });
     } finally {
       setAssignSaving(prev => { const n = { ...prev }; delete n[saveKey]; return n; });
     }
@@ -287,6 +311,7 @@ function ImportContent() {
 
   // Update room for a course
   const updateRoom = async (course: Course, roomId: string) => {
+    setBlockedCells(new Set());
     await fetch(`/api/camps/${campId}/courses/${course.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -604,18 +629,9 @@ function ImportContent() {
                       <p className="text-sm font-semibold text-red-800">
                         Can&apos;t assign <span className="italic">{conflictToast.courseName}</span> to <span className="italic">{conflictToast.sessionLabel}</span>
                       </p>
-                      <ul className="mt-2 space-y-1.5">
-                        {conflictToast.conflicts.map((c, i) => (
-                          <li key={i} className="text-xs text-red-700 flex items-start gap-1.5">
-                            <span className="flex-shrink-0">{c.type === "room" ? "📍" : c.type === "teacher" ? "🧑‍🏫" : "⚠️"}</span>
-                            <span>
-                              {c.type === "room" && <>Room <strong>{c.detail}</strong> is already booked by <strong>{c.activityName}</strong> during <em>{c.slotLabel}</em>.</>}
-                              {c.type === "teacher" && <><strong>{c.detail}</strong> is already teaching <strong>{c.activityName}</strong> during <em>{c.slotLabel}</em>{c.locationNote ? ` (in ${c.locationNote})` : ""}.</>}
-                              {c.type === "error" && c.detail}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="text-xs text-red-700 mt-1">
+                        {conflictToast.message}
+                      </p>
                     </div>
                   </div>
                   <button onClick={() => setConflictToast(null)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-lg leading-none">✕</button>
@@ -742,9 +758,10 @@ function ImportContent() {
                       </td>
                       {/* Session checkboxes */}
                       {sessionGroups.map(sg => {
-                          const saveKey  = `${course.id}:${sg.key}`;
+                          const saveKey  = cellKey(course.id, sg.key);
                           const isSaving = assignSaving[saveKey];
                           const isChecked = checked.has(sg.key);
+                          const isBlocked = blockedCells.has(saveKey) && !isChecked;
                         return (
                           <td key={sg.key} className="text-center py-3 px-3 border-b border-slate-100">
                             {isSaving ? (
@@ -753,8 +770,10 @@ function ImportContent() {
                               <input
                                 type="checkbox"
                                 checked={isChecked}
+                                disabled={isBlocked}
+                                title={isBlocked ? "Blocked by a scheduling conflict" : undefined}
                                 onChange={() => toggleSlotGroup(course, sg, !isChecked)}
-                                className="w-4 h-4 rounded cursor-pointer accent-sky-500"
+                                className={`w-4 h-4 rounded accent-sky-500 ${isBlocked ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
                               />
                             )}
                           </td>

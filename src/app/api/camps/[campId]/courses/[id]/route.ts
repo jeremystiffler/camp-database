@@ -32,9 +32,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     ? teacherIds
     : existing.courseTeachers.map(ct => ct.personId);
 
+  const existingSlotIds = existing.courseSessionTemplates.map((cst: { sessionTemplateId: string }) => cst.sessionTemplateId);
   const resolvedSlotIds = Array.isArray(sessionTemplateIds)
     ? sessionTemplateIds
-    : existing.courseSessionTemplates.map(cst => cst.sessionTemplateId);
+    : existingSlotIds;
+
+  // When the assignment grid toggles a single session group, it sends the full
+  // replacement list of sessionTemplateIds. If we check the full list, a
+  // pre-existing conflict elsewhere causes a giant unrelated error list and
+  // blocks the one checkbox the user actually clicked. For slot-only updates,
+  // check only newly-added slots. Room/teacher changes still check every slot.
+  const isSlotOnlyUpdate = Array.isArray(sessionTemplateIds)
+    && !("roomId" in data)
+    && !Array.isArray(teacherIds)
+    && !Array.isArray(ageGroupIds);
+  const conflictSlotIds = isSlotOnlyUpdate
+    ? sessionTemplateIds.filter((slotId: string) => !existingSlotIds.includes(slotId))
+    : resolvedSlotIds;
 
   // ── Conflict check (exclude self) ────────────────────────────────────────
   const conflicts = await checkSchedulingConflicts({
@@ -42,7 +56,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     excludeCourseId: id,
     roomId:              resolvedRoomId,
     teacherIds:          resolvedTeacherIds,
-    sessionTemplateIds:  resolvedSlotIds,
+    sessionTemplateIds:  conflictSlotIds,
   });
   if (conflicts.length > 0) {
     return NextResponse.json({ error: "scheduling_conflict", conflicts }, { status: 409 });
