@@ -96,6 +96,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
       room:                   true,
       courseTeachers:         { include: { person: true } },
       courseSessionTemplates: { include: { sessionTemplate: true } },
+      sessions:               { select: { id: true, sessionTemplateId: true, enrolledCount: true } },
     },
   });
   return NextResponse.json(full);

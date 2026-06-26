@@ -40,11 +40,12 @@ interface SessionGroup {
   key: string; label: string; startTime: string; endTime: string; ids: string[];
 }
 interface Course {
-  id: string; name: string; roomId: string | null;
+  id: string; name: string; roomId: string | null; cap: number | null;
   room: { id: string; name: string } | null;
   courseSessionTemplates: { sessionTemplateId: string }[];
   courseAgeGroups: { ageGroup: { id: string; name: string } }[];
   courseTeachers: { person: { id: string; firstName: string; lastName: string; role: string } }[];
+  sessions?: { id: string; sessionTemplateId: string | null; enrolledCount: number }[];
 }
 interface ImportResult {
   coursesCreated: number; coursesUpdated: number; teachersCreated: number;
@@ -230,6 +231,66 @@ function ImportContent() {
       if (sg.ids.some(id => assignedIds.has(id))) checked.add(sg.key);
     }
     return checked;
+  };
+
+  const courseEnrollmentForGroup = (course: Course, sg: SessionGroup): number => {
+    const counts = (course.sessions || [])
+      .filter(s => s.sessionTemplateId && sg.ids.includes(s.sessionTemplateId))
+      .map(s => s.enrolledCount || 0);
+    return counts.length ? Math.max(...counts) : 0;
+  };
+
+  const courseCapacityForGroup = (course: Course, sg: SessionGroup): number => {
+    return courseCheckedGroups(course).has(sg.key) ? (course.cap || 0) : 0;
+  };
+
+  const sessionGroupStats = (sg: SessionGroup) => {
+    const assignedCourses = courses.filter(c => courseCheckedGroups(c).has(sg.key));
+    const totalCap = assignedCourses.reduce((sum, c) => sum + (c.cap || 0), 0);
+    const registered = assignedCourses.reduce((sum, c) => sum + courseEnrollmentForGroup(c, sg), 0);
+    return {
+      assignedCount: assignedCourses.length,
+      totalCap,
+      registered,
+      remaining: Math.max(totalCap - registered, 0),
+      fillRate: totalCap > 0 ? registered / totalCap : 0,
+    };
+  };
+
+  const averageAssignedCapacity = useMemo(() => {
+    const stats = sessionGroups.map(sessionGroupStats).filter(s => s.assignedCount > 0);
+    if (stats.length === 0) return 0;
+    return stats.reduce((sum, s) => sum + s.totalCap, 0) / stats.length;
+  }, [courses, sessionGroups]);
+
+  const hasRegistrations = useMemo(() => {
+    return courses.some(c => (c.sessions || []).some(s => (s.enrolledCount || 0) > 0));
+  }, [courses]);
+
+  const heatClass = (rate: number): string => {
+    if (rate >= 1) return "bg-red-100 border-red-300 text-red-800";
+    if (rate >= 0.9) return "bg-rose-100 border-rose-300 text-rose-800";
+    if (rate >= 0.75) return "bg-orange-100 border-orange-300 text-orange-800";
+    if (rate >= 0.5) return "bg-amber-100 border-amber-300 text-amber-800";
+    return "bg-emerald-100 border-emerald-300 text-emerald-800";
+  };
+
+  const columnHeatClass = (sg: SessionGroup): string => {
+    const stats = sessionGroupStats(sg);
+    if (stats.totalCap === 0) return "bg-slate-50 border-slate-200 text-slate-500";
+    if (hasRegistrations) return heatClass(stats.fillRate);
+    if (averageAssignedCapacity <= 0) return "bg-emerald-100 border-emerald-300 text-emerald-800";
+    const capacityRatio = stats.totalCap / averageAssignedCapacity;
+    if (capacityRatio < 0.55) return "bg-red-100 border-red-300 text-red-800";
+    if (capacityRatio < 0.75) return "bg-orange-100 border-orange-300 text-orange-800";
+    if (capacityRatio < 0.9) return "bg-amber-100 border-amber-300 text-amber-800";
+    return "bg-emerald-100 border-emerald-300 text-emerald-800";
+  };
+
+  const cellHeatClass = (course: Course, sg: SessionGroup): string => {
+    const cap = courseCapacityForGroup(course, sg);
+    if (cap <= 0) return "bg-white";
+    return heatClass(courseEnrollmentForGroup(course, sg) / cap);
   };
 
   // Is every activity assigned to this session group?
@@ -683,11 +744,27 @@ function ImportContent() {
                       .join(", ");
                     const full    = isColumnFull(sg);
                     const partial = isColumnPartial(sg);
+                    const stats   = sessionGroupStats(sg);
+                    const fillPct = stats.totalCap > 0 ? Math.round(stats.fillRate * 100) : 0;
+                    const balanceNote = !hasRegistrations && averageAssignedCapacity > 0 && stats.totalCap > 0
+                      ? `${Math.round((stats.totalCap / averageAssignedCapacity) * 100)}% of avg`
+                      : `${fillPct}% full`;
                     return (
-                      <th key={sg.key} className="text-center py-3 px-3 border-b border-slate-200 min-w-[110px]">
-                        <div className="font-semibold text-slate-700 text-xs">{sg.label}</div>
-                        <div className="text-slate-400 text-xs font-normal">{sg.startTime}–{sg.endTime}</div>
-                        {days && <div className="text-slate-300 text-xs font-normal">{days}</div>}
+                      <th key={sg.key} className={`text-center py-3 px-3 border-b min-w-[132px] align-top ${columnHeatClass(sg)}`}>
+                        <div className="font-semibold text-slate-800 text-xs">{sg.label}</div>
+                        <div className="text-slate-500 text-xs font-normal">{sg.startTime}–{sg.endTime}</div>
+                        {days && <div className="text-slate-400 text-xs font-normal">{days}</div>}
+                        <div className="mt-2 rounded-xl bg-white/75 border border-white/70 px-2 py-1.5 shadow-sm">
+                          <div className="text-[11px] font-bold text-slate-800">{stats.totalCap} seats</div>
+                          <div className="text-[10px] font-semibold text-slate-600">{stats.registered} reg · {stats.remaining} open</div>
+                          <div className="mt-1 h-1.5 rounded-full bg-white/80 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-current transition-all"
+                              style={{ width: `${Math.min(Math.max(hasRegistrations ? fillPct : stats.totalCap > 0 ? 100 : 0, 0), 100)}%` }}
+                            />
+                          </div>
+                          <div className="text-[10px] font-medium text-slate-500 mt-0.5">{balanceNote}</div>
+                        </div>
                         {/* Default-on toggle */}
                         <div className="mt-2 flex flex-col items-center gap-1">
                           <button
@@ -762,19 +839,36 @@ function ImportContent() {
                           const isSaving = assignSaving[saveKey];
                           const isChecked = checked.has(sg.key);
                           const isBlocked = blockedCells.has(saveKey) && !isChecked;
+                          const enrolled = courseEnrollmentForGroup(course, sg);
+                          const cap = course.cap || 0;
+                          const seatsLeft = Math.max(cap - enrolled, 0);
+                          const fillPct = cap > 0 ? Math.min(Math.round((enrolled / cap) * 100), 100) : 0;
                         return (
-                          <td key={sg.key} className="text-center py-3 px-3 border-b border-slate-100">
+                          <td key={sg.key} className={`text-center py-3 px-3 border-b border-slate-100 transition-colors ${isChecked ? cellHeatClass(course, sg) : "bg-white"}`}>
                             {isSaving ? (
                               <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" />
                             ) : (
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                disabled={isBlocked}
-                                title={isBlocked ? "Blocked by a scheduling conflict" : undefined}
-                                onChange={() => toggleSlotGroup(course, sg, !isChecked)}
-                                className={`w-4 h-4 rounded accent-sky-500 ${isBlocked ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
-                              />
+                              <div className="flex flex-col items-center gap-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  disabled={isBlocked}
+                                  title={isBlocked ? "Blocked by a scheduling conflict" : undefined}
+                                  onChange={() => toggleSlotGroup(course, sg, !isChecked)}
+                                  className={`w-4 h-4 rounded accent-sky-500 ${isBlocked ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
+                                />
+                                {isChecked && (
+                                  <div className="w-full min-w-[82px] rounded-lg bg-white/70 border border-white/70 px-1.5 py-1 shadow-sm">
+                                    <div className="text-[10px] font-bold text-slate-700">{enrolled}/{cap || "—"}</div>
+                                    <div className="text-[10px] font-semibold text-slate-500">{cap > 0 ? `${seatsLeft} left` : "no cap"}</div>
+                                    {cap > 0 && (
+                                      <div className="mt-1 h-1 rounded-full bg-white/80 overflow-hidden">
+                                        <div className="h-full rounded-full bg-current transition-all" style={{ width: `${fillPct}%` }} />
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </td>
                         );
@@ -789,12 +883,18 @@ function ImportContent() {
         )}
 
         {courses.length > 0 && sessionGroups.length > 0 && (
-          <p className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
+          <div className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
             <span>✓ checkbox = runs that session on all scheduled days</span>
             <span>· room and slot changes save instantly</span>
             <span>· <span className="inline-block w-6 h-[14px] rounded-full bg-sky-500 align-middle" /> column toggle = assign/remove ALL activities at once</span>
             <span>· <span className="inline-block w-6 h-[14px] rounded-full bg-sky-200 align-middle" /> = partial</span>
-          </p>
+            <span className="basis-full h-0" />
+            <span className="font-semibold text-slate-500">Capacity colors:</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300 align-middle" /> healthy</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-amber-100 border border-amber-300 align-middle" /> watch</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-orange-100 border border-orange-300 align-middle" /> tight</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-red-100 border border-red-300 align-middle" /> full/short</span>
+          </div>
         )}
       </div>
     </div>

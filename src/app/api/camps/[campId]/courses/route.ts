@@ -20,6 +20,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       room: true,
       courseTeachers: { include: { person: true } },
       courseSessionTemplates: { include: { sessionTemplate: true } },
+      sessions: { select: { id: true, sessionTemplateId: true, enrolledCount: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       room: true,
       courseTeachers: { include: { person: true } },
       courseSessionTemplates: { include: { sessionTemplate: true } },
+      sessions: { select: { id: true, sessionTemplateId: true, enrolledCount: true } },
     },
   });
   return NextResponse.json(full, { status: 201 });
