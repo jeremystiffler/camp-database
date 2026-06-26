@@ -41,6 +41,12 @@ interface RegistrationSession {
   optionCountsByAgeGroup: Record<string, number>;
   optionsByAgeGroup: Record<string, SessionOption[]>;
 }
+interface WeeklyRegistrationSession extends RegistrationSession {
+  sessionIds: string[];
+  days: number[];
+  optionCount: number;
+  options: SessionOption[];
+}
 
 type FieldValue = string | boolean;
 type Step = 1 | 2 | 3;
@@ -49,7 +55,6 @@ const PARENT_FIELD_IDS = new Set(["f5", "f6", "f7"]);
 const STUDENT_FIELD_IDS = new Set(["f1", "f2", "f3", "f4"]);
 const CONSENT_FIELD_IDS = new Set(["f8", "f9", "f10", "f11", "f12"]);
 const SYSTEM_FIELD_IDS = new Set(["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"]);
-const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function isInputField(field: FormField) {
   return field.type !== "heading" && field.type !== "divider";
@@ -60,9 +65,34 @@ function ageMatches(course: Course, ageGroupId: string) {
   return course.ageGroupId === ageGroupId || Boolean(course.courseAgeGroups?.some(ag => ag.ageGroupId === ageGroupId));
 }
 
-function sessionLabel(session: RegistrationSession) {
-  const day = session.dayOfWeek === null || session.dayOfWeek === undefined ? "" : `${DAY_ABBR[session.dayOfWeek]} · `;
-  return `${day}${session.label || "Session"} · ${session.startTime}–${session.endTime}`;
+function weeklySessionKey(session: RegistrationSession) {
+  return `${session.label || "Session"}|${session.startTime}|${session.endTime}|${session.mandatory ? "required" : "optional"}`;
+}
+
+function mergeWeeklyOptions(sessions: RegistrationSession[], ageGroupId: string): { optionCount: number; options: SessionOption[] } {
+  if (!ageGroupId || sessions.length === 0) return { optionCount: 0, options: [] };
+  const byCourse = new Map<string, SessionOption[]>();
+  for (const session of sessions) {
+    for (const option of session.optionsByAgeGroup?.[ageGroupId] || []) {
+      const existing = byCourse.get(option.courseId) || [];
+      existing.push(option);
+      byCourse.set(option.courseId, existing);
+    }
+  }
+  const options = Array.from(byCourse.values())
+    .filter(matches => matches.length === sessions.length)
+    .map(matches => ({
+      ...matches[0],
+      enrolledCount: Math.max(...matches.map(option => option.enrolledCount)),
+      seatsLeft: matches.some(option => option.seatsLeft === null) ? null : Math.min(...matches.map(option => option.seatsLeft ?? 0)),
+    }))
+    .filter(option => option.seatsLeft === null || option.seatsLeft > 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return { optionCount: options.length, options };
+}
+
+function sessionLabel(session: WeeklyRegistrationSession) {
+  return `${session.label || "Session"} · ${session.startTime}–${session.endTime}`;
 }
 
 export default function PublicRegistrationPage({ params }: { params: Promise<{ campId: string }> }) {
@@ -123,14 +153,26 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
 
   const selectedAgeGroupId = String(values.f4 || "");
   const selectedAgeGroup = ageGroups.find(ag => ag.id === selectedAgeGroupId);
-  const availableCourses = courses.filter(course => ageMatches(course, selectedAgeGroupId));
-  const selectableSessions = selectedAgeGroup?.noSchedule ? [] : registrationSessions
-    .map(session => ({
-      ...session,
-      optionCount: session.optionCountsByAgeGroup?.[selectedAgeGroupId] || 0,
-      options: session.optionsByAgeGroup?.[selectedAgeGroupId] || [],
-    }))
-    .filter(session => !session.mandatory);
+  const selectableSessions: WeeklyRegistrationSession[] = selectedAgeGroup?.noSchedule ? [] : Array.from(
+    registrationSessions.reduce<Map<string, RegistrationSession[]>>((groups, session) => {
+      const key = weeklySessionKey(session);
+      const existing = groups.get(key) || [];
+      existing.push(session);
+      groups.set(key, existing);
+      return groups;
+    }, new Map()).values()
+  ).map(sessions => {
+    const sortedSessions = [...sessions].sort((a, b) => (a.dayOfWeek ?? 99) - (b.dayOfWeek ?? 99));
+    const { optionCount, options } = mergeWeeklyOptions(sortedSessions, selectedAgeGroupId);
+    return {
+      ...sortedSessions[0],
+      id: sortedSessions.map(session => session.id).join("|"),
+      sessionIds: sortedSessions.map(session => session.id),
+      days: sortedSessions.map(session => session.dayOfWeek).filter((day): day is number => typeof day === "number"),
+      optionCount,
+      options,
+    };
+  }).filter(session => !session.mandatory);
   const requiredSessions = selectableSessions.filter(session => session.optionCount > 0);
 
   const validateStep = (targetStep: Step): boolean => {
@@ -149,7 +191,7 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
     }
     if (targetStep === 2 && !selectedAgeGroup?.noSchedule) {
       const unavailable = requiredSessions.filter(session => session.options.length === 0);
-      const missing = requiredSessions.filter(session => session.options.length > 0 && !selectedBySession[session.id]);
+      const missing = requiredSessions.filter(session => session.options.length > 0 && !session.sessionIds.every(sessionId => selectedBySession[sessionId]));
       if (unavailable.length > 0) errs._form = "One or more sessions has no open classes left. Please contact the camp before registering.";
       else if (missing.length > 0) errs._form = "Please choose one class for each session.";
     }
@@ -170,8 +212,11 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const selectCourseForSession = (sessionId: string, courseId: string) => {
-    setSelectedBySession(prev => ({ ...prev, [sessionId]: courseId }));
+  const selectCourseForSession = (sessionIds: string[], courseId: string) => {
+    setSelectedBySession(prev => ({
+      ...prev,
+      ...Object.fromEntries(sessionIds.map(sessionId => [sessionId, courseId])),
+    }));
     if (errors._form) setErrors(prev => { const n = { ...prev }; delete n._form; return n; });
   };
 
@@ -357,15 +402,15 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
                         ) : (
                           <div className="divide-y divide-slate-100">
                             {session.options.map(option => {
-                              const checked = selectedBySession[session.id] === option.courseId;
+                              const checked = session.sessionIds.every(sessionId => selectedBySession[sessionId] === option.courseId);
                               return <label key={option.courseId} className={`block p-4 cursor-pointer transition-all ${checked ? "bg-forest-50" : "hover:bg-slate-50"}`}>
                                 <div className="flex items-start gap-3">
-                                  <input type="radio" name={`session-${session.id}`} checked={checked} onChange={() => selectCourseForSession(session.id, option.courseId)} className="mt-1 w-4 h-4 accent-forest-500" />
+                                  <input type="radio" name={`session-${session.id}`} checked={checked} onChange={() => selectCourseForSession(session.sessionIds, option.courseId)} className="mt-1 w-4 h-4 accent-forest-500" />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-3">
                                       <p className="font-semibold text-slate-800">{option.name}</p>
                                       <span className="text-xs font-bold text-forest-700 bg-forest-100 px-2 py-1 rounded-full whitespace-nowrap">
-                                        {option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} left`}
+                                        {option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} seats left`}
                                       </span>
                                     </div>
                                     {option.description && <p className="text-sm text-slate-500 mt-0.5">{option.description}</p>}
