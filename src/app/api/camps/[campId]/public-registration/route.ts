@@ -36,6 +36,10 @@ function ageMatches(course: { ageGroupId: string | null; courseAgeGroups: { ageG
   return course.ageGroupId === ageGroupId || course.courseAgeGroups.some(ag => ag.ageGroupId === ageGroupId);
 }
 
+function weeklySessionKey(template: { label: string | null; startTime: string | null; endTime: string | null; mandatory?: boolean | null }) {
+  return `${template.label || "Session"}|${template.startTime || ""}|${template.endTime || ""}|${template.mandatory ? "required" : "optional"}`;
+}
+
 async function sendConfirmationEmail({
   campName,
   data,
@@ -142,6 +146,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   });
 
   const selections: Array<{ sessionTemplateId: string; course: typeof sessionTemplates[number]["courseSessionTemplates"][number]["course"] }> = [];
+  const selectedCourseWeeklySlots = new Map<string, Set<string>>();
+  const selectedWeeklySlotCourse = new Map<string, string>();
 
   if (!ageGroup.noSchedule && sessionTemplates.length > 0) {
     for (const template of sessionTemplates) {
@@ -171,6 +177,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       if (!selectedCourse || !ageMatches(selectedCourse, ageGroup.id)) {
         return NextResponse.json({ error: "One or more selected classes are not available for this age group/session" }, { status: 400 });
       }
+
+      const slotKey = weeklySessionKey(template);
+      const existingCourseForSlot = selectedWeeklySlotCourse.get(slotKey);
+      if (existingCourseForSlot && existingCourseForSlot !== selectedCourse.id) {
+        return NextResponse.json({ error: "Please choose one class for each weekly session; the same weekly session cannot have different class choices on different days" }, { status: 400 });
+      }
+      selectedWeeklySlotCourse.set(slotKey, selectedCourse.id);
+      const courseSlots = selectedCourseWeeklySlots.get(selectedCourse.id) || new Set<string>();
+      courseSlots.add(slotKey);
+      selectedCourseWeeklySlots.set(selectedCourse.id, courseSlots);
+      if (courseSlots.size > 1) {
+        return NextResponse.json({ error: "Each class can only be chosen once. Please pick a different class for one of the sessions." }, { status: 400 });
+      }
+
       selections.push({ sessionTemplateId: template.id, course: selectedCourse });
     }
   } else if (fallbackCourseIds.length > 0) {

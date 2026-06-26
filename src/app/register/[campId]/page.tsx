@@ -192,8 +192,13 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
     if (targetStep === 2 && !selectedAgeGroup?.noSchedule) {
       const unavailable = requiredSessions.filter(session => session.options.length === 0);
       const missing = requiredSessions.filter(session => session.options.length > 0 && !session.sessionIds.every(sessionId => selectedBySession[sessionId]));
+      const selectedCoursesByWeeklySession = requiredSessions
+        .map(session => session.sessionIds.map(sessionId => selectedBySession[sessionId]).find(Boolean))
+        .filter((courseId): courseId is string => Boolean(courseId));
+      const duplicateCourse = selectedCoursesByWeeklySession.find((courseId, index) => selectedCoursesByWeeklySession.indexOf(courseId) !== index);
       if (unavailable.length > 0) errs._form = "One or more sessions has no open classes left. Please contact the camp before registering.";
       else if (missing.length > 0) errs._form = "Please choose one class for each session.";
+      else if (duplicateCourse) errs._form = "Each class can only be chosen once. Please pick a different class for one of the sessions.";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -220,7 +225,7 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
     if (errors._form) setErrors(prev => { const n = { ...prev }; delete n._form; return n; });
   };
 
-  const selectedCourseIds = Object.values(selectedBySession).filter(Boolean);
+  const selectedCourseIds = [...new Set(Object.values(selectedBySession).filter(Boolean))];
 
   const submitRegistration = async (updateExisting = false, existingCamperId?: string) => {
     setSubmitting(true);
@@ -403,14 +408,16 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
                           <div className="divide-y divide-slate-100">
                             {session.options.map(option => {
                               const checked = session.sessionIds.every(sessionId => selectedBySession[sessionId] === option.courseId);
-                              return <label key={option.courseId} className={`block p-4 cursor-pointer transition-all ${checked ? "bg-forest-50" : "hover:bg-slate-50"}`}>
+                              const selectedInAnotherSession = Object.entries(selectedBySession).some(([sessionId, courseId]) => !session.sessionIds.includes(sessionId) && courseId === option.courseId);
+                              const unavailableBecauseChosen = selectedInAnotherSession && !checked;
+                              return <label key={option.courseId} className={`block p-4 transition-all ${unavailableBecauseChosen ? "bg-slate-50 opacity-50 cursor-not-allowed" : checked ? "bg-forest-50 cursor-pointer" : "hover:bg-slate-50 cursor-pointer"}`}>
                                 <div className="flex items-start gap-3">
-                                  <input type="radio" name={`session-${session.id}`} checked={checked} onChange={() => selectCourseForSession(session.sessionIds, option.courseId)} className="mt-1 w-4 h-4 accent-forest-500" />
+                                  <input type="radio" name={`session-${session.id}`} checked={checked} disabled={unavailableBecauseChosen} onChange={() => selectCourseForSession(session.sessionIds, option.courseId)} className="mt-1 w-4 h-4 accent-forest-500 disabled:accent-slate-300" />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-3">
                                       <p className="font-semibold text-slate-800">{option.name}</p>
-                                      <span className="text-xs font-bold text-forest-700 bg-forest-100 px-2 py-1 rounded-full whitespace-nowrap">
-                                        {option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} seats left`}
+                                      <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${unavailableBecauseChosen ? "text-slate-500 bg-slate-200" : "text-forest-700 bg-forest-100"}`}>
+                                        {unavailableBecauseChosen ? "Already chosen" : option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} seats left`}
                                       </span>
                                     </div>
                                     {option.description && <p className="text-sm text-slate-500 mt-0.5">{option.description}</p>}
