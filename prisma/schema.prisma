@@ -217,6 +217,7 @@ model Camper {
   photoConsent    Boolean      @default(false)
   medicalNotes    String?
   dietaryNotes    String?
+  customData      String?
   createdAt       DateTime     @default(now())
   enrollments     Enrollment[]
 }

@@ -179,7 +179,7 @@ function RegistrationContent() {
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Registration Form</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Drag fields to reorder. Click a field to edit. System fields can&apos;t be deleted.</p>
+          <p className="text-slate-500 text-sm mt-0.5">Drag fields to reorder. Click any field to edit its label, help text, options, and required status. Any field can be deleted.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {regOpen && (
@@ -259,10 +259,8 @@ function RegistrationContent() {
                   {field.required && <span className="text-red-400 text-xs">*</span>}
                   {field.system && <span className="text-xs text-slate-300 bg-slate-50 px-1.5 rounded border border-slate-100">system</span>}
                   <span className="text-slate-400 text-xs">{editingId === field.id ? "▲" : "▼"}</span>
-                  {!field.system && (
-                    <button onClick={e => { e.stopPropagation(); removeField(field.id); }}
-                      className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>
-                  )}
+                  <button onClick={e => { e.stopPropagation(); removeField(field.id); }}
+                    className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>
                 </div>
                 {editingId === field.id && field.type !== "divider" && (
                   <FieldEditor field={field} onChange={updated => updateField(field.id, updated)} />

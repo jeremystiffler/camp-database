@@ -7,18 +7,21 @@ async function checkAccess(userId: string, campId: string) {
 }
 
 const DEFAULT_FIELDS = JSON.stringify([
+  { id: "section_parent", type: "heading",  label: "Parent / Guardian Info", required: false },
+  { id: "f5", type: "text",     label: "Guardian Name",      required: true,  system: true },
+  { id: "f6", type: "email",    label: "Guardian Email",     required: true,  system: true },
+  { id: "f7", type: "tel",      label: "Guardian Phone",     required: true,  system: true },
+  { id: "section_student", type: "heading", label: "Student Info", required: false },
   { id: "f1", type: "text",     label: "First Name",         required: true,  system: true },
   { id: "f2", type: "text",     label: "Last Name",          required: true,  system: true },
   { id: "f3", type: "date",     label: "Date of Birth",      required: true,  system: true },
   { id: "f4", type: "select",   label: "Age Group",          required: true,  system: true, source: "ageGroups" },
-  { id: "f5", type: "text",     label: "Guardian Name",      required: true,  system: true },
-  { id: "f6", type: "email",    label: "Guardian Email",     required: true,  system: true },
-  { id: "f7", type: "tel",      label: "Guardian Phone",     required: true,  system: true },
-  { id: "f8", type: "tel",      label: "Emergency Phone",    required: false, system: true },
+  { id: "section_consent", type: "heading", label: "Consent & Emergency Info", required: false },
+  { id: "f12", type: "checkbox", label: "Photo Consent",    required: false, system: true },
+  { id: "f8", type: "tel",      label: "Emergency Phone",    required: true, system: true },
   { id: "f9", type: "select",   label: "T-Shirt Size",       required: false, system: true, options: ["YS","YM","YL","AS","AM","AL","AXL","A2XL"] },
   { id: "f10", type: "textarea", label: "Medical / Allergies", required: false, system: true },
   { id: "f11", type: "textarea", label: "Dietary Restrictions", required: false, system: true },
-  { id: "f12", type: "checkbox", label: "Photo Consent",    required: false, system: true },
 ]);
 
 // GET — public (no auth) — used by the public registration page
@@ -26,12 +29,30 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   const { campId } = await params;
   const camp = await prisma.camp.findUnique({
     where: { id: campId },
-    select: { id: true, name: true, registrationOpen: true, registrationForm: true, ageGroups: { select: { id: true, name: true, noSchedule: false, minAge: true, maxAge: true } } },
+    select: {
+      id: true,
+      name: true,
+      registrationOpen: true,
+      registrationForm: true,
+      ageGroups: { select: { id: true, name: true, minAge: true, maxAge: true } },
+      courses: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          cap: true,
+          ageGroupId: true,
+          courseAgeGroups: { select: { ageGroupId: true } },
+          courseSessionTemplates: { select: { sessionTemplateId: true } },
+        },
+        orderBy: { name: "asc" },
+      },
+    },
   });
   if (!camp) return NextResponse.json({ error: "Camp not found" }, { status: 404 });
 
   const fields = camp.registrationForm?.fields || DEFAULT_FIELDS;
-  return NextResponse.json({ campName: camp.name, registrationOpen: camp.registrationOpen, fields, ageGroups: camp.ageGroups });
+  return NextResponse.json({ campName: camp.name, registrationOpen: camp.registrationOpen, fields, ageGroups: camp.ageGroups, courses: camp.courses });
 }
 
 // PUT — save form definition (auth required)
