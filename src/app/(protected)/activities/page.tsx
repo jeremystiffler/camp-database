@@ -861,6 +861,10 @@ function ActivitiesContent() {
   const [showMandatoryModal, setShowMandatoryModal] = useState(false);
   const [sortCol, setSortCol]                   = useState("name");
   const [sortDir, setSortDir]                   = useState<"asc" | "desc">("asc");
+  const [view, setView]                         = useState<"activities" | "schedule" | "defaults">("activities");
+  const [statusFilter, setStatusFilter]         = useState<"all" | "needs" | "ready">("all");
+  const [toolsOpen, setToolsOpen]               = useState(false);
+  const [openMenuId, setOpenMenuId]             = useState<string | null>(null);
 
   const toggleSort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -930,6 +934,39 @@ function ActivitiesContent() {
       return sortDir === "asc" ? cmp : -cmp;
     });
 
+
+  const activityStatus = (course: Course): { label: string; tone: string; priority: "ready" | "needs" } => {
+    if (!course.courseSessionTemplates || course.courseSessionTemplates.length === 0) return { label: "Needs time", tone: "bg-amber-50 text-amber-700 border-amber-200", priority: "needs" };
+    if (!course.room) return { label: "Needs room", tone: "bg-orange-50 text-orange-700 border-orange-200", priority: "needs" };
+    if (!course.courseTeachers || course.courseTeachers.length === 0) return { label: "Needs teacher", tone: "bg-rose-50 text-rose-700 border-rose-200", priority: "needs" };
+    if (!course.courseAgeGroups || course.courseAgeGroups.length === 0) return { label: "Needs ages", tone: "bg-sky-50 text-sky-700 border-sky-200", priority: "needs" };
+    return { label: "Ready", tone: "bg-emerald-50 text-emerald-700 border-emerald-200", priority: "ready" };
+  };
+
+  const scheduleSummary = (course: Course): string => {
+    const slots = course.courseSessionTemplates || [];
+    if (slots.length === 0) return "No time assigned";
+    if (slots.length === 1) {
+      const st = slots[0].sessionTemplate;
+      return st ? `${st.label || `${st.startTime}–${st.endTime}`}` : "1 time slot";
+    }
+    const first = slots[0].sessionTemplate;
+    return first ? `${slots.length} slots · starts ${first.startTime}` : `${slots.length} time slots`;
+  };
+
+  const leadTeacher = (course: Course) =>
+    course.courseTeachers?.find(ct => ct.person.role === "teacher" || ct.person.role === "director")?.person;
+
+  const filteredByStatus = sortedFiltered.filter(course => {
+    if (statusFilter === "all") return true;
+    return activityStatus(course).priority === statusFilter;
+  });
+
+  const readyCount = courses.filter(c => activityStatus(c).priority === "ready").length;
+  const needsCount = Math.max(courses.length - readyCount, 0);
+  const scheduledCount = courses.filter(c => (c.courseSessionTemplates || []).length > 0).length;
+  const registrationReady = courses.length > 0 && needsCount === 0;
+
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
       <div className="text-center"><span className="text-4xl mb-3 block">🎯</span><p>Select a camp to view activities.</p></div>
@@ -937,197 +974,214 @@ function ActivitiesContent() {
   );
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Activities</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{courses.length} {courses.length === 1 ? "activity" : "activities"}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); }}
-            className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
-            + Required Assembly
-          </button>
-          <button onClick={() => { setEditingCourse(null); setShowModal(true); }}
-            className="px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
-            + New Activity
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 mb-5 flex-wrap">
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search activities..."
-          className="w-full max-w-xs px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
-        {(sortCol !== "name" || sortDir !== "asc") && (
-          <button onClick={() => { setSortCol("name"); setSortDir("asc"); }}
-            className="text-xs text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50">
-            ✕ Clear sort
-          </button>
-        )}
-        <span className="text-xs text-slate-400 ml-auto">Click column headers to sort ⇅</span>
-      </div>
-
-      <TimeslotAssignmentGrid campId={campId} />
-
-      {mandatorySessions.length > 0 && (
-        <div className="camp-card p-4 mb-5 border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <h2 className="font-bold text-amber-900 text-sm">🔒 Required Assemblies</h2>
-              <p className="text-xs text-amber-700">Automatic age-group assignments; parents won’t choose these during registration.</p>
+    <div className="space-y-6">
+      <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-amber-50 p-6 shadow-sm">
+        <div className="absolute right-6 top-6 hidden h-24 w-24 rounded-full bg-amber-200/30 blur-2xl md:block" />
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-sky-700 shadow-sm">
+              🏕️ Activity command center
             </div>
-            <span className="text-xs text-amber-700 font-semibold bg-white/70 border border-amber-200 rounded-full px-2.5 py-1">{mandatorySessions.length} block{mandatorySessions.length !== 1 ? "s" : ""}</span>
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Activities</h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-600">
+              Build your activity catalog first. Scheduling, default sessions, and advanced tools stay tucked away until you need them.
+            </p>
           </div>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {mandatorySessions.map(item => (
-              <div key={item.id} className="bg-white/85 border border-amber-200 rounded-xl p-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-slate-800 text-sm">{item.title}</p>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full text-white font-medium" style={{ backgroundColor: item.ageGroup.color }}>{item.ageGroup.name}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <button onClick={() => setToolsOpen(v => !v)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">
+                Tools ▾
+              </button>
+              {toolsOpen && (
+                <div className="absolute right-0 top-12 z-20 w-64 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-xl">
+                  <button onClick={() => { setView("schedule"); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-sky-50">🕐 Open schedule grid</button>
+                  <button onClick={() => { setView("defaults"); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-amber-50">🔒 Manage default sessions</button>
+                  <a href={`/import${campId ? `?campId=${campId}` : ""}`} className="block rounded-xl px-3 py-2 font-semibold text-slate-700 hover:bg-emerald-50">📥 Import activities</a>
+                  <button onClick={() => { setSortCol("name"); setSortDir("asc"); setStatusFilter("all"); setSearch(""); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-slate-50">✨ Reset filters</button>
+                </div>
+              )}
+            </div>
+            <button onClick={() => { setEditingCourse(null); setShowModal(true); }}
+              className="rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:opacity-90">
+              + New Activity
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-4">
+        {[
+          { label: "Activities", value: courses.length, detail: "in catalog", tone: "from-sky-500 to-sky-600", action: () => { setView("activities"); setStatusFilter("all"); } },
+          { label: "Scheduled", value: scheduledCount, detail: "have a time", tone: "from-emerald-500 to-forest-600", action: () => setView("schedule") },
+          { label: "Need attention", value: needsCount, detail: needsCount === 0 ? "all clear" : "missing details", tone: "from-amber-500 to-orange-500", action: () => { setView("activities"); setStatusFilter("needs"); } },
+          { label: "Registration", value: registrationReady ? "Ready" : "Not yet", detail: `${mandatorySessions.length} default block${mandatorySessions.length !== 1 ? "s" : ""}`, tone: registrationReady ? "from-emerald-500 to-forest-600" : "from-slate-500 to-slate-600", action: () => setView("defaults") },
+        ].map(card => (
+          <button key={card.label} onClick={card.action} className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className={`mb-3 h-1.5 rounded-full bg-gradient-to-r ${card.tone}`} />
+            <div className="text-2xl font-black text-slate-900">{card.value}</div>
+            <div className="text-sm font-bold text-slate-700">{card.label}</div>
+            <div className="text-xs text-slate-400">{card.detail}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+        <div className="grid gap-2 md:grid-cols-3">
+          {[
+            { key: "activities", label: "Activities", icon: "🎯", help: "simple catalog" },
+            { key: "schedule", label: "Schedule Grid", icon: "🕐", help: "rooms + time slots" },
+            { key: "defaults", label: "Default Sessions", icon: "🔒", help: "all-camp blocks" },
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setView(tab.key as "activities" | "schedule" | "defaults")}
+              className={`rounded-xl px-4 py-3 text-left transition ${view === tab.key ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>
+              <span className="text-sm font-bold">{tab.icon} {tab.label}</span>
+              <span className={`ml-2 text-xs ${view === tab.key ? "text-white/60" : "text-slate-400"}`}>{tab.help}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === "activities" && (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+              <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search activities..."
+                className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: "all", label: "All" },
+                { key: "needs", label: `Needs attention (${needsCount})` },
+                { key: "ready", label: `Ready (${readyCount})` },
+              ].map(f => (
+                <button key={f.key} onClick={() => setStatusFilter(f.key as "all" | "needs" | "ready")}
+                  className={`rounded-xl border px-3 py-2 text-xs font-bold ${statusFilter === f.key ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex h-48 items-center justify-center rounded-2xl border border-slate-200 bg-white">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-forest-500 border-t-transparent" />
+            </div>
+          ) : filteredByStatus.length === 0 ? (
+            <div className="camp-card p-12 text-center">
+              <span className="mb-4 block text-5xl">🎯</span>
+              <h3 className="mb-2 font-bold text-slate-700">{search || statusFilter !== "all" ? "No activities match" : "No activities yet"}</h3>
+              <p className="mb-5 text-sm text-slate-400">Create activities first. You can schedule them after the catalog feels right.</p>
+              <button onClick={() => { setEditingCourse(null); setShowModal(true); }} className="rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">+ Add First Activity</button>
+            </div>
+          ) : (
+            <div className="grid gap-3 xl:grid-cols-2">
+              {filteredByStatus.map(course => {
+                const status = activityStatus(course);
+                const teacher = leadTeacher(course);
+                const slots = course.courseSessionTemplates || [];
+                return (
+                  <div key={course.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl text-xl text-white shadow-sm" style={{ backgroundColor: course.color || "#22C55E" }}>{course.icon || "🎯"}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="truncate text-base font-black text-slate-900">{course.name}</h3>
+                          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${status.tone}`}>{status.label}</span>
+                        </div>
+                        {course.description && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{course.description}</p>}
+                        <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
+                          <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-500">Time:</span> {scheduleSummary(course)}</div>
+                          <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-500">Room:</span> {course.room?.name || "Not assigned"}</div>
+                          <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-500">Teacher:</span> {teacher ? `${teacher.firstName} ${teacher.lastName}` : "Not assigned"}</div>
+                          <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-500">Capacity:</span> {course.cap || "—"} seats</div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {course.courseAgeGroups && course.courseAgeGroups.length > 0 ? course.courseAgeGroups.map(cag => (
+                            <span key={cag.ageGroup.id} className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: cag.ageGroup.color }}>{cag.ageGroup.name}</span>
+                          )) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-400">No age groups</span>}
+                          {slots.length > 1 && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">{slots.length} time slots</span>}
+                        </div>
+                      </div>
+                      <div className="relative flex flex-shrink-0 items-center gap-1">
+                        <button onClick={() => { setEditingCourse(course); setShowModal(true); }} className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700 hover:bg-sky-100">Edit</button>
+                        <button onClick={() => { setView("schedule"); setOpenMenuId(null); }} className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100">Schedule</button>
+                        <button onClick={() => setOpenMenuId(openMenuId === course.id ? null : course.id)} className="rounded-xl border border-slate-200 px-2.5 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50">⋯</button>
+                        {openMenuId === course.id && (
+                          <div className="absolute right-0 top-10 z-10 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                            <button onClick={() => { setEditingCourse(course); setShowModal(true); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-slate-50">✏️ Edit details</button>
+                            <button onClick={() => { setView("schedule"); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-sky-50">🕐 Open grid</button>
+                            <button onClick={() => { deleteCourse(course.id); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50">🗑️ Delete</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    {item.sessionTemplate.dayOfWeek == null ? "All" : DAYS[item.sessionTemplate.dayOfWeek]} · {item.sessionTemplate.label ? `${item.sessionTemplate.label} — ` : ""}{item.sessionTemplate.startTime}–{item.sessionTemplate.endTime}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {item.room?.name ? `📍 ${item.room.name}` : "📍 No room"}{item.leader ? ` · 👤 ${item.leader.firstName} ${item.leader.lastName}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button onClick={() => { setEditingMandatory(item); setShowMandatoryModal(true); }} className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors text-sm">✏️</button>
-                  <button onClick={() => deleteMandatorySession(item.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm">🗑️</button>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <div className="w-8 h-8 border-2 border-forest-500 border-t-transparent rounded-full animate-spin" />
+      {view === "schedule" && (
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">
+            <div className="font-black">Schedule Grid</div>
+            <div className="text-xs text-sky-700">Power tools live here now: room changes, timeslot checkboxes, capacity colors, and conflict warnings.</div>
+          </div>
+          <TimeslotAssignmentGrid campId={campId} />
         </div>
-      ) : sortedFiltered.length === 0 ? (
-        <div className="camp-card p-12 text-center">
-          <span className="text-5xl mb-4 block">🎯</span>
-          <h3 className="font-bold text-slate-700 mb-2">{search ? "No activities match" : "No activities yet"}</h3>
-          <p className="text-slate-400 text-sm mb-5">Create your first activity with rooms, teachers, and time slots.</p>
-          {!search && (
-            <button onClick={() => { setEditingCourse(null); setShowModal(true); }}
-              className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
-              + Add First Activity
-            </button>
+      )}
+
+      {view === "defaults" && (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-black text-amber-950">🔒 Default all-camp sessions</h2>
+              <p className="text-sm text-amber-800">Use this for chapel, assembly, lunch, dismissal, and blocks parents should not choose during registration.</p>
+            </div>
+            <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); }} className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:opacity-90">+ Required Assembly</button>
+          </div>
+
+          {mandatorySessions.length === 0 ? (
+            <div className="camp-card p-12 text-center">
+              <span className="mb-4 block text-5xl">🔒</span>
+              <h3 className="mb-2 font-bold text-slate-700">No default sessions yet</h3>
+              <p className="mb-5 text-sm text-slate-400">Add chapel, opening assembly, or other required camp-wide blocks here.</p>
+              <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); }} className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">+ Add Default Session</button>
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {mandatorySessions.map(item => (
+                <div key={item.id} className="rounded-2xl border border-amber-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-black text-slate-900">{item.title}</p>
+                        <span className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: item.ageGroup.color }}>{item.ageGroup.name}</span>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-600">
+                        {item.sessionTemplate.dayOfWeek == null ? "All" : DAYS[item.sessionTemplate.dayOfWeek]} · {item.sessionTemplate.label ? `${item.sessionTemplate.label} — ` : ""}{item.sessionTemplate.startTime}–{item.sessionTemplate.endTime}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {item.room?.name ? `📍 ${item.room.name}` : "📍 No room"}{item.leader ? ` · 👤 ${item.leader.firstName} ${item.leader.lastName}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => { setEditingMandatory(item); setShowMandatoryModal(true); }} className="rounded-lg bg-sky-50 px-2.5 py-1.5 text-sm text-sky-700 hover:bg-sky-100">✏️</button>
+                      <button onClick={() => deleteMandatorySession(item.id)} className="rounded-lg bg-red-50 px-2.5 py-1.5 text-sm text-red-600 hover:bg-red-100">🗑️</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-        </div>
-      ) : (
-        <div className="camp-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  {[
-                    { key: "name",     label: "Activity" },
-                    { key: "room",     label: "Room" },
-                    { key: "agegroup", label: "Age Groups" },
-                    { key: "time",     label: "Time Slots" },
-                    { key: "teacher",  label: "Lead Teacher" },
-                    { key: "ta",       label: "Asst." },
-                    { key: "cap",      label: "Cap" },
-                  ].map(col => (
-                    <th key={col.key}
-                      className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:text-slate-700"
-                      onClick={() => toggleSort(col.key)}>
-                      {col.label}<SortIcon col={col.key} />
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedFiltered.map(course => {
-                  const teachers = course.courseTeachers?.filter(ct => ct.person.role === "teacher" || ct.person.role === "director") || [];
-                  const aides    = course.courseTeachers?.filter(ct => ct.person.role === "assistant" || ct.person.role === "staff") || [];
-                  const slots    = course.courseSessionTemplates || [];
-                  return (
-                    <tr key={course.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      {/* Activity */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base text-white flex-shrink-0"
-                            style={{ backgroundColor: course.color || "#22C55E" }}>
-                            {course.icon || "🎯"}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-slate-800 truncate max-w-[180px]">{course.name}</p>
-                            {course.description && <p className="text-xs text-slate-400 truncate max-w-[180px]">{course.description}</p>}
-                          </div>
-                        </div>
-                      </td>
-                      {/* Room */}
-                      <td className="px-4 py-3.5 text-slate-600 whitespace-nowrap">
-                        {course.room ? <span className="flex items-center gap-1">📍 {course.room.name}</span> : <span className="text-slate-300">—</span>}
-                      </td>
-                      {/* Age Groups */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex gap-1 flex-wrap min-w-[80px]">
-                          {course.courseAgeGroups && course.courseAgeGroups.length > 0
-                            ? course.courseAgeGroups.map(cag => (
-                                <span key={cag.ageGroup.id}
-                                  className="text-xs px-1.5 py-0.5 rounded-full text-white font-medium whitespace-nowrap"
-                                  style={{ backgroundColor: cag.ageGroup.color }}>
-                                  {cag.ageGroup.name}
-                                </span>
-                              ))
-                            : <span className="text-slate-300 text-xs">—</span>}
-                        </div>
-                      </td>
-                      {/* Time Slots */}
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        {slots.length === 0
-                          ? <span className="text-slate-300 text-xs">—</span>
-                          : slots.length === 1
-                            ? <span className="text-xs bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full">
-                                {slots[0].sessionTemplate.label || `${slots[0].sessionTemplate.startTime}–${slots[0].sessionTemplate.endTime}`}
-                              </span>
-                            : <span className="text-xs bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-full">
-                                ⏰ {slots.length} slots
-                              </span>}
-                      </td>
-                      {/* Lead Teacher */}
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        {teachers.length > 0
-                          ? <span className="flex items-center gap-1.5 text-berry-700">
-                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                {teachers[0].person.firstName[0]}
-                              </div>
-                              {teachers[0].person.firstName} {teachers[0].person.lastName}
-                              {teachers.length > 1 && <span className="text-xs text-slate-400">+{teachers.length - 1}</span>}
-                            </span>
-                          : <span className="text-slate-300 text-xs">—</span>}
-                      </td>
-                      {/* TA */}
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        {aides.length > 0
-                          ? <span className="text-sky-700 text-xs">{aides[0].person.firstName} {aides[0].person.lastName}{aides.length > 1 ? ` +${aides.length - 1}` : ""}</span>
-                          : <span className="text-slate-300 text-xs">—</span>}
-                      </td>
-                      {/* Cap */}
-                      <td className="px-4 py-3.5 whitespace-nowrap text-slate-600 text-xs">
-                        👥 {course.cap}
-                      </td>
-                      {/* Actions */}
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                        <button onClick={() => { setEditingCourse(course); setShowModal(true); }}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition-colors text-sm mr-1">✏️</button>
-                        <button onClick={() => deleteCourse(course.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors text-sm">🗑️</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
+            Need to toggle an existing timeslot into a default all-camp session? Open <button onClick={() => setView("schedule")} className="font-bold text-sky-700 hover:underline">Schedule Grid</button> and use the default-session toggles at the top.
           </div>
         </div>
       )}
