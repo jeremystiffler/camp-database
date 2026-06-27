@@ -103,26 +103,9 @@ export async function checkSchedulingConflicts({
       }
     }
 
-    // ── Age group conflict with a required assembly ─────────────────────────
-    if (ageGroupIds.length > 0) {
-      const courseGroups = [
-        ...(course.ageGroup ? [course.ageGroup] : []),
-        ...course.courseAgeGroups.map(cag => cag.ageGroup),
-      ];
-      const overlappingGroup = courseGroups.find(group => ageGroupIds.includes(group.id));
-      if (overlappingGroup) {
-        const key = `ageGroup|${overlappingGroup.id}|${course.id}|${link.sessionTemplateId}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          conflicts.push({
-            type: "ageGroup",
-            slotLabel,
-            activityName: course.name,
-            detail: overlappingGroup.name,
-          });
-        }
-      }
-    }
+    // Normal elective activities may share an age group in the same time slot.
+    // That is how registration offers choices like Art vs Soccer vs Music for one group.
+    // Required/default sessions are still checked below against ageGroupIds.
 
     // ── Teacher conflicts ──────────────────────────────────────────────────
     for (const ct of course.courseTeachers) {

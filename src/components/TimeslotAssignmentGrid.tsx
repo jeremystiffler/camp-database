@@ -4,8 +4,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 interface Room { id: string; name: string; }
-interface SessionTemplate { id: string; label: string | null; dayOfWeek: number | null; startTime: string; endTime: string; }
-interface SessionGroup { key: string; label: string; startTime: string; endTime: string; ids: string[]; }
+interface AgeGroup { id: string; name: string; noSchedule?: boolean; }
+interface MandatorySession { id: string; title: string; ageGroupId: string; sessionTemplateId: string; }
+interface SessionTemplate { id: string; label: string | null; dayOfWeek: number | null; startTime: string; endTime: string; mandatory?: boolean; }
+interface SessionGroup { key: string; label: string; startTime: string; endTime: string; ids: string[]; mandatory: boolean; }
 interface Course {
   id: string;
   name: string;
@@ -24,9 +26,12 @@ const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [ageGroups, setAgeGroups] = useState<AgeGroup[]>([]);
+  const [mandatorySessions, setMandatorySessions] = useState<MandatorySession[]>([]);
   const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [assignSaving, setAssignSaving] = useState<Record<string, boolean>>({});
+  const [defaultSaving, setDefaultSaving] = useState<Record<string, boolean>>({});
   const [conflictToast, setConflictToast] = useState<{ courseName: string; sessionLabel: string; message: string } | null>(null);
   const [activityFilter, setActivityFilter] = useState("");
   const [blockedCells, setBlockedCells] = useState<Set<string>>(new Set());
@@ -37,11 +42,15 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     Promise.all([
       fetch(`/api/camps/${campId}/courses`).then(r => r.json()),
       fetch(`/api/camps/${campId}/rooms`).then(r => r.json()),
+      fetch(`/api/camps/${campId}/age-groups`).then(r => r.json()),
+      fetch(`/api/camps/${campId}/mandatory-sessions`).then(r => r.json()),
       fetch(`/api/camps/${campId}/session-templates`).then(r => r.json()),
-    ]).then(([c, r, st]) => {
+    ]).then(([c, r, ag, ms, st]) => {
       const sorted = Array.isArray(c) ? [...c].sort((a: Course, b: Course) => a.name.localeCompare(b.name)) : [];
       setCourses(sorted);
       setRooms(Array.isArray(r) ? r : []);
+      setAgeGroups(Array.isArray(ag) ? ag : []);
+      setMandatorySessions(Array.isArray(ms) ? ms : []);
       setSessionTemplates(Array.isArray(st) ? st : []);
       setBlockedCells(new Set());
     }).finally(() => setLoading(false));
@@ -49,17 +58,22 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
   useEffect(() => { loadGridData(); }, [campId]);
 
-  const sessionGroups = useMemo((): SessionGroup[] => {
+  const allSessionGroups = useMemo((): SessionGroup[] => {
     const map = new Map<string, SessionGroup>();
     for (const st of sessionTemplates) {
       const key = `${st.label ?? ""}|${st.startTime}|${st.endTime}`;
       if (!map.has(key)) {
-        map.set(key, { key, label: st.label ?? `${st.startTime}–${st.endTime}`, startTime: st.startTime, endTime: st.endTime, ids: [] });
+        map.set(key, { key, label: st.label ?? `${st.startTime}–${st.endTime}`, startTime: st.startTime, endTime: st.endTime, ids: [], mandatory: false });
       }
-      map.get(key)!.ids.push(st.id);
+      const group = map.get(key)!;
+      group.ids.push(st.id);
+      group.mandatory = group.mandatory || Boolean(st.mandatory);
     }
     return Array.from(map.values()).sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [sessionTemplates]);
+
+  const defaultSessionGroups = useMemo(() => allSessionGroups.filter(sg => sg.mandatory), [allSessionGroups]);
+  const sessionGroups = useMemo(() => allSessionGroups.filter(sg => !sg.mandatory), [allSessionGroups]);
 
   const assignedTemplateId = (cst: { sessionTemplateId?: string; sessionTemplate?: SessionTemplate }) => cst.sessionTemplateId || cst.sessionTemplate?.id || "";
 
@@ -182,6 +196,61 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     }
   };
 
+  const setDefaultForGroup = async (sg: SessionGroup, enable: boolean) => {
+    setDefaultSaving(prev => ({ ...prev, [sg.key]: true }));
+    setConflictToast(null);
+    try {
+      // A default/all-camp session should not also be wired to individual activity checkboxes.
+      // Remove those course links first so the required/default assignment can own the slot cleanly.
+      if (enable) {
+        await Promise.all(courses.map(course => {
+          const assignedIds = new Set((course.courseSessionTemplates || []).map(assignedTemplateId).filter(Boolean));
+          const hasGroup = sg.ids.some(id => assignedIds.has(id));
+          if (!hasGroup) return Promise.resolve();
+          const newIds = [...assignedIds].filter(id => !sg.ids.includes(id));
+          return fetch(`/api/camps/${campId}/courses/${course.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionTemplateIds: newIds }),
+          });
+        }));
+      }
+
+      await Promise.all(sg.ids.map(id =>
+        fetch(`/api/camps/${campId}/session-templates/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mandatory: enable }),
+        })
+      ));
+
+      if (enable) {
+        const scheduleAgeGroups = ageGroups.filter(ag => !ag.noSchedule);
+        const existingKeys = new Set(mandatorySessions.map(ms => `${ms.ageGroupId}:${ms.sessionTemplateId}`));
+        await Promise.all(sg.ids.flatMap(sessionTemplateId =>
+          scheduleAgeGroups
+            .filter(ageGroup => !existingKeys.has(`${ageGroup.id}:${sessionTemplateId}`))
+            .map(ageGroup => fetch(`/api/camps/${campId}/mandatory-sessions`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: sg.label, ageGroupId: ageGroup.id, sessionTemplateId }),
+            }))
+        ));
+      } else {
+        const generatedDefaults = mandatorySessions.filter(ms => sg.ids.includes(ms.sessionTemplateId) && ms.title === sg.label);
+        await Promise.all(generatedDefaults.map(ms =>
+          fetch(`/api/camps/${campId}/mandatory-sessions/${ms.id}`, { method: "DELETE" })
+        ));
+      }
+
+      loadGridData();
+    } catch {
+      setConflictToast({ courseName: "Default session", sessionLabel: sg.label, message: "Could not update this default session. Please try again." });
+    } finally {
+      setDefaultSaving(prev => { const n = { ...prev }; delete n[sg.key]; return n; });
+    }
+  };
+
   const updateRoom = async (course: Course, roomId: string) => {
     setBlockedCells(new Set());
     await fetch(`/api/camps/${campId}/courses/${course.id}`, {
@@ -209,11 +278,47 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
           <p className="text-xs text-slate-500 mt-1">Manage activity rooms, capacity balance, and session assignments here. Changes save instantly.</p>
         </div>
         <span className="text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 rounded-full px-3 py-1">
-          {sessionGroups.length} slot group{sessionGroups.length !== 1 ? "s" : ""}
+          {sessionGroups.length} assignable · {defaultSessionGroups.length} default
         </span>
       </div>
 
-      {sessionGroups.length === 0 && (
+      {allSessionGroups.length > 0 && (
+        <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50/70 p-3">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-sky-800">Default all-camp sessions</h3>
+              <p className="text-xs text-sky-700 mt-0.5">Toggle opening/keynote blocks here. Default sessions are assigned to everyone and stay out of the activity checkbox grid.</p>
+            </div>
+            {defaultSessionGroups.length > 0 && <span className="text-[11px] font-semibold text-sky-700 bg-white/80 border border-sky-200 rounded-full px-2.5 py-1">{defaultSessionGroups.length} default</span>}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {allSessionGroups.map(sg => {
+              const days = sessionTemplates.filter(st => sg.ids.includes(st.id) && st.dayOfWeek !== null).map(st => DAYS[st.dayOfWeek!]).join(", ");
+              const saving = defaultSaving[sg.key];
+              return (
+                <button
+                  key={sg.key}
+                  type="button"
+                  disabled={saving}
+                  onClick={() => setDefaultForGroup(sg, !sg.mandatory)}
+                  title={sg.mandatory ? "Move this back into the activity checkbox grid" : "Make this a default session assigned to everyone"}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all disabled:opacity-60 ${sg.mandatory ? "border-sky-300 bg-white text-sky-800 shadow-sm" : "border-slate-200 bg-white/70 text-slate-600 hover:border-sky-200 hover:text-sky-700"}`}
+                >
+                  <span className={`relative w-8 h-4 rounded-full flex-shrink-0 ${sg.mandatory ? "bg-sky-500" : "bg-slate-200"}`}>
+                    <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${sg.mandatory ? "translate-x-4" : ""}`} />
+                  </span>
+                  <span>
+                    <span className="block text-xs font-bold">{sg.label}</span>
+                    <span className="block text-[11px] opacity-75">{sg.startTime}–{sg.endTime}{days ? ` · ${days}` : ""}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {allSessionGroups.length === 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
           <span className="text-lg">🕐</span>
           <span>No time slots set up yet. Create the camp&apos;s base times in <strong>Camp Setup</strong>, then assign activities here.</span>
@@ -224,6 +329,13 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
           <span className="text-lg">📭</span>
           <span>No activities yet — add one above or import a spreadsheet first.</span>
+        </div>
+      )}
+
+      {courses.length > 0 && sessionGroups.length === 0 && allSessionGroups.length > 0 && (
+        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
+          <span className="text-lg">✅</span>
+          <span>All time slots are marked as default sessions. Turn a default toggle off above to make that slot assignable to activities.</span>
         </div>
       )}
 
