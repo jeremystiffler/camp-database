@@ -454,7 +454,7 @@ function ImportContent() {
             <h1 className="text-2xl font-bold text-slate-800">Import</h1>
             <span className="text-xs font-semibold px-2.5 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full">BETA</span>
           </div>
-          <p className="text-slate-500 text-sm">Upload a spreadsheet to bulk-create activities and teachers, then assign time slots below.</p>
+          <p className="text-slate-500 text-sm">Upload a spreadsheet to bulk-create activities and teachers. Assign rooms and time slots from the Activities tab.</p>
         </div>
         <button
           onClick={async () => { setDlLoading(true); await downloadTemplate(campId); setDlLoading(false); }}
@@ -472,7 +472,7 @@ function ImportContent() {
           <p className="text-sm font-semibold text-amber-800">Beta Feature</p>
           <p className="text-xs text-amber-700 mt-0.5">
             The template is pre-filled with your existing activities. Rows with a matching activity name will <strong>update</strong> that activity — no duplicates.
-            Time slot assignment happens in <strong>Step 2</strong> below after upload.
+            Time slot assignment now happens on the <strong>Activities</strong> tab so scheduling lives in one place.
           </p>
         </div>
       </div>
@@ -485,7 +485,7 @@ function ImportContent() {
         </h2>
         <p className="text-xs text-slate-400 mb-5 ml-8">
           Download the template above (pre-filled with your existing activities), fill in new rows, and upload it here.
-          No session columns needed — assign time slots in Step 2.
+          No session columns needed — assign time slots on the Activities tab after upload.
         </p>
 
         {/* Column guide */}
@@ -626,277 +626,21 @@ function ImportContent() {
                 Import Another File
               </button>
             </div>
-            <p className="text-xs text-sky-600 font-medium">↓ Now assign time slots below</p>
+            <p className="text-xs text-sky-600 font-medium">Next: open Activities to assign rooms and time slots.</p>
           </div>
         )}
       </div>
 
-      {/* ── Step 2: Assignment Grid ── */}
-      <div className="camp-card p-6">
+      <div className="camp-card p-6 border-sky-100 bg-sky-50/60">
         <h2 className="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
-          <span className="w-6 h-6 rounded-full bg-sky-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
-          Assign Time Slots
+          <span className="w-6 h-6 rounded-full bg-sky-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">→</span>
+          Time Slot Assignment Moved
         </h2>
-        <p className="text-xs text-slate-400 mb-5 ml-8">
-          Select a room and check which sessions each activity runs in.
-          Checking a session assigns it to <strong>all days</strong> of that session.
-          Changes save instantly.
+        <p className="text-sm text-slate-600 ml-8">
+          Rooms, session checkboxes, and capacity balancing now live on the <strong>Activities</strong> tab, right beside the activity list. Import stays focused on bulk upload only.
         </p>
-
-        {sessionGroups.length === 0 && (
-          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 mb-4">
-            <span className="text-lg">🕐</span>
-            <span>No time slots set up yet. Go to <strong>Camp Setup → Time Slots</strong> to create them first.</span>
-          </div>
-        )}
-
-        {courses.length === 0 && sessionGroups.length > 0 && (
-          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
-            <span className="text-lg">📭</span>
-            <span>No activities yet — upload a spreadsheet in Step 1 or add activities on the Activities page.</span>
-          </div>
-        )}
-
-        {courses.length > 0 && sessionGroups.length > 0 && (
-          <>
-            {/* Filter bar */}
-            <div className="mb-3 flex items-center gap-3">
-              <div className="relative flex-1 max-w-xs">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
-                <input
-                  type="text"
-                  value={activityFilter}
-                  onChange={e => setActivityFilter(e.target.value)}
-                  placeholder="Filter activities…"
-                  className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-400/30"
-                />
-                {activityFilter && (
-                  <button onClick={() => setActivityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>
-                )}
-              </div>
-              {activityFilter && (
-                <span className="text-xs text-slate-400">
-                  {courses.filter(c => c.name.toLowerCase().includes(activityFilter.toLowerCase())).length} of {courses.length}
-                </span>
-              )}
-            </div>
-            {/* Conflict toast */}
-            {conflictToast && (
-              <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2">
-                    <span className="text-lg flex-shrink-0">🚫</span>
-                    <div>
-                      <p className="text-sm font-semibold text-red-800">
-                        Can&apos;t assign <span className="italic">{conflictToast.courseName}</span> to <span className="italic">{conflictToast.sessionLabel}</span>
-                      </p>
-                      <p className="text-xs text-red-700 mt-1">
-                        {conflictToast.message}
-                      </p>
-                    </div>
-                  </div>
-                  <button onClick={() => setConflictToast(null)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-lg leading-none">✕</button>
-                </div>
-              </div>
-            )}
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-              {/* Delete toolbar */}
-              {selectedCourseIds.size > 0 && (
-                <div className="flex items-center justify-between px-4 py-2.5 bg-red-50 border-b border-red-200">
-                  <span className="text-sm font-medium text-red-700">
-                    {selectedCourseIds.size} activit{selectedCourseIds.size === 1 ? "y" : "ies"} selected
-                  </span>
-                  <button
-                    onClick={deleteSelected}
-                    disabled={deleting}
-                    className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 disabled:opacity-60 flex items-center gap-1.5 transition-colors"
-                  >
-                    {deleting ? <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Deleting…</> : <>🗑️ Delete Selected</>}
-                  </button>
-                </div>
-              )}
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-slate-50">
-                  {/* Select-all checkbox */}
-                  <th className="py-3 px-3 border-b border-slate-200 w-10">
-                    <input
-                      type="checkbox"
-                      checked={courses.length > 0 && selectedCourseIds.size === courses.length}
-                      ref={el => { if (el) el.indeterminate = selectedCourseIds.size > 0 && selectedCourseIds.size < courses.length; }}
-                      onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded cursor-pointer accent-red-500"
-                    />
-                  </th>
-                  {/* Activity column */}
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[180px]">
-                    Activity
-                  </th>
-                  {/* Room column */}
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[160px]">
-                    Room
-                  </th>
-                  {/* Session group columns */}
-                  {sessionGroups.map(sg => {
-                    const days = sessionTemplates
-                      .filter(st => sg.ids.includes(st.id) && st.dayOfWeek !== null)
-                      .map(st => DAY_ABBR[st.dayOfWeek!])
-                      .join(", ");
-                    const full    = isColumnFull(sg);
-                    const partial = isColumnPartial(sg);
-                    const stats   = sessionGroupStats(sg);
-                    const fillPct = stats.totalCap > 0 ? Math.round(stats.fillRate * 100) : 0;
-                    const balanceNote = !hasRegistrations && averageAssignedCapacity > 0 && stats.totalCap > 0
-                      ? `${Math.round((stats.totalCap / averageAssignedCapacity) * 100)}% of avg`
-                      : `${fillPct}% full`;
-                    return (
-                      <th key={sg.key} className={`text-center py-3 px-3 border-b min-w-[132px] align-top ${columnHeatClass(sg)}`}>
-                        <div className="font-semibold text-slate-800 text-xs">{sg.label}</div>
-                        <div className="text-slate-500 text-xs font-normal">{sg.startTime}–{sg.endTime}</div>
-                        {days && <div className="text-slate-400 text-xs font-normal">{days}</div>}
-                        <div className="mt-2 rounded-xl bg-white/75 border border-white/70 px-2 py-1.5 shadow-sm">
-                          <div className="text-[11px] font-bold text-slate-800">{stats.totalCap} seats</div>
-                          <div className="text-[10px] font-semibold text-slate-600">{stats.registered} reg · {stats.remaining} open</div>
-                          <div className="mt-1 h-1.5 rounded-full bg-white/80 overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-current transition-all"
-                              style={{ width: `${Math.min(Math.max(hasRegistrations ? fillPct : stats.totalCap > 0 ? 100 : 0, 0), 100)}%` }}
-                            />
-                          </div>
-                          <div className="text-[10px] font-medium text-slate-500 mt-0.5">{balanceNote}</div>
-                        </div>
-                        {/* Default-on toggle */}
-                        <div className="mt-2 flex flex-col items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => toggleColumnAll(sg, !full)}
-                            title={full ? "Remove all from this session" : "Assign all activities to this session"}
-                            className={`relative w-9 h-[18px] rounded-full transition-colors flex-shrink-0 ${
-                              full ? "bg-sky-500" : partial ? "bg-sky-200" : "bg-slate-200"
-                            }`}
-                          >
-                            <span className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${full ? "translate-x-[18px]" : ""}`} />
-                          </button>
-                          <span className="text-[10px] font-medium text-slate-400">
-                            {full ? "all on" : partial ? "partial" : "all off"}
-                          </span>
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {courses
-                  .filter(c => c.name.toLowerCase().includes(activityFilter.toLowerCase()))
-                  .map((course, i) => {
-                  const checked = courseCheckedGroups(course);
-                  const isSelected = selectedCourseIds.has(course.id);
-                  return (
-                    <tr key={course.id} className={`${isSelected ? "bg-red-50" : i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} hover:bg-sky-50/20 transition-colors`}>
-                      {/* Row select checkbox */}
-                      <td className="py-3 px-3 border-b border-slate-100">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectCourse(course.id)}
-                          className="w-4 h-4 rounded cursor-pointer accent-red-500"
-                        />
-                      </td>
-                      {/* Activity name + age groups + lead teacher */}
-                      <td className="py-3 px-4 border-b border-slate-100">
-                        <div className="font-semibold text-slate-800 text-sm">{course.name}</div>
-                        {course.courseAgeGroups.length > 0 && (
-                          <div className="text-xs text-berry-600 font-medium mt-0.5">
-                            {course.courseAgeGroups.map(cag => cag.ageGroup.name).join(" · ")}
-                          </div>
-                        )}
-                        {(() => {
-                          const lead = course.courseTeachers.find(ct => ct.person.role === "teacher" || ct.person.role === "director");
-                          return lead ? (
-                            <div className="text-xs text-slate-400 mt-0.5">
-                              🧑‍🏫 {lead.person.firstName} {lead.person.lastName}
-                            </div>
-                          ) : null;
-                        })()}
-                      </td>
-                      {/* Room dropdown */}
-                      <td className="py-3 px-4 border-b border-slate-100">
-                        <select
-                          value={course.roomId || ""}
-                          onChange={e => updateRoom(course, e.target.value)}
-                          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white"
-                        >
-                          <option value="">— No room —</option>
-                          {rooms.map(r => (
-                            <option key={r.id} value={r.id}>{r.name}</option>
-                          ))}
-                        </select>
-                      </td>
-                      {/* Session checkboxes */}
-                      {sessionGroups.map(sg => {
-                          const saveKey  = cellKey(course.id, sg.key);
-                          const isSaving = assignSaving[saveKey];
-                          const isChecked = checked.has(sg.key);
-                          const isBlocked = blockedCells.has(saveKey) && !isChecked;
-                          const enrolled = courseEnrollmentForGroup(course, sg);
-                          const cap = course.cap || 0;
-                          const seatsLeft = Math.max(cap - enrolled, 0);
-                          const fillPct = cap > 0 ? Math.min(Math.round((enrolled / cap) * 100), 100) : 0;
-                        return (
-                          <td key={sg.key} className={`text-center py-3 px-3 border-b border-slate-100 transition-colors ${isChecked ? cellHeatClass(course, sg) : "bg-white"}`}>
-                            {isSaving ? (
-                              <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" />
-                            ) : (
-                              <div className="flex flex-col items-center gap-1.5">
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  disabled={isBlocked}
-                                  title={isBlocked ? "Blocked by a scheduling conflict" : undefined}
-                                  onChange={() => toggleSlotGroup(course, sg, !isChecked)}
-                                  className={`w-4 h-4 rounded accent-sky-500 ${isBlocked ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
-                                />
-                                {isChecked && (
-                                  <div className="w-full min-w-[82px] rounded-lg bg-white/70 border border-white/70 px-1.5 py-1 shadow-sm">
-                                    <div className="text-[10px] font-bold text-slate-700">{enrolled}/{cap || "—"}</div>
-                                    <div className="text-[10px] font-semibold text-slate-500">{cap > 0 ? `${seatsLeft} left` : "no cap"}</div>
-                                    {cap > 0 && (
-                                      <div className="mt-1 h-1 rounded-full bg-white/80 overflow-hidden">
-                                        <div className="h-full rounded-full bg-current transition-all" style={{ width: `${fillPct}%` }} />
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          </>
-        )}
-
-        {courses.length > 0 && sessionGroups.length > 0 && (
-          <div className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
-            <span>✓ checkbox = runs that session on all scheduled days</span>
-            <span>· room and slot changes save instantly</span>
-            <span>· <span className="inline-block w-6 h-[14px] rounded-full bg-sky-500 align-middle" /> column toggle = assign/remove ALL activities at once</span>
-            <span>· <span className="inline-block w-6 h-[14px] rounded-full bg-sky-200 align-middle" /> = partial</span>
-            <span className="basis-full h-0" />
-            <span className="font-semibold text-slate-500">Capacity colors:</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300 align-middle" /> healthy</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-amber-100 border border-amber-300 align-middle" /> watch</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-orange-100 border border-orange-300 align-middle" /> tight</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-red-100 border border-red-300 align-middle" /> full/short</span>
-          </div>
-        )}
       </div>
+
     </div>
   );
 }

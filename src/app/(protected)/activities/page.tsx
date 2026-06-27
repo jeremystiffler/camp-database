@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -966,6 +967,8 @@ function ActivitiesContent() {
         )}
         <span className="text-xs text-slate-400 ml-auto">Click column headers to sort ⇅</span>
       </div>
+
+      <TimeslotAssignmentGrid campId={campId} />
 
       {mandatorySessions.length > 0 && (
         <div className="camp-card p-4 mb-5 border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50">
