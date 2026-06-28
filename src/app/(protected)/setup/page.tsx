@@ -934,7 +934,7 @@ function SetupContent() {
       {activeTab === "times" && (
       <Section title="🕐 Time Slots">
         <p className="text-xs text-slate-400 mb-4">
-          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All</strong> for every day of camp. Use <strong>Lock to schedule</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
+          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of camp. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
         </p>
 
         {/* No dates warning */}
@@ -1020,8 +1020,8 @@ function SetupContent() {
                                     placeholder="Session name"
                                   />
                                   {row.mandatory && (
-                                    <span className="shrink-0 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold" title={`Locked to schedule · ${lockedLocationNameForRow(row)}`}>
-                                      Locked · {lockedLocationNameForRow(row)}
+                                    <span className="shrink-0 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold" title={`All Schedule Lock · ${lockedLocationNameForRow(row)}`}>
+                                      All Schedule Lock · {lockedLocationNameForRow(row)}
                                     </span>
                                   )}
                                 </div>
@@ -1061,9 +1061,9 @@ function SetupContent() {
                                 type="button"
                                 onClick={() => setMandatoryForRow(row, !overrideActive)}
                                 className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${overrideActive ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
-                                title={overrideActive ? "This time block is locked onto everyone’s schedule. Click to unlock it for activity scheduling again." : "Unlock to schedule: this time can be used for activity choices until you lock it."}
+                                title={overrideActive ? "This time block is defaulted onto every schedule. Click to make it open for activity scheduling again." : "Open: this time can be used for activity choices until you lock it to all schedules."}
                               >
-                                {overrideActive ? "Lock to schedule" : "Unlock to schedule"}
+                                {overrideActive ? "All Schedule Lock" : "Open"}
                               </button>
                               {overrideActive && (
                                 <>
