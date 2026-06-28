@@ -136,6 +136,7 @@ function SetupContent() {
   const [saved,     setSaved]     = useState(false);
   const [activeTab, setActiveTab]  = useState<SetupTab>("details");
   const [requiredRoomDrafts, setRequiredRoomDrafts] = useState<Record<string, string>>({});
+  const [overrideDraftRows, setOverrideDraftRows] = useState<Record<string, boolean>>({});
 
   // Camp form state
   const [campName,         setCampName]         = useState("");
@@ -283,7 +284,7 @@ function SetupContent() {
 
   const ensureRequiredSessionsForRow = async (row: SessionRow, roomId: string) => {
     if (!roomId) {
-      alert("Choose a location before marking this time slot Required.");
+      alert("Choose a location before overriding all classes for this session block.");
       return false;
     }
 
@@ -339,9 +340,12 @@ function SetupContent() {
 
   const changeRequiredRoomForRow = async (row: SessionRow, roomId: string) => {
     setRequiredRoomDrafts(prev => ({ ...prev, [row.key]: roomId }));
-    if (!row.mandatory) return;
+    if (!row.mandatory && !overrideDraftRows[row.key]) return;
     const ok = await ensureRequiredSessionsForRow(row, roomId);
-    if (ok) load();
+    if (ok) {
+      setOverrideDraftRows(prev => ({ ...prev, [row.key]: false }));
+      load();
+    }
   };
 
   // ── Handlers ──
@@ -414,14 +418,14 @@ function SetupContent() {
     load();
   };
 
-  // Toggle whether a session row is required. Required sessions appear on schedules but parents do not choose a class for them.
+  // Toggle whether a session row overrides all class choices. Override sessions appear on schedules but parents do not choose a class for them.
   const setMandatoryForRow = async (row: SessionRow, mandatory: boolean) => {
     if (mandatory) {
-      const roomId = requiredRoomForRow(row);
-      const ok = await ensureRequiredSessionsForRow(row, roomId);
-      if (!ok) return;
+      setOverrideDraftRows(prev => ({ ...prev, [row.key]: true }));
+      return;
     } else {
       await clearRequiredSessionsForRow(row);
+      setOverrideDraftRows(prev => ({ ...prev, [row.key]: false }));
     }
     load();
   };
@@ -832,7 +836,7 @@ function SetupContent() {
       {activeTab === "times" && (
       <Section title="🕐 Time Slots">
         <p className="text-xs text-slate-400 mb-4">
-          Each row is a session (e.g. "Opening Assembly" or "Morning Session"). Check the days it runs. Choose a location, then mark a row <strong>Required</strong> for all scheduled groups when no activities should be assigned during that block.
+          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All</strong> for every day of camp. Turn on <strong>Override all classes</strong> only when this block should replace normal class choices; location appears only for those override blocks.
         </p>
 
         {/* No dates warning */}
@@ -879,11 +883,11 @@ function SetupContent() {
                 <thead>
                   <tr className="bg-slate-50">
                     {/* Session column header */}
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 w-52 min-w-[200px]">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-6 h-3 rounded-full bg-slate-200 inline-block" title="Every-day toggle" />
-                        Session
-                      </div>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 w-72 min-w-[280px]">
+                      Session block
+                    </th>
+                    <th className="text-center py-3 px-2 border-b border-slate-200 min-w-[72px] text-xs font-semibold text-slate-500">
+                      All
                     </th>
                     {/* Date column headers */}
                     {visibleDates.map(d => (
@@ -898,46 +902,39 @@ function SetupContent() {
                   {/* Existing session rows */}
                   {sessionRows.map((row, i) => {
                     const everyDay = isEveryDayForRow(row);
+                    const overrideActive = row.mandatory || Boolean(overrideDraftRows[row.key]);
                     return (
                       <tr key={row.key} className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/40"} hover:bg-sky-50/30 transition-colors`}>
                         {/* Session info cell */}
                         <td className="py-3 px-4 border-b border-slate-100">
                           <div className="flex items-center gap-2">
-                            {/* Every-day toggle */}
-                            <button
-                              type="button"
-                              onClick={() => setEveryDayForRow(row, !everyDay)}
-                              title={everyDay ? "Clear all days" : "Fill every day of camp"}
-                              className={`relative w-8 h-4 rounded-full transition-colors flex-shrink-0 ${everyDay ? "bg-sky-500" : "bg-slate-200"}`}
-                            >
-                              <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${everyDay ? "translate-x-4" : ""}`} />
-                            </button>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <div className="font-semibold text-slate-800 text-xs truncate">{row.label}</div>
-                                {row.mandatory && <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">Mandatory</span>}
+                                {row.mandatory && <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">Override</span>}
                               </div>
                               <div className="text-xs text-slate-400">{row.startTime} – {row.endTime}</div>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <select
-                                value={requiredRoomForRow(row)}
-                                onChange={e => changeRequiredRoomForRow(row, e.target.value)}
-                                className={`min-w-[140px] rounded-lg border px-2 py-1 text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400/30 ${row.mandatory ? "border-amber-200 bg-amber-50 text-amber-900" : "border-slate-200 bg-white text-slate-500"}`}
-                                title="Required sessions need a location. No teacher, capacity, or activity required."
-                              >
-                                <option value="">Location required…</option>
-                                {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
-                              </select>
                               <button
                                 type="button"
-                                onClick={() => setMandatoryForRow(row, !row.mandatory)}
-                                disabled={!row.mandatory && !requiredRoomForRow(row)}
-                                className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${row.mandatory ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
-                                title={row.mandatory ? "Move this time block back to the activity scheduling grid" : "Make this an all-schedule required block. Choose a location first."}
+                                onClick={() => setMandatoryForRow(row, !overrideActive)}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${overrideActive ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                                title={row.mandatory ? "Move this session block back to the activity scheduling grid" : "Override all classes for this session block"}
                               >
-                                {row.mandatory ? "Required" : "Optional"}
+                                {overrideActive ? "Override all classes" : "Normal classes"}
                               </button>
+                              {overrideActive && (
+                                <select
+                                  value={requiredRoomForRow(row)}
+                                  onChange={e => changeRequiredRoomForRow(row, e.target.value)}
+                                  className="min-w-[140px] rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                                  title="Override blocks need a location. No teacher, capacity, or activity required."
+                                >
+                                  <option value="">Choose location…</option>
+                                  {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
+                                </select>
+                              )}
                             </div>
                             <button
                               onClick={() => deleteSessionRow(row)}
@@ -945,6 +942,15 @@ function SetupContent() {
                               title="Delete session"
                             >🗑️</button>
                           </div>
+                        </td>
+                        <td className="text-center py-3 px-2 border-b border-slate-100 bg-slate-50/50">
+                          <input
+                            type="checkbox"
+                            checked={everyDay}
+                            onChange={() => setEveryDayForRow(row, !everyDay)}
+                            title={everyDay ? "Clear every day" : "Use every day of camp"}
+                            className="w-4 h-4 rounded cursor-pointer accent-sky-500"
+                          />
                         </td>
                         {/* Checkbox cells */}
                         {visibleDates.map(d => {
@@ -996,15 +1002,6 @@ function SetupContent() {
                               />
                             </div>
                             <div className="flex items-center gap-3">
-                              {valid && (
-                                <button
-                                  type="button"
-                                  onClick={() => commitDraftEveryDay(draft)}
-                                  className="text-xs text-sky-600 hover:text-sky-800 font-medium transition-colors"
-                                >
-                                  ↺ Every day
-                                </button>
-                              )}
                               <button
                                 type="button"
                                 onClick={() => removeDraft(draft.id)}
@@ -1014,6 +1011,15 @@ function SetupContent() {
                               </button>
                             </div>
                           </div>
+                        </td>
+                        <td className="text-center py-3 px-2 border-b border-sky-100 bg-sky-50">
+                          <input
+                            type="checkbox"
+                            disabled={!valid}
+                            onChange={valid ? () => commitDraftEveryDay(draft) : undefined}
+                            title="Use every day of camp"
+                            className="w-4 h-4 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed accent-sky-500"
+                          />
                         </td>
                         {/* Draft checkboxes — disabled until label+times filled */}
                         {visibleDates.map(d => (
@@ -1033,7 +1039,7 @@ function SetupContent() {
                   {/* Empty state */}
                   {sessionRows.length === 0 && draftRows.length === 0 && (
                     <tr>
-                      <td colSpan={visibleDates.length + 1} className="text-center py-8 text-slate-400 text-sm">
+                      <td colSpan={visibleDates.length + 2} className="text-center py-8 text-slate-400 text-sm">
                         No sessions yet — click <strong>+ Add Session</strong> below to get started.
                       </td>
                     </tr>
@@ -1041,7 +1047,7 @@ function SetupContent() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan={visibleDates.length + 1} className="px-4 py-3 bg-slate-50/50 rounded-b-xl border-t border-slate-200">
+                    <td colSpan={visibleDates.length + 2} className="px-4 py-3 bg-slate-50/50 rounded-b-xl border-t border-slate-200">
                       <button
                         type="button"
                         onClick={addDraftRow}
@@ -1057,10 +1063,8 @@ function SetupContent() {
 
             {/* Legend */}
             <p className="text-xs text-slate-400 mt-3 flex items-center gap-4">
-              <span>
-                <span className="inline-block w-5 h-2.5 rounded-full bg-sky-500 align-middle mr-1" /> toggle = every day of camp
-              </span>
-              <span>checkboxes save instantly</span>
+              <span><strong>All</strong> = every day of camp</span>
+              <span>day checkboxes save instantly</span>
             </p>
           </>
         )}
