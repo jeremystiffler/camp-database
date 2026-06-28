@@ -44,6 +44,23 @@ interface SessionTemplate {
   mandatory: boolean;
 }
 
+interface PersonSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
+interface CourseSummary {
+  id: string;
+  name: string;
+  room?: { id: string; name: string } | null;
+  cap?: number | null;
+  courseAgeGroups?: unknown[];
+  courseTeachers?: unknown[];
+  courseSessionTemplates?: unknown[];
+}
+
 interface SessionRow {
   key: string;
   label: string;
@@ -63,7 +80,19 @@ interface DraftRow {
 
 const DAY_INT_TO_NAME = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DAY_ABBR        = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-type SetupTab = "details" | "rooms" | "ages" | "times" | "teachers" | "activities";
+type SetupTab = "details" | "ages" | "rooms" | "times" | "teachers" | "activities" | "schedule" | "registration" | "review";
+
+type SetupStep = {
+  key: SetupTab;
+  label: string;
+  shortLabel: string;
+  icon: string;
+  help: string;
+  question: string;
+  done: boolean;
+  locked?: boolean;
+  actionLabel?: string;
+};
 
 function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
@@ -85,6 +114,8 @@ function SetupContent() {
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>([]);
   const [rooms,     setRooms]     = useState<Room[]>([]);
   const [slots,     setSlots]     = useState<SessionTemplate[]>([]);
+  const [persons,   setPersons]   = useState<PersonSummary[]>([]);
+  const [courses,   setCourses]   = useState<CourseSummary[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -126,7 +157,9 @@ function SetupContent() {
       fetch(`/api/camps/${campId}/age-groups`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/rooms`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/session-templates`).then((r) => r.json()),
-    ]).then(([c, ag, r, st]) => {
+      fetch(`/api/camps/${campId}/persons`).then((r) => r.json()),
+      fetch(`/api/camps/${campId}/courses`).then((r) => r.json()),
+    ]).then(([c, ag, r, st, people, courseList]) => {
       if (c && !c.error) {
         setCamp(c);
         setCampName(c.name || "");
@@ -138,6 +171,8 @@ function SetupContent() {
       setAgeGroups(Array.isArray(ag) ? ag : []);
       setRooms(Array.isArray(r) ? r : []);
       setSlots(Array.isArray(st) ? st : []);
+      setPersons(Array.isArray(people) ? people : []);
+      setCourses(Array.isArray(courseList) ? courseList : []);
       setLoading(false);
     }).catch(() => setLoading(false));
   };
@@ -206,15 +241,23 @@ function SetupContent() {
 
   // ── Handlers ──
 
-  const saveCamp = async () => {
+  const saveCamp = async (override?: Partial<{ registrationOpen: boolean; status: string }>) => {
     setSaving(true);
+    const nextRegistrationOpen = override?.registrationOpen ?? registrationOpen;
+    const nextStatus = override?.status ?? status;
     const res = await fetch(`/api/camps/${campId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: campName, startDate: startDate || null, endDate: endDate || null, registrationOpen, status }),
+      body: JSON.stringify({ name: campName, startDate: startDate || null, endDate: endDate || null, registrationOpen: nextRegistrationOpen, status: nextStatus }),
     });
     setSaving(false);
-    if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+    if (res.ok) {
+      setRegistrationOpen(nextRegistrationOpen);
+      setStatus(nextStatus);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      load();
+    }
   };
 
   const addRoom = async (e: React.FormEvent) => {
@@ -373,57 +416,84 @@ function SetupContent() {
 
   const totalPages = Math.ceil(campDates.length / 7);
 
-  const setupTabs: Array<{ key: SetupTab; label: string; icon: string; count?: string | number; help: string }> = [
-    { key: "details", label: "Camp Details", icon: "🏕️", help: "Name, dates, registration" },
-    { key: "rooms", label: "Rooms", icon: "📍", count: rooms.length, help: "Locations + capacities" },
-    { key: "ages", label: "Age Groups", icon: "👦", count: ageGroups.length, help: "Registration groups" },
-    { key: "times", label: "Time Slots", icon: "🕐", count: sessionRows.length, help: "Daily session blocks" },
-    { key: "teachers", label: "Teachers", icon: "🧑‍🏫", help: "People + schedules" },
-    { key: "activities", label: "Activities", icon: "🎯", help: "Classes + grid" },
+  const detailsDone = Boolean(campName.trim() && startDate && endDate);
+  const teachersDone = persons.length > 0;
+  const activitiesDone = courses.length > 0;
+  const scheduledActivities = courses.filter(c => (c.courseSessionTemplates || []).length > 0).length;
+  const scheduleDone = activitiesDone && scheduledActivities === courses.length;
+  const registrationReady = detailsDone && ageGroups.length > 0 && rooms.length > 0 && sessionRows.length > 0 && teachersDone && activitiesDone && scheduleDone;
+
+  const setupSteps: SetupStep[] = [
+    { key: "details", label: "Camp Info", shortLabel: "Camp", icon: "🏕️", help: "Name, dates, registration status, and basic identity.", question: "What camp am I building?", done: detailsDone, actionLabel: "Set camp info" },
+    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "👦", help: "Who is this camp serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, actionLabel: "Add age groups" },
+    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "📍", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, actionLabel: "Add rooms" },
+    { key: "times", label: "Time Slots", shortLabel: "Times", icon: "🕐", help: "Build the skeleton of each camp day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, actionLabel: "Build day schedule" },
+    { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "🧑‍🏫", help: "Add staff before assigning classes.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, actionLabel: "Add teachers" },
+    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "🎯", help: "Create the catalog of classes and activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, actionLabel: "Create activities" },
+    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "▦", help: "Assign activities to time slots with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, actionLabel: "Schedule activities" },
+    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "📝", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, actionLabel: "Prepare registration" },
+    { key: "review", label: "Review & Open", shortLabel: "Review", icon: "✅", help: "Run the readiness checklist before parents see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, actionLabel: registrationOpen ? "Review live camp" : "Open registration" },
   ];
+  const completedSteps = setupSteps.filter(step => step.done).length;
+  const nextStep = setupSteps.find(step => !step.done && !step.locked) || setupSteps.find(step => !step.done) || setupSteps[setupSteps.length - 1];
+  const setupPercent = Math.round((completedSteps / setupSteps.length) * 100);
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Camp Setup</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Configure camp info, rooms, and age groups</p>
+          <h1 className="text-2xl font-bold text-slate-800">First-Time Camp Setup</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Build the camp in the order your brain naturally asks the questions.</p>
         </div>
-      </div>
-
-      {/* ── Import shortcut ── */}
-      <div className="camp-card p-5 border-2 border-dashed border-slate-200 bg-slate-50/50 mb-5">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-forest-400 flex items-center justify-center text-white text-xl flex-shrink-0">
-              📥
-            </div>
-            <div>
-              <p className="font-semibold text-slate-800 text-sm">Bulk Import</p>
-              <p className="text-xs text-slate-500 mt-0.5">Upload a spreadsheet to create activities, teachers, rooms, and time slots all at once.</p>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab(nextStep.key)}
+            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
+          >
+            Next: {nextStep.actionLabel || nextStep.label} →
+          </button>
           <Link href={`/import?campId=${campId}`}
-            className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm flex items-center gap-2 whitespace-nowrap flex-shrink-0">
-            Go to Import →
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+            Bulk import
           </Link>
         </div>
       </div>
 
-      <div className="camp-card p-2 mb-5 sticky top-0 z-20 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
-          {setupTabs.map(tab => (
+      <div className="camp-card mb-5 overflow-hidden p-0">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-sky-50 via-white to-amber-50 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-sky-700">Setup progress</p>
+              <h2 className="mt-1 text-lg font-black text-slate-900">{completedSteps} of {setupSteps.length} steps complete</h2>
+              <p className="mt-1 text-sm text-slate-600">{nextStep.question} <span className="font-semibold text-slate-900">Start with {nextStep.label}.</span></p>
+            </div>
+            <div className="min-w-[220px]">
+              <div className="mb-1 flex items-center justify-between text-xs font-bold text-slate-500">
+                <span>Readiness</span>
+                <span>{setupPercent}%</span>
+              </div>
+              <div className="h-3 overflow-hidden rounded-full bg-white shadow-inner">
+                <div className="h-full rounded-full bg-gradient-to-r from-forest-400 to-sky-500 transition-all" style={{ width: `${setupPercent}%` }} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-0 md:grid-cols-3 xl:grid-cols-9">
+          {setupSteps.map((step, index) => (
             <button
-              key={tab.key}
+              key={step.key}
               type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`rounded-xl px-3 py-3 text-left transition ${activeTab === tab.key ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}
+              disabled={step.locked}
+              onClick={() => setActiveTab(step.key)}
+              className={`border-b border-r border-slate-100 px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-45 ${activeTab === step.key ? "bg-slate-900 text-white" : step.done ? "bg-emerald-50/60 text-slate-700 hover:bg-emerald-50" : "bg-white text-slate-600 hover:bg-slate-50"}`}
             >
-              <span className="flex items-center justify-between gap-2 text-sm font-black">
-                <span>{tab.icon} {tab.label}</span>
-                {tab.count !== undefined && <span className={`rounded-full px-2 py-0.5 text-[10px] ${activeTab === tab.key ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500"}`}>{tab.count}</span>}
+              <span className="mb-1 flex items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wide">
+                <span>{index + 1}. {step.shortLabel}</span>
+                <span>{step.done ? "✓" : step.locked ? "🔒" : "○"}</span>
               </span>
-              <span className={`mt-0.5 block text-[11px] ${activeTab === tab.key ? "text-white/60" : "text-slate-400"}`}>{tab.help}</span>
+              <span className="block truncate text-sm font-black">{step.icon} {step.label}</span>
+              <span className={`mt-0.5 block text-[11px] ${activeTab === step.key ? "text-white/60" : "text-slate-400"}`}>{step.help}</span>
             </button>
           ))}
         </div>
@@ -469,7 +539,7 @@ function SetupContent() {
               <span className="text-sm font-medium text-slate-700">Registration Open</span>
             </div>
           </div>
-          <button onClick={saveCamp} disabled={saving}
+          <button onClick={() => saveCamp()} disabled={saving}
             className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-forest-500 text-white" : "bg-gradient-to-r from-berry-500 to-berry-600 text-white hover:opacity-90"} disabled:opacity-60`}>
             {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Changes"}
           </button>
@@ -857,9 +927,82 @@ function SetupContent() {
       )}
 
       {activeTab === "activities" && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <ActivitiesContent />
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-sky-700">Step 6 · Activity Catalog</p>
+            <h2 className="mt-1 text-lg font-black text-slate-900">Create the classes before you schedule them.</h2>
+            <p className="mt-1 text-sm text-slate-600">Add each activity with its room, teacher, capacity, and eligible age groups. The rows below are intentionally dense so you can see the camp at a glance.</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <ActivitiesContent />
+          </div>
         </div>
+      )}
+
+      {activeTab === "schedule" && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
+            <p className="text-xs font-black uppercase tracking-wide text-amber-700">Step 7 · Schedule Grid</p>
+            <h2 className="mt-1 text-lg font-black text-slate-900">Assign activities to time slots.</h2>
+            <p className="mt-1 text-sm text-slate-600">Use the row-first activity grid to make sure every class has the right time, room, teacher, and capacity. This is the “run of show” checkpoint before registration opens.</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+              <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{courses.length} activities</span>
+              <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{scheduledActivities} scheduled</span>
+              <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{Math.max(courses.length - scheduledActivities, 0)} need time</span>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <ActivitiesContent />
+          </div>
+        </div>
+      )}
+
+      {activeTab === "registration" && (
+        <Section title="📝 Registration Form">
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div>
+              <p className="text-sm text-slate-600">Once the schedule is sane, preview what families will see. Campers will only see eligible, non-mandatory activity choices, and full classes stay protected by capacity rules.</p>
+              <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
+                <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-800">Public link:</span> /register/{campId}</div>
+                <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-800">Status:</span> {registrationOpen ? "Open" : "Closed"}</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 lg:justify-end">
+              <Link href={`/registration?campId=${campId}`} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700">Manage form →</Link>
+              <Link href={`/register/${campId}`} target="_blank" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Preview public form</Link>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {activeTab === "review" && (
+        <Section title="✅ Review & Open">
+          <div className="space-y-4">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {setupSteps.slice(0, 8).map(step => (
+                <button key={step.key} type="button" onClick={() => setActiveTab(step.key)} className={`rounded-xl border px-3 py-2 text-left text-sm transition ${step.done ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"}`}>
+                  <span className="font-black">{step.done ? "✓" : "⚠️"} {step.label}</span>
+                  <span className="mt-0.5 block text-xs opacity-75">{step.done ? "Ready" : step.help}</span>
+                </button>
+              ))}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-sm text-slate-600">Opening registration makes the public form usable for families. If anything above is amber, fix that first — like Nehemiah checking the wall before opening the gates.</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={!registrationReady || saving}
+                  onClick={() => saveCamp({ registrationOpen: true, status: "published" })}
+                  className="rounded-xl bg-forest-500 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-forest-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {registrationOpen ? "✓ Registration is open" : saving ? "Opening..." : "Open registration"}
+                </button>
+                <Link href={`/registration?campId=${campId}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Manage registration settings</Link>
+                <Link href={`/print?campId=${campId}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Print materials →</Link>
+              </div>
+            </div>
+          </div>
+        </Section>
       )}
     </div>
   );
