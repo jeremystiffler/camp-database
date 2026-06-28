@@ -90,6 +90,13 @@ interface DraftRow {
   label: string;
   start: string;
   end: string;
+  days: number[];
+}
+
+interface SessionRowEditDraft {
+  label: string;
+  start: string;
+  end: string;
 }
 
 const DAY_INT_TO_NAME = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -137,6 +144,7 @@ function SetupContent() {
   const [activeTab, setActiveTab]  = useState<SetupTab>("details");
   const [requiredRoomDrafts, setRequiredRoomDrafts] = useState<Record<string, string>>({});
   const [overrideDraftRows, setOverrideDraftRows] = useState<Record<string, boolean>>({});
+  const [sessionRowDrafts, setSessionRowDrafts] = useState<Record<string, SessionRowEditDraft>>({});
 
   // Camp form state
   const [campName,         setCampName]         = useState("");
@@ -515,31 +523,78 @@ function SetupContent() {
   // Draft row management
   const addDraftRow = () => {
     const num = sessionRows.length + draftRows.length + 1;
-    setDraftRows(prev => [...prev, { id: Math.random().toString(36).slice(2), label: `Session ${num}`, start: "09:00", end: "10:00" }]);
+    setDraftRows(prev => [...prev, { id: Math.random().toString(36).slice(2), label: `Session ${num}`, start: "09:00", end: "10:00", days: [] }]);
   };
 
-  const updateDraft = (id: string, field: keyof Omit<DraftRow, "id">, value: string) => {
+  const updateDraft = (id: string, field: keyof Omit<DraftRow, "id" | "days">, value: string) => {
     setDraftRows(prev => prev.map(d => d.id === id ? { ...d, [field]: value } : d));
+  };
+
+  const toggleDraftDay = (id: string, dayOfWeek: number) => {
+    setDraftRows(prev => prev.map(d => {
+      if (d.id !== id) return d;
+      const days = d.days.includes(dayOfWeek) ? d.days.filter(day => day !== dayOfWeek) : [...d.days, dayOfWeek];
+      return { ...d, days };
+    }));
+  };
+
+  const setDraftEveryDay = (id: string, enable: boolean) => {
+    setDraftRows(prev => prev.map(d => d.id === id ? { ...d, days: enable ? [...campDayOfWeeks] : [] } : d));
   };
 
   const removeDraft = (id: string) => setDraftRows(prev => prev.filter(d => d.id !== id));
 
-  // First checkbox click on a draft row → saves to DB
-  const commitDraftDay = async (draft: DraftRow, dayOfWeek: number) => {
-    if (!draft.label.trim() || !draft.start || !draft.end) return;
-    await fetch(`/api/camps/${campId}/session-templates`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ label: draft.label.trim(), startTime: draft.start, endTime: draft.end, day: DAY_INT_TO_NAME[dayOfWeek] }),
+  const sessionRowDraft = (row: SessionRow) => sessionRowDrafts[row.key] || { label: row.label, start: row.startTime, end: row.endTime };
+
+  const updateSessionRowDraft = (row: SessionRow, field: keyof SessionRowEditDraft, value: string) => {
+    setSessionRowDrafts(prev => ({ ...prev, [row.key]: { ...sessionRowDraft(row), [field]: value } }));
+  };
+
+  const sessionRowHasChanges = (row: SessionRow) => {
+    const draft = sessionRowDraft(row);
+    return draft.label.trim() !== row.label || draft.start !== row.startTime || draft.end !== row.endTime;
+  };
+
+  const applySessionRowChanges = async (row: SessionRow) => {
+    const draft = sessionRowDraft(row);
+    if (!draft.label.trim() || !draft.start || !draft.end) {
+      alert("Session block needs a name, start time, and end time before applying.");
+      return;
+    }
+    await Promise.all([...row.slotIds.values()].map(id =>
+      fetch(`/api/camps/${campId}/session-templates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: draft.label.trim(), startTime: draft.start, endTime: draft.end }),
+      })
+    ));
+    if (row.mandatory) {
+      await Promise.all(rowMandatorySessions(row).map(ms =>
+        fetch(`/api/camps/${campId}/mandatory-sessions/${ms.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: draft.label.trim() }),
+        })
+      ));
+    }
+    setSessionRowDrafts(prev => {
+      const next = { ...prev };
+      delete next[row.key];
+      return next;
     });
-    setDraftRows(prev => prev.filter(d => d.id !== draft.id));
     load();
   };
 
-  // "Fill every day" on a draft row
-  const commitDraftEveryDay = async (draft: DraftRow) => {
-    if (!draft.label.trim() || !draft.start || !draft.end) return;
-    await Promise.all([...campDayOfWeeks].map(dow =>
+  const applyDraftRow = async (draft: DraftRow) => {
+    if (!draft.label.trim() || !draft.start || !draft.end) {
+      alert("Session block needs a name, start time, and end time before applying.");
+      return;
+    }
+    if (draft.days.length === 0) {
+      alert("Choose at least one camp day before applying this session block.");
+      return;
+    }
+    await Promise.all(draft.days.map(dow =>
       fetch(`/api/camps/${campId}/session-templates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -799,7 +854,7 @@ function SetupContent() {
                   )}
                   {ag.noSchedule && (
                     <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
-                      Registration only
+                      No class schedule
                     </span>
                   )}
                 </div>
@@ -817,7 +872,7 @@ function SetupContent() {
                       className={`relative w-8 h-4 rounded-full transition-colors flex-shrink-0 ${ag.noSchedule ? "bg-amber-400" : "bg-slate-200"}`}>
                       <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${ag.noSchedule ? "translate-x-4" : ""}`} />
                     </button>
-                    <span className="text-xs text-slate-500 whitespace-nowrap">Reg. only</span>
+                    <span className="text-xs text-slate-500 whitespace-nowrap">No classes</span>
                   </label>
                   <button onClick={() => deleteAgeGroup(ag.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1">🗑️</button>
                 </div>
@@ -923,17 +978,48 @@ function SetupContent() {
                   {sessionRows.map((row, i) => {
                     const everyDay = isEveryDayForRow(row);
                     const overrideActive = row.mandatory || Boolean(overrideDraftRows[row.key]);
+                    const editDraft = sessionRowDraft(row);
+                    const hasRowChanges = sessionRowHasChanges(row);
                     return (
                       <tr key={row.key} className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/40"} hover:bg-sky-50/30 transition-colors`}>
                         {/* Session info cell */}
                         <td className="py-3 px-4 border-b border-slate-100">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 space-y-1.5">
                               <div className="flex items-center gap-1.5">
-                                <div className="font-semibold text-slate-800 text-xs truncate">{row.label}</div>
+                                <input
+                                  type="text"
+                                  value={editDraft.label}
+                                  onChange={e => updateSessionRowDraft(row, "label", e.target.value)}
+                                  className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs font-semibold text-slate-800 placeholder-[#636363] focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
+                                  placeholder="Session name"
+                                />
                                 {row.mandatory && <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">All-camp</span>}
                               </div>
-                              <div className="text-xs text-slate-400">{row.startTime} – {row.endTime}</div>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="time"
+                                  value={editDraft.start}
+                                  onChange={e => updateSessionRowDraft(row, "start", e.target.value)}
+                                  className="w-[86px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs text-slate-500 focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
+                                />
+                                <span className="text-slate-300 text-xs">–</span>
+                                <input
+                                  type="time"
+                                  value={editDraft.end}
+                                  onChange={e => updateSessionRowDraft(row, "end", e.target.value)}
+                                  className="w-[86px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs text-slate-500 focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
+                                />
+                                {hasRowChanges && (
+                                  <button
+                                    type="button"
+                                    onClick={() => applySessionRowChanges(row)}
+                                    className="rounded-lg bg-sky-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-sky-600"
+                                  >
+                                    Apply
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
                               <button
@@ -994,6 +1080,7 @@ function SetupContent() {
                   {/* Draft (new) session rows */}
                   {draftRows.map(draft => {
                     const valid = draft.label.trim().length > 0 && draft.start && draft.end;
+                    const draftEveryDay = campDayOfWeeks.size > 0 && [...campDayOfWeeks].every(dow => draft.days.includes(dow));
                     return (
                       <tr key={draft.id} className="bg-sky-50/60">
                         {/* Draft session input cell */}
@@ -1024,6 +1111,14 @@ function SetupContent() {
                             <div className="flex items-center gap-3">
                               <button
                                 type="button"
+                                onClick={() => applyDraftRow(draft)}
+                                disabled={!valid || draft.days.length === 0}
+                                className="rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                Apply
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => removeDraft(draft.id)}
                                 className="text-xs text-slate-400 hover:text-red-400 transition-colors"
                               >
@@ -1036,7 +1131,8 @@ function SetupContent() {
                           <input
                             type="checkbox"
                             disabled={!valid}
-                            onChange={valid ? () => commitDraftEveryDay(draft) : undefined}
+                            checked={draftEveryDay}
+                            onChange={() => setDraftEveryDay(draft.id, !draftEveryDay)}
                             title="Use every day of camp"
                             className="w-4 h-4 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed accent-sky-500"
                           />
@@ -1047,7 +1143,8 @@ function SetupContent() {
                             <input
                               type="checkbox"
                               disabled={!valid}
-                              onChange={valid ? () => commitDraftDay(draft, d.getDay()) : undefined}
+                              checked={draft.days.includes(d.getDay())}
+                              onChange={() => toggleDraftDay(draft.id, d.getDay())}
                               className="w-4 h-4 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed accent-sky-500"
                             />
                           </td>
