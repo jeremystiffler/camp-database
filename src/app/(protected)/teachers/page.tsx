@@ -11,6 +11,14 @@ interface Person {
   phone?: string;
   role: string;
   bio?: string;
+  personAgeGroups?: { ageGroup: AgeGroup }[];
+}
+
+interface AgeGroup {
+  id: string;
+  name: string;
+  color?: string;
+  noSchedule?: boolean;
 }
 
 interface CoursePreview {
@@ -34,9 +42,10 @@ const ROLES = ["teacher", "assistant", "director", "staff"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 // ── Teacher add/edit modal ─────────────────────────────────────────────────
-function TeacherModal({ person, campId, onClose, onSaved }: {
+function TeacherModal({ person, campId, ageGroups, onClose, onSaved }: {
   person?: Person | null;
   campId: string;
+  ageGroups: AgeGroup[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -46,8 +55,13 @@ function TeacherModal({ person, campId, onClose, onSaved }: {
   const [phone,     setPhone]     = useState(person?.phone     || "");
   const [role,      setRole]      = useState(person?.role      || "teacher");
   const [bio,       setBio]       = useState(person?.bio       || "");
+  const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>(person?.personAgeGroups?.map((pag) => pag.ageGroup.id) || []);
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState("");
+
+  const toggleAgeGroup = (id: string) => {
+    setSelectedAgeGroups((prev) => prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +72,7 @@ function TeacherModal({ person, campId, onClose, onSaved }: {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName, email: email || undefined, phone: phone || undefined, role, bio: bio || undefined }),
+        body: JSON.stringify({ firstName, lastName, email: email || undefined, phone: phone || undefined, role, bio: bio || undefined, ageGroupIds: selectedAgeGroups }),
       });
       if (res.ok) { onSaved(); onClose(); }
       else { const d = await res.json(); setError(d.error || "Failed to save"); }
@@ -68,7 +82,7 @@ function TeacherModal({ person, campId, onClose, onSaved }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-5 border-b border-slate-100">
           <h2 className="font-bold text-lg text-slate-800">{person ? "Edit Teacher" : "Add Teacher"}</h2>
         </div>
@@ -112,6 +126,31 @@ function TeacherModal({ person, campId, onClose, onSaved }: {
             <textarea value={bio} onChange={e => setBio(e.target.value)} rows={2}
               placeholder="Optional bio or notes..."
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 resize-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Assigned Age Group(s)</label>
+            {ageGroups.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-400">
+                Add age groups in Setup first, then assign teachers here.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                {ageGroups.map((ageGroup) => {
+                  const checked = selectedAgeGroups.includes(ageGroup.id);
+                  return (
+                    <button
+                      key={ageGroup.id}
+                      type="button"
+                      onClick={() => toggleAgeGroup(ageGroup.id)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${checked ? "border-berry-300 bg-berry-100 text-berry-700" : "border-slate-200 bg-white text-slate-500 hover:border-berry-200 hover:text-berry-600"}`}
+                    >
+                      {checked ? "✓ " : ""}{ageGroup.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <p className="mt-1.5 text-xs text-slate-400">Use this as the teacher's primary student group hint. Activities still control actual schedules.</p>
           </div>
           <div className="flex gap-3 pt-2 border-t border-slate-100">
             <button type="button" onClick={onClose}
@@ -310,6 +349,7 @@ export function TeachersContent() {
   const campId = searchParams.get("campId") || "";
 
   const [persons,    setPersons]    = useState<Person[]>([]);
+  const [ageGroups,  setAgeGroups]  = useState<AgeGroup[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState("");
   const [editing,    setEditing]    = useState<Person | null | undefined>(undefined);
@@ -319,9 +359,15 @@ export function TeachersContent() {
   const load = () => {
     if (!campId) return;
     setLoading(true);
-    fetch(`/api/camps/${campId}/persons`)
-      .then(r => r.json())
-      .then(d => { setPersons(Array.isArray(d) ? d : []); setLoading(false); })
+    Promise.all([
+      fetch(`/api/camps/${campId}/persons`).then(r => r.json()),
+      fetch(`/api/camps/${campId}/age-groups`).then(r => r.json()),
+    ])
+      .then(([people, groups]) => {
+        setPersons(Array.isArray(people) ? people : []);
+        setAgeGroups(Array.isArray(groups) ? groups : []);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   };
 
@@ -387,10 +433,11 @@ export function TeachersContent() {
         </div>
       ) : (
         <div className="camp-card overflow-hidden">
-          <div className="hidden md:grid grid-cols-[minmax(220px,1.4fr)_minmax(160px,1fr)_minmax(130px,0.8fr)_minmax(180px,1.2fr)_130px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase tracking-wide text-slate-500">
+          <div className="hidden md:grid grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase tracking-wide text-slate-500">
             <div>Teacher</div>
             <div>Email</div>
             <div>Phone</div>
+            <div>Age Groups</div>
             <div>Notes</div>
             <div className="text-right">Actions</div>
           </div>
@@ -398,7 +445,7 @@ export function TeachersContent() {
           <div className="divide-y divide-slate-100">
             {filtered.map(p => (
               <div key={p.id} className="px-4 py-4 md:px-5 hover:bg-slate-50/70 transition-colors">
-                <div className="grid gap-3 md:grid-cols-[minmax(220px,1.4fr)_minmax(160px,1fr)_minmax(130px,0.8fr)_minmax(180px,1.2fr)_130px] md:items-center md:gap-4">
+                <div className="grid gap-3 md:grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] md:items-center md:gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
                       {p.firstName[0]}{p.lastName[0]}
@@ -425,6 +472,21 @@ export function TeachersContent() {
                     {p.phone
                       ? <span className="text-slate-500 truncate block">{p.phone}</span>
                       : <span className="text-slate-300 italic">—</span>}
+                  </div>
+
+                  <div className="text-sm md:text-xs min-w-0">
+                    <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Age Groups</span>
+                    {p.personAgeGroups && p.personAgeGroups.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {p.personAgeGroups.map(({ ageGroup }) => (
+                          <span key={ageGroup.id} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 border border-indigo-100">
+                            {ageGroup.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-slate-300 italic">—</span>
+                    )}
                   </div>
 
                   <div className="text-sm md:text-xs min-w-0">
@@ -456,6 +518,7 @@ export function TeachersContent() {
         <TeacherModal
           person={editing}
           campId={campId}
+          ageGroups={ageGroups}
           onClose={() => { setShowModal(false); setEditing(undefined); }}
           onSaved={load}
         />

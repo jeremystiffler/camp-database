@@ -35,7 +35,7 @@ export async function POST(
     include: {
       ageGroups:        true,
       rooms:            true,
-      persons:          true,
+      persons:          { include: { personAgeGroups: true } },
       sessionTemplates: true,
       courses: {
         include: {
@@ -122,6 +122,12 @@ export async function POST(
           phone:     person.phone   ?? undefined,
           role:      person.role,
           bio:       person.bio     ?? undefined,
+          personAgeGroups: includeAgeGroups ? {
+            create: person.personAgeGroups
+              .map((pag) => ageGroupMap.get(pag.ageGroupId))
+              .filter((ageGroupId): ageGroupId is string => Boolean(ageGroupId))
+              .map((ageGroupId) => ({ ageGroupId })),
+          } : undefined,
         },
       });
       personMap.set(person.id, created.id);
