@@ -396,6 +396,15 @@ function SetupContent() {
     load();
   };
 
+  const saveRoomField = async (id: string, data: Partial<Pick<Room, "capacity" | "description">>) => {
+    await fetch(`/api/camps/${campId}/rooms/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    load();
+  };
+
   const deleteRoom = async (id: string) => {
     if (!confirm("Delete this room?")) return;
     await fetch(`/api/camps/${campId}/rooms/${id}`, { method: "DELETE" });
@@ -697,19 +706,14 @@ function SetupContent() {
                 <div className="flex flex-col gap-2 py-3 px-4 bg-sky-50 border border-sky-200 rounded-xl">
                   <div className="flex gap-3 items-end flex-wrap">
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">Name</label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Room Name</label>
                       <input type="text" value={editRoomName} onChange={e => setEditRoomName(e.target.value)} required
                         className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">Capacity</label>
-                      <input type="number" value={editRoomCap} onChange={e => setEditRoomCap(e.target.value)} min={1}
-                        className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => saveRoom(room.id)}
                         className="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors">
-                        ✓ Save
+                        ✓ Save name
                       </button>
                       <button onClick={() => setEditingRoomId(null)}
                         className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-colors">
@@ -717,21 +721,37 @@ function SetupContent() {
                       </button>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Location / Description</label>
-                    <input type="text" value={editRoomDesc} onChange={e => setEditRoomDesc(e.target.value)} placeholder="e.g. North wing, second floor"
-                      className="w-full max-w-md px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
-                  </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between py-2.5 px-4 bg-slate-50 rounded-xl">
-                  <div>
-                    <span className="font-medium text-slate-800 text-sm">{room.name}</span>
-                    {room.capacity && <span className="text-slate-400 text-xs ml-3">cap: {room.capacity}</span>}
-                    {room.description && <span className="text-slate-400 text-xs ml-3">· {room.description}</span>}
+                <div className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 md:grid-cols-[minmax(180px,1.1fr)_120px_minmax(220px,1.5fr)_auto] md:items-center">
+                  <div className="min-w-0">
+                    <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400">Room</span>
+                    <span className="font-bold text-slate-800 text-sm truncate block">{room.name}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => startEditRoom(room)} className="text-slate-400 hover:text-sky-500 transition-colors text-sm p-1" title="Edit">✏️</button>
+                  <label className="block">
+                    <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Capacity</span>
+                    <input
+                      type="number"
+                      min={1}
+                      defaultValue={room.capacity || ""}
+                      onBlur={e => saveRoomField(room.id, { capacity: e.target.value ? parseInt(e.target.value) : 0 })}
+                      onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                      className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                    />
+                  </label>
+                  <label className="block min-w-0">
+                    <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Location / description</span>
+                    <input
+                      type="text"
+                      defaultValue={room.description || ""}
+                      placeholder="e.g. North wing, second floor"
+                      onBlur={e => saveRoomField(room.id, { description: e.target.value || undefined })}
+                      onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                    />
+                  </label>
+                  <div className="flex items-center gap-2 md:justify-end">
+                    <button onClick={() => startEditRoom(room)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 hover:bg-sky-50 hover:text-sky-600 transition-colors" title="Edit room name">✏️ Rename</button>
                     <button onClick={() => deleteRoom(room.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">🗑️</button>
                   </div>
                 </div>
