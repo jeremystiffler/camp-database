@@ -346,10 +346,18 @@ function SetupContent() {
     ));
   };
 
-  const changeRequiredRoomForRow = async (row: SessionRow, roomId: string) => {
+  const requiredModeHasChanges = (row: SessionRow) => {
+    const draftedAllCamp = Boolean(overrideDraftRows[row.key]);
+    const currentRoomId = rowMandatorySessions(row).find(ms => Boolean(ms.roomId))?.roomId || "";
+    return draftedAllCamp || (row.mandatory && requiredRoomForRow(row) !== currentRoomId);
+  };
+
+  const changeRequiredRoomForRow = (row: SessionRow, roomId: string) => {
     setRequiredRoomDrafts(prev => ({ ...prev, [row.key]: roomId }));
-    if (!row.mandatory && !overrideDraftRows[row.key]) return;
-    const ok = await ensureRequiredSessionsForRow(row, roomId);
+  };
+
+  const applyRequiredModeForRow = async (row: SessionRow) => {
+    const ok = await ensureRequiredSessionsForRow(row, requiredRoomForRow(row));
     if (ok) {
       setOverrideDraftRows(prev => ({ ...prev, [row.key]: false }));
       load();
@@ -980,48 +988,56 @@ function SetupContent() {
                     const overrideActive = row.mandatory || Boolean(overrideDraftRows[row.key]);
                     const editDraft = sessionRowDraft(row);
                     const hasRowChanges = sessionRowHasChanges(row);
+                    const hasRequiredChanges = requiredModeHasChanges(row);
                     return (
                       <tr key={row.key} className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/40"} hover:bg-sky-50/30 transition-colors`}>
                         {/* Session info cell */}
                         <td className="py-3 px-4 border-b border-slate-100">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 min-w-0 space-y-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="text"
-                                  value={editDraft.label}
-                                  onChange={e => updateSessionRowDraft(row, "label", e.target.value)}
-                                  className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs font-semibold text-slate-800 placeholder-[#636363] focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
-                                  placeholder="Session name"
-                                />
-                                {row.mandatory && <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">All-camp</span>}
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="text"
+                                    value={editDraft.label}
+                                    onChange={e => updateSessionRowDraft(row, "label", e.target.value)}
+                                    className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs font-semibold text-slate-800 placeholder-[#636363] focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
+                                    placeholder="Session name"
+                                  />
+                                  {row.mandatory && <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">All-camp</span>}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="time"
+                                    value={editDraft.start}
+                                    onChange={e => updateSessionRowDraft(row, "start", e.target.value)}
+                                    className="w-[86px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs text-slate-500 focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
+                                  />
+                                  <span className="text-slate-300 text-xs">–</span>
+                                  <input
+                                    type="time"
+                                    value={editDraft.end}
+                                    onChange={e => updateSessionRowDraft(row, "end", e.target.value)}
+                                    className="w-[86px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs text-slate-500 focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
+                                  />
+                                  {hasRowChanges && (
+                                    <button
+                                      type="button"
+                                      onClick={() => applySessionRowChanges(row)}
+                                      className="rounded-lg bg-sky-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-sky-600"
+                                    >
+                                      Apply
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="time"
-                                  value={editDraft.start}
-                                  onChange={e => updateSessionRowDraft(row, "start", e.target.value)}
-                                  className="w-[86px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs text-slate-500 focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
-                                />
-                                <span className="text-slate-300 text-xs">–</span>
-                                <input
-                                  type="time"
-                                  value={editDraft.end}
-                                  onChange={e => updateSessionRowDraft(row, "end", e.target.value)}
-                                  className="w-[86px] rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs text-slate-500 focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
-                                />
-                                {hasRowChanges && (
-                                  <button
-                                    type="button"
-                                    onClick={() => applySessionRowChanges(row)}
-                                    className="rounded-lg bg-sky-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-sky-600"
-                                  >
-                                    Apply
-                                  </button>
-                                )}
-                              </div>
+                              <button
+                                onClick={() => deleteSessionRow(row)}
+                                className="mt-1 text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 text-xs"
+                                title="Delete session"
+                              >🗑️</button>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2 pl-2">
                               <button
                                 type="button"
                                 onClick={() => setMandatoryForRow(row, !overrideActive)}
@@ -1031,22 +1047,28 @@ function SetupContent() {
                                 {overrideActive ? "All-camp block" : "Class-choice block"}
                               </button>
                               {overrideActive && (
-                                <select
-                                  value={requiredRoomForRow(row)}
-                                  onChange={e => changeRequiredRoomForRow(row, e.target.value)}
-                                  className="min-w-[140px] rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
-                                  title="All-camp blocks need a location. No teacher, capacity, or activity required."
-                                >
-                                  <option value="">Choose location…</option>
-                                  {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
-                                </select>
+                                <>
+                                  <select
+                                    value={requiredRoomForRow(row)}
+                                    onChange={e => changeRequiredRoomForRow(row, e.target.value)}
+                                    className="min-w-[140px] rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                                    title="All-camp blocks need a location. No teacher, capacity, or activity required."
+                                  >
+                                    <option value="">Choose location…</option>
+                                    {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
+                                  </select>
+                                  {hasRequiredChanges && (
+                                    <button
+                                      type="button"
+                                      onClick={() => applyRequiredModeForRow(row)}
+                                      className="rounded-lg bg-amber-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-amber-600"
+                                    >
+                                      Apply all-camp
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
-                            <button
-                              onClick={() => deleteSessionRow(row)}
-                              className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 text-xs"
-                              title="Delete session"
-                            >🗑️</button>
                           </div>
                         </td>
                         <td className="text-center py-3 px-2 border-b border-slate-100 bg-slate-50/50">
