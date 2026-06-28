@@ -303,13 +303,8 @@ function CourseModal({
     return uniqueTimes[0]?.key || "";
   });
 
-  // When sameTimeKey changes, auto-select all templates with that time
-  useEffect(() => {
-    if (slotMode !== "same" || !sameTimeKey) return;
-    const [start, end] = sameTimeKey.split("|");
-    const ids = sessionTemplates.filter(s => s.startTime === start && s.endTime === end).map(s => s.id);
-    setSelectedSlots(ids);
-  }, [sameTimeKey, slotMode, sessionTemplates]);
+  // Time slots are assigned in the Schedule Grid tab. Preserve existing assignments when editing,
+  // but do not auto-assign new activities from this simplified activity form.
 
   // ── Derived: days that have templates, with their template options ──
   const dayTemplates = useMemo(() => {
@@ -334,11 +329,7 @@ function CourseModal({
   });
   const [selectedDays, setSelectedDays] = useState<number[]>(() => Object.keys(daySlotPicks).map(Number));
 
-  // When daySlotPicks changes in "different" mode, sync selectedSlots
-  useEffect(() => {
-    if (slotMode !== "different") return;
-    setSelectedSlots(Object.values(daySlotPicks).filter(Boolean));
-  }, [daySlotPicks, slotMode]);
+  // The clickable grid owns future schedule edits.
 
   const toggleDay = (day: number) => {
     if (selectedDays.includes(day)) {
@@ -486,133 +477,8 @@ function CourseModal({
             )}
           </div>
 
-          {/* ── Time Schedule ── */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Time Schedule
-              <span className="ml-1 text-xs font-normal text-slate-400">(when does this activity meet?)</span>
-            </label>
-
-            {sessionTemplates.length === 0 ? (
-              <p className="text-xs text-slate-400 italic">No time slots set up yet — add them in Settings.</p>
-            ) : (
-              <>
-                {/* Mode toggle */}
-                <div className="flex rounded-xl border border-slate-200 overflow-hidden mb-3">
-                  <button type="button"
-                    onClick={() => switchMode("same")}
-                    className={`flex-1 px-3 py-2 text-xs font-semibold transition-colors ${
-                      slotMode === "same"
-                        ? "bg-sky-500 text-white"
-                        : "bg-white text-slate-500 hover:bg-slate-50"
-                    }`}>
-                    🔁 Same time every day
-                  </button>
-                  <button type="button"
-                    onClick={() => switchMode("different")}
-                    className={`flex-1 px-3 py-2 text-xs font-semibold border-l border-slate-200 transition-colors ${
-                      slotMode === "different"
-                        ? "bg-sky-500 text-white"
-                        : "bg-white text-slate-500 hover:bg-slate-50"
-                    }`}>
-                    📅 Different time each day
-                  </button>
-                </div>
-
-                {/* ── Same time every day ── */}
-                {slotMode === "same" && (
-                  <div className="space-y-2">
-                    {uniqueTimes.length === 0 ? (
-                      <p className="text-xs text-slate-400 italic">No time slots configured in Settings.</p>
-                    ) : (
-                      <>
-                        <p className="text-xs text-slate-500">Select a time — it will be applied to all days of camp:</p>
-                        <div className="space-y-1.5">
-                          {uniqueTimes.map(ut => {
-                            const active = sameTimeKey === ut.key;
-                            const matchingCount = sessionTemplates.filter(s => s.startTime === ut.startTime && s.endTime === ut.endTime).length;
-                            return (
-                              <label key={ut.key}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 cursor-pointer transition-all ${
-                                  active ? "border-sky-400 bg-sky-50" : "border-slate-100 bg-slate-50 hover:border-slate-200"
-                                }`}>
-                                <input type="radio" checked={active}
-                                  onChange={() => setSameTimeKey(ut.key)}
-                                  className="w-4 h-4 accent-sky-500 flex-shrink-0" />
-                                <div className="flex-1">
-                                  <span className="font-semibold text-sm text-slate-800">{ut.startTime} – {ut.endTime}</span>
-                                  {ut.label && <span className="ml-2 text-xs text-slate-400">{ut.label}</span>}
-                                </div>
-                                <span className="text-xs text-slate-400">{matchingCount} day{matchingCount !== 1 ? "s" : ""}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                        {selectedSlots.length > 0 && (
-                          <p className="text-xs text-sky-600 font-medium mt-1">
-                            ✓ Will run on {selectedSlots.length} day{selectedSlots.length !== 1 ? "s" : ""} at this time
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Different time each day ── */}
-                {slotMode === "different" && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-slate-500">Choose which days this activity meets and pick a time for each:</p>
-
-                    {/* Day pills */}
-                    <div className="flex flex-wrap gap-2">
-                      {[...dayTemplates.entries()].sort((a, b) => a[0] - b[0]).map(([day]) => {
-                        const isSelected = selectedDays.includes(day);
-                        return (
-                          <button key={day} type="button"
-                            onClick={() => toggleDay(day)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${
-                              isSelected
-                                ? "bg-sky-500 border-sky-500 text-white shadow-sm"
-                                : "bg-white border-slate-200 text-slate-600 hover:border-sky-300"
-                            }`}>
-                            {day === -1 ? "All Days" : DAYS[day]}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Time slot picker per selected day */}
-                    {selectedDays.length > 0 && (
-                      <div className="space-y-2">
-                        {selectedDays.sort((a, b) => a - b).map(day => {
-                          const slots = dayTemplates.get(day) || [];
-                          return (
-                            <div key={day} className="flex items-center gap-3 px-3 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                              <span className="text-xs font-bold text-sky-700 w-8 flex-shrink-0">
-                                {day === -1 ? "All" : DAYS[day]}
-                              </span>
-                              <select
-                                value={daySlotPicks[day] || ""}
-                                onChange={e => setDaySlotPicks(prev => ({ ...prev, [day]: e.target.value }))}
-                                className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-800 bg-white focus:outline-none focus:ring-1 focus:ring-sky-500/40">
-                                {slots.map(s => (
-                                  <option key={s.id} value={s.id}>
-                                    {s.label ? `${s.label} — ` : ""}{s.startTime} – {s.endTime}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {selectedDays.length === 0 && (
-                      <p className="text-xs text-slate-400 italic">Select at least one day above.</p>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+          <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs font-semibold text-sky-700">
+            Time assignment moved to the Schedule Grid tab. This form only saves the activity basics.
           </div>
 
           {/* ── Lead Teachers ── */}
@@ -843,7 +709,7 @@ function MandatorySessionModal({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export function ActivitiesContent() {
+export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: boolean } = {}) {
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
 
@@ -935,7 +801,6 @@ export function ActivitiesContent() {
 
 
   const activityStatus = (course: Course): { label: string; tone: string; priority: "ready" | "needs" } => {
-    if (!course.courseSessionTemplates || course.courseSessionTemplates.length === 0) return { label: "Needs time", tone: "bg-amber-50 text-amber-700 border-amber-200", priority: "needs" };
     if (!course.room) return { label: "Needs room", tone: "bg-orange-50 text-orange-700 border-orange-200", priority: "needs" };
     if (!course.courseTeachers || course.courseTeachers.length === 0) return { label: "Needs teacher", tone: "bg-rose-50 text-rose-700 border-rose-200", priority: "needs" };
     if (!course.courseAgeGroups || course.courseAgeGroups.length === 0) return { label: "Needs ages", tone: "bg-sky-50 text-sky-700 border-sky-200", priority: "needs" };
@@ -974,7 +839,9 @@ export function ActivitiesContent() {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-amber-50 p-6 shadow-sm">
+      {!simpleCatalog && (
+        <>
+          <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-amber-50 p-6 shadow-sm">
         <div className="absolute right-6 top-6 hidden h-24 w-24 rounded-full bg-amber-200/30 blur-2xl md:block" />
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -1027,17 +894,22 @@ export function ActivitiesContent() {
       <div id="activity-schedule-grid" className="scroll-mt-6">
         <TimeslotAssignmentGrid campId={campId} />
       </div>
+        </>
+      )}
 
-      <details className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <summary className="cursor-pointer list-none px-5 py-4">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="px-5 py-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-sm font-black uppercase tracking-wide text-slate-700">Activity details & advanced actions</h2>
-              <p className="mt-1 text-xs text-slate-500">Kept below the working grid so the schedule stays calm. Open when you need descriptions, age groups, edit, or delete.</p>
+              <h2 className="text-sm font-black uppercase tracking-wide text-slate-700">Activity catalog</h2>
+              <p className="mt-1 text-xs text-slate-500">Simple rows only: activity, teacher, room, seats, and age groups. Use the Schedule Grid tab for clickable time-slot assignment.</p>
             </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">{filteredByStatus.length} shown</span>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">{filteredByStatus.length} shown</span>
+              <button onClick={() => { setEditingCourse(null); setShowModal(true); }} className="rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 px-4 py-2 text-xs font-black text-white shadow-sm hover:opacity-90">+ Add Activity</button>
+            </div>
           </div>
-        </summary>
+        </div>
         <div className="border-t border-slate-100 p-4">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
             <div className="relative flex-1">
@@ -1073,14 +945,13 @@ export function ActivitiesContent() {
             </div>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-              <table className="w-full min-w-[900px] text-sm">
+              <table className="w-full min-w-[760px] text-sm">
                 <thead className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-4 py-3 text-left">Activity</th>
-                    <th className="px-3 py-3 text-left">Time</th>
-                    <th className="px-3 py-3 text-left">Room</th>
                     <th className="px-3 py-3 text-left">Teacher</th>
-                    <th className="px-3 py-3 text-center">Capacity</th>
+                    <th className="px-3 py-3 text-left">Room</th>
+                    <th className="px-3 py-3 text-center">Total seats</th>
                     <th className="px-3 py-3 text-left">Ages</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
@@ -1089,7 +960,6 @@ export function ActivitiesContent() {
                   {filteredByStatus.map(course => {
                     const status = activityStatus(course);
                     const teacher = leadTeacher(course);
-                    const slots = course.courseSessionTemplates || [];
                     return (
                       <tr key={course.id} className="align-top hover:bg-sky-50/30">
                         <td className="px-4 py-3">
@@ -1104,16 +974,15 @@ export function ActivitiesContent() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-xs font-semibold text-slate-600">{scheduleSummary(course)}</td>
-                        <td className="px-3 py-3 text-xs text-slate-600">{course.room?.name || <span className="font-bold text-amber-600">Not assigned</span>}</td>
                         <td className="px-3 py-3 text-xs text-slate-600">{teacher ? `${teacher.firstName} ${teacher.lastName}` : <span className="font-bold text-rose-600">Not assigned</span>}</td>
+                        <td className="px-3 py-3 text-xs text-slate-600">{course.room?.name || <span className="font-bold text-amber-600">Not assigned</span>}</td>
                         <td className="px-3 py-3 text-center text-xs font-bold text-slate-700">{course.cap || "—"}</td>
                         <td className="px-3 py-3">
                           <div className="flex flex-wrap gap-1">
                             {course.courseAgeGroups && course.courseAgeGroups.length > 0 ? course.courseAgeGroups.map(cag => (
                               <span key={cag.ageGroup.id} className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: cag.ageGroup.color }}>{cag.ageGroup.name}</span>
                             )) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">No ages</span>}
-                            {slots.length > 1 && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">{slots.length} slots</span>}
+
                           </div>
                         </td>
                         <td className="relative px-4 py-3 text-right">
@@ -1135,7 +1004,7 @@ export function ActivitiesContent() {
             </div>
           )}
         </div>
-      </details>
+      </div>
 
       {showModal && (
         <CourseModal

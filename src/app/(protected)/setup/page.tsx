@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { TeachersContent } from "../teachers/page";
 import { ActivitiesContent } from "../activities/page";
+import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 
 interface Camp {
   id: string;
@@ -930,11 +931,11 @@ function SetupContent() {
         <div className="space-y-4">
           <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
             <p className="text-xs font-black uppercase tracking-wide text-sky-700">Step 6 · Activity Catalog</p>
-            <h2 className="mt-1 text-lg font-black text-slate-900">Create the classes before you schedule them.</h2>
-            <p className="mt-1 text-sm text-slate-600">Add each activity with its room, teacher, capacity, and eligible age groups. The rows below are intentionally dense so you can see the camp at a glance.</p>
+            <h2 className="mt-1 text-lg font-black text-slate-900">Add the activity basics. Schedule comes next.</h2>
+            <p className="mt-1 text-sm text-slate-600">Keep this tab simple: activity name, lead teacher, room, and total seats available. The clickable time-slot grid lives on the next tab.</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <ActivitiesContent />
+            <ActivitiesContent simpleCatalog />
           </div>
         </div>
       )}
@@ -942,9 +943,9 @@ function SetupContent() {
       {activeTab === "schedule" && (
         <div className="space-y-4">
           <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-amber-700">Step 7 · Schedule Grid</p>
-            <h2 className="mt-1 text-lg font-black text-slate-900">Assign activities to time slots.</h2>
-            <p className="mt-1 text-sm text-slate-600">Use the row-first activity grid to make sure every class has the right time, room, teacher, and capacity. This is the “run of show” checkpoint before registration opens.</p>
+            <p className="text-xs font-black uppercase tracking-wide text-amber-700">Step 7 · Clickable Schedule Grid</p>
+            <h2 className="mt-1 text-lg font-black text-slate-900">Click where each activity belongs.</h2>
+            <p className="mt-1 text-sm text-slate-600">Activities are rows. Time slots are columns. Click a cell to add or remove that activity from that slot — simple as setting chairs before service starts.</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
               <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{courses.length} activities</span>
               <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{scheduledActivities} scheduled</span>
@@ -952,7 +953,7 @@ function SetupContent() {
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <ActivitiesContent />
+            <TimeslotAssignmentGrid campId={campId} />
           </div>
         </div>
       )}
