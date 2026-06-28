@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { TeachersContent } from "../teachers/page";
+import { ActivitiesContent } from "../activities/page";
 
 interface Camp {
   id: string;
@@ -61,6 +63,7 @@ interface DraftRow {
 
 const DAY_INT_TO_NAME = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DAY_ABBR        = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+type SetupTab = "details" | "rooms" | "ages" | "times" | "teachers" | "activities";
 
 function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
@@ -85,6 +88,7 @@ function SetupContent() {
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
+  const [activeTab, setActiveTab]  = useState<SetupTab>("details");
 
   // Camp form state
   const [campName,         setCampName]         = useState("");
@@ -369,6 +373,15 @@ function SetupContent() {
 
   const totalPages = Math.ceil(campDates.length / 7);
 
+  const setupTabs: Array<{ key: SetupTab; label: string; icon: string; count?: string | number; help: string }> = [
+    { key: "details", label: "Camp Details", icon: "🏕️", help: "Name, dates, registration" },
+    { key: "rooms", label: "Rooms", icon: "📍", count: rooms.length, help: "Locations + capacities" },
+    { key: "ages", label: "Age Groups", icon: "👦", count: ageGroups.length, help: "Registration groups" },
+    { key: "times", label: "Time Slots", icon: "🕐", count: sessionRows.length, help: "Daily session blocks" },
+    { key: "teachers", label: "Teachers", icon: "🧑‍🏫", help: "People + schedules" },
+    { key: "activities", label: "Activities", icon: "🎯", help: "Classes + grid" },
+  ];
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -397,7 +410,27 @@ function SetupContent() {
         </div>
       </div>
 
+      <div className="camp-card p-2 mb-5 sticky top-0 z-20 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+        <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
+          {setupTabs.map(tab => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={`rounded-xl px-3 py-3 text-left transition ${activeTab === tab.key ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}
+            >
+              <span className="flex items-center justify-between gap-2 text-sm font-black">
+                <span>{tab.icon} {tab.label}</span>
+                {tab.count !== undefined && <span className={`rounded-full px-2 py-0.5 text-[10px] ${activeTab === tab.key ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500"}`}>{tab.count}</span>}
+              </span>
+              <span className={`mt-0.5 block text-[11px] ${activeTab === tab.key ? "text-white/60" : "text-slate-400"}`}>{tab.help}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* ── Camp Details ── */}
+      {activeTab === "details" && (
       <Section title="🏕️ Camp Details">
         <div className="space-y-4">
           <div>
@@ -442,8 +475,10 @@ function SetupContent() {
           </button>
         </div>
       </Section>
+      )}
 
       {/* ── Rooms ── */}
+      {activeTab === "rooms" && (
       <Section title="📍 Rooms & Locations">
         <div className="space-y-3 mb-4">
           {rooms.length === 0 && <p className="text-slate-400 text-sm">No rooms yet. Add your first room below.</p>}
@@ -516,8 +551,10 @@ function SetupContent() {
           </button>
         </form>
       </Section>
+      )}
 
       {/* ── Age Groups ── */}
+      {activeTab === "ages" && (
       <Section title="👦 Age Groups">
         <div className="space-y-3 mb-4">
           {ageGroups.length === 0 && <p className="text-slate-400 text-sm">No age groups yet. Add your first group below.</p>}
@@ -584,8 +621,10 @@ function SetupContent() {
           </button>
         </form>
       </Section>
+      )}
 
       {/* ── Time Slots ── */}
+      {activeTab === "times" && (
       <Section title="🕐 Time Slots">
         <p className="text-xs text-slate-400 mb-4">
           Each row is a session (e.g. "Morning Session"). Check the days it runs. Toggle the switch on a row to fill every day of camp instantly.
@@ -809,6 +848,19 @@ function SetupContent() {
           </>
         )}
       </Section>
+      )}
+
+      {activeTab === "teachers" && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <TeachersContent />
+        </div>
+      )}
+
+      {activeTab === "activities" && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <ActivitiesContent />
+        </div>
+      )}
     </div>
   );
 }

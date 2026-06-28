@@ -843,7 +843,7 @@ function MandatorySessionModal({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-function ActivitiesContent() {
+export function ActivitiesContent() {
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
 
