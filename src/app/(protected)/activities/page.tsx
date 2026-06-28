@@ -861,7 +861,6 @@ function ActivitiesContent() {
   const [showMandatoryModal, setShowMandatoryModal] = useState(false);
   const [sortCol, setSortCol]                   = useState("name");
   const [sortDir, setSortDir]                   = useState<"asc" | "desc">("asc");
-  const [view, setView]                         = useState<"activities" | "schedule" | "defaults">("activities");
   const [statusFilter, setStatusFilter]         = useState<"all" | "needs" | "ready">("all");
   const [toolsOpen, setToolsOpen]               = useState(false);
   const [openMenuId, setOpenMenuId]             = useState<string | null>(null);
@@ -984,7 +983,7 @@ function ActivitiesContent() {
             </div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Activities</h1>
             <p className="mt-1 max-w-2xl text-sm text-slate-600">
-              Build your activity catalog first. Scheduling, default sessions, and advanced tools stay tucked away until you need them.
+              Manage activities from one working sheet: default camp blocks at the top, then activity rows with room, teacher, capacity, and click-to-schedule cells.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -995,8 +994,8 @@ function ActivitiesContent() {
               </button>
               {toolsOpen && (
                 <div className="absolute right-0 top-12 z-20 w-64 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-xl">
-                  <button onClick={() => { setView("schedule"); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-sky-50">🕐 Open schedule grid</button>
-                  <button onClick={() => { setView("defaults"); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-amber-50">🔒 Manage default sessions</button>
+                  <button onClick={() => { document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-sky-50">▦ Jump to working grid</button>
+                  <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-amber-50">🔒 Add required assembly</button>
                   <a href={`/import${campId ? `?campId=${campId}` : ""}`} className="block rounded-xl px-3 py-2 font-semibold text-slate-700 hover:bg-emerald-50">📥 Import activities</a>
                   <button onClick={() => { setSortCol("name"); setSortDir("asc"); setStatusFilter("all"); setSearch(""); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-slate-50">✨ Reset filters</button>
                 </div>
@@ -1012,10 +1011,10 @@ function ActivitiesContent() {
 
       <div className="grid gap-3 md:grid-cols-4">
         {[
-          { label: "Activities", value: courses.length, detail: "in catalog", tone: "from-sky-500 to-sky-600", action: () => { setView("activities"); setStatusFilter("all"); } },
-          { label: "Scheduled", value: scheduledCount, detail: "have a time", tone: "from-emerald-500 to-forest-600", action: () => setView("schedule") },
-          { label: "Need attention", value: needsCount, detail: needsCount === 0 ? "all clear" : "missing details", tone: "from-amber-500 to-orange-500", action: () => { setView("activities"); setStatusFilter("needs"); } },
-          { label: "Registration", value: registrationReady ? "Ready" : "Not yet", detail: `${mandatorySessions.length} default block${mandatorySessions.length !== 1 ? "s" : ""}`, tone: registrationReady ? "from-emerald-500 to-forest-600" : "from-slate-500 to-slate-600", action: () => setView("defaults") },
+          { label: "Activities", value: courses.length, detail: "in catalog", tone: "from-sky-500 to-sky-600", action: () => { setStatusFilter("all"); setSearch(""); } },
+          { label: "Scheduled", value: scheduledCount, detail: "have a time", tone: "from-emerald-500 to-forest-600", action: () => document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+          { label: "Need attention", value: needsCount, detail: needsCount === 0 ? "all clear" : "missing details", tone: "from-amber-500 to-orange-500", action: () => setStatusFilter("needs") },
+          { label: "Registration", value: registrationReady ? "Ready" : "Not yet", detail: `${mandatorySessions.length} default block${mandatorySessions.length !== 1 ? "s" : ""}`, tone: registrationReady ? "from-emerald-500 to-forest-600" : "from-slate-500 to-slate-600", action: () => document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
         ].map(card => (
           <button key={card.label} onClick={card.action} className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <div className={`mb-3 h-1.5 rounded-full bg-gradient-to-r ${card.tone}`} />
@@ -1026,25 +1025,22 @@ function ActivitiesContent() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-        <div className="grid gap-2 md:grid-cols-3">
-          {[
-            { key: "activities", label: "Activities", icon: "🎯", help: "simple catalog" },
-            { key: "schedule", label: "Schedule Grid", icon: "🕐", help: "rooms + time slots" },
-            { key: "defaults", label: "Default Sessions", icon: "🔒", help: "all-camp blocks" },
-          ].map(tab => (
-            <button key={tab.key} onClick={() => setView(tab.key as "activities" | "schedule" | "defaults")}
-              className={`rounded-xl px-4 py-3 text-left transition ${view === tab.key ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>
-              <span className="text-sm font-bold">{tab.icon} {tab.label}</span>
-              <span className={`ml-2 text-xs ${view === tab.key ? "text-white/60" : "text-slate-400"}`}>{tab.help}</span>
-            </button>
-          ))}
-        </div>
+      <div id="activity-schedule-grid" className="scroll-mt-6">
+        <TimeslotAssignmentGrid campId={campId} />
       </div>
 
-      {view === "activities" && (
-        <div className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center">
+      <details className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <summary className="cursor-pointer list-none px-5 py-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-wide text-slate-700">Activity details & advanced actions</h2>
+              <p className="mt-1 text-xs text-slate-500">Kept below the working grid so the schedule stays calm. Open when you need descriptions, age groups, edit, or delete.</p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">{filteredByStatus.length} shown</span>
+          </div>
+        </summary>
+        <div className="border-t border-slate-100 p-4">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
             <div className="relative flex-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
               <input type="text" value={search} onChange={e => setSearch(e.target.value)}
@@ -1073,7 +1069,7 @@ function ActivitiesContent() {
             <div className="camp-card p-12 text-center">
               <span className="mb-4 block text-5xl">🎯</span>
               <h3 className="mb-2 font-bold text-slate-700">{search || statusFilter !== "all" ? "No activities match" : "No activities yet"}</h3>
-              <p className="mb-5 text-sm text-slate-400">Create activities first. You can schedule them after the catalog feels right.</p>
+              <p className="mb-5 text-sm text-slate-400">Create activities first, then schedule them in the grid above.</p>
               <button onClick={() => { setEditingCourse(null); setShowModal(true); }} className="rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">+ Add First Activity</button>
             </div>
           ) : (
@@ -1107,12 +1103,11 @@ function ActivitiesContent() {
                       </div>
                       <div className="relative flex flex-shrink-0 items-center gap-1">
                         <button onClick={() => { setEditingCourse(course); setShowModal(true); }} className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700 hover:bg-sky-100">Edit</button>
-                        <button onClick={() => { setView("schedule"); setOpenMenuId(null); }} className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100">Schedule</button>
                         <button onClick={() => setOpenMenuId(openMenuId === course.id ? null : course.id)} className="rounded-xl border border-slate-200 px-2.5 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50">⋯</button>
                         {openMenuId === course.id && (
                           <div className="absolute right-0 top-10 z-10 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                             <button onClick={() => { setEditingCourse(course); setShowModal(true); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-slate-50">✏️ Edit details</button>
-                            <button onClick={() => { setView("schedule"); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-sky-50">🕐 Open grid</button>
+                            <button onClick={() => { document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-sky-50">▦ Jump to grid</button>
                             <button onClick={() => { deleteCourse(course.id); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50">🗑️ Delete</button>
                           </div>
                         )}
@@ -1124,67 +1119,7 @@ function ActivitiesContent() {
             </div>
           )}
         </div>
-      )}
-
-      {view === "schedule" && (
-        <div className="space-y-3">
-          <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">
-            <div className="font-black">Schedule Grid</div>
-            <div className="text-xs text-sky-700">Power tools live here now: room changes, timeslot checkboxes, capacity colors, and conflict warnings.</div>
-          </div>
-          <TimeslotAssignmentGrid campId={campId} />
-        </div>
-      )}
-
-      {view === "defaults" && (
-        <div className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-lg font-black text-amber-950">🔒 Default all-camp sessions</h2>
-              <p className="text-sm text-amber-800">Use this for chapel, assembly, lunch, dismissal, and blocks parents should not choose during registration.</p>
-            </div>
-            <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); }} className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:opacity-90">+ Required Assembly</button>
-          </div>
-
-          {mandatorySessions.length === 0 ? (
-            <div className="camp-card p-12 text-center">
-              <span className="mb-4 block text-5xl">🔒</span>
-              <h3 className="mb-2 font-bold text-slate-700">No default sessions yet</h3>
-              <p className="mb-5 text-sm text-slate-400">Add chapel, opening assembly, or other required camp-wide blocks here.</p>
-              <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); }} className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">+ Add Default Session</button>
-            </div>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {mandatorySessions.map(item => (
-                <div key={item.id} className="rounded-2xl border border-amber-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-black text-slate-900">{item.title}</p>
-                        <span className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: item.ageGroup.color }}>{item.ageGroup.name}</span>
-                      </div>
-                      <p className="mt-2 text-sm text-slate-600">
-                        {item.sessionTemplate.dayOfWeek == null ? "All" : DAYS[item.sessionTemplate.dayOfWeek]} · {item.sessionTemplate.label ? `${item.sessionTemplate.label} — ` : ""}{item.sessionTemplate.startTime}–{item.sessionTemplate.endTime}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {item.room?.name ? `📍 ${item.room.name}` : "📍 No room"}{item.leader ? ` · 👤 ${item.leader.firstName} ${item.leader.lastName}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
-                      <button onClick={() => { setEditingMandatory(item); setShowMandatoryModal(true); }} className="rounded-lg bg-sky-50 px-2.5 py-1.5 text-sm text-sky-700 hover:bg-sky-100">✏️</button>
-                      <button onClick={() => deleteMandatorySession(item.id)} className="rounded-lg bg-red-50 px-2.5 py-1.5 text-sm text-red-600 hover:bg-red-100">🗑️</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">
-            Need to toggle an existing timeslot into a default all-camp session? Open <button onClick={() => setView("schedule")} className="font-bold text-sky-700 hover:underline">Schedule Grid</button> and use the default-session toggles at the top.
-          </div>
-        </div>
-      )}
+      </details>
 
       {showModal && (
         <CourseModal

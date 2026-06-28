@@ -3,9 +3,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-interface Room { id: string; name: string; }
+interface Room { id: string; name: string; capacity?: number | null; }
 interface AgeGroup { id: string; name: string; noSchedule?: boolean; }
 interface MandatorySession { id: string; title: string; ageGroupId: string; sessionTemplateId: string; }
+interface Person { id: string; firstName: string; lastName: string; role: string; }
 interface SessionTemplate { id: string; label: string | null; dayOfWeek: number | null; startTime: string; endTime: string; mandatory?: boolean; }
 interface SessionGroup { key: string; label: string; startTime: string; endTime: string; ids: string[]; mandatory: boolean; }
 interface Course {
@@ -13,7 +14,7 @@ interface Course {
   name: string;
   roomId: string | null;
   cap: number | null;
-  room: { id: string; name: string } | null;
+  room: { id: string; name: string; capacity?: number | null } | null;
   courseSessionTemplates: { sessionTemplateId?: string; sessionTemplate?: SessionTemplate }[];
   courseAgeGroups: { ageGroup: { id: string; name: string } }[];
   courseTeachers: { person: { id: string; firstName: string; lastName: string; role: string } }[];
@@ -26,6 +27,7 @@ const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [persons, setPersons] = useState<Person[]>([]);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>([]);
   const [mandatorySessions, setMandatorySessions] = useState<MandatorySession[]>([]);
   const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
@@ -43,13 +45,15 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       fetch(`/api/camps/${campId}/courses`).then(r => r.json()),
       fetch(`/api/camps/${campId}/rooms`).then(r => r.json()),
       fetch(`/api/camps/${campId}/age-groups`).then(r => r.json()),
+      fetch(`/api/camps/${campId}/persons`).then(r => r.json()),
       fetch(`/api/camps/${campId}/mandatory-sessions`).then(r => r.json()),
       fetch(`/api/camps/${campId}/session-templates`).then(r => r.json()),
-    ]).then(([c, r, ag, ms, st]) => {
+    ]).then(([c, r, ag, p, ms, st]) => {
       const sorted = Array.isArray(c) ? [...c].sort((a: Course, b: Course) => a.name.localeCompare(b.name)) : [];
       setCourses(sorted);
       setRooms(Array.isArray(r) ? r : []);
       setAgeGroups(Array.isArray(ag) ? ag : []);
+      setPersons(Array.isArray(p) ? p : []);
       setMandatorySessions(Array.isArray(ms) ? ms : []);
       setSessionTemplates(Array.isArray(st) ? st : []);
       setBlockedCells(new Set());
@@ -130,11 +134,21 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     return "bg-emerald-100 border-emerald-300 text-emerald-800";
   };
 
-  const cellHeatClass = (course: Course, sg: SessionGroup): string => {
-    const cap = courseCapacityForGroup(course, sg);
-    if (cap <= 0) return "bg-white";
-    return heatClass(courseEnrollmentForGroup(course, sg) / cap);
+  const activeCellClass = (course: Course, sg: SessionGroup): string => {
+    const cap = course.cap || 0;
+    if (cap <= 0) return "border-slate-300 bg-slate-100 text-slate-700";
+    const rate = courseEnrollmentForGroup(course, sg) / cap;
+    if (rate >= 1) return "border-red-300 bg-red-100 text-red-800";
+    if (rate >= 0.9) return "border-rose-300 bg-rose-100 text-rose-800";
+    if (rate >= 0.75) return "border-orange-300 bg-orange-100 text-orange-800";
+    if (rate >= 0.5) return "border-amber-300 bg-amber-100 text-amber-800";
+    return "border-emerald-300 bg-emerald-100 text-emerald-800";
   };
+
+  const leadTeacherId = (course: Course): string =>
+    course.courseTeachers.find(ct => ct.person.role === "teacher" || ct.person.role === "director")?.person.id || "";
+
+  const teacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director" || p.role === "assistant" || p.role === "staff");
 
   const isColumnFull = (sg: SessionGroup): boolean => courses.length > 0 && courses.every(c => courseCheckedGroups(c).has(sg.key));
 
@@ -261,6 +275,20 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     loadGridData();
   };
 
+  const updateLeadTeacher = async (course: Course, personId: string) => {
+    setBlockedCells(new Set());
+    const nonLeadIds = course.courseTeachers
+      .filter(ct => !(ct.person.role === "teacher" || ct.person.role === "director"))
+      .map(ct => ct.person.id);
+    const teacherIds = personId ? [personId, ...nonLeadIds.filter(id => id !== personId)] : nonLeadIds;
+    await fetch(`/api/camps/${campId}/courses/${course.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teacherIds }),
+    });
+    loadGridData();
+  };
+
   if (loading) return (
     <div className="camp-card p-8 mb-5 flex items-center justify-center">
       <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
@@ -268,26 +296,26 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   );
 
   return (
-    <div className="camp-card p-6 mb-5">
-      <div className="flex items-start justify-between gap-4 mb-5">
+    <div className="camp-card p-4 mb-5">
+      <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <span className="w-7 h-7 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">🕐</span>
-            Assign Timeslots & Rooms
+            <span className="w-7 h-7 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">▦</span>
+            Activity Schedule
           </h2>
-          <p className="text-xs text-slate-500 mt-1">Manage activity rooms, capacity balance, and session assignments here. Changes save instantly.</p>
+          <p className="text-xs text-slate-500 mt-1">One calm working sheet: activity, room, teacher, seats, then click-to-schedule time blocks.</p>
         </div>
-        <span className="text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 rounded-full px-3 py-1">
-          {sessionGroups.length} assignable · {defaultSessionGroups.length} default
+        <span className="text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 rounded-full px-3 py-1 whitespace-nowrap">
+          {sessionGroups.length} time blocks · {defaultSessionGroups.length} default
         </span>
       </div>
 
       {allSessionGroups.length > 0 && (
-        <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50/70 p-3">
+        <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50/70 p-3">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wide text-sky-800">Default all-camp sessions</h3>
-              <p className="text-xs text-sky-700 mt-0.5">Toggle opening/keynote blocks here. Default sessions are assigned to everyone and stay out of the activity checkbox grid.</p>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-amber-900">Default all-camp sessions</h3>
+              <p className="text-xs text-amber-800 mt-0.5">Turn on chapel, lunch, opening, or any block everyone attends. These stay out of the elective grid.</p>
             </div>
             {defaultSessionGroups.length > 0 && <span className="text-[11px] font-semibold text-sky-700 bg-white/80 border border-sky-200 rounded-full px-2.5 py-1">{defaultSessionGroups.length} default</span>}
           </div>
@@ -302,9 +330,9 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                   disabled={saving}
                   onClick={() => setDefaultForGroup(sg, !sg.mandatory)}
                   title={sg.mandatory ? "Move this back into the activity checkbox grid" : "Make this a default session assigned to everyone"}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all disabled:opacity-60 ${sg.mandatory ? "border-sky-300 bg-white text-sky-800 shadow-sm" : "border-slate-200 bg-white/70 text-slate-600 hover:border-sky-200 hover:text-sky-700"}`}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all disabled:opacity-60 ${sg.mandatory ? "border-amber-300 bg-white text-amber-900 shadow-sm" : "border-slate-200 bg-white/70 text-slate-600 hover:border-sky-200 hover:text-sky-700"}`}
                 >
-                  <span className={`relative w-8 h-4 rounded-full flex-shrink-0 ${sg.mandatory ? "bg-sky-500" : "bg-slate-200"}`}>
+                  <span className={`relative w-8 h-4 rounded-full flex-shrink-0 ${sg.mandatory ? "bg-amber-500" : "bg-slate-200"}`}>
                     <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${sg.mandatory ? "translate-x-4" : ""}`} />
                   </span>
                   <span>
@@ -369,8 +397,10 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-50">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[180px]">Activity</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[160px]">Room</th>
+                  <th className="sticky left-0 z-20 bg-slate-50 text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[190px]">Activity</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[150px]">Room</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[150px]">Teacher</th>
+                  <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[86px]">Seats</th>
                   {sessionGroups.map(sg => {
                     const days = sessionTemplates.filter(st => sg.ids.includes(st.id) && st.dayOfWeek !== null).map(st => DAYS[st.dayOfWeek!]).join(", ");
                     const full = isColumnFull(sg);
@@ -379,7 +409,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                     const fillPct = stats.totalCap > 0 ? Math.round(stats.fillRate * 100) : 0;
                     const balanceNote = !hasRegistrations && averageAssignedCapacity > 0 && stats.totalCap > 0 ? `${Math.round((stats.totalCap / averageAssignedCapacity) * 100)}% of avg` : `${fillPct}% full`;
                     return (
-                      <th key={sg.key} className={`text-center py-3 px-3 border-b min-w-[132px] align-top ${columnHeatClass(sg)}`}>
+                      <th key={sg.key} className={`text-center py-3 px-2 border-b min-w-[118px] align-top ${columnHeatClass(sg)}`}>
                         <div className="font-semibold text-slate-800 text-xs">{sg.label}</div>
                         <div className="text-slate-500 text-xs font-normal">{sg.startTime}–{sg.endTime}</div>
                         {days && <div className="text-slate-400 text-xs font-normal">{days}</div>}
@@ -389,12 +419,9 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                           <div className="mt-1 h-1.5 rounded-full bg-white/80 overflow-hidden"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${Math.min(Math.max(hasRegistrations ? fillPct : stats.totalCap > 0 ? 100 : 0, 0), 100)}%` }} /></div>
                           <div className="text-[10px] font-medium text-slate-500 mt-0.5">{balanceNote}</div>
                         </div>
-                        <div className="mt-2 flex flex-col items-center gap-1">
-                          <button type="button" onClick={() => toggleColumnAll(sg, !full)} title={full ? "Remove all from this session" : "Assign all activities to this session"} className={`relative w-9 h-[18px] rounded-full transition-colors flex-shrink-0 ${full ? "bg-sky-500" : partial ? "bg-sky-200" : "bg-slate-200"}`}>
-                            <span className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${full ? "translate-x-[18px]" : ""}`} />
-                          </button>
-                          <span className="text-[10px] font-medium text-slate-400">{full ? "all on" : partial ? "partial" : "all off"}</span>
-                        </div>
+                        <button type="button" onClick={() => toggleColumnAll(sg, !full)} title={full ? "Remove all from this session" : "Assign all activities to this session"} className="mt-2 text-[10px] font-bold text-slate-500 underline decoration-dotted underline-offset-2 hover:text-sky-700">
+                          {full ? "clear all" : partial ? "partial" : "assign all"}
+                        </button>
                       </th>
                     );
                   })}
@@ -405,19 +432,25 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                   const checked = courseCheckedGroups(course);
                   return (
                     <tr key={course.id} className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} hover:bg-sky-50/20 transition-colors`}>
-                      <td className="py-3 px-4 border-b border-slate-100">
+                      <td className={`sticky left-0 z-10 py-3 px-4 border-b border-slate-100 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                         <div className="font-semibold text-slate-800 text-sm">{course.name}</div>
                         {course.courseAgeGroups.length > 0 && <div className="text-xs text-berry-600 font-medium mt-0.5">{course.courseAgeGroups.map(cag => cag.ageGroup.name).join(" · ")}</div>}
-                        {(() => {
-                          const lead = course.courseTeachers.find(ct => ct.person.role === "teacher" || ct.person.role === "director");
-                          return lead ? <div className="text-xs text-slate-400 mt-0.5">🧑‍🏫 {lead.person.firstName} {lead.person.lastName}</div> : null;
-                        })()}
                       </td>
-                      <td className="py-3 px-4 border-b border-slate-100">
-                        <select value={course.roomId || course.room?.id || ""} onChange={e => updateRoom(course, e.target.value)} className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white">
-                          <option value="">— No room —</option>
+                      <td className="py-3 px-3 border-b border-slate-100">
+                        <select value={course.roomId || course.room?.id || ""} onChange={e => updateRoom(course, e.target.value)} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white">
+                          <option value="">No room</option>
                           {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                         </select>
+                      </td>
+                      <td className="py-3 px-3 border-b border-slate-100">
+                        <select value={leadTeacherId(course)} onChange={e => updateLeadTeacher(course, e.target.value)} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white">
+                          <option value="">No teacher</option>
+                          {teacherOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+                        </select>
+                      </td>
+                      <td className="py-3 px-3 border-b border-slate-100 text-center">
+                        <div className="font-bold text-slate-700 text-sm">{course.cap || "—"}</div>
+                        {course.room?.capacity ? <div className="text-[10px] text-slate-400">room {course.room.capacity}</div> : null}
                       </td>
                       {sessionGroups.map(sg => {
                         const saveKey = cellKey(course.id, sg.key);
@@ -427,20 +460,29 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                         const enrolled = courseEnrollmentForGroup(course, sg);
                         const cap = course.cap || 0;
                         const seatsLeft = Math.max(cap - enrolled, 0);
-                        const fillPct = cap > 0 ? Math.min(Math.round((enrolled / cap) * 100), 100) : 0;
                         return (
-                          <td key={sg.key} className={`text-center py-3 px-3 border-b border-slate-100 transition-colors ${isChecked ? cellHeatClass(course, sg) : "bg-white"}`}>
-                            {isSaving ? <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" /> : (
-                              <div className="flex flex-col items-center gap-1.5">
-                                <input type="checkbox" checked={isChecked} disabled={isBlocked} title={isBlocked ? "Blocked by a scheduling conflict" : undefined} onChange={() => toggleSlotGroup(course, sg, !isChecked)} className={`w-4 h-4 rounded accent-sky-500 ${isBlocked ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`} />
-                                {isChecked && (
-                                  <div className="w-full min-w-[82px] rounded-lg bg-white/70 border border-white/70 px-1.5 py-1 shadow-sm">
-                                    <div className="text-[10px] font-bold text-slate-700">{enrolled}/{cap || "—"}</div>
-                                    <div className="text-[10px] font-semibold text-slate-500">{cap > 0 ? `${seatsLeft} left` : "no cap"}</div>
-                                    {cap > 0 && <div className="mt-1 h-1 rounded-full bg-white/80 overflow-hidden"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${fillPct}%` }} /></div>}
-                                  </div>
-                                )}
-                              </div>
+                          <td key={sg.key} className="text-center py-2 px-2 border-b border-slate-100 bg-white transition-colors">
+                            {isSaving ? <div className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" /> : (
+                              <button
+                                type="button"
+                                disabled={isBlocked}
+                                title={isBlocked ? "Blocked by a scheduling conflict" : isChecked ? `${enrolled}/${cap || "—"} registered/seats — click to remove` : "Click to schedule this activity in this time block"}
+                                onClick={() => toggleSlotGroup(course, sg, !isChecked)}
+                                className={`mx-auto flex h-14 min-w-[82px] items-center justify-center rounded-xl border-2 text-xs font-black shadow-sm transition-all ${
+                                  isChecked
+                                    ? activeCellClass(course, sg)
+                                    : isBlocked
+                                      ? "cursor-not-allowed border-red-200 bg-red-50 text-red-300 opacity-60"
+                                      : "border-dashed border-slate-200 bg-slate-50 text-slate-300 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
+                                }`}
+                              >
+                                {isChecked ? (
+                                  <span>
+                                    <span className="block text-sm leading-tight">{enrolled}/{cap || "—"}</span>
+                                    <span className="block text-[10px] font-semibold opacity-70">{cap > 0 ? `${seatsLeft} open` : "no cap"}</span>
+                                  </span>
+                                ) : isBlocked ? "!" : "+"}
+                              </button>
                             )}
                           </td>
                         );
@@ -453,9 +495,9 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
           </div>
 
           <div className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
-            <span>✓ checkbox = runs that session on all scheduled days</span>
-            <span>· room and slot changes save instantly</span>
-            <span>· <span className="inline-block w-6 h-[14px] rounded-full bg-sky-500 align-middle" /> column toggle = assign/remove all activities</span>
+            <span>Click + to activate a class in that time block</span>
+            <span>· active cells show registered / seats</span>
+            <span>· <span className="inline-block w-6 h-[14px] rounded-full bg-sky-500 align-middle" /> header link = assign/remove all activities</span>
             <span>· <span className="inline-block w-6 h-[14px] rounded-full bg-sky-200 align-middle" /> = partial</span>
             <span className="basis-full h-0" />
             <span className="font-semibold text-slate-500">Capacity colors:</span>
