@@ -284,7 +284,7 @@ function SetupContent() {
 
   const ensureRequiredSessionsForRow = async (row: SessionRow, roomId: string) => {
     if (!roomId) {
-      alert("Choose a location before overriding all classes for this session block.");
+      alert("Choose a location before making this an all-camp block.");
       return false;
     }
 
@@ -418,7 +418,7 @@ function SetupContent() {
     load();
   };
 
-  // Toggle whether a session row overrides all class choices. Override sessions appear on schedules but parents do not choose a class for them.
+  // Toggle whether a session row is an all-camp block. All-camp blocks appear on schedules but parents do not choose a class for them.
   const setMandatoryForRow = async (row: SessionRow, mandatory: boolean) => {
     if (mandatory) {
       setOverrideDraftRows(prev => ({ ...prev, [row.key]: true }));
@@ -836,7 +836,7 @@ function SetupContent() {
       {activeTab === "times" && (
       <Section title="🕐 Time Slots">
         <p className="text-xs text-slate-400 mb-4">
-          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All</strong> for every day of camp. Turn on <strong>Override all classes</strong> only when this block should replace normal class choices; location appears only for those override blocks.
+          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All</strong> for every day of camp. Use <strong>All-camp block</strong> when this time replaces class choices for everyone; location appears only for those all-camp blocks.
         </p>
 
         {/* No dates warning */}
@@ -911,7 +911,7 @@ function SetupContent() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <div className="font-semibold text-slate-800 text-xs truncate">{row.label}</div>
-                                {row.mandatory && <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">Override</span>}
+                                {row.mandatory && <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">All-camp</span>}
                               </div>
                               <div className="text-xs text-slate-400">{row.startTime} – {row.endTime}</div>
                             </div>
@@ -920,16 +920,16 @@ function SetupContent() {
                                 type="button"
                                 onClick={() => setMandatoryForRow(row, !overrideActive)}
                                 className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${overrideActive ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
-                                title={row.mandatory ? "Move this session block back to the activity scheduling grid" : "Override all classes for this session block"}
+                                title={overrideActive ? "This block replaces class choices for everyone. Click to make it a class-choice block again." : "Make this an all-camp block that replaces class choices for everyone."}
                               >
-                                {overrideActive ? "Override all classes" : "Normal classes"}
+                                {overrideActive ? "All-camp block" : "Class-choice block"}
                               </button>
                               {overrideActive && (
                                 <select
                                   value={requiredRoomForRow(row)}
                                   onChange={e => changeRequiredRoomForRow(row, e.target.value)}
                                   className="min-w-[140px] rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
-                                  title="Override blocks need a location. No teacher, capacity, or activity required."
+                                  title="All-camp blocks need a location. No teacher, capacity, or activity required."
                                 >
                                   <option value="">Choose location…</option>
                                   {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
