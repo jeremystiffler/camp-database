@@ -324,27 +324,12 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
         </span>
       </div>
 
-      <div className="mb-4 grid gap-3 md:grid-cols-4">
-        <div className="rounded-2xl border border-berry-100 bg-berry-50/70 p-3">
-          <div className="text-[11px] font-black uppercase tracking-wide text-berry-700">Teachers</div>
-          <div className="mt-1 text-2xl font-black text-berry-900">{teacherOptions.length}</div>
-          <div className="text-xs text-berry-700/80">ready to assign</div>
-        </div>
-        <div className="rounded-2xl border border-sky-100 bg-sky-50/80 p-3">
-          <div className="text-[11px] font-black uppercase tracking-wide text-sky-700">Session times</div>
-          <div className="mt-1 text-2xl font-black text-sky-900">{sessionGroups.length}</div>
-          <div className="text-xs text-sky-700/80">activity blocks</div>
-        </div>
-        <div className="rounded-2xl border border-forest-100 bg-forest-50/70 p-3">
-          <div className="text-[11px] font-black uppercase tracking-wide text-forest-700">Activities</div>
-          <div className="mt-1 text-2xl font-black text-forest-900">{courses.length}</div>
-          <div className="text-xs text-forest-700/80">classes to place</div>
-        </div>
-        <div className="rounded-2xl border border-amber-100 bg-amber-50/80 p-3">
-          <div className="text-[11px] font-black uppercase tracking-wide text-amber-700">Age groups</div>
-          <div className="mt-1 text-2xl font-black text-amber-900">{ageGroups.length}</div>
-          <div className="text-xs text-amber-700/80">registration lanes</div>
-        </div>
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs text-slate-600">
+        <span className="font-black uppercase tracking-wide text-slate-500">At a glance</span>
+        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-berry-700 shadow-sm">{teacherOptions.length} teachers</span>
+        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-sky-700 shadow-sm">{sessionGroups.length} time rows</span>
+        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-forest-700 shadow-sm">{courses.length} activities</span>
+        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-amber-700 shadow-sm">{ageGroups.length} age groups</span>
       </div>
 
       {allSessionGroups.length > 0 && (
@@ -430,7 +415,11 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             </div>
           )}
 
-          <div className="mb-5 grid gap-4 xl:grid-cols-2">
+          <details className="mb-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-black text-slate-700 hover:text-sky-700">
+              Optional visual block builder — collapsed so the row grid stays primary
+            </summary>
+            <div className="grid gap-4 border-t border-slate-100 p-4 xl:grid-cols-2">
             {sessionGroups.map(sg => {
               const assignedCourses = filteredCourses.filter(course => courseCheckedGroups(course).has(sg.key));
               const availableCourses = filteredCourses.filter(course => !courseCheckedGroups(course).has(sg.key));
@@ -537,12 +526,17 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
               );
             })}
           </div>
+          </details>
 
-          <details className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <summary className="cursor-pointer px-4 py-3 text-sm font-black text-slate-700 hover:text-sky-700">
-              Advanced spreadsheet grid — same controls, just denser
-            </summary>
-            <div className="overflow-x-auto border-t border-slate-100">
+          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-1 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-black text-slate-800">Activity scheduling grid</h3>
+                <p className="text-xs text-slate-500">One row per activity. Pick room, teacher, seats, and time cells without opening extra blocks.</p>
+              </div>
+              <span className="text-xs font-bold text-slate-400">{filteredCourses.length} rows × {sessionGroups.length} times</span>
+            </div>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-50">
@@ -642,11 +636,11 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
               </tbody>
             </table>
             </div>
-          </details>
+          </section>
 
           <div className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
-            <span>Each time block is now a visual card: add an activity, then pick room + teacher right there</span>
-            <span>· open Advanced spreadsheet grid for the dense all-at-once view</span>
+            <span>Rows are the default view: edit room, teacher, capacity, and schedule cells in one dense sheet</span>
+            <span>· optional visual blocks are collapsed above if you need them</span>
             <span className="basis-full h-0" />
             <span className="font-semibold text-slate-500">Capacity colors:</span>
             <span><span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300 align-middle" /> healthy</span>

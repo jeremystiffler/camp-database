@@ -1009,18 +1009,17 @@ export function ActivitiesContent() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
         {[
-          { label: "Activities", value: courses.length, detail: "in catalog", tone: "from-sky-500 to-sky-600", action: () => { setStatusFilter("all"); setSearch(""); } },
-          { label: "Scheduled", value: scheduledCount, detail: "have a time", tone: "from-emerald-500 to-forest-600", action: () => document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
-          { label: "Need attention", value: needsCount, detail: needsCount === 0 ? "all clear" : "missing details", tone: "from-amber-500 to-orange-500", action: () => setStatusFilter("needs") },
-          { label: "Registration", value: registrationReady ? "Ready" : "Not yet", detail: `${mandatorySessions.length} default block${mandatorySessions.length !== 1 ? "s" : ""}`, tone: registrationReady ? "from-emerald-500 to-forest-600" : "from-slate-500 to-slate-600", action: () => document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
-        ].map(card => (
-          <button key={card.label} onClick={card.action} className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <div className={`mb-3 h-1.5 rounded-full bg-gradient-to-r ${card.tone}`} />
-            <div className="text-2xl font-black text-slate-900">{card.value}</div>
-            <div className="text-sm font-bold text-slate-700">{card.label}</div>
-            <div className="text-xs text-slate-400">{card.detail}</div>
+          { label: "Activities", value: courses.length, detail: "in catalog", tone: "text-sky-700", action: () => { setStatusFilter("all"); setSearch(""); } },
+          { label: "Scheduled", value: scheduledCount, detail: "have a time", tone: "text-emerald-700", action: () => document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+          { label: "Need attention", value: needsCount, detail: needsCount === 0 ? "all clear" : "missing details", tone: "text-amber-700", action: () => setStatusFilter("needs") },
+          { label: "Registration", value: registrationReady ? "Ready" : "Not yet", detail: `${mandatorySessions.length} default block${mandatorySessions.length !== 1 ? "s" : ""}`, tone: registrationReady ? "text-emerald-700" : "text-slate-600", action: () => document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+        ].map(item => (
+          <button key={item.label} onClick={item.action} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-left font-bold text-slate-600 transition hover:border-sky-200 hover:bg-sky-50">
+            <span className={`mr-1 ${item.tone}`}>{item.value}</span>
+            <span>{item.label}</span>
+            <span className="ml-1 font-medium text-slate-400">· {item.detail}</span>
           </button>
         ))}
       </div>
@@ -1073,49 +1072,66 @@ export function ActivitiesContent() {
               <button onClick={() => { setEditingCourse(null); setShowModal(true); }} className="rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">+ Add First Activity</button>
             </div>
           ) : (
-            <div className="grid gap-3 xl:grid-cols-2">
-              {filteredByStatus.map(course => {
-                const status = activityStatus(course);
-                const teacher = leadTeacher(course);
-                const slots = course.courseSessionTemplates || [];
-                return (
-                  <div key={course.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl text-xl text-white shadow-sm" style={{ backgroundColor: course.color || "#22C55E" }}>{course.icon || "🎯"}</div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="truncate text-base font-black text-slate-900">{course.name}</h3>
-                          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${status.tone}`}>{status.label}</span>
-                        </div>
-                        {course.description && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{course.description}</p>}
-                        <div className="mt-3 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
-                          <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-500">Time:</span> {scheduleSummary(course)}</div>
-                          <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-500">Room:</span> {course.room?.name || "Not assigned"}</div>
-                          <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-500">Teacher:</span> {teacher ? `${teacher.firstName} ${teacher.lastName}` : "Not assigned"}</div>
-                          <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-500">Capacity:</span> {course.cap || "—"} seats</div>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {course.courseAgeGroups && course.courseAgeGroups.length > 0 ? course.courseAgeGroups.map(cag => (
-                            <span key={cag.ageGroup.id} className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white" style={{ backgroundColor: cag.ageGroup.color }}>{cag.ageGroup.name}</span>
-                          )) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-400">No age groups</span>}
-                          {slots.length > 1 && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700">{slots.length} time slots</span>}
-                        </div>
-                      </div>
-                      <div className="relative flex flex-shrink-0 items-center gap-1">
-                        <button onClick={() => { setEditingCourse(course); setShowModal(true); }} className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold text-sky-700 hover:bg-sky-100">Edit</button>
-                        <button onClick={() => setOpenMenuId(openMenuId === course.id ? null : course.id)} className="rounded-xl border border-slate-200 px-2.5 py-2 text-xs font-bold text-slate-500 hover:bg-slate-50">⋯</button>
-                        {openMenuId === course.id && (
-                          <div className="absolute right-0 top-10 z-10 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
-                            <button onClick={() => { setEditingCourse(course); setShowModal(true); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-slate-50">✏️ Edit details</button>
-                            <button onClick={() => { document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-sky-50">▦ Jump to grid</button>
-                            <button onClick={() => { deleteCourse(course.id); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50">🗑️ Delete</button>
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+              <table className="w-full min-w-[900px] text-sm">
+                <thead className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Activity</th>
+                    <th className="px-3 py-3 text-left">Time</th>
+                    <th className="px-3 py-3 text-left">Room</th>
+                    <th className="px-3 py-3 text-left">Teacher</th>
+                    <th className="px-3 py-3 text-center">Capacity</th>
+                    <th className="px-3 py-3 text-left">Ages</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredByStatus.map(course => {
+                    const status = activityStatus(course);
+                    const teacher = leadTeacher(course);
+                    const slots = course.courseSessionTemplates || [];
+                    return (
+                      <tr key={course.id} className="align-top hover:bg-sky-50/30">
+                        <td className="px-4 py-3">
+                          <div className="flex items-start gap-2">
+                            <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-base text-white shadow-sm" style={{ backgroundColor: course.color || "#22C55E" }}>{course.icon || "🎯"}</span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate font-black text-slate-900">{course.name}</span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${status.tone}`}>{status.label}</span>
+                              </div>
+                              {course.description && <p className="mt-0.5 line-clamp-1 max-w-sm text-xs text-slate-500">{course.description}</p>}
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                        </td>
+                        <td className="px-3 py-3 text-xs font-semibold text-slate-600">{scheduleSummary(course)}</td>
+                        <td className="px-3 py-3 text-xs text-slate-600">{course.room?.name || <span className="font-bold text-amber-600">Not assigned</span>}</td>
+                        <td className="px-3 py-3 text-xs text-slate-600">{teacher ? `${teacher.firstName} ${teacher.lastName}` : <span className="font-bold text-rose-600">Not assigned</span>}</td>
+                        <td className="px-3 py-3 text-center text-xs font-bold text-slate-700">{course.cap || "—"}</td>
+                        <td className="px-3 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {course.courseAgeGroups && course.courseAgeGroups.length > 0 ? course.courseAgeGroups.map(cag => (
+                              <span key={cag.ageGroup.id} className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: cag.ageGroup.color }}>{cag.ageGroup.name}</span>
+                            )) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">No ages</span>}
+                            {slots.length > 1 && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">{slots.length} slots</span>}
+                          </div>
+                        </td>
+                        <td className="relative px-4 py-3 text-right">
+                          <button onClick={() => { setEditingCourse(course); setShowModal(true); }} className="rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-100">Edit</button>
+                          <button onClick={() => setOpenMenuId(openMenuId === course.id ? null : course.id)} className="ml-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-50">⋯</button>
+                          {openMenuId === course.id && (
+                            <div className="absolute right-4 top-10 z-10 w-48 rounded-2xl border border-slate-200 bg-white p-2 text-left shadow-xl">
+                              <button onClick={() => { setEditingCourse(course); setShowModal(true); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-slate-50">✏️ Edit details</button>
+                              <button onClick={() => { document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-sky-50">▦ Jump to grid</button>
+                              <button onClick={() => { deleteCourse(course.id); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50">🗑️ Delete</button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
