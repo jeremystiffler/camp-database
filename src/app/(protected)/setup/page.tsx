@@ -985,7 +985,7 @@ function SetupContent() {
                       Session block
                     </th>
                     <th className="text-center py-3 px-2 border-b border-slate-200 min-w-[72px] text-xs font-semibold text-slate-500">
-                      All
+                      All dates
                     </th>
                     {/* Date column headers */}
                     {visibleDates.map(d => (
