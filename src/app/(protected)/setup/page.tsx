@@ -292,7 +292,7 @@ function SetupContent() {
 
   const ensureRequiredSessionsForRow = async (row: SessionRow, roomId: string) => {
     if (!roomId) {
-      alert("Choose a location before making this an all-camp block.");
+      alert("Choose a location before locking this time block to the schedule.");
       return false;
     }
 
@@ -350,6 +350,11 @@ function SetupContent() {
     const draftedAllCamp = Boolean(overrideDraftRows[row.key]);
     const currentRoomId = rowMandatorySessions(row).find(ms => Boolean(ms.roomId))?.roomId || "";
     return draftedAllCamp || (row.mandatory && requiredRoomForRow(row) !== currentRoomId);
+  };
+
+  const lockedLocationNameForRow = (row: SessionRow) => {
+    const roomId = requiredRoomForRow(row);
+    return rooms.find(room => room.id === roomId)?.name || "Location needed";
   };
 
   const changeRequiredRoomForRow = (row: SessionRow, roomId: string) => {
@@ -443,10 +448,20 @@ function SetupContent() {
     load();
   };
 
-  // Toggle whether a session row is an all-camp block. All-camp blocks appear on schedules but parents do not choose a class for them.
+  // Toggle whether a session row is locked to the schedule. Locked rows appear on every scheduled age group's schedule,
+  // carry a location, and are removed from activity choice scheduling for that time block.
   const setMandatoryForRow = async (row: SessionRow, mandatory: boolean) => {
     if (mandatory) {
-      setOverrideDraftRows(prev => ({ ...prev, [row.key]: true }));
+      const existingRoomId = requiredRoomForRow(row);
+      if (existingRoomId) {
+        const ok = await ensureRequiredSessionsForRow(row, existingRoomId);
+        if (ok) {
+          setOverrideDraftRows(prev => ({ ...prev, [row.key]: false }));
+          load();
+        }
+      } else {
+        setOverrideDraftRows(prev => ({ ...prev, [row.key]: true }));
+      }
       return;
     } else {
       await clearRequiredSessionsForRow(row);
@@ -919,7 +934,7 @@ function SetupContent() {
       {activeTab === "times" && (
       <Section title="🕐 Time Slots">
         <p className="text-xs text-slate-400 mb-4">
-          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All</strong> for every day of camp. Use <strong>All-camp block</strong> when this time replaces class choices for everyone; location appears only for those all-camp blocks.
+          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All</strong> for every day of camp. Use <strong>Lock to schedule</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
         </p>
 
         {/* No dates warning */}
@@ -1004,7 +1019,11 @@ function SetupContent() {
                                     className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs font-semibold text-slate-800 placeholder-[#636363] focus:border-sky-200 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-400"
                                     placeholder="Session name"
                                   />
-                                  {row.mandatory && <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">All-camp</span>}
+                                  {row.mandatory && (
+                                    <span className="shrink-0 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold" title={`Locked to schedule · ${lockedLocationNameForRow(row)}`}>
+                                      Locked · {lockedLocationNameForRow(row)}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <input
@@ -1042,9 +1061,9 @@ function SetupContent() {
                                 type="button"
                                 onClick={() => setMandatoryForRow(row, !overrideActive)}
                                 className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${overrideActive ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
-                                title={overrideActive ? "This block replaces class choices for everyone. Click to make it a class-choice block again." : "Make this an all-camp block that replaces class choices for everyone."}
+                                title={overrideActive ? "This time block is locked onto everyone’s schedule. Click to unlock it for activity scheduling again." : "Unlock to schedule: this time can be used for activity choices until you lock it."}
                               >
-                                {overrideActive ? "All-camp block" : "Class-choice block"}
+                                {overrideActive ? "Lock to schedule" : "Unlock to schedule"}
                               </button>
                               {overrideActive && (
                                 <>
@@ -1052,7 +1071,7 @@ function SetupContent() {
                                     value={requiredRoomForRow(row)}
                                     onChange={e => changeRequiredRoomForRow(row, e.target.value)}
                                     className="min-w-[140px] rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
-                                    title="All-camp blocks need a location. No teacher, capacity, or activity required."
+                                    title="Locked schedule blocks need a location. No teacher, capacity, or activity required."
                                   >
                                     <option value="">Choose location…</option>
                                     {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
@@ -1063,7 +1082,7 @@ function SetupContent() {
                                       onClick={() => applyRequiredModeForRow(row)}
                                       className="rounded-lg bg-amber-500 px-2 py-1 text-[10px] font-bold text-white hover:bg-amber-600"
                                     >
-                                      Apply all-camp
+                                      Apply lock
                                     </button>
                                   )}
                                 </>

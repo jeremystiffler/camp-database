@@ -218,7 +218,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
   const setDefaultForGroup = async (sg: SessionGroup, enable: boolean) => {
     if (enable) {
-      setConflictToast({ courseName: "Required session", sessionLabel: sg.label, message: "Mark required blocks from the Time Slots tab so you can choose the required location first." });
+      setConflictToast({ courseName: "Locked schedule session", sessionLabel: sg.label, message: "Lock schedule blocks from the Time Slots tab so you can choose the required location first." });
       return;
     }
     setDefaultSaving(prev => ({ ...prev, [sg.key]: true }));
@@ -269,7 +269,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
       loadGridData();
     } catch {
-      setConflictToast({ courseName: "Default session", sessionLabel: sg.label, message: "Could not update this default session. Please try again." });
+      setConflictToast({ courseName: "Locked schedule session", sessionLabel: sg.label, message: "Could not update this locked schedule session. Please try again." });
     } finally {
       setDefaultSaving(prev => { const n = { ...prev }; delete n[sg.key]; return n; });
     }
@@ -324,7 +324,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
           <p className="text-xs text-slate-500 mt-1">Put the pieces together visually: choose a time block, drop in activities, confirm room + teacher, and keep the detailed grid one click away.</p>
         </div>
         <span className="text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 rounded-full px-3 py-1 whitespace-nowrap">
-          {sessionGroups.length} time blocks · {defaultSessionGroups.length} default
+          {sessionGroups.length} time blocks · {defaultSessionGroups.length} locked
         </span>
       </div>
 
@@ -340,10 +340,10 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
         <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50/70 p-3">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wide text-amber-900">Required all-schedule sessions</h3>
-              <p className="text-xs text-amber-800 mt-0.5">Opening assembly, lunch, closing, or any block everyone attends. Create these in Time Slots so each required block has a location.</p>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-amber-900">Locked schedule sessions</h3>
+              <p className="text-xs text-amber-800 mt-0.5">Opening assembly, lunch, closing, or any block everyone attends. Create these in Time Slots so each locked block has a location and cannot take activity assignments.</p>
             </div>
-            {defaultSessionGroups.length > 0 && <span className="text-[11px] font-semibold text-sky-700 bg-white/80 border border-sky-200 rounded-full px-2.5 py-1">{defaultSessionGroups.length} default</span>}
+            {defaultSessionGroups.length > 0 && <span className="text-[11px] font-semibold text-sky-700 bg-white/80 border border-sky-200 rounded-full px-2.5 py-1">{defaultSessionGroups.length} locked</span>}
           </div>
           <div className="flex flex-wrap gap-2">
             {allSessionGroups.map(sg => {
@@ -355,7 +355,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                   type="button"
                   disabled={saving}
                   onClick={() => setDefaultForGroup(sg, !sg.mandatory)}
-                  title={sg.mandatory ? "Move this back into the activity checkbox grid" : "Make this a default session assigned to everyone"}
+                  title={sg.mandatory ? "Unlock this time block for activity scheduling again" : "Lock this time block onto everyone’s schedule"}
                   className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all disabled:opacity-60 ${sg.mandatory ? "border-amber-300 bg-white text-amber-900 shadow-sm" : "border-slate-200 bg-white/70 text-slate-600 hover:border-sky-200 hover:text-sky-700"}`}
                 >
                   <span className={`relative w-8 h-4 rounded-full flex-shrink-0 ${sg.mandatory ? "bg-amber-500" : "bg-slate-200"}`}>
@@ -389,7 +389,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       {courses.length > 0 && sessionGroups.length === 0 && allSessionGroups.length > 0 && (
         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
           <span className="text-lg">✅</span>
-          <span>All time slots are marked as default sessions. Turn a default toggle off above to make that slot assignable to activities.</span>
+          <span>All time slots are locked to the schedule. Unlock a row in Time Slots to make that slot assignable to activities.</span>
         </div>
       )}
 
