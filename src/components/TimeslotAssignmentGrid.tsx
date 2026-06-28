@@ -217,6 +217,10 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   };
 
   const setDefaultForGroup = async (sg: SessionGroup, enable: boolean) => {
+    if (enable) {
+      setConflictToast({ courseName: "Required session", sessionLabel: sg.label, message: "Mark required blocks from the Time Slots tab so you can choose the required location first." });
+      return;
+    }
     setDefaultSaving(prev => ({ ...prev, [sg.key]: true }));
     setConflictToast(null);
     try {
@@ -336,8 +340,8 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
         <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50/70 p-3">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wide text-amber-900">Default all-camp sessions</h3>
-              <p className="text-xs text-amber-800 mt-0.5">Turn on chapel, lunch, opening, or any block everyone attends. These stay out of the elective grid.</p>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-amber-900">Required all-schedule sessions</h3>
+              <p className="text-xs text-amber-800 mt-0.5">Opening assembly, lunch, closing, or any block everyone attends. Create these in Time Slots so each required block has a location.</p>
             </div>
             {defaultSessionGroups.length > 0 && <span className="text-[11px] font-semibold text-sky-700 bg-white/80 border border-sky-200 rounded-full px-2.5 py-1">{defaultSessionGroups.length} default</span>}
           </div>

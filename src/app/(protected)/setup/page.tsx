@@ -52,6 +52,11 @@ interface PersonSummary {
   role: string;
 }
 
+interface CourseSessionTemplateSummary {
+  sessionTemplateId?: string;
+  sessionTemplate?: { id: string };
+}
+
 interface CourseSummary {
   id: string;
   name: string;
@@ -59,7 +64,15 @@ interface CourseSummary {
   cap?: number | null;
   courseAgeGroups?: unknown[];
   courseTeachers?: unknown[];
-  courseSessionTemplates?: unknown[];
+  courseSessionTemplates?: CourseSessionTemplateSummary[];
+}
+
+interface MandatorySessionSummary {
+  id: string;
+  title: string;
+  ageGroupId: string;
+  sessionTemplateId: string;
+  roomId?: string | null;
 }
 
 interface SessionRow {
@@ -117,10 +130,12 @@ function SetupContent() {
   const [slots,     setSlots]     = useState<SessionTemplate[]>([]);
   const [persons,   setPersons]   = useState<PersonSummary[]>([]);
   const [courses,   setCourses]   = useState<CourseSummary[]>([]);
+  const [mandatorySessions, setMandatorySessions] = useState<MandatorySessionSummary[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
   const [activeTab, setActiveTab]  = useState<SetupTab>("details");
+  const [requiredRoomDrafts, setRequiredRoomDrafts] = useState<Record<string, string>>({});
 
   // Camp form state
   const [campName,         setCampName]         = useState("");
@@ -160,7 +175,8 @@ function SetupContent() {
       fetch(`/api/camps/${campId}/session-templates`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/persons`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/courses`).then((r) => r.json()),
-    ]).then(([c, ag, r, st, people, courseList]) => {
+      fetch(`/api/camps/${campId}/mandatory-sessions`).then((r) => r.json()),
+    ]).then(([c, ag, r, st, people, courseList, requiredList]) => {
       if (c && !c.error) {
         setCamp(c);
         setCampName(c.name || "");
@@ -174,6 +190,7 @@ function SetupContent() {
       setSlots(Array.isArray(st) ? st : []);
       setPersons(Array.isArray(people) ? people : []);
       setCourses(Array.isArray(courseList) ? courseList : []);
+      setMandatorySessions(Array.isArray(requiredList) ? requiredList : []);
       setLoading(false);
     }).catch(() => setLoading(false));
   };
@@ -239,6 +256,93 @@ function SetupContent() {
 
   const isEveryDayForRow = (row: SessionRow) =>
     campDayOfWeeks.size > 0 && [...campDayOfWeeks].every(d => row.days.has(d));
+
+  const rowMandatorySessions = (row: SessionRow) =>
+    mandatorySessions.filter(ms => [...row.slotIds.values()].includes(ms.sessionTemplateId));
+
+  const requiredRoomForRow = (row: SessionRow) => {
+    const existingRoomId = rowMandatorySessions(row).find(ms => Boolean(ms.roomId))?.roomId || "";
+    return requiredRoomDrafts[row.key] ?? existingRoomId;
+  };
+
+  const assignedTemplateId = (cst: CourseSessionTemplateSummary) => cst.sessionTemplateId || cst.sessionTemplate?.id || "";
+
+  const clearActivitiesFromRow = async (row: SessionRow) => {
+    const requiredSlotIds = new Set([...row.slotIds.values()]);
+    await Promise.all(courses.map(course => {
+      const currentIds = (course.courseSessionTemplates || []).map(assignedTemplateId).filter(Boolean);
+      const nextIds = currentIds.filter(id => !requiredSlotIds.has(id));
+      if (nextIds.length === currentIds.length) return Promise.resolve();
+      return fetch(`/api/camps/${campId}/courses/${course.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionTemplateIds: nextIds }),
+      });
+    }));
+  };
+
+  const ensureRequiredSessionsForRow = async (row: SessionRow, roomId: string) => {
+    if (!roomId) {
+      alert("Choose a location before marking this time slot Required.");
+      return false;
+    }
+
+    const scheduledAgeGroups = ageGroups.filter(ag => !ag.noSchedule);
+    const desiredKeys = new Set<string>();
+
+    await clearActivitiesFromRow(row);
+
+    await Promise.all([...row.slotIds.values()].map(id =>
+      fetch(`/api/camps/${campId}/session-templates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandatory: true }),
+      })
+    ));
+
+    await Promise.all([...row.slotIds.values()].flatMap(sessionTemplateId =>
+      scheduledAgeGroups.map(ageGroup => {
+        desiredKeys.add(`${ageGroup.id}:${sessionTemplateId}`);
+        const existing = mandatorySessions.find(ms => ms.ageGroupId === ageGroup.id && ms.sessionTemplateId === sessionTemplateId);
+        if (existing) {
+          return fetch(`/api/camps/${campId}/mandatory-sessions/${existing.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: row.label, ageGroupId: ageGroup.id, sessionTemplateId, roomId }),
+          });
+        }
+        return fetch(`/api/camps/${campId}/mandatory-sessions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: row.label, ageGroupId: ageGroup.id, sessionTemplateId, roomId }),
+        });
+      })
+    ));
+
+    const stale = mandatorySessions.filter(ms => [...row.slotIds.values()].includes(ms.sessionTemplateId) && !desiredKeys.has(`${ms.ageGroupId}:${ms.sessionTemplateId}`));
+    await Promise.all(stale.map(ms => fetch(`/api/camps/${campId}/mandatory-sessions/${ms.id}`, { method: "DELETE" })));
+    return true;
+  };
+
+  const clearRequiredSessionsForRow = async (row: SessionRow) => {
+    await Promise.all([...row.slotIds.values()].map(id =>
+      fetch(`/api/camps/${campId}/session-templates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mandatory: false }),
+      })
+    ));
+    await Promise.all(rowMandatorySessions(row).map(ms =>
+      fetch(`/api/camps/${campId}/mandatory-sessions/${ms.id}`, { method: "DELETE" })
+    ));
+  };
+
+  const changeRequiredRoomForRow = async (row: SessionRow, roomId: string) => {
+    setRequiredRoomDrafts(prev => ({ ...prev, [row.key]: roomId }));
+    if (!row.mandatory) return;
+    const ok = await ensureRequiredSessionsForRow(row, roomId);
+    if (ok) load();
+  };
 
   // ── Handlers ──
 
@@ -310,15 +414,15 @@ function SetupContent() {
     load();
   };
 
-  // Toggle whether a session row is mandatory. Mandatory sessions appear on schedules but parents do not choose a class for them.
+  // Toggle whether a session row is required. Required sessions appear on schedules but parents do not choose a class for them.
   const setMandatoryForRow = async (row: SessionRow, mandatory: boolean) => {
-    await Promise.all([...row.slotIds.values()].map(id =>
-      fetch(`/api/camps/${campId}/session-templates/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandatory }),
-      })
-    ));
+    if (mandatory) {
+      const roomId = requiredRoomForRow(row);
+      const ok = await ensureRequiredSessionsForRow(row, roomId);
+      if (!ok) return;
+    } else {
+      await clearRequiredSessionsForRow(row);
+    }
     load();
   };
 
@@ -328,11 +432,26 @@ function SetupContent() {
       const slotId = row.slotIds.get(dayOfWeek);
       if (slotId) await fetch(`/api/camps/${campId}/session-templates/${slotId}`, { method: "DELETE" });
     } else {
-      await fetch(`/api/camps/${campId}/session-templates`, {
+      const roomId = row.mandatory ? requiredRoomForRow(row) : "";
+      if (row.mandatory && !roomId) {
+        alert("Choose a location before adding another required day.");
+        return;
+      }
+      const res = await fetch(`/api/camps/${campId}/session-templates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: row.label, startTime: row.startTime, endTime: row.endTime, day: DAY_INT_TO_NAME[dayOfWeek] }),
+        body: JSON.stringify({ label: row.label, startTime: row.startTime, endTime: row.endTime, day: DAY_INT_TO_NAME[dayOfWeek], mandatory: row.mandatory }),
       });
+      if (row.mandatory && res.ok) {
+        const created = await res.json();
+        await Promise.all(ageGroups.filter(ag => !ag.noSchedule).map(ageGroup =>
+          fetch(`/api/camps/${campId}/mandatory-sessions`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: row.label, ageGroupId: ageGroup.id, sessionTemplateId: created.id, roomId }),
+          })
+        ));
+      }
     }
     load();
   };
@@ -340,14 +459,29 @@ function SetupContent() {
   // Per-row "every day" toggle
   const setEveryDayForRow = async (row: SessionRow, enable: boolean) => {
     if (enable) {
+      const roomId = row.mandatory ? requiredRoomForRow(row) : "";
+      if (row.mandatory && !roomId) {
+        alert("Choose a location before filling every required day.");
+        return;
+      }
       const missing = [...campDayOfWeeks].filter(d => !row.days.has(d));
-      await Promise.all(missing.map(dow =>
-        fetch(`/api/camps/${campId}/session-templates`, {
+      await Promise.all(missing.map(async dow => {
+        const res = await fetch(`/api/camps/${campId}/session-templates`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ label: row.label, startTime: row.startTime, endTime: row.endTime, day: DAY_INT_TO_NAME[dow] }),
-        })
-      ));
+          body: JSON.stringify({ label: row.label, startTime: row.startTime, endTime: row.endTime, day: DAY_INT_TO_NAME[dow], mandatory: row.mandatory }),
+        });
+        if (row.mandatory && res.ok) {
+          const created = await res.json();
+          await Promise.all(ageGroups.filter(ag => !ag.noSchedule).map(ageGroup =>
+            fetch(`/api/camps/${campId}/mandatory-sessions`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title: row.label, ageGroupId: ageGroup.id, sessionTemplateId: created.id, roomId }),
+            })
+          ));
+        }
+      }));
     } else {
       await Promise.all([...row.slotIds.values()].map(id =>
         fetch(`/api/camps/${campId}/session-templates/${id}`, { method: "DELETE" })
@@ -698,7 +832,7 @@ function SetupContent() {
       {activeTab === "times" && (
       <Section title="🕐 Time Slots">
         <p className="text-xs text-slate-400 mb-4">
-          Each row is a session (e.g. "Morning Session"). Check the days it runs. Toggle the switch on a row to fill every day of camp instantly.
+          Each row is a session (e.g. "Opening Assembly" or "Morning Session"). Check the days it runs. Choose a location, then mark a row <strong>Required</strong> for all scheduled groups when no activities should be assigned during that block.
         </p>
 
         {/* No dates warning */}
@@ -785,14 +919,26 @@ function SetupContent() {
                               </div>
                               <div className="text-xs text-slate-400">{row.startTime} – {row.endTime}</div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setMandatoryForRow(row, !row.mandatory)}
-                              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${row.mandatory ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
-                              title={row.mandatory ? "Parents will not choose a class for this session" : "Mark this session as mandatory"}
-                            >
-                              {row.mandatory ? "Required" : "Optional"}
-                            </button>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <select
+                                value={requiredRoomForRow(row)}
+                                onChange={e => changeRequiredRoomForRow(row, e.target.value)}
+                                className={`min-w-[140px] rounded-lg border px-2 py-1 text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400/30 ${row.mandatory ? "border-amber-200 bg-amber-50 text-amber-900" : "border-slate-200 bg-white text-slate-500"}`}
+                                title="Required sessions need a location. No teacher, capacity, or activity required."
+                              >
+                                <option value="">Location required…</option>
+                                {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => setMandatoryForRow(row, !row.mandatory)}
+                                disabled={!row.mandatory && !requiredRoomForRow(row)}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${row.mandatory ? "bg-amber-100 text-amber-700 hover:bg-amber-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                                title={row.mandatory ? "Move this time block back to the activity scheduling grid" : "Make this an all-schedule required block. Choose a location first."}
+                              >
+                                {row.mandatory ? "Required" : "Optional"}
+                              </button>
+                            </div>
                             <button
                               onClick={() => deleteSessionRow(row)}
                               className="text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 text-xs"

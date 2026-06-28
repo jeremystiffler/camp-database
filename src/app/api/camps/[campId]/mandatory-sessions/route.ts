@@ -61,13 +61,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (roomId && !room) return NextResponse.json({ error: "Selected location is not available" }, { status: 400 });
   if (leaderId && !leader) return NextResponse.json({ error: "Selected leader is not available" }, { status: 400 });
 
-  const conflicts = await checkSchedulingConflicts({
+  const conflicts = (await checkSchedulingConflicts({
     campId,
     roomId,
     teacherIds: leaderId ? [leaderId] : [],
     sessionTemplateIds: [sessionTemplateId],
     ageGroupIds: [ageGroupId],
-  });
+  })).filter(conflict => !(conflict.type === "room" && conflict.activityName === title));
   if (conflicts.length > 0) {
     return NextResponse.json({ error: "scheduling_conflict", conflicts }, { status: 409 });
   }
