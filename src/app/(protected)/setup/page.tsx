@@ -301,15 +301,22 @@ function SetupContent() {
 
     await clearActivitiesFromRow(row);
 
-    await Promise.all([...row.slotIds.values()].map(id =>
+    const templateResponses = await Promise.all([...row.slotIds.values()].map(id =>
       fetch(`/api/camps/${campId}/session-templates/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mandatory: true }),
       })
     ));
+    const failedTemplateUpdate = templateResponses.find(res => !res.ok);
+    if (failedTemplateUpdate) {
+      const error = await failedTemplateUpdate.json().catch(() => null);
+      alert(error?.error || "Could not save the All Schedule Lock. Please try again.");
+      load();
+      return false;
+    }
 
-    await Promise.all([...row.slotIds.values()].flatMap(sessionTemplateId =>
+    const requiredResponses = await Promise.all([...row.slotIds.values()].flatMap(sessionTemplateId =>
       scheduledAgeGroups.map(ageGroup => {
         desiredKeys.add(`${ageGroup.id}:${sessionTemplateId}`);
         const existing = mandatorySessions.find(ms => ms.ageGroupId === ageGroup.id && ms.sessionTemplateId === sessionTemplateId);
@@ -327,9 +334,23 @@ function SetupContent() {
         });
       })
     ));
+    const failedRequiredSave = requiredResponses.find(res => !res.ok);
+    if (failedRequiredSave) {
+      const error = await failedRequiredSave.json().catch(() => null);
+      alert(error?.error || "Could not save this block to every schedule. Please try again.");
+      load();
+      return false;
+    }
 
     const stale = mandatorySessions.filter(ms => [...row.slotIds.values()].includes(ms.sessionTemplateId) && !desiredKeys.has(`${ms.ageGroupId}:${ms.sessionTemplateId}`));
-    await Promise.all(stale.map(ms => fetch(`/api/camps/${campId}/mandatory-sessions/${ms.id}`, { method: "DELETE" })));
+    const staleResponses = await Promise.all(stale.map(ms => fetch(`/api/camps/${campId}/mandatory-sessions/${ms.id}`, { method: "DELETE" })));
+    const failedStaleDelete = staleResponses.find(res => !res.ok);
+    if (failedStaleDelete) {
+      const error = await failedStaleDelete.json().catch(() => null);
+      alert(error?.error || "The lock saved, but cleanup failed. Please refresh and try again.");
+      load();
+      return false;
+    }
     return true;
   };
 
@@ -584,21 +605,35 @@ function SetupContent() {
       alert("Session block needs a name, start time, and end time before applying.");
       return;
     }
-    await Promise.all([...row.slotIds.values()].map(id =>
+    const slotResponses = await Promise.all([...row.slotIds.values()].map(id =>
       fetch(`/api/camps/${campId}/session-templates/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ label: draft.label.trim(), startTime: draft.start, endTime: draft.end }),
       })
     ));
+    const failedSlotUpdate = slotResponses.find(res => !res.ok);
+    if (failedSlotUpdate) {
+      const error = await failedSlotUpdate.json().catch(() => null);
+      alert(error?.error || "Could not save this session block. Please try again.");
+      load();
+      return;
+    }
     if (row.mandatory) {
-      await Promise.all(rowMandatorySessions(row).map(ms =>
+      const requiredResponses = await Promise.all(rowMandatorySessions(row).map(ms =>
         fetch(`/api/camps/${campId}/mandatory-sessions/${ms.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: draft.label.trim() }),
         })
       ));
+      const failedRequiredUpdate = requiredResponses.find(res => !res.ok);
+      if (failedRequiredUpdate) {
+        const error = await failedRequiredUpdate.json().catch(() => null);
+        alert(error?.error || "The session time saved, but the all-schedule title did not update. Please try again.");
+        load();
+        return;
+      }
     }
     setSessionRowDrafts(prev => {
       const next = { ...prev };
@@ -617,13 +652,20 @@ function SetupContent() {
       alert("Choose at least one camp day before applying this session block.");
       return;
     }
-    await Promise.all(draft.days.map(dow =>
+    const responses = await Promise.all(draft.days.map(dow =>
       fetch(`/api/camps/${campId}/session-templates`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ label: draft.label.trim(), startTime: draft.start, endTime: draft.end, day: DAY_INT_TO_NAME[dow] }),
       })
     ));
+    const failedCreate = responses.find(res => !res.ok);
+    if (failedCreate) {
+      const error = await failedCreate.json().catch(() => null);
+      alert(error?.error || "Could not create this session block. Please try again.");
+      load();
+      return;
+    }
     setDraftRows(prev => prev.filter(d => d.id !== draft.id));
     load();
   };
