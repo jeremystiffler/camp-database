@@ -386,46 +386,69 @@ export function TeachersContent() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(p => (
-            <div key={p.id} className="camp-card p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                  {p.firstName[0]}{p.lastName[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-slate-800">{p.firstName} {p.lastName}</h3>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_COLORS[p.role] || "bg-slate-100 text-slate-600"}`}>
-                      {p.role}
-                    </span>
-                  </div>
-                  {p.email
-                    ? <p className="text-xs text-slate-500 mt-0.5 truncate">{p.email}</p>
-                    : <p className="text-xs text-amber-500 mt-0.5 italic">No email — add one to send schedule</p>}
-                  {p.phone && <p className="text-xs text-slate-400">{p.phone}</p>}
-                  {p.bio && <p className="text-xs text-slate-500 mt-1 line-clamp-2 italic">{p.bio}</p>}
-                </div>
-                <div className="flex flex-col gap-1 flex-shrink-0">
-                  <button onClick={() => setScheduling(p)}
-                    title="Send schedule email"
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">📧</button>
-                  <button onClick={() => { setEditing(p); setShowModal(true); }}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">✏️</button>
-                  <button onClick={() => deletePerson(p.id)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 text-sm">🗑️</button>
-                </div>
-              </div>
+        <div className="camp-card overflow-hidden">
+          <div className="hidden md:grid grid-cols-[minmax(220px,1.4fr)_minmax(160px,1fr)_minmax(130px,0.8fr)_minmax(180px,1.2fr)_130px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase tracking-wide text-slate-500">
+            <div>Teacher</div>
+            <div>Email</div>
+            <div>Phone</div>
+            <div>Notes</div>
+            <div className="text-right">Actions</div>
+          </div>
 
-              {/* Send Schedule shortcut button */}
-              <div className="mt-3 pt-3 border-t border-slate-100">
-                <button onClick={() => setScheduling(p)}
-                  className="w-full px-3 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">
-                  📧 Send Schedule & Roster
-                </button>
+          <div className="divide-y divide-slate-100">
+            {filtered.map(p => (
+              <div key={p.id} className="px-4 py-4 md:px-5 hover:bg-slate-50/70 transition-colors">
+                <div className="grid gap-3 md:grid-cols-[minmax(220px,1.4fr)_minmax(160px,1fr)_minmax(130px,0.8fr)_minmax(180px,1.2fr)_130px] md:items-center md:gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
+                      {p.firstName[0]}{p.lastName[0]}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-slate-800 truncate">{p.firstName} {p.lastName}</h3>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_COLORS[p.role] || "bg-slate-100 text-slate-600"}`}>
+                          {p.role}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-sm md:text-xs min-w-0">
+                    <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Email</span>
+                    {p.email
+                      ? <span className="text-slate-600 truncate block">{p.email}</span>
+                      : <span className="text-amber-500 italic">No email — add one to send schedule</span>}
+                  </div>
+
+                  <div className="text-sm md:text-xs min-w-0">
+                    <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Phone</span>
+                    {p.phone
+                      ? <span className="text-slate-500 truncate block">{p.phone}</span>
+                      : <span className="text-slate-300 italic">—</span>}
+                  </div>
+
+                  <div className="text-sm md:text-xs min-w-0">
+                    <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Notes</span>
+                    {p.bio
+                      ? <span className="text-slate-500 italic line-clamp-2">{p.bio}</span>
+                      : <span className="text-slate-300 italic">—</span>}
+                  </div>
+
+                  <div className="flex items-center gap-2 md:justify-end">
+                    <button onClick={() => setScheduling(p)}
+                      title="Send schedule email"
+                      className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold transition-colors">📧 Schedule</button>
+                    <button onClick={() => { setEditing(p); setShowModal(true); }}
+                      title="Edit teacher"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">✏️</button>
+                    <button onClick={() => deletePerson(p.id)}
+                      title="Remove teacher"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 text-sm">🗑️</button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
