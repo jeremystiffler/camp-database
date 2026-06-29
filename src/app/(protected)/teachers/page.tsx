@@ -384,10 +384,10 @@ export function TeachersContent() {
   );
 
   const ROLE_COLORS: Record<string, string> = {
-    teacher: "bg-berry-100 text-berry-700",
-    assistant: "bg-sky-100 text-sky-700",
-    director: "bg-sunset-100 text-sunset-700",
-    staff: "bg-slate-100 text-slate-600",
+    teacher: "bg-berry-100 text-berry-600 border border-berry-100",
+    assistant: "bg-sky-100 text-sky-600 border border-sky-100",
+    director: "bg-sunset-100 text-sunset-600 border border-sunset-100",
+    staff: "bg-slate-100 text-slate-600 border border-slate-200",
   };
 
   if (!campId) return (
