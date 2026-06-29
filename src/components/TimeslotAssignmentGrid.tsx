@@ -41,6 +41,8 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const [focusAgeGroupId, setFocusAgeGroupId] = useState("");
   const [roomFilter, setRoomFilter] = useState("");
   const [teacherFilter, setTeacherFilter] = useState("");
+  const [showAvailableSlots, setShowAvailableSlots] = useState(false);
+  const [availableOnly, setAvailableOnly] = useState(false);
   const [columnPage, setColumnPage] = useState(0);
   const [quickAddByGroup, setQuickAddByGroup] = useState<Record<string, string>>({});
   const [blockedCells, setBlockedCells] = useState<Set<string>>(new Set());
@@ -130,6 +132,12 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const courseAgeGroupLabel = (course: Course): string =>
     course.courseAgeGroups?.map(cag => cag.ageGroup.name).sort((a, b) => a.localeCompare(b))[0] || "zzzz no age group";
 
+  const courseHasAvailableSlot = (course: Course): boolean => {
+    if (sessionGroups.length === 0) return false;
+    const checked = courseCheckedGroups(course);
+    return sessionGroups.some(sg => !checked.has(sg.key));
+  };
+
   const filteredCourses = useMemo(() => {
     const q = activityFilter.trim().toLowerCase();
     const filtered = courses.filter(c => {
@@ -140,6 +148,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       if (focusAgeGroupId && !c.courseAgeGroups?.some(cag => cag.ageGroup.id === focusAgeGroupId)) return false;
       if (roomFilter && (c.roomId || c.room?.id || "") !== roomFilter) return false;
       if (teacherFilter && !c.courseTeachers?.some(ct => ct.person.id === teacherFilter)) return false;
+      if (availableOnly && !courseHasAvailableSlot(c)) return false;
       return true;
     });
     return [...filtered].sort((a, b) => {
@@ -149,7 +158,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       const result = primary !== 0 ? primary : a.name.localeCompare(b.name);
       return rowSortDir === "asc" ? result : -result;
     });
-  }, [courses, activityFilter, rowSort, rowSortDir, focusAgeGroupId, roomFilter, teacherFilter]);
+  }, [courses, activityFilter, rowSort, rowSortDir, focusAgeGroupId, roomFilter, teacherFilter, availableOnly, sessionGroups]);
 
   const pageSize = 7;
   const totalColumnPages = Math.max(1, Math.ceil(sessionGroups.length / pageSize));
@@ -469,8 +478,14 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                 <option value="">Person: all</option>
                 {allPersonOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
               </select>
-              {(activityFilter || focusAgeGroupId || roomFilter || teacherFilter || rowSort !== "name" || rowSortDir !== "asc") && (
-                <button type="button" onClick={() => { setActivityFilter(""); setFocusAgeGroupId(""); setRoomFilter(""); setTeacherFilter(""); setRowSort("name"); setRowSortDir("asc"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-400 hover:text-slate-700">Reset</button>
+              <button type="button" onClick={() => setShowAvailableSlots(v => !v)} className={`rounded-xl border px-3 py-2 text-xs font-black transition-all ${showAvailableSlots ? "border-sky-300 bg-sky-100 text-sky-800" : "border-slate-200 bg-white text-slate-500 hover:bg-sky-50"}`}>
+                {showAvailableSlots ? "Open cells: on" : "Open cells: off"}
+              </button>
+              <button type="button" onClick={() => setAvailableOnly(v => !v)} className={`rounded-xl border px-3 py-2 text-xs font-black transition-all ${availableOnly ? "border-emerald-300 bg-emerald-100 text-emerald-800" : "border-slate-200 bg-white text-slate-500 hover:bg-emerald-50"}`}>
+                {availableOnly ? "Can schedule only" : "Show all classes"}
+              </button>
+              {(activityFilter || focusAgeGroupId || roomFilter || teacherFilter || showAvailableSlots || availableOnly || rowSort !== "name" || rowSortDir !== "asc") && (
+                <button type="button" onClick={() => { setActivityFilter(""); setFocusAgeGroupId(""); setRoomFilter(""); setTeacherFilter(""); setShowAvailableSlots(false); setAvailableOnly(false); setRowSort("name"); setRowSortDir("asc"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-400 hover:text-slate-700">Reset</button>
               )}
               <span className="text-xs font-semibold text-slate-400">{filteredCourses.length}/{courses.length}</span>
             </div>
@@ -600,6 +615,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                         const isSaving = assignSaving[saveKey];
                         const isChecked = checked.has(sg.key);
                         const isBlocked = blockedCells.has(saveKey) && !isChecked;
+                        const isAvailable = showAvailableSlots && !isChecked && !isBlocked;
                         const enrolled = courseEnrollmentForGroup(course, sg);
                         const cap = course.cap || 0;
                         const seatsLeft = Math.max(cap - enrolled, 0);
@@ -609,14 +625,16 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                               <button
                                 type="button"
                                 disabled={isBlocked}
-                                title={isBlocked ? "Blocked by a scheduling conflict" : isChecked ? `${enrolled}/${cap || "—"} registered/seats — click to remove` : "Click to schedule this activity in this time block"}
+                                title={isBlocked ? "Blocked by a scheduling conflict" : isChecked ? `${enrolled}/${cap || "—"} registered/seats — click to remove` : isAvailable ? "Available to schedule — click to add this class here" : "Click to schedule this activity in this time block"}
                                 onClick={() => toggleSlotGroup(course, sg, !isChecked)}
                                 className={`mx-auto flex h-10 w-full min-w-0 items-center justify-center rounded-lg border-2 text-[11px] font-black shadow-sm transition-all ${
                                   isChecked
                                     ? activeCellClass(course, sg)
                                     : isBlocked
                                       ? "cursor-not-allowed border-red-200 bg-red-50 text-red-300 opacity-60"
-                                      : "border-dashed border-slate-200 bg-slate-50 text-slate-300 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
+                                      : isAvailable
+                                        ? "border-sky-300 bg-sky-100 text-sky-800 ring-2 ring-sky-200/70 hover:border-sky-400 hover:bg-sky-200"
+                                        : "border-dashed border-slate-200 bg-slate-50 text-slate-300 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
                                 }`}
                               >
                                 {isChecked ? (
@@ -624,7 +642,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                                     <span className="block text-xs leading-tight">{enrolled}/{cap || "—"}</span>
                                     <span className="block text-[10px] font-semibold opacity-70">{cap > 0 ? `${seatsLeft} open` : "no cap"}</span>
                                   </span>
-                                ) : isBlocked ? "!" : "+"}
+                                ) : isBlocked ? "!" : isAvailable ? "open" : "+"}
                               </button>
                             )}
                           </td>
@@ -647,6 +665,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             <span><span className="inline-block w-4 h-3 rounded bg-amber-100 border border-amber-300 align-middle" /> watch</span>
             <span><span className="inline-block w-4 h-3 rounded bg-orange-100 border border-orange-300 align-middle" /> tight</span>
             <span><span className="inline-block w-4 h-3 rounded bg-red-100 border border-red-300 align-middle" /> full/short</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-sky-100 border border-sky-300 align-middle" /> available slot highlight</span>
           </div>
         </>
       )}
