@@ -6,7 +6,7 @@ import Link from "next/link";
 
 interface FormField {
   id: string;
-  type: "text" | "email" | "tel" | "date" | "select" | "textarea" | "checkbox" | "heading" | "subheading" | "divider" | "pageBreak";
+  type: "text" | "email" | "tel" | "date" | "number" | "url" | "select" | "textarea" | "checkbox" | "heading" | "subheading" | "divider" | "pageBreak";
   label: string;
   required: boolean;
   system?: boolean;
@@ -23,48 +23,64 @@ interface FormSummary {
   slug: string;
   status: "draft" | "public" | "linkOnly";
   isDefault: boolean;
+  classChoicesEnabled?: boolean;
 }
 
 const FIELD_ICONS: Record<string, string> = {
-  text: "Aa", email: "@", tel: "📞", date: "📅", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
+  text: "Aa", email: "@", tel: "📞", date: "📅", number: "#", url: "🔗", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
 };
 
+type AddFieldCategory = "Basic" | "Contact" | "Choice" | "Camp" | "Consent" | "Layout";
 type AddFieldItem = {
   type: FormField["type"];
   label: string;
   icon: string;
+  category: AddFieldCategory;
+  description?: string;
   defaults?: Partial<Omit<FormField, "id" | "type">>;
 };
 
 const ADD_FIELD_TYPES: AddFieldItem[] = [
-  { type: "heading",  label: "Section heading", icon: "H", defaults: { label: "New section" } },
-  { type: "subheading", label: "Info / instructions", icon: "ℹ", defaults: { label: "Important information", helpText: "Add multi-line details families should read before continuing." } },
-  { type: "divider",  label: "Divider",      icon: "—"  },
-  { type: "pageBreak", label: "Page break", icon: "↧", defaults: { label: "Page break" } },
-  { type: "text",     label: "Text input",   icon: "Aa" },
-  { type: "email",    label: "Email",        icon: "@"  },
-  { type: "tel",      label: "Phone",        icon: "📞" },
-  { type: "date",     label: "Date",         icon: "📅" },
-  { type: "select",   label: "Dropdown",     icon: "▾"  },
-  { type: "textarea", label: "Long text",    icon: "¶"  },
-  { type: "checkbox", label: "Checkbox",     icon: "☑"  },
-  { type: "text", label: "Preferred name", icon: "🏷️", defaults: { label: "Preferred name", placeholder: "What should we call your camper?" } },
-  { type: "text", label: "Grade / school", icon: "🎒", defaults: { label: "Grade entering / school", placeholder: "Example: 4th grade, Liberty Elementary" } },
-  { type: "select", label: "T-shirt size", icon: "👕", defaults: { label: "T-shirt size", options: ["Youth XS", "Youth S", "Youth M", "Youth L", "Youth XL", "Adult S", "Adult M", "Adult L", "Adult XL", "Adult 2XL"] } },
-  { type: "textarea", label: "Allergies", icon: "⚕️", defaults: { label: "Allergies", placeholder: "Food, medication, insect, or environmental allergies" } },
-  { type: "textarea", label: "Medications", icon: "💊", defaults: { label: "Medications", placeholder: "Medication name, dosage, schedule, and instructions" } },
-  { type: "textarea", label: "Dietary needs", icon: "🥪", defaults: { label: "Dietary restrictions or meal notes", placeholder: "Vegetarian, gluten-free, no pork, etc." } },
-  { type: "textarea", label: "Accommodations", icon: "🤝", defaults: { label: "Learning, behavioral, sensory, or accessibility needs", placeholder: "Anything that helps us serve your camper well" } },
-  { type: "text", label: "Authorized pickup", icon: "🚗", defaults: { label: "Authorized pickup people", placeholder: "Names of adults allowed to pick up this camper" } },
-  { type: "text", label: "Not authorized pickup", icon: "🚫", defaults: { label: "People not authorized for pickup", placeholder: "Optional" } },
-  { type: "tel", label: "Emergency backup phone", icon: "☎️", defaults: { label: "Backup emergency phone", placeholder: "If guardian cannot be reached" } },
-  { type: "text", label: "Physician / clinic", icon: "🩺", defaults: { label: "Physician or clinic", placeholder: "Doctor/clinic name and phone" } },
-  { type: "text", label: "Insurance info", icon: "🛡️", defaults: { label: "Insurance provider / policy", placeholder: "Optional, if your camp collects it" } },
-  { type: "checkbox", label: "Single checkbox", icon: "☑", defaults: { label: "Agreement", checkboxDescription: "I agree to this statement." } },
-  { type: "checkbox", label: "Multiple checkboxes", icon: "☑☑", defaults: { label: "Select all that apply", options: ["Option 1", "Option 2", "Option 3"] } },
-  { type: "checkbox", label: "Transportation permission", icon: "🚌", defaults: { label: "Transportation permission", checkboxDescription: "I give permission for camp-provided transportation when applicable." } },
-  { type: "checkbox", label: "Medical consent", icon: "✅", defaults: { label: "Medical consent", checkboxDescription: "I authorize camp staff to seek emergency medical care if needed.", required: true } },
+  { category: "Layout", type: "heading",  label: "Section heading", icon: "H", description: "Bold section title", defaults: { label: "New section" } },
+  { category: "Layout", type: "subheading", label: "Info / instructions", icon: "ℹ", description: "Instruction card", defaults: { label: "Important information", helpText: "Add multi-line details families should read before continuing." } },
+  { category: "Layout", type: "divider",  label: "Divider", icon: "—", description: "Visual separator" },
+  { category: "Layout", type: "pageBreak", label: "Page break", icon: "↧", description: "Split the form into pages", defaults: { label: "Page break" } },
+
+  { category: "Basic", type: "text", label: "Short text", icon: "Aa", description: "Single-line answer", defaults: { label: "Short answer", placeholder: "Type your answer" } },
+  { category: "Basic", type: "textarea", label: "Long text", icon: "¶", description: "Paragraph answer", defaults: { label: "Long answer", placeholder: "Type details here" } },
+  { category: "Basic", type: "number", label: "Number", icon: "#", description: "Numeric answer", defaults: { label: "Number", placeholder: "0" } },
+  { category: "Basic", type: "date", label: "Date picker", icon: "📅", description: "Calendar date", defaults: { label: "Date" } },
+  { category: "Basic", type: "url", label: "Website / link", icon: "🔗", description: "URL field", defaults: { label: "Website", placeholder: "https://" } },
+
+  { category: "Contact", type: "text", label: "Full name", icon: "👤", description: "Person name", defaults: { label: "Full name", placeholder: "First and last name" } },
+  { category: "Contact", type: "email", label: "Email", icon: "@", description: "Email address", defaults: { label: "Email", placeholder: "name@example.com" } },
+  { category: "Contact", type: "tel", label: "Phone", icon: "📞", description: "Phone number", defaults: { label: "Phone", placeholder: "(555) 555-5555" } },
+  { category: "Contact", type: "textarea", label: "Address", icon: "🏠", description: "Mailing address", defaults: { label: "Address", placeholder: "Street, city, state, ZIP" } },
+
+  { category: "Choice", type: "select", label: "Dropdown", icon: "▾", description: "Choose one from a menu", defaults: { label: "Dropdown", options: ["Option 1", "Option 2", "Option 3"] } },
+  { category: "Choice", type: "checkbox", label: "Single checkbox", icon: "☑", description: "One acknowledgement", defaults: { label: "Agreement", checkboxDescription: "I agree to this statement." } },
+  { category: "Choice", type: "checkbox", label: "Multiple checkboxes", icon: "☑☑", description: "Select all that apply", defaults: { label: "Select all that apply", options: ["Option 1", "Option 2", "Option 3"] } },
+  { category: "Choice", type: "select", label: "Yes / No", icon: "Y/N", description: "Simple yes/no choice", defaults: { label: "Yes or no?", options: ["Yes", "No"] } },
+
+  { category: "Camp", type: "text", label: "Preferred name", icon: "🏷️", description: "Camper nickname", defaults: { label: "Preferred name", placeholder: "What should we call your camper?" } },
+  { category: "Camp", type: "text", label: "Grade / school", icon: "🎒", description: "Grade and school", defaults: { label: "Grade entering / school", placeholder: "Example: 4th grade, Liberty Elementary" } },
+  { category: "Camp", type: "select", label: "T-shirt size", icon: "👕", description: "Common shirt sizes", defaults: { label: "T-shirt size", options: ["Youth XS", "Youth S", "Youth M", "Youth L", "Youth XL", "Adult S", "Adult M", "Adult L", "Adult XL", "Adult 2XL"] } },
+  { category: "Camp", type: "textarea", label: "Allergies", icon: "⚕️", description: "Health safety", defaults: { label: "Allergies", placeholder: "Food, medication, insect, or environmental allergies" } },
+  { category: "Camp", type: "textarea", label: "Medications", icon: "💊", description: "Medication details", defaults: { label: "Medications", placeholder: "Medication name, dosage, schedule, and instructions" } },
+  { category: "Camp", type: "textarea", label: "Dietary needs", icon: "🥪", description: "Meal restrictions", defaults: { label: "Dietary restrictions or meal notes", placeholder: "Vegetarian, gluten-free, no pork, etc." } },
+  { category: "Camp", type: "textarea", label: "Accommodations", icon: "🤝", description: "Learning/access needs", defaults: { label: "Learning, behavioral, sensory, or accessibility needs", placeholder: "Anything that helps us serve your camper well" } },
+  { category: "Camp", type: "text", label: "Authorized pickup", icon: "🚗", description: "Approved adults", defaults: { label: "Authorized pickup people", placeholder: "Names of adults allowed to pick up this camper" } },
+  { category: "Camp", type: "text", label: "Not authorized pickup", icon: "🚫", description: "Restricted pickup", defaults: { label: "People not authorized for pickup", placeholder: "Optional" } },
+  { category: "Camp", type: "tel", label: "Emergency backup phone", icon: "☎️", description: "Backup contact", defaults: { label: "Backup emergency phone", placeholder: "If guardian cannot be reached" } },
+  { category: "Camp", type: "text", label: "Physician / clinic", icon: "🩺", description: "Medical contact", defaults: { label: "Physician or clinic", placeholder: "Doctor/clinic name and phone" } },
+  { category: "Camp", type: "text", label: "Insurance info", icon: "🛡️", description: "Policy details", defaults: { label: "Insurance provider / policy", placeholder: "Optional, if your camp collects it" } },
+
+  { category: "Consent", type: "checkbox", label: "Transportation permission", icon: "🚌", description: "Travel consent", defaults: { label: "Transportation permission", checkboxDescription: "I give permission for camp-provided transportation when applicable." } },
+  { category: "Consent", type: "checkbox", label: "Medical consent", icon: "✅", description: "Emergency care", defaults: { label: "Medical consent", checkboxDescription: "I authorize camp staff to seek emergency medical care if needed.", required: true } },
+  { category: "Consent", type: "checkbox", label: "Code of conduct", icon: "🤝", description: "Behavior agreement", defaults: { label: "Code of conduct", checkboxDescription: "I have reviewed the camp expectations with my camper and agree to support them.", required: true } },
 ];
+
+const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", "Camp", "Consent", "Layout"];
 
 const LAYOUT_FIELD_TYPES = new Set<FormField["type"]>(["heading", "subheading", "divider", "pageBreak"]);
 const isLayoutField = (field: FormField) => LAYOUT_FIELD_TYPES.has(field.type);
@@ -171,6 +187,7 @@ function RegistrationContent() {
   const [formSlug, setFormSlug]     = useState("main");
   const [formStatus, setFormStatus] = useState<FormSummary["status"]>("public");
   const [isDefault, setIsDefault]   = useState(true);
+  const [classChoicesEnabled, setClassChoicesEnabled] = useState(true);
   const [ageGroups, setAgeGroups]   = useState<{ id: string; name: string }[]>([]);
   const [campName, setCampName]     = useState("");
   const [regOpen, setRegOpen]       = useState(false);
@@ -194,6 +211,7 @@ function RegistrationContent() {
       setFormSlug(d.form.slug || d.form.id);
       setFormStatus(d.form.status || "public");
       setIsDefault(Boolean(d.form.isDefault));
+      setClassChoicesEnabled(d.form.classChoicesEnabled !== false);
     }
     try { setFields(JSON.parse(typeof d.fields === "string" ? d.fields : JSON.stringify(d.fields))); } catch { setFields([]); }
   };
@@ -225,7 +243,7 @@ function RegistrationContent() {
     const res = await fetch(`/api/camps/${campId}/registration-form`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, fields }),
+      body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, fields }),
     });
     if (res.ok) {
       const d = await res.json();
@@ -235,6 +253,7 @@ function RegistrationContent() {
         setFormSlug(d.form.slug);
         setFormStatus(d.form.status);
         setIsDefault(d.form.isDefault);
+        setClassChoicesEnabled(d.form.classChoicesEnabled !== false);
       }
       await refreshForms(d.form?.id || selectedFormId);
     }
@@ -298,6 +317,8 @@ function RegistrationContent() {
     return pages;
   }, [[]]);
   const currentPreviewPage = Math.min(previewPage, Math.max(previewPages.length - 1, 0));
+  const ageGroupField = fields.find(field => field.id === "f4" || field.source === "ageGroups");
+  const ageGroupReady = Boolean(ageGroupField?.required);
 
   useEffect(() => {
     if (previewPage > Math.max(previewPages.length - 1, 0)) setPreviewPage(Math.max(previewPages.length - 1, 0));
@@ -373,6 +394,25 @@ function RegistrationContent() {
         </div>
       </div>
 
+      <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <p className="text-sm font-black text-sky-950">Class choices automation</p>
+            <p className="mt-1 text-sm text-sky-800">When enabled, families first pick an <strong>Age Group</strong>, then the registration form automatically inserts a class-choice step using your Schedule Grid. Full classes hide themselves; newly opened seats reappear.</p>
+            <p className={`mt-2 rounded-xl px-3 py-2 text-xs font-bold ${ageGroupReady ? "bg-forest-50 text-forest-800 border border-forest-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+              {ageGroupReady ? "✓ Age Group is present and required — families can register." : "⚠ Age Group MUST be on this form and marked required, or families cannot register."}
+            </p>
+          </div>
+          <label className="flex min-w-[220px] items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-white px-4 py-3 shadow-sm">
+            <span>
+              <span className="block text-sm font-black text-slate-800">Enable class choices</span>
+              <span className="block text-xs text-slate-500">Turn off for a simple intake form.</span>
+            </span>
+            <input type="checkbox" checked={classChoicesEnabled} onChange={e => setClassChoicesEnabled(e.target.checked)} className="h-5 w-5 accent-forest-500" />
+          </label>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* LEFT — Field builder */}
         <div>
@@ -384,12 +424,25 @@ function RegistrationContent() {
                 + Add Field ▾
               </button>
               {showAddMenu && (
-                <div className="absolute right-0 top-9 max-h-[65vh] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1 w-64">
-                  {ADD_FIELD_TYPES.map((t, idx) => (
-                    <button key={`${t.type}-${t.label}-${idx}`} onClick={() => addField(t)}
-                      className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5">
-                      <span className="text-slate-400 w-5 text-center font-mono text-xs">{t.icon}</span> {t.label}
-                    </button>
+                <div className="absolute right-0 top-9 max-h-[70vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-2xl z-20 p-2 w-80">
+                  <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                    <p className="text-sm font-black text-slate-800">Add form element</p>
+                    <p className="text-xs text-slate-500">Jotform-style blocks: drag it later, tweak it instantly.</p>
+                  </div>
+                  {ADD_FIELD_CATEGORIES.map(category => (
+                    <div key={category} className="py-1">
+                      <p className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">{category}</p>
+                      {ADD_FIELD_TYPES.filter(t => t.category === category).map((t, idx) => (
+                        <button key={`${t.type}-${t.label}-${idx}`} onClick={() => addField(t)}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-sky-50 rounded-xl flex items-start gap-2.5 transition-colors">
+                          <span className="mt-0.5 text-slate-400 w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center font-mono text-xs">{t.icon}</span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block font-semibold text-slate-800">{t.label}</span>
+                            {t.description && <span className="block text-xs text-slate-400 leading-snug">{t.description}</span>}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   ))}
                 </div>
               )}
@@ -457,6 +510,33 @@ function RegistrationContent() {
                 <FieldPreview key={field.id} field={field} ageGroups={ageGroups} />
               )) : <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">This preview page is empty. Drag fields below the page break to fill it.</div>}
             </div>
+            {currentPreviewPage === previewPages.length - 1 && (
+              <div className={`mt-5 rounded-2xl border p-4 ${classChoicesEnabled ? "border-forest-200 bg-forest-50" : "border-slate-200 bg-slate-50"}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-xl text-lg ${classChoicesEnabled ? "bg-forest-100" : "bg-white"}`}>{classChoicesEnabled ? "🎨" : "📝"}</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-black text-slate-800">{classChoicesEnabled ? "Auto-added classroom choices step" : "Class choices disabled for this form"}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                      {classChoicesEnabled
+                        ? "Families will see the schedule here after they choose an Age Group. The app shows one choice per session, hides full classes, includes required sessions automatically, and saves enrollments when they submit."
+                        : "Families will only complete the fields you build here. Use this for simple signups, interest forms, or non-scheduled events."}
+                    </p>
+                    {classChoicesEnabled && (
+                      <div className="mt-3 space-y-2">
+                        <div className="rounded-xl border border-forest-200 bg-white px-3 py-2">
+                          <p className="text-xs font-bold text-forest-900">Session 1 · 9:00–10:00</p>
+                          <p className="text-[11px] text-forest-700">Example choices based on selected age group: Art, Soccer, Robotics…</p>
+                        </div>
+                        <div className="rounded-xl border border-forest-200 bg-white px-3 py-2">
+                          <p className="text-xs font-bold text-forest-900">Required Chapel · assigned automatically</p>
+                          <p className="text-[11px] text-forest-700">Required blocks appear as included, not parent choices.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             {previewPages.length > 1 && (
               <div className="mt-6 flex gap-3">
                 <button type="button" onClick={() => setPreviewPage(p => Math.max(0, p - 1))} disabled={currentPreviewPage === 0} className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 disabled:opacity-40">← Back</button>

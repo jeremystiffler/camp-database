@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 interface FormField {
   id: string;
-  type: "text" | "email" | "tel" | "date" | "select" | "textarea" | "checkbox" | "heading" | "subheading" | "divider" | "pageBreak";
+  type: "text" | "email" | "tel" | "date" | "number" | "url" | "select" | "textarea" | "checkbox" | "heading" | "subheading" | "divider" | "pageBreak";
   label: string;
   required: boolean;
   system?: boolean;
@@ -112,6 +112,8 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const [ageGroups, setAgeGroups]   = useState<AgeGroup[]>([]);
   const [courses, setCourses]       = useState<Course[]>([]);
   const [registrationSessions, setRegistrationSessions] = useState<RegistrationSession[]>([]);
+  const [classChoicesEnabled, setClassChoicesEnabled] = useState(true);
+  const [formRef, setFormRef] = useState("");
   const [regOpen, setRegOpen]       = useState(false);
   const [billingMode, setBillingMode] = useState<"campPays" | "camperFee">("campPays");
   const [platformFeeCents, setPlatformFeeCents] = useState(300);
@@ -130,6 +132,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     params.then(p => {
       setCampId(p.campId);
       const formRef = searchParams.get("form") || "";
+      setFormRef(formRef);
       fetch(`/api/camps/${p.campId}/registration-form${formRef ? `?form=${encodeURIComponent(formRef)}` : ""}`)
         .then(r => r.json())
         .then(d => {
@@ -141,6 +144,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           setAgeGroups(Array.isArray(d.ageGroups) ? d.ageGroups : []);
           setCourses(Array.isArray(d.courses) ? d.courses : []);
           setRegistrationSessions(Array.isArray(d.registrationSessions) ? d.registrationSessions : []);
+          setClassChoicesEnabled(d.form?.classChoicesEnabled !== false);
           try {
             const parsed = typeof d.fields === "string" ? JSON.parse(d.fields) : d.fields;
             setFields(Array.isArray(parsed) ? parsed : []);
@@ -176,7 +180,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
 
   const selectedAgeGroupId = String(values.f4 || "");
   const selectedAgeGroup = ageGroups.find(ag => ag.id === selectedAgeGroupId);
-  const selectableSessions: WeeklyRegistrationSession[] = selectedAgeGroup?.noSchedule ? [] : Array.from(
+  const selectableSessions: WeeklyRegistrationSession[] = !classChoicesEnabled || selectedAgeGroup?.noSchedule ? [] : Array.from(
     registrationSessions.reduce<Map<string, RegistrationSession[]>>((groups, session) => {
       const key = weeklySessionKey(session);
       const existing = groups.get(key) || [];
@@ -217,7 +221,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         if (fields.some(f => f.id === requiredId) && !values[requiredId]) errs[requiredId] = "Required";
       }
     }
-    if (targetStep === 2 && !selectedAgeGroup?.noSchedule) {
+    if (targetStep === 2 && classChoicesEnabled && !selectedAgeGroup?.noSchedule) {
       const unavailable = requiredSessions.filter(session => session.options.length === 0);
       const missing = requiredSessions.filter(session => session.options.length > 0 && !session.sessionIds.every(sessionId => selectedBySession[sessionId]));
       const selectedCoursesByWeeklySession = requiredSessions
@@ -234,13 +238,13 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
 
   const nextStep = () => {
     if (!validateStep(step)) return;
-    setStep(prev => (prev === 1 ? 2 : 3));
+    setStep(prev => (prev === 1 ? (classChoicesEnabled ? 2 : 3) : 3));
     setErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const prevStep = () => {
-    setStep(prev => (prev === 3 ? 2 : 1));
+    setStep(prev => (prev === 3 ? (classChoicesEnabled ? 2 : 1) : 1));
     setErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -276,8 +280,9 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           medicalNotes: values.f10 || undefined,
           dietaryNotes: values.f11 || undefined,
           photoConsent: Boolean(values.f12),
-          selectedSessionCourseIds: selectedBySession,
-          selectedCourseIds,
+          selectedSessionCourseIds: classChoicesEnabled ? selectedBySession : {},
+          selectedCourseIds: classChoicesEnabled ? selectedCourseIds : [],
+          formRef,
           updateExisting,
           existingCamperId,
           customData: Object.fromEntries(fields.filter(f => !SYSTEM_FIELD_IDS.has(f.id) && isInputField(f)).map(f => [f.label, values[f.id] || ""])),
@@ -410,8 +415,8 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         </div>
 
         <div className="flex items-center gap-2 mb-5">
-          {["Info", "Classes", "Consent"].map((label, idx) => {
-            const num = idx + 1;
+          {(classChoicesEnabled ? ["Info", "Classes", "Consent"] : ["Info", "Consent"]).map((label, idx) => {
+            const num = classChoicesEnabled ? idx + 1 : (idx === 0 ? 1 : 3);
             const active = step === num;
             const done = step > num;
             return <div key={label} className={`flex-1 rounded-full px-3 py-2 text-center text-xs font-bold ${active ? "bg-forest-600 text-white" : done ? "bg-forest-100 text-forest-700" : "bg-white text-slate-400 border border-slate-200"}`}>{done ? "✓ " : ""}{label}</div>;
@@ -441,9 +446,9 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
             {step === 1 && (
               <>
                 <h2 className="text-xl font-bold text-slate-800">Parent + student info</h2>
-                <p className="text-sm text-slate-500">Choose an age group here; the next step will show each session with the open classes for that time.</p>
+                <p className="text-sm text-slate-500">Age Group is required for registration. {classChoicesEnabled ? "The next step will show classroom choices based on the selected age group." : "Class choices are disabled for this form, so families will continue directly to consent."}</p>
                 {fieldsForStep(1).map(renderField)}
-                <button type="button" onClick={nextStep} className="w-full py-3.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">Continue to Classes →</button>
+                <button type="button" onClick={nextStep} className="w-full py-3.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">{classChoicesEnabled ? "Continue to Classes →" : "Continue →"}</button>
               </>
             )}
 

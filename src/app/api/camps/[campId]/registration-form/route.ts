@@ -52,17 +52,18 @@ async function ensureDefaultForm(campId: string) {
     return forms.find(form => form.isDefault) || forms[0];
   }
   return prisma.registrationForm.create({
-    data: { campId, title: "Main Registration Form", slug: "main", status: "public", isDefault: true, fields: DEFAULT_FIELDS },
+    data: { campId, title: "Main Registration Form", slug: "main", status: "public", isDefault: true, classChoicesEnabled: true, fields: DEFAULT_FIELDS },
   });
 }
 
-function compactForm(form: { id: string; title: string; slug: string; status: string; isDefault: boolean; updatedAt: Date; createdAt: Date }) {
+function compactForm(form: { id: string; title: string; slug: string; status: string; isDefault: boolean; classChoicesEnabled?: boolean; updatedAt: Date; createdAt: Date }) {
   return {
     id: form.id,
     title: form.title,
     slug: form.slug,
     status: form.status,
     isDefault: form.isDefault,
+    classChoicesEnabled: form.classChoicesEnabled !== false,
     updatedAt: form.updatedAt,
     createdAt: form.createdAt,
   };
@@ -207,6 +208,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       slug: existingCount === 0 ? slug : `${slug}-${Date.now().toString().slice(-5)}`,
       status: "draft",
       isDefault: existingCount === 0,
+      classChoicesEnabled: true,
       fields: DEFAULT_FIELDS,
     },
   });
@@ -220,7 +222,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
   const { campId } = await params;
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { formId, fields, title, slug, status, isDefault } = await req.json();
+  const { formId, fields, title, slug, status, isDefault, classChoicesEnabled } = await req.json();
   if (!Array.isArray(fields)) return NextResponse.json({ error: "fields must be an array" }, { status: 400 });
 
   const existing = formId
@@ -244,6 +246,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
         slug: nextSlug,
         status: safeStatus,
         isDefault: Boolean(isDefault) || existing.isDefault,
+        classChoicesEnabled: classChoicesEnabled !== false,
       },
     });
     return NextResponse.json({ success: true, form: compactForm(updated) });

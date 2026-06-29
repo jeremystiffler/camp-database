@@ -19,11 +19,16 @@ interface RegistrationPayload {
   selectedCourseIds?: string[];
   selectedSessionCourseIds?: Record<string, string>;
   customData?: Record<string, unknown>;
+  formRef?: string;
   updateExisting?: boolean;
   existingCamperId?: string;
 }
 
 function clean(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function slugRef(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
@@ -97,6 +102,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!camp) return NextResponse.json({ error: "Camp not found" }, { status: 404 });
   if (!camp.registrationOpen) return NextResponse.json({ error: "Registration is closed" }, { status: 403 });
 
+  const ref = slugRef(data.formRef);
+  const selectedForm = ref
+    ? await prisma.registrationForm.findFirst({ where: { campId, OR: [{ id: ref }, { slug: ref }], status: { in: ["public", "linkOnly"] } }, select: { classChoicesEnabled: true } })
+    : await prisma.registrationForm.findFirst({ where: { campId, isDefault: true, status: "public" }, select: { classChoicesEnabled: true } });
+  const classChoicesEnabled = selectedForm?.classChoicesEnabled !== false;
+
   const firstName = clean(data.firstName);
   const lastName = clean(data.lastName);
   const guardianEmail = clean(data.guardianEmail).toLowerCase();
@@ -150,7 +161,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   });
 
   const selections: Array<{ sessionTemplateId: string; course: typeof sessionTemplates[number]["courseSessionTemplates"][number]["course"] }> = [];
-  const mandatoryAssignments = ageGroup.noSchedule ? [] : await prisma.mandatorySession.findMany({
+  const mandatoryAssignments = !classChoicesEnabled || ageGroup.noSchedule ? [] : await prisma.mandatorySession.findMany({
     where: { campId, ageGroupId: ageGroup.id },
     include: {
       sessionTemplate: true,
@@ -164,7 +175,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const selectedCourseWeeklySlots = new Map<string, Set<string>>();
   const selectedWeeklySlotCourse = new Map<string, string>();
 
-  if (!ageGroup.noSchedule && sessionTemplates.length > 0) {
+  if (classChoicesEnabled && !ageGroup.noSchedule && sessionTemplates.length > 0) {
     for (const template of sessionTemplates) {
       if (template.mandatory || mandatoryTemplateIds.has(template.id)) continue;
       const eligibleCourses = template.courseSessionTemplates
@@ -208,7 +219,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
       selections.push({ sessionTemplateId: template.id, course: selectedCourse });
     }
-  } else if (fallbackCourseIds.length > 0) {
+  } else if (classChoicesEnabled && fallbackCourseIds.length > 0) {
     const courses = await prisma.course.findMany({
       where: {
         id: { in: fallbackCourseIds },

@@ -296,6 +296,7 @@ model RegistrationForm {
   slug      String   @default("main")
   status    String   @default("public") // draft | public | linkOnly
   isDefault Boolean  @default(false)
+  classChoicesEnabled Boolean @default(true)
   fields    String   @default("[]") // JSON array of field definitions
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
