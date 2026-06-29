@@ -255,6 +255,11 @@ function SetupContent() {
         });
       }
       const row = map.get(key)!;
+      // A row represents the same session block across multiple days. If any
+      // underlying day slot is locked, treat the whole row as locked in the UI;
+      // otherwise a mixed/stale response can make the control appear to revert
+      // to "Open" even though one or more day slots saved as mandatory.
+      row.mandatory = row.mandatory || Boolean(slot.mandatory);
       if (slot.dayOfWeek !== null && slot.dayOfWeek !== undefined) {
         row.days.add(slot.dayOfWeek);
         row.slotIds.set(slot.dayOfWeek, slot.id);

@@ -12,8 +12,13 @@ const DAY_INT_TO_NAME: Record<number, string> = {
   4: "Thursday", 5: "Friday", 6: "Saturday",
 };
 
-function toSlotShape(s: { id: string; campId: string; dayOfWeek: number | null; startTime: string; endTime: string; label: string | null; mandatory: boolean; createdAt: Date }) {
-  return { ...s, day: s.dayOfWeek !== null ? DAY_INT_TO_NAME[s.dayOfWeek] ?? null : null };
+function toSlotShape(s: { id: string; campId: string; dayOfWeek: number | null; startTime: string; endTime: string; label: string | null; mandatory: boolean; createdAt: Date; _count?: { mandatorySessions?: number } }) {
+  const requiredAssignments = s._count?.mandatorySessions ?? 0;
+  return {
+    ...s,
+    mandatory: s.mandatory || requiredAssignments > 0,
+    day: s.dayOfWeek !== null ? DAY_INT_TO_NAME[s.dayOfWeek] ?? null : null,
+  };
 }
 
 async function checkAccess(userId: string, campId: string) {
@@ -25,7 +30,11 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const items = await prisma.sessionTemplate.findMany({ where: { campId }, orderBy: { startTime: "asc" } });
+  const items = await prisma.sessionTemplate.findMany({
+    where: { campId },
+    include: { _count: { select: { mandatorySessions: true } } },
+    orderBy: { startTime: "asc" },
+  });
   return NextResponse.json(items.map(toSlotShape));
 }
 
