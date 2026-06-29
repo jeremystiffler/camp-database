@@ -28,7 +28,18 @@ const FIELD_ICONS: Record<string, string> = {
   text: "Aa", email: "@", tel: "📞", date: "📅", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
 };
 
-const ADD_FIELD_TYPES: { type: FormField["type"]; label: string; icon: string }[] = [
+type AddFieldItem = {
+  type: FormField["type"];
+  label: string;
+  icon: string;
+  defaults?: Partial<Omit<FormField, "id" | "type">>;
+};
+
+const ADD_FIELD_TYPES: AddFieldItem[] = [
+  { type: "heading",  label: "Section heading", icon: "H", defaults: { label: "New section" } },
+  { type: "subheading", label: "Info / instructions", icon: "ℹ", defaults: { label: "Important information", helpText: "Add multi-line details families should read before continuing." } },
+  { type: "divider",  label: "Divider",      icon: "—"  },
+  { type: "pageBreak", label: "Page break", icon: "↧", defaults: { label: "Page break" } },
   { type: "text",     label: "Text input",   icon: "Aa" },
   { type: "email",    label: "Email",        icon: "@"  },
   { type: "tel",      label: "Phone",        icon: "📞" },
@@ -36,11 +47,24 @@ const ADD_FIELD_TYPES: { type: FormField["type"]; label: string; icon: string }[
   { type: "select",   label: "Dropdown",     icon: "▾"  },
   { type: "textarea", label: "Long text",    icon: "¶"  },
   { type: "checkbox", label: "Checkbox",     icon: "☑"  },
-  { type: "heading",  label: "Section heading", icon: "H" },
-  { type: "subheading", label: "Info / subheading", icon: "ℹ" },
-  { type: "divider",  label: "Divider",      icon: "—"  },
-  { type: "pageBreak", label: "Page break", icon: "↧" },
+  { type: "text", label: "Preferred name", icon: "🏷️", defaults: { label: "Preferred name", placeholder: "What should we call your camper?" } },
+  { type: "text", label: "Grade / school", icon: "🎒", defaults: { label: "Grade entering / school", placeholder: "Example: 4th grade, Liberty Elementary" } },
+  { type: "select", label: "T-shirt size", icon: "👕", defaults: { label: "T-shirt size", options: ["Youth XS", "Youth S", "Youth M", "Youth L", "Youth XL", "Adult S", "Adult M", "Adult L", "Adult XL", "Adult 2XL"] } },
+  { type: "textarea", label: "Allergies", icon: "⚕️", defaults: { label: "Allergies", placeholder: "Food, medication, insect, or environmental allergies" } },
+  { type: "textarea", label: "Medications", icon: "💊", defaults: { label: "Medications", placeholder: "Medication name, dosage, schedule, and instructions" } },
+  { type: "textarea", label: "Dietary needs", icon: "🥪", defaults: { label: "Dietary restrictions or meal notes", placeholder: "Vegetarian, gluten-free, no pork, etc." } },
+  { type: "textarea", label: "Accommodations", icon: "🤝", defaults: { label: "Learning, behavioral, sensory, or accessibility needs", placeholder: "Anything that helps us serve your camper well" } },
+  { type: "text", label: "Authorized pickup", icon: "🚗", defaults: { label: "Authorized pickup people", placeholder: "Names of adults allowed to pick up this camper" } },
+  { type: "text", label: "Not authorized pickup", icon: "🚫", defaults: { label: "People not authorized for pickup", placeholder: "Optional" } },
+  { type: "tel", label: "Emergency backup phone", icon: "☎️", defaults: { label: "Backup emergency phone", placeholder: "If guardian cannot be reached" } },
+  { type: "text", label: "Physician / clinic", icon: "🩺", defaults: { label: "Physician or clinic", placeholder: "Doctor/clinic name and phone" } },
+  { type: "text", label: "Insurance info", icon: "🛡️", defaults: { label: "Insurance provider / policy", placeholder: "Optional, if your camp collects it" } },
+  { type: "checkbox", label: "Transportation permission", icon: "🚌", defaults: { label: "I give permission for camp-provided transportation when applicable." } },
+  { type: "checkbox", label: "Medical consent", icon: "✅", defaults: { label: "I authorize camp staff to seek emergency medical care if needed.", required: true } },
 ];
+
+const LAYOUT_FIELD_TYPES = new Set<FormField["type"]>(["heading", "subheading", "divider", "pageBreak"]);
+const isLayoutField = (field: FormField) => LAYOUT_FIELD_TYPES.has(field.type);
 
 function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id: string; name: string }[] }) {
   const inputCls = "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:outline-none";
@@ -135,6 +159,7 @@ function RegistrationContent() {
   const [saved, setSaved]           = useState(false);
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [previewPage, setPreviewPage] = useState(0);
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
 
@@ -211,16 +236,21 @@ function RegistrationContent() {
     }
   };
 
-  const addField = (type: FormField["type"]) => {
+  const addField = (item: AddFieldItem) => {
     const newField: FormField = {
       id: `custom_${Date.now()}`,
-      type,
-      label: type === "subheading" ? "Important information" : type === "pageBreak" ? "Page break" : ADD_FIELD_TYPES.find(t => t.type === type)?.label || "New field",
-      required: false,
-      helpText: type === "subheading" ? "Add multi-line details families should read before continuing." : undefined,
+      type: item.type,
+      label: item.defaults?.label || item.label,
+      required: Boolean(item.defaults?.required),
+      placeholder: item.defaults?.placeholder,
+      helpText: item.defaults?.helpText,
+      options: item.defaults?.options,
+      source: item.defaults?.source,
+      system: item.defaults?.system,
     };
     setFields(prev => [...prev, newField]);
-    setEditingId(newField.id);
+    setEditingId(isLayoutField(newField) && newField.type !== "heading" && newField.type !== "subheading" ? null : newField.id);
+    if (newField.type === "pageBreak") setPreviewPage(previewPages.length);
     setShowAddMenu(false);
   };
 
@@ -237,6 +267,20 @@ function RegistrationContent() {
     setFields(arr);
     dragIdx.current = null; dragOverIdx.current = null;
   };
+
+  const previewPages = fields.reduce<FormField[][]>((pages, field) => {
+    if (field.type === "pageBreak") {
+      pages.push([]);
+      return pages;
+    }
+    pages[pages.length - 1].push(field);
+    return pages;
+  }, [[]]);
+  const currentPreviewPage = Math.min(previewPage, Math.max(previewPages.length - 1, 0));
+
+  useEffect(() => {
+    if (previewPage > Math.max(previewPages.length - 1, 0)) setPreviewPage(Math.max(previewPages.length - 1, 0));
+  }, [previewPage, previewPages.length]);
 
   const publicUrl = typeof window !== "undefined"
     ? `${window.location.origin}/register/${campId}${formSlug ? `?form=${encodeURIComponent(formSlug)}` : ""}`
@@ -319,9 +363,9 @@ function RegistrationContent() {
                 + Add Field ▾
               </button>
               {showAddMenu && (
-                <div className="absolute right-0 top-9 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1 w-44">
-                  {ADD_FIELD_TYPES.map(t => (
-                    <button key={t.type} onClick={() => addField(t.type)}
+                <div className="absolute right-0 top-9 max-h-[65vh] overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1 w-64">
+                  {ADD_FIELD_TYPES.map((t, idx) => (
+                    <button key={`${t.type}-${t.label}-${idx}`} onClick={() => addField(t)}
                       className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5">
                       <span className="text-slate-400 w-5 text-center font-mono text-xs">{t.icon}</span> {t.label}
                     </button>
@@ -332,25 +376,29 @@ function RegistrationContent() {
           </div>
 
           <div className="space-y-1.5">
-            {fields.map((field, i) => (
+            {fields.map((field, i) => {
+              const indentField = !isLayoutField(field);
+              return (
               <div key={field.id}
                 draggable
                 onDragStart={() => onDragStart(i)}
                 onDragOver={e => onDragOver(e, i)}
                 onDrop={onDrop}
-                className={`bg-white border rounded-xl transition-all ${editingId === field.id ? "border-forest-400 shadow-sm" : "border-slate-200 hover:border-slate-300"}`}>
+                className={`${indentField ? "ml-6 border-l-4 border-l-sky-100" : ""} bg-white border rounded-xl transition-all ${field.type === "pageBreak" ? "border-amber-200 bg-amber-50/60" : editingId === field.id ? "border-forest-400 shadow-sm" : "border-slate-200 hover:border-slate-300"}`}>
                 <div
                   className="flex items-center gap-3 px-3 py-2.5 cursor-pointer"
                   onClick={() => setEditingId(editingId === field.id ? null : field.id)}>
                   {/* Drag handle */}
                   <span className="text-slate-300 cursor-grab text-sm select-none">⠿</span>
                   {/* Type badge */}
-                  <span className="text-xs font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                  <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${indentField ? "bg-sky-50 text-sky-600" : field.type === "pageBreak" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
                     {FIELD_ICONS[field.type] || field.type}
                   </span>
-                  <span className="flex-1 text-sm font-medium text-slate-800 truncate">{field.label}</span>
+                  <span className={`flex-1 text-sm truncate ${indentField ? "font-medium text-slate-800" : "font-black text-slate-700"}`}>{field.label}</span>
+                  {indentField && <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wide text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">field</span>}
                   {field.required && <span className="text-red-400 text-xs">*</span>}
                   {field.system && <span className="text-xs text-slate-300 bg-slate-50 px-1.5 rounded border border-slate-100">system</span>}
+                  {field.type === "pageBreak" && <button type="button" onClick={e => { e.stopPropagation(); setPreviewPage(fields.slice(0, i).filter(f => f.type === "pageBreak").length + 1); }} className="text-xs font-bold text-amber-700 hover:text-amber-900">Preview next →</button>}
                   <span className="text-slate-400 text-xs">{editingId === field.id ? "▲" : "▼"}</span>
                   <button onClick={e => { e.stopPropagation(); removeField(field.id); }}
                     className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>
@@ -359,24 +407,46 @@ function RegistrationContent() {
                   <FieldEditor field={field} onChange={updated => updateField(field.id, updated)} />
                 )}
               </div>
-            ))}
+            );})}
           </div>
         </div>
 
         {/* RIGHT — Live preview */}
         <div className="lg:sticky lg:top-6">
-          <h2 className="text-sm font-semibold text-slate-700 mb-3">Live Preview</h2>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-slate-700">Live Preview</h2>
+            {previewPages.length > 1 && (
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                <button type="button" onClick={() => setPreviewPage(p => Math.max(0, p - 1))} disabled={currentPreviewPage === 0} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">←</button>
+                Page {currentPreviewPage + 1} of {previewPages.length}
+                <button type="button" onClick={() => setPreviewPage(p => Math.min(previewPages.length - 1, p + 1))} disabled={currentPreviewPage >= previewPages.length - 1} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">→</button>
+              </div>
+            )}
+          </div>
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm max-h-[80vh] overflow-y-auto">
             <h1 className="text-xl font-bold text-slate-800 mb-1">{campName} Registration</h1>
             <p className="text-sm text-slate-500 mb-5">Fill out all required fields to complete registration.</p>
+            {previewPages.length > 1 && (
+              <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+                Page break preview · families see this as page {currentPreviewPage + 1} of {previewPages.length}.
+              </div>
+            )}
             <div className="space-y-4">
-              {fields.map(field => (
+              {previewPages[currentPreviewPage]?.length ? previewPages[currentPreviewPage].map(field => (
                 <FieldPreview key={field.id} field={field} ageGroups={ageGroups} />
-              ))}
+              )) : <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">This preview page is empty. Drag fields below the page break to fill it.</div>}
             </div>
-            <button disabled className="mt-6 w-full py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold opacity-60 cursor-not-allowed">
-              Submit Registration
-            </button>
+            {previewPages.length > 1 && (
+              <div className="mt-6 flex gap-3">
+                <button type="button" onClick={() => setPreviewPage(p => Math.max(0, p - 1))} disabled={currentPreviewPage === 0} className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 disabled:opacity-40">← Back</button>
+                <button type="button" onClick={() => setPreviewPage(p => Math.min(previewPages.length - 1, p + 1))} disabled={currentPreviewPage >= previewPages.length - 1} className="flex-1 rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 py-3 text-sm font-bold text-white disabled:opacity-40">Next page →</button>
+              </div>
+            )}
+            {currentPreviewPage === previewPages.length - 1 && (
+              <button disabled className="mt-6 w-full py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold opacity-60 cursor-not-allowed">
+                Submit Registration
+              </button>
+            )}
           </div>
         </div>
       </div>
