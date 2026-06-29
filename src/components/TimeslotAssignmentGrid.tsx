@@ -165,12 +165,11 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     if (assistantConflict) conflicts.push(`Assistant booked: ${personName(helperId)} is assigned to ${assistantConflict.name}`);
 
     if (conflicts.length > 0) {
-      const kinds = [roomConflict && "room", teacherConflict && "teacher", assistantConflict && "assistant"].filter(Boolean) as string[];
       return {
         status: "blocked",
-        label: kinds.length > 1 ? `${kinds.length}x` : kinds[0] || "!",
+        label: "×",
         title: conflicts.join(" • "),
-        className: "cursor-not-allowed border-red-200 bg-red-50 text-red-500 opacity-75",
+        className: "cursor-not-allowed border-red-300 bg-red-100 text-red-700 opacity-85",
         conflicts,
       };
     }
@@ -688,7 +687,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                                     <span className="block text-xs leading-tight">{enrolled}/{cap || "—"}</span>
                                     <span className="block text-[10px] font-semibold opacity-70">{cap > 0 ? `${seatsLeft} open` : "no cap"}</span>
                                   </span>
-                                ) : isBlocked ? (serverBlocked ? "!" : availability.label) : isAvailable ? availability.label : "+"}
+                                ) : isBlocked ? "×" : isAvailable ? availability.label : "+"}
                               </button>
                             )}
                           </td>
@@ -711,7 +710,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             <span><span className="inline-block w-4 h-3 rounded bg-amber-100 border border-amber-300 align-middle" /> watch</span>
             <span><span className="inline-block w-4 h-3 rounded bg-orange-100 border border-orange-300 align-middle" /> tight</span>
             <span><span className="inline-block w-4 h-3 rounded bg-red-100 border border-red-300 align-middle" /> full/short</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-red-50 border border-red-200 align-middle" /> blocked by room/person conflict</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-red-100 border border-red-300 align-middle" /> unavailable — hover for reason</span>
             <span><span className="inline-block w-4 h-3 rounded bg-sky-100 border border-sky-300 align-middle" /> open + safe to schedule</span>
           </div>
         </>
