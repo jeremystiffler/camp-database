@@ -777,7 +777,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
     setCourses(prev => prev.map(course => course.id === updated.id ? updated : course));
   };
 
-  const saveInlineCourse = async (course: Course, field: "teacher" | "room" | "cap", body: Record<string, unknown>) => {
+  const saveInlineCourse = async (course: Course, field: "teacher" | "room" | "cap" | "ages", body: Record<string, unknown>) => {
     const key = `${course.id}:${field}`;
     setInlineSaving(prev => ({ ...prev, [key]: true }));
     setInlineErrors(prev => { const next = { ...prev }; delete next[course.id]; return next; });
@@ -855,6 +855,14 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
     course.courseTeachers?.find(ct => ct.person.role === "teacher" || ct.person.role === "director")?.person;
 
   const leadTeacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director");
+
+  const toggleInlineAgeGroup = (course: Course, ageGroupId: string) => {
+    const currentIds = course.courseAgeGroups?.map(cag => cag.ageGroup.id) || [];
+    const nextIds = currentIds.includes(ageGroupId)
+      ? currentIds.filter(id => id !== ageGroupId)
+      : [...currentIds, ageGroupId];
+    saveInlineCourse(course, "ages", { ageGroupIds: nextIds });
+  };
 
   const filteredByStatus = sortedFiltered.filter(course => {
     if (statusFilter === "all") return true;
@@ -1060,11 +1068,25 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                           />
                         </td>
                         <td className="px-3 py-3">
-                          <div className="flex flex-wrap gap-1">
-                            {course.courseAgeGroups && course.courseAgeGroups.length > 0 ? course.courseAgeGroups.map(cag => (
-                              <span key={cag.ageGroup.id} className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white" style={{ backgroundColor: cag.ageGroup.color }}>{cag.ageGroup.name}</span>
-                            )) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">No ages</span>}
-
+                          <div className="flex max-w-[220px] flex-wrap gap-1">
+                            {ageGroups.length > 0 ? ageGroups.map(ageGroup => {
+                              const checked = course.courseAgeGroups?.some(cag => cag.ageGroup.id === ageGroup.id) || false;
+                              return (
+                                <button
+                                  key={ageGroup.id}
+                                  type="button"
+                                  disabled={!!inlineSaving[`${course.id}:ages`]}
+                                  onClick={() => toggleInlineAgeGroup(course, ageGroup.id)}
+                                  title={`${checked ? "Remove" : "Add"} ${ageGroup.name}`}
+                                  className={`rounded-full border px-2 py-0.5 text-[10px] font-bold transition-all disabled:opacity-60 ${
+                                    checked ? "border-transparent text-white shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-sky-200 hover:text-sky-700"
+                                  }`}
+                                  style={checked ? { backgroundColor: ageGroup.color } : {}}
+                                >
+                                  {checked ? "✓ " : "+ "}{ageGroup.name}
+                                </button>
+                              );
+                            }) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">No ages set up</span>}
                           </div>
                         </td>
                         <td className="relative px-4 py-3 text-right">
