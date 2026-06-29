@@ -84,6 +84,11 @@ const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", 
 
 const LAYOUT_FIELD_TYPES = new Set<FormField["type"]>(["heading", "subheading", "divider", "pageBreak"]);
 const isLayoutField = (field: FormField) => LAYOUT_FIELD_TYPES.has(field.type);
+const cleanOptionLines = (options?: string[]) => (options || []).map(option => option.trim()).filter(Boolean);
+const cleanFieldsForSave = (fields: FormField[]) => fields.map(field => ({
+  ...field,
+  options: field.type === "select" || field.type === "checkbox" ? cleanOptionLines(field.options) : field.options,
+}));
 
 function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id: string; name: string }[] }) {
   const inputCls = "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:outline-none";
@@ -106,7 +111,7 @@ function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id:
         <textarea rows={2} placeholder={field.placeholder || ""} disabled className={inputCls + " resize-none"} />
       ) : field.type === "checkbox" ? (
         <div className="space-y-2">
-          {(field.options?.length ? field.options : [field.checkboxDescription || field.label]).map(option => (
+          {(cleanOptionLines(field.options)?.length ? cleanOptionLines(field.options) : [field.checkboxDescription || field.label]).map(option => (
             <label key={option} className="flex items-start gap-2 text-sm text-slate-700">
               <input type="checkbox" disabled className="mt-0.5 w-4 h-4" /> <span>{option}</span>
             </label>
@@ -117,7 +122,7 @@ function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id:
           <option>— select —</option>
           {field.source === "ageGroups"
             ? ageGroups.map(ag => <option key={ag.id}>{ag.name}</option>)
-            : field.options?.map(o => <option key={o}>{o}</option>)}
+            : cleanOptionLines(field.options)?.map(o => <option key={o}>{o}</option>)}
         </select>
       ) : (
         <input type={field.type} placeholder={field.placeholder || ""} disabled className={inputCls} />
@@ -164,8 +169,10 @@ function FieldEditor({ field, onChange }: { field: FormField; onChange: (f: Form
           <label className="block text-xs font-medium text-slate-500 mb-1">{field.type === "checkbox" ? "Multiple checkbox choices (one per line)" : "Options (one per line)"}</label>
           <textarea rows={3}
             value={field.options?.join("\n") || ""}
-            onChange={e => onChange({ ...field, options: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })}
-            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400 resize-none" />
+            onClick={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
+            onChange={e => onChange({ ...field, options: e.target.value.split("\n") })}
+            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400 resize-y" />
         </div>
       )}
       <label className="flex items-center gap-2 text-xs text-slate-600">
@@ -243,7 +250,7 @@ function RegistrationContent() {
     const res = await fetch(`/api/camps/${campId}/registration-form`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, fields }),
+      body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, fields: cleanFieldsForSave(fields) }),
     });
     if (res.ok) {
       const d = await res.json();
