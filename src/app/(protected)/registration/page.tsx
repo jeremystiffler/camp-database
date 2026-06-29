@@ -6,7 +6,7 @@ import Link from "next/link";
 
 interface FormField {
   id: string;
-  type: "text" | "email" | "tel" | "date" | "select" | "textarea" | "checkbox" | "heading" | "divider";
+  type: "text" | "email" | "tel" | "date" | "select" | "textarea" | "checkbox" | "heading" | "subheading" | "divider" | "pageBreak";
   label: string;
   required: boolean;
   system?: boolean;
@@ -16,8 +16,16 @@ interface FormField {
   helpText?: string;
 }
 
+interface FormSummary {
+  id: string;
+  title: string;
+  slug: string;
+  status: "draft" | "public" | "linkOnly";
+  isDefault: boolean;
+}
+
 const FIELD_ICONS: Record<string, string> = {
-  text: "Aa", email: "@", tel: "📞", date: "📅", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", divider: "—",
+  text: "Aa", email: "@", tel: "📞", date: "📅", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
 };
 
 const ADD_FIELD_TYPES: { type: FormField["type"]; label: string; icon: string }[] = [
@@ -29,12 +37,21 @@ const ADD_FIELD_TYPES: { type: FormField["type"]; label: string; icon: string }[
   { type: "textarea", label: "Long text",    icon: "¶"  },
   { type: "checkbox", label: "Checkbox",     icon: "☑"  },
   { type: "heading",  label: "Section heading", icon: "H" },
+  { type: "subheading", label: "Info / subheading", icon: "ℹ" },
   { type: "divider",  label: "Divider",      icon: "—"  },
+  { type: "pageBreak", label: "Page break", icon: "↧" },
 ];
 
 function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id: string; name: string }[] }) {
   const inputCls = "w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 bg-white focus:outline-none";
   if (field.type === "heading") return <h3 className="font-bold text-slate-800 text-base mt-2">{field.label}</h3>;
+  if (field.type === "subheading") return (
+    <div className="rounded-xl border border-sky-100 bg-sky-50/70 px-4 py-3">
+      <p className="text-sm font-bold text-sky-900">{field.label}</p>
+      {field.helpText && <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-sky-800">{field.helpText}</p>}
+    </div>
+  );
+  if (field.type === "pageBreak") return <div className="my-3 rounded-xl border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-700">Page break</div>;
   if (field.type === "divider") return <hr className="border-slate-200 my-2" />;
   return (
     <div>
@@ -78,9 +95,9 @@ function FieldEditor({ field, onChange }: { field: FormField; onChange: (f: Form
         </div>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1">Help text</label>
-        <input value={field.helpText || ""} onChange={e => onChange({ ...field, helpText: e.target.value })}
-          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400" />
+        <label className="block text-xs font-medium text-slate-500 mb-1">{field.type === "subheading" ? "Multi-line information" : "Help text"}</label>
+        <textarea rows={field.type === "subheading" ? 4 : 2} value={field.helpText || ""} onChange={e => onChange({ ...field, helpText: e.target.value })}
+          className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400 resize-none" />
       </div>
       {field.type === "select" && !field.source && (
         <div>
@@ -104,6 +121,12 @@ function RegistrationContent() {
   const campId = searchParams.get("campId") || "";
 
   const [fields, setFields]         = useState<FormField[]>([]);
+  const [forms, setForms]           = useState<FormSummary[]>([]);
+  const [selectedFormId, setSelectedFormId] = useState("");
+  const [formTitle, setFormTitle]   = useState("Registration Form");
+  const [formSlug, setFormSlug]     = useState("main");
+  const [formStatus, setFormStatus] = useState<FormSummary["status"]>("public");
+  const [isDefault, setIsDefault]   = useState(true);
   const [ageGroups, setAgeGroups]   = useState<{ id: string; name: string }[]>([]);
   const [campName, setCampName]     = useState("");
   const [regOpen, setRegOpen]       = useState(false);
@@ -115,37 +138,86 @@ function RegistrationContent() {
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
 
-  useEffect(() => {
+  const applyFormResponse = (d: { campName?: string; registrationOpen?: boolean; ageGroups?: { id: string; name: string }[]; forms?: FormSummary[]; form?: FormSummary | null; fields?: unknown }) => {
+    setCampName(d.campName || "");
+    setRegOpen(d.registrationOpen || false);
+    setAgeGroups(Array.isArray(d.ageGroups) ? d.ageGroups : []);
+    setForms(Array.isArray(d.forms) ? d.forms : []);
+    if (d.form) {
+      setSelectedFormId(d.form.id);
+      setFormTitle(d.form.title || "Registration Form");
+      setFormSlug(d.form.slug || d.form.id);
+      setFormStatus(d.form.status || "public");
+      setIsDefault(Boolean(d.form.isDefault));
+    }
+    try { setFields(JSON.parse(typeof d.fields === "string" ? d.fields : JSON.stringify(d.fields))); } catch { setFields([]); }
+  };
+
+  const loadForm = (formRef?: string) => {
     if (!campId) return;
-    fetch(`/api/camps/${campId}/registration-form`)
+    setLoading(true);
+    fetch(`/api/camps/${campId}/registration-form${formRef ? `?form=${encodeURIComponent(formRef)}` : ""}`)
       .then(r => r.json())
       .then(d => {
-        setCampName(d.campName || "");
-        setRegOpen(d.registrationOpen || false);
-        setAgeGroups(Array.isArray(d.ageGroups) ? d.ageGroups : []);
-        try { setFields(JSON.parse(typeof d.fields === "string" ? d.fields : JSON.stringify(d.fields))); } catch { setFields([]); }
+        applyFormResponse(d);
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadForm();
   }, [campId]);
+
+  const refreshForms = async (formRef?: string) => {
+    const r = await fetch(`/api/camps/${campId}/registration-form${formRef ? `?form=${encodeURIComponent(formRef)}` : ""}`);
+    const d = await r.json();
+    applyFormResponse(d);
+  };
 
   const save = async () => {
     setSaving(true); setSaved(false);
-    await fetch(`/api/camps/${campId}/registration-form`, {
+    const res = await fetch(`/api/camps/${campId}/registration-form`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fields }),
+      body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, fields }),
     });
+    if (res.ok) {
+      const d = await res.json();
+      if (d.form) {
+        setSelectedFormId(d.form.id);
+        setFormTitle(d.form.title);
+        setFormSlug(d.form.slug);
+        setFormStatus(d.form.status);
+        setIsDefault(d.form.isDefault);
+      }
+      await refreshForms(d.form?.id || selectedFormId);
+    }
     setSaving(false); setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const createForm = async () => {
+    const name = window.prompt("Name this registration form", "New Registration Form");
+    if (!name) return;
+    const res = await fetch(`/api/camps/${campId}/registration-form`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: name }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      await refreshForms(d.form?.id);
+    }
   };
 
   const addField = (type: FormField["type"]) => {
     const newField: FormField = {
       id: `custom_${Date.now()}`,
       type,
-      label: ADD_FIELD_TYPES.find(t => t.type === type)?.label || "New field",
+      label: type === "subheading" ? "Important information" : type === "pageBreak" ? "Page break" : ADD_FIELD_TYPES.find(t => t.type === type)?.label || "New field",
       required: false,
+      helpText: type === "subheading" ? "Add multi-line details families should read before continuing." : undefined,
     };
     setFields(prev => [...prev, newField]);
     setEditingId(newField.id);
@@ -166,7 +238,9 @@ function RegistrationContent() {
     dragIdx.current = null; dragOverIdx.current = null;
   };
 
-  const publicUrl = typeof window !== "undefined" ? `${window.location.origin}/register/${campId}` : `/register/${campId}`;
+  const publicUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/register/${campId}${formSlug ? `?form=${encodeURIComponent(formSlug)}` : ""}`
+    : `/register/${campId}${formSlug ? `?form=${encodeURIComponent(formSlug)}` : ""}`;
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
@@ -182,7 +256,7 @@ function RegistrationContent() {
           <p className="text-slate-500 text-sm mt-0.5">Drag fields to reorder. Click any field to edit its label, help text, options, and required status. Any field can be deleted.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {regOpen && (
+          {formStatus !== "draft" && (
             <Link href={publicUrl} target="_blank"
               className="px-4 py-2.5 border border-forest-200 text-forest-700 bg-forest-50 rounded-xl text-sm font-semibold hover:bg-forest-100 flex items-center gap-2">
               👁 Preview Form
@@ -195,23 +269,42 @@ function RegistrationContent() {
         </div>
       </div>
 
-      {/* Registration status banner */}
-      <div className={`flex items-center justify-between px-5 py-3.5 rounded-xl mb-6 border ${regOpen ? "bg-forest-50 border-forest-200" : "bg-slate-50 border-slate-200"}`}>
-        <div>
-          <p className="text-sm font-semibold text-slate-800">{regOpen ? "🟢 Registration is Open" : "🔴 Registration is Closed"}</p>
-          {regOpen && <p className="text-xs text-slate-500 mt-0.5 font-mono">{publicUrl}</p>}
+      {/* Form picker + publishing */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-6">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[220px] flex-1">
+            <label className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Form</label>
+            <select value={selectedFormId} onChange={e => loadForm(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
+              {forms.map(form => <option key={form.id} value={form.id}>{form.title}{form.isDefault ? " · default" : ""}</option>)}
+            </select>
+          </div>
+          <button type="button" onClick={createForm} className="rounded-xl border border-forest-200 bg-forest-50 px-3 py-2 text-sm font-bold text-forest-700 hover:bg-forest-100">+ New Form</button>
+          <div className="min-w-[220px] flex-1">
+            <label className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Title</label>
+            <input value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
+          </div>
+          <div className="min-w-[180px]">
+            <label className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Link slug</label>
+            <input value={formSlug} onChange={e => setFormSlug(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
+          </div>
+          <div>
+            <label className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Status</label>
+            <select value={formStatus} onChange={e => setFormStatus(e.target.value as FormSummary["status"])} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
+              <option value="draft">Draft</option>
+              <option value="public">Public</option>
+              <option value="linkOnly">Link only</option>
+            </select>
+          </div>
+          <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">
+            <input type="checkbox" checked={isDefault} onChange={e => setIsDefault(e.target.checked)} className="h-4 w-4 accent-forest-500" /> Default
+          </label>
         </div>
-        <div className="flex items-center gap-3">
-          {regOpen && (
-            <button onClick={() => navigator.clipboard.writeText(publicUrl)}
-              className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium">
-              📋 Copy Link
-            </button>
-          )}
-          <Link href={`/settings?campId=${campId}`}
-            className="text-xs text-slate-500 hover:text-slate-700 underline">
-            Toggle in Settings →
-          </Link>
+        <div className={`mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 border ${formStatus !== "draft" && regOpen ? "bg-forest-50 border-forest-200" : "bg-slate-50 border-slate-200"}`}>
+          <div>
+            <p className="text-sm font-semibold text-slate-800">{formStatus === "draft" ? "⚪ Draft — not available to families" : formStatus === "linkOnly" ? "🔗 Link-only — available only with this link" : "🟢 Public form"}</p>
+            {formStatus !== "draft" && <p className="text-xs text-slate-500 mt-0.5 font-mono break-all">{publicUrl}</p>}
+          </div>
+          {formStatus !== "draft" && <button onClick={() => navigator.clipboard.writeText(publicUrl)} className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium">📋 Copy Link</button>}
         </div>
       </div>
 
@@ -262,7 +355,7 @@ function RegistrationContent() {
                   <button onClick={e => { e.stopPropagation(); removeField(field.id); }}
                     className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>
                 </div>
-                {editingId === field.id && field.type !== "divider" && (
+                {editingId === field.id && field.type !== "divider" && field.type !== "pageBreak" && (
                   <FieldEditor field={field} onChange={updated => updateField(field.id, updated)} />
                 )}
               </div>

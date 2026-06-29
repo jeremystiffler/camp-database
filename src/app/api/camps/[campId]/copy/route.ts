@@ -44,7 +44,7 @@ export async function POST(
           courseSessionTemplates: { include: { sessionTemplate: true } },
         },
       },
-      registrationForm: true,
+      registrationForms: true,
     },
   });
   if (!source) return NextResponse.json({ error: "Source camp not found" }, { status: 404 });
@@ -200,10 +200,19 @@ export async function POST(
   }
 
   // ── Registration Form ─────────────────────────────────────────────────────
-  if (includeRegForm && source.registrationForm) {
-    await prisma.registrationForm.create({
-      data: { campId: newCamp.id, fields: source.registrationForm.fields },
-    });
+  if (includeRegForm && source.registrationForms.length > 0) {
+    for (const form of source.registrationForms) {
+      await prisma.registrationForm.create({
+        data: {
+          campId: newCamp.id,
+          title: form.title,
+          slug: form.slug,
+          status: form.status,
+          isDefault: form.isDefault,
+          fields: form.fields,
+        },
+      });
+    }
   }
 
   // Summary counts

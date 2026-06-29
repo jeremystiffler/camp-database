@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface FormField {
   id: string;
-  type: "text" | "email" | "tel" | "date" | "select" | "textarea" | "checkbox" | "heading" | "divider";
+  type: "text" | "email" | "tel" | "date" | "select" | "textarea" | "checkbox" | "heading" | "subheading" | "divider" | "pageBreak";
   label: string;
   required: boolean;
   system?: boolean;
@@ -64,7 +65,7 @@ const CONSENT_FIELD_IDS = new Set(["f8", "f9", "f10", "f11", "f12"]);
 const SYSTEM_FIELD_IDS = new Set(["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"]);
 
 function isInputField(field: FormField) {
-  return field.type !== "heading" && field.type !== "divider";
+  return !["heading", "subheading", "divider", "pageBreak"].includes(field.type);
 }
 
 function ageMatches(course: Course, ageGroupId: string) {
@@ -102,7 +103,8 @@ function sessionLabel(session: WeeklyRegistrationSession) {
   return `${session.label || "Session"} · ${session.startTime}–${session.endTime}`;
 }
 
-export default function PublicRegistrationPage({ params }: { params: Promise<{ campId: string }> }) {
+function PublicRegistrationContent({ params }: { params: Promise<{ campId: string }> }) {
+  const searchParams = useSearchParams();
   const [campId, setCampId]         = useState("");
   const [campName, setCampName]     = useState("");
   const [fields, setFields]         = useState<FormField[]>([]);
@@ -123,7 +125,8 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
   useEffect(() => {
     params.then(p => {
       setCampId(p.campId);
-      fetch(`/api/camps/${p.campId}/registration-form`)
+      const formRef = searchParams.get("form") || "";
+      fetch(`/api/camps/${p.campId}/registration-form${formRef ? `?form=${encodeURIComponent(formRef)}` : ""}`)
         .then(r => r.json())
         .then(d => {
           setCampName(d.campName || "Camp");
@@ -139,7 +142,7 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
         })
         .catch(() => setLoading(false));
     });
-  }, [params]);
+  }, [params, searchParams]);
 
   const setValue = (id: string, val: FieldValue) => {
     setValues(prev => {
@@ -326,6 +329,13 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
 
   const renderField = (field: FormField) => {
     if (field.type === "heading") return <div key={field.id} className="pt-2"><h3 className="font-bold text-slate-800 text-base border-b border-slate-100 pb-2">{field.label}</h3></div>;
+    if (field.type === "subheading") return (
+      <div key={field.id} className="rounded-xl border border-sky-100 bg-sky-50/70 px-4 py-3">
+        <p className="text-sm font-bold text-sky-900">{field.label}</p>
+        {field.helpText && <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-sky-800">{field.helpText}</p>}
+      </div>
+    );
+    if (field.type === "pageBreak") return <div key={field.id} className="my-2 rounded-xl border border-dashed border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-700">Continue on next page</div>;
     if (field.type === "divider") return <hr key={field.id} className="border-slate-100" />;
     return (
       <div key={field.id}>
@@ -487,5 +497,13 @@ export default function PublicRegistrationPage({ params }: { params: Promise<{ c
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PublicRegistrationPage({ params }: { params: Promise<{ campId: string }> }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="w-10 h-10 border-2 border-forest-500 border-t-transparent rounded-full animate-spin" /></div>}>
+      <PublicRegistrationContent params={params} />
+    </Suspense>
   );
 }
