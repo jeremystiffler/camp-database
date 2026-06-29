@@ -36,6 +36,9 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const [defaultSaving, setDefaultSaving] = useState<Record<string, boolean>>({});
   const [conflictToast, setConflictToast] = useState<{ courseName: string; sessionLabel: string; message: string } | null>(null);
   const [activityFilter, setActivityFilter] = useState("");
+  const [rowSort, setRowSort] = useState<"name" | "teacher" | "ageGroup">("name");
+  const [rowSortDir, setRowSortDir] = useState<"asc" | "desc">("asc");
+  const [focusAgeGroupId, setFocusAgeGroupId] = useState("");
   const [quickAddByGroup, setQuickAddByGroup] = useState<Record<string, string>>({});
   const [blockedCells, setBlockedCells] = useState<Set<string>>(new Set());
 
@@ -115,10 +118,31 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
   const hasRegistrations = useMemo(() => courses.some(c => (c.sessions || []).some(s => (s.enrolledCount || 0) > 0)), [courses]);
 
-  const filteredCourses = useMemo(() =>
-    courses.filter(c => c.name.toLowerCase().includes(activityFilter.toLowerCase())),
-    [courses, activityFilter]
-  );
+  const courseTeacherName = (course: Course): string => {
+    const teacher = course.courseTeachers.find(ct => ct.person.role === "teacher" || ct.person.role === "director")?.person
+      || course.courseTeachers[0]?.person;
+    return teacher ? `${teacher.lastName} ${teacher.firstName}` : "zzzz unassigned";
+  };
+
+  const courseAgeGroupLabel = (course: Course): string =>
+    course.courseAgeGroups?.map(cag => cag.ageGroup.name).sort((a, b) => a.localeCompare(b))[0] || "zzzz no age group";
+
+  const filteredCourses = useMemo(() => {
+    const filtered = courses.filter(c => c.name.toLowerCase().includes(activityFilter.toLowerCase()));
+    return [...filtered].sort((a, b) => {
+      if (focusAgeGroupId) {
+        const aFocused = a.courseAgeGroups?.some(cag => cag.ageGroup.id === focusAgeGroupId) ? 0 : 1;
+        const bFocused = b.courseAgeGroups?.some(cag => cag.ageGroup.id === focusAgeGroupId) ? 0 : 1;
+        if (aFocused !== bFocused) return aFocused - bFocused;
+      }
+
+      const av = rowSort === "teacher" ? courseTeacherName(a) : rowSort === "ageGroup" ? courseAgeGroupLabel(a) : a.name;
+      const bv = rowSort === "teacher" ? courseTeacherName(b) : rowSort === "ageGroup" ? courseAgeGroupLabel(b) : b.name;
+      const primary = av.localeCompare(bv);
+      const result = primary !== 0 ? primary : a.name.localeCompare(b.name);
+      return rowSortDir === "asc" ? result : -result;
+    });
+  }, [courses, activityFilter, rowSort, rowSortDir, focusAgeGroupId]);
 
   const heatClass = (rate: number): string => {
     if (rate >= 1) return "bg-red-100 border-red-300 text-red-800";
@@ -395,13 +419,33 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
       {courses.length > 0 && sessionGroups.length > 0 && (
         <>
-          <div className="mb-3 flex items-center gap-3">
-            <div className="relative flex-1 max-w-xs">
+          <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 lg:flex-row lg:items-center">
+            <div className="relative flex-1 min-w-[220px] max-w-sm">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
-              <input type="text" value={activityFilter} onChange={e => setActivityFilter(e.target.value)} placeholder="Filter activities…" className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30" />
+              <input type="text" value={activityFilter} onChange={e => setActivityFilter(e.target.value)} placeholder="Filter activities…" className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white" />
               {activityFilter && <button onClick={() => setActivityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>}
             </div>
-            {activityFilter && <span className="text-xs text-slate-400">{filteredCourses.length} of {courses.length}</span>}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">Sort rows</span>
+              <select value={rowSort} onChange={e => setRowSort(e.target.value as "name" | "teacher" | "ageGroup")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+                <option value="name">By activity name</option>
+                <option value="teacher">By teacher</option>
+                <option value="ageGroup">By age group</option>
+              </select>
+              <button type="button" onClick={() => setRowSortDir(dir => dir === "asc" ? "desc" : "asc")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-sky-50">
+                {rowSortDir === "asc" ? "A→Z" : "Z→A"}
+              </button>
+              <select value={focusAgeGroupId} onChange={e => setFocusAgeGroupId(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+                <option value="">All age groups</option>
+                {ageGroups.map(ageGroup => <option key={ageGroup.id} value={ageGroup.id}>Show {ageGroup.name} first</option>)}
+              </select>
+              {(activityFilter || focusAgeGroupId || rowSort !== "name" || rowSortDir !== "asc") && (
+                <button type="button" onClick={() => { setActivityFilter(""); setFocusAgeGroupId(""); setRowSort("name"); setRowSortDir("asc"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-400 hover:text-slate-700">
+                  Reset
+                </button>
+              )}
+            </div>
+            {(activityFilter || focusAgeGroupId) && <span className="text-xs font-semibold text-slate-400">{filteredCourses.length} of {courses.length}</span>}
           </div>
 
           {conflictToast && (
