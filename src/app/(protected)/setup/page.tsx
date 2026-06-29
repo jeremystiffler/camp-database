@@ -301,75 +301,45 @@ function SetupContent() {
       return false;
     }
 
-    const scheduledAgeGroups = ageGroups.filter(ag => !ag.noSchedule);
-    const desiredKeys = new Set<string>();
+    const res = await fetch(`/api/camps/${campId}/session-template-groups/lock`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        label: row.label,
+        startTime: row.startTime,
+        endTime: row.endTime,
+        sessionTemplateIds: [...row.slotIds.values()],
+        mandatory: true,
+        roomId,
+      }),
+    });
 
-    await clearActivitiesFromRow(row);
-
-    const templateResponses = await Promise.all([...row.slotIds.values()].map(id =>
-      fetch(`/api/camps/${campId}/session-templates/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandatory: true }),
-      })
-    ));
-    const failedTemplateUpdate = templateResponses.find(res => !res.ok);
-    if (failedTemplateUpdate) {
-      const error = await failedTemplateUpdate.json().catch(() => null);
-      alert(error?.error || "Could not save the All Schedule Lock. Please try again.");
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      alert(error?.error || "Could not save the All Schedule Lock. Please refresh the setup page and try again.");
       load();
       return false;
     }
 
-    const requiredResponses = await Promise.all([...row.slotIds.values()].flatMap(sessionTemplateId =>
-      scheduledAgeGroups.map(ageGroup => {
-        desiredKeys.add(`${ageGroup.id}:${sessionTemplateId}`);
-        const existing = mandatorySessions.find(ms => ms.ageGroupId === ageGroup.id && ms.sessionTemplateId === sessionTemplateId);
-        if (existing) {
-          return fetch(`/api/camps/${campId}/mandatory-sessions/${existing.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: row.label, ageGroupId: ageGroup.id, sessionTemplateId, roomId }),
-          });
-        }
-        return fetch(`/api/camps/${campId}/mandatory-sessions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: row.label, ageGroupId: ageGroup.id, sessionTemplateId, roomId }),
-        });
-      })
-    ));
-    const failedRequiredSave = requiredResponses.find(res => !res.ok);
-    if (failedRequiredSave) {
-      const error = await failedRequiredSave.json().catch(() => null);
-      alert(error?.error || "Could not save this block to every schedule. Please try again.");
-      load();
-      return false;
-    }
-
-    const stale = mandatorySessions.filter(ms => [...row.slotIds.values()].includes(ms.sessionTemplateId) && !desiredKeys.has(`${ms.ageGroupId}:${ms.sessionTemplateId}`));
-    const staleResponses = await Promise.all(stale.map(ms => fetch(`/api/camps/${campId}/mandatory-sessions/${ms.id}`, { method: "DELETE" })));
-    const failedStaleDelete = staleResponses.find(res => !res.ok);
-    if (failedStaleDelete) {
-      const error = await failedStaleDelete.json().catch(() => null);
-      alert(error?.error || "The lock saved, but cleanup failed. Please refresh and try again.");
-      load();
-      return false;
-    }
     return true;
   };
 
   const clearRequiredSessionsForRow = async (row: SessionRow) => {
-    await Promise.all([...row.slotIds.values()].map(id =>
-      fetch(`/api/camps/${campId}/session-templates/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mandatory: false }),
-      })
-    ));
-    await Promise.all(rowMandatorySessions(row).map(ms =>
-      fetch(`/api/camps/${campId}/mandatory-sessions/${ms.id}`, { method: "DELETE" })
-    ));
+    const res = await fetch(`/api/camps/${campId}/session-template-groups/lock`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        label: row.label,
+        startTime: row.startTime,
+        endTime: row.endTime,
+        sessionTemplateIds: [...row.slotIds.values()],
+        mandatory: false,
+      }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      alert(error?.error || "Could not unlock this time block. Please refresh and try again.");
+    }
   };
 
   const requiredModeHasChanges = (row: SessionRow) => {

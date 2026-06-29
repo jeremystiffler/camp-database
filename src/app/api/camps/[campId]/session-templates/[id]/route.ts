@@ -19,9 +19,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     ...(typeof data.dayOfWeek === "number" || data.dayOfWeek === null ? { dayOfWeek: data.dayOfWeek } : {}),
     ...(typeof data.mandatory === "boolean" ? { mandatory: data.mandatory } : {}),
   };
-  const updated = await prisma.sessionTemplate.updateMany({ where: { id, campId }, data: allowed });
-  if (updated.count === 0) return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  const item = await prisma.sessionTemplate.findUnique({ where: { id } });
+  const existing = await prisma.sessionTemplate.findFirst({ where: { id, campId }, select: { id: true } });
+  if (!existing) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  const item = await prisma.sessionTemplate.update({ where: { id }, data: allowed });
   return NextResponse.json(item);
 }
 
