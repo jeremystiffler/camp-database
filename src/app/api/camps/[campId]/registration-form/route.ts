@@ -257,8 +257,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
         classChoicesEnabled: classChoicesEnabled !== false,
       },
     });
-    return NextResponse.json({ success: true, form: compactForm(updated) });
-  } catch {
+    return NextResponse.json({ success: true, form: compactForm(updated), fields: updated.fields });
+  } catch (error) {
+    console.error("Failed to save registration form", error);
     return NextResponse.json({ error: "That form link slug is already in use for this camp." }, { status: 409 });
   }
 }

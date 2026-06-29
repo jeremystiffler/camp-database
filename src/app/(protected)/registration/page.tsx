@@ -201,6 +201,7 @@ function RegistrationContent() {
   const [loading, setLoading]       = useState(true);
   const [saving, setSaving]         = useState(false);
   const [saved, setSaved]           = useState(false);
+  const [saveError, setSaveError]   = useState("");
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [previewPage, setPreviewPage] = useState(0);
@@ -226,7 +227,7 @@ function RegistrationContent() {
   const loadForm = (formRef?: string) => {
     if (!campId) return;
     setLoading(true);
-    fetch(`/api/camps/${campId}/registration-form${formRef ? `?form=${encodeURIComponent(formRef)}` : ""}`)
+    fetch(`/api/camps/${campId}/registration-form${formRef ? `?form=${encodeURIComponent(formRef)}` : ""}`, { cache: "no-store" })
       .then(r => r.json())
       .then(d => {
         applyFormResponse(d);
@@ -240,20 +241,25 @@ function RegistrationContent() {
   }, [campId]);
 
   const refreshForms = async (formRef?: string) => {
-    const r = await fetch(`/api/camps/${campId}/registration-form${formRef ? `?form=${encodeURIComponent(formRef)}` : ""}`);
+    const r = await fetch(`/api/camps/${campId}/registration-form${formRef ? `?form=${encodeURIComponent(formRef)}` : ""}`, { cache: "no-store" });
     const d = await r.json();
     applyFormResponse(d);
   };
 
   const save = async () => {
-    setSaving(true); setSaved(false);
-    const res = await fetch(`/api/camps/${campId}/registration-form`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, fields: cleanFieldsForSave(fields) }),
-    });
-    if (res.ok) {
-      const d = await res.json();
+    setSaving(true); setSaved(false); setSaveError("");
+    const cleanedFields = cleanFieldsForSave(fields);
+    try {
+      const res = await fetch(`/api/camps/${campId}/registration-form`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, fields: cleanedFields }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(d.error || "Could not save this form. Please try again.");
+      }
       if (d.form) {
         setSelectedFormId(d.form.id);
         setFormTitle(d.form.title);
@@ -262,10 +268,15 @@ function RegistrationContent() {
         setIsDefault(d.form.isDefault);
         setClassChoicesEnabled(d.form.classChoicesEnabled !== false);
       }
+      try { setFields(JSON.parse(typeof d.fields === "string" ? d.fields : JSON.stringify(d.fields ?? cleanedFields))); } catch { setFields(cleanedFields); }
       await refreshForms(d.form?.id || selectedFormId);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save this form. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   };
 
   const createForm = async () => {
@@ -359,6 +370,7 @@ function RegistrationContent() {
             className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-forest-500 text-white" : "bg-gradient-to-r from-berry-500 to-berry-600 text-white hover:opacity-90"} disabled:opacity-60`}>
             {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Form"}
           </button>
+          {saveError && <p className="basis-full text-right text-xs font-bold text-red-500">{saveError}</p>}
         </div>
       </div>
 
