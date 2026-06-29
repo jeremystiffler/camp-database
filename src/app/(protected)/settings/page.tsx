@@ -23,7 +23,25 @@ interface CampBilling {
   billingMode: "campPays" | "camperFee";
   billingStatus: string;
   platformFeeCents: number;
+  platformFeePercentBps: number;
+  platformFeeMinCents: number;
+  platformFeeCapCents: number;
+  camperPriceCents: number;
   annualSubscriptionCents: number;
+}
+
+interface Coupon {
+  id?: string;
+  code: string;
+  description: string;
+  discountType: "percent" | "amount" | "free" | "bogo";
+  percentOff: number | null;
+  amountOffCents: number | null;
+  restrictedEmails: string;
+  maxRedemptions: number | null;
+  redeemedCount?: number;
+  active: boolean;
+  expiresAt: string;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -81,9 +99,11 @@ function SettingsContent() {
   const [campName,        setCampName]        = useState("this camp");
   const [appearanceSaving, setAppearanceSaving] = useState(false);
   const [appearanceMsg,   setAppearanceMsg]   = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [billing, setBilling] = useState<CampBilling>({ billingMode: "campPays", billingStatus: "trial", platformFeeCents: 300, annualSubscriptionCents: 29900 });
+  const [billing, setBilling] = useState<CampBilling>({ billingMode: "campPays", billingStatus: "trial", platformFeeCents: 300, platformFeePercentBps: 300, platformFeeMinCents: 200, platformFeeCapCents: 2500, camperPriceCents: 0, annualSubscriptionCents: 29900 });
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingMsg, setBillingMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [couponDraft, setCouponDraft] = useState<Coupon>({ code: "", description: "", discountType: "percent", percentOff: 10, amountOffCents: null, restrictedEmails: "", maxRedemptions: null, active: true, expiresAt: "" });
 
   useEffect(() => {
     // Load user profile
@@ -113,10 +133,18 @@ function SettingsContent() {
             billingMode: d.billingMode === "camperFee" ? "camperFee" : "campPays",
             billingStatus: d.billingStatus || "trial",
             platformFeeCents: Number(d.platformFeeCents || 300),
+            platformFeePercentBps: Number(d.platformFeePercentBps || 300),
+            platformFeeMinCents: Number(d.platformFeeMinCents || 200),
+            platformFeeCapCents: Number(d.platformFeeCapCents || 2500),
+            camperPriceCents: Number(d.camperPriceCents || 0),
             annualSubscriptionCents: Number(d.annualSubscriptionCents || 29900),
           });
         }
       });
+    fetch(`/api/camps/${campId}/coupons`)
+      .then(r => r.json())
+      .then(d => setCoupons(Array.isArray(d.coupons) ? d.coupons : []))
+      .catch(() => setCoupons([]));
   }, [campId]);
 
   const saveProfile = async () => {
@@ -188,7 +216,33 @@ function SettingsContent() {
     else setBillingMsg({ type: "error", text: data.error || "Stripe checkout is not ready yet." });
   };
 
+  const saveCoupon = async () => {
+    if (!campId || !couponDraft.code.trim()) return;
+    setBillingSaving(true); setBillingMsg(null);
+    const res = await fetch(`/api/camps/${campId}/coupons`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(couponDraft),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBillingSaving(false);
+    if (res.ok) {
+      setCoupons(prev => [data.coupon, ...prev.filter(c => c.id !== data.coupon.id && c.code !== data.coupon.code)]);
+      setCouponDraft({ code: "", description: "", discountType: "percent", percentOff: 10, amountOffCents: null, restrictedEmails: "", maxRedemptions: null, active: true, expiresAt: "" });
+      setBillingMsg({ type: "success", text: "Coupon saved." });
+    } else {
+      setBillingMsg({ type: "error", text: data.detail || data.error || "Failed to save coupon" });
+    }
+  };
+
+  const deleteCoupon = async (couponId?: string) => {
+    if (!campId || !couponId) return;
+    const res = await fetch(`/api/camps/${campId}/coupons/${couponId}`, { method: "DELETE" });
+    if (res.ok) setCoupons(prev => prev.filter(c => c.id !== couponId));
+  };
+
   const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+  const platformEstimate = Math.min(billing.platformFeeCapCents, Math.max(billing.platformFeeMinCents, Math.round(billing.camperPriceCents * billing.platformFeePercentBps / 10000)));
 
   const inputCls = "w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400";
 
@@ -268,15 +322,80 @@ function SettingsContent() {
               </button>
               <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "camperFee" }))}
                 className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "camperFee" ? "border-sky-400 bg-sky-50" : "border-slate-200 hover:border-slate-300"}`}>
-                <p className="text-sm font-bold text-slate-800">Campers pay platform fee</p>
-                <p className="mt-1 text-2xl font-black text-sky-700">{money(billing.platformFeeCents)}<span className="text-xs font-semibold text-slate-500">/registration</span></p>
-                <p className="mt-2 text-xs text-slate-500">Best when the camp wants no annual software bill and families cover the small fee.</p>
+                <p className="text-sm font-bold text-slate-800">Campers pay registration</p>
+                <p className="mt-1 text-2xl font-black text-sky-700">{money(billing.camperPriceCents + platformEstimate)}<span className="text-xs font-semibold text-slate-500">/camper</span></p>
+                <p className="mt-2 text-xs text-slate-500">Families pay the camp price plus our 3% platform fee, capped at {money(billing.platformFeeCapCents)}.</p>
               </button>
             </div>
 
+            {billing.billingMode === "camperFee" && (
+              <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Camp price per camper</span>
+                    <input type="number" min="0" step="1" value={billing.camperPriceCents / 100} onChange={e => setBilling(prev => ({ ...prev, camperPriceCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
+                  </label>
+                  <label className="block">
+                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Our percentage</span>
+                    <input type="number" min="0" max="100" step="0.1" value={billing.platformFeePercentBps / 100} onChange={e => setBilling(prev => ({ ...prev, platformFeePercentBps: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
+                  </label>
+                  <label className="block">
+                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Minimum platform fee</span>
+                    <input type="number" min="0" step="1" value={billing.platformFeeMinCents / 100} onChange={e => setBilling(prev => ({ ...prev, platformFeeMinCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
+                  </label>
+                  <label className="block">
+                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Maximum platform fee cap</span>
+                    <input type="number" min="0" step="1" value={billing.platformFeeCapCents / 100} onChange={e => setBilling(prev => ({ ...prev, platformFeeCapCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
+                  </label>
+                </div>
+                <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 text-sm text-sky-900">
+                  Example checkout today: camp price <strong>{money(billing.camperPriceCents)}</strong> + platform fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.camperPriceCents + platformEstimate)}</strong>.
+                </div>
+              </div>
+            )}
+
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              Current status: <span className="font-bold capitalize text-slate-800">{billing.billingStatus.replace(/_/g, " ")}</span>. Registration pages will show the {billing.billingMode === "camperFee" ? `${money(billing.platformFeeCents)} camper platform fee` : "camp-paid plan"} messaging.
+              Current status: <span className="font-bold capitalize text-slate-800">{billing.billingStatus.replace(/_/g, " ")}</span>. Registration pages will show the {billing.billingMode === "camperFee" ? `${money(billing.camperPriceCents)} camp price + platform fee` : "camp-paid plan"} messaging.
             </div>
+
+            {billing.billingMode === "camperFee" && (
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4 space-y-3">
+                <div>
+                  <p className="text-sm font-bold text-amber-900">Coupon codes</p>
+                  <p className="text-xs text-amber-800">Create percent, dollar-off, free, BOGO, or specific-family codes. BOGO discounts this registration 50%.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input placeholder="Code e.g. STAFFFREE" value={couponDraft.code} onChange={e => setCouponDraft(prev => ({ ...prev, code: e.target.value.toUpperCase() }))} className={inputCls} />
+                  <select value={couponDraft.discountType} onChange={e => setCouponDraft(prev => ({ ...prev, discountType: e.target.value as Coupon["discountType"] }))} className={inputCls}>
+                    <option value="percent">Percent off</option>
+                    <option value="amount">Dollar amount off</option>
+                    <option value="free">Free registration</option>
+                    <option value="bogo">BOGO / half off</option>
+                  </select>
+                  {couponDraft.discountType === "percent" && <input type="number" min="1" max="100" placeholder="Percent off" value={couponDraft.percentOff || ""} onChange={e => setCouponDraft(prev => ({ ...prev, percentOff: Number(e.target.value) || null }))} className={inputCls} />}
+                  {couponDraft.discountType === "amount" && <input type="number" min="0" placeholder="Dollar amount off" value={(couponDraft.amountOffCents || 0) / 100 || ""} onChange={e => setCouponDraft(prev => ({ ...prev, amountOffCents: Math.round(Number(e.target.value) * 100 || 0) }))} className={inputCls} />}
+                  <input placeholder="Description (optional)" value={couponDraft.description} onChange={e => setCouponDraft(prev => ({ ...prev, description: e.target.value }))} className={inputCls} />
+                  <input type="number" min="1" placeholder="Max redemptions (blank = unlimited)" value={couponDraft.maxRedemptions || ""} onChange={e => setCouponDraft(prev => ({ ...prev, maxRedemptions: e.target.value ? Number(e.target.value) : null }))} className={inputCls} />
+                  <input type="date" value={couponDraft.expiresAt} onChange={e => setCouponDraft(prev => ({ ...prev, expiresAt: e.target.value }))} className={inputCls} />
+                  <label className="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={couponDraft.active} onChange={e => setCouponDraft(prev => ({ ...prev, active: e.target.checked }))} /> Active</label>
+                </div>
+                <textarea rows={2} placeholder="Restrict to specific guardian emails (optional, one per line or comma-separated)" value={couponDraft.restrictedEmails} onChange={e => setCouponDraft(prev => ({ ...prev, restrictedEmails: e.target.value }))} className={inputCls + " resize-none"} />
+                <button type="button" onClick={saveCoupon} disabled={billingSaving || !couponDraft.code.trim()} className="px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 disabled:opacity-60">Save Coupon</button>
+                {coupons.length > 0 && (
+                  <div className="divide-y divide-amber-100 rounded-xl border border-amber-100 bg-white overflow-hidden">
+                    {coupons.map(coupon => (
+                      <div key={coupon.id || coupon.code} className="flex items-center justify-between gap-3 p-3 text-sm">
+                        <div>
+                          <p className="font-bold text-slate-800">{coupon.code} <span className="text-xs font-medium text-slate-400">{coupon.active ? "active" : "inactive"}</span></p>
+                          <p className="text-xs text-slate-500">{coupon.discountType === "percent" ? `${coupon.percentOff}% off` : coupon.discountType === "amount" ? `${money(coupon.amountOffCents || 0)} off` : coupon.discountType === "free" ? "Free registration" : "BOGO / half off"} · redeemed {coupon.redeemedCount || 0}{coupon.maxRedemptions ? `/${coupon.maxRedemptions}` : ""}</p>
+                        </div>
+                        <button type="button" onClick={() => deleteCoupon(coupon.id)} className="text-xs font-bold text-red-500 hover:text-red-700">Delete</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {billingMsg && (
               <div className={`px-4 py-2.5 rounded-xl text-sm ${billingMsg.type === "success" ? "bg-forest-50 text-forest-700 border border-forest-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
@@ -287,7 +406,7 @@ function SettingsContent() {
             <div className="flex flex-wrap gap-3">
               <button onClick={saveBilling} disabled={billingSaving}
                 className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
-                {billingSaving ? "Saving..." : "Save Billing Choice"}
+                {billingSaving ? "Saving..." : "Save Billing Settings"}
               </button>
               {billing.billingMode === "campPays" && (
                 <button onClick={startCampCheckout} disabled={billingSaving}

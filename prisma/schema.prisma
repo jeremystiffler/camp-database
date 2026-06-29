@@ -46,6 +46,10 @@ model Camp {
   billingMode              String             @default("campPays") // campPays | camperFee
   billingStatus            String             @default("trial") // trial | active | past_due | unpaid | comped
   platformFeeCents         Int                @default(300)
+  platformFeePercentBps    Int                @default(300) // 3.00%
+  platformFeeMinCents      Int                @default(200)
+  platformFeeCapCents      Int                @default(2500)
+  camperPriceCents         Int                @default(0)
   annualSubscriptionCents  Int                @default(29900)
   stripeSubscriptionId     String?
   stripePriceId            String?
@@ -69,6 +73,7 @@ model Camp {
   enrollments              Enrollment[]
   registrationLinks        RegistrationLink[]
   registrationPayments     RegistrationPayment[]
+  coupons                  CampCoupon[]
 }
 
 model CampMember {
@@ -270,6 +275,12 @@ model Camper {
   medicalNotes   String?
   dietaryNotes   String?
   customData     String?
+  couponCode     String?
+  campPriceCents Int          @default(0)
+  discountCents  Int          @default(0)
+  platformFeeCents Int        @default(0)
+  totalPaidCents Int          @default(0)
+  paymentStatus  String       @default("not_required")
   createdAt      DateTime     @default(now())
   enrollments    Enrollment[]
 }
@@ -329,6 +340,26 @@ model RegistrationLink {
   createdAt   DateTime  @default(now())
 }
 
+model CampCoupon {
+  id               String    @id @default(cuid())
+  campId           String
+  camp             Camp      @relation(fields: [campId], references: [id], onDelete: Cascade)
+  code             String
+  description      String?
+  discountType     String    @default("percent") // percent | amount | free | bogo
+  percentOff       Int?
+  amountOffCents   Int?
+  restrictedEmails String?   // newline/comma separated lowercase emails; blank = anyone with code
+  maxRedemptions   Int?
+  redeemedCount    Int       @default(0)
+  active           Boolean   @default(true)
+  expiresAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([campId, code])
+}
+
 model RegistrationPayment {
   id                    String   @id @default(cuid())
   campId                String
@@ -336,8 +367,12 @@ model RegistrationPayment {
   camperId              String?
   guardianEmail         String?
   amountCents           Int
+  campPriceCents        Int      @default(0)
+  discountCents         Int      @default(0)
+  platformFeeCents      Int      @default(0)
+  couponCode            String?
   currency              String   @default("usd")
-  type                  String   @default("platform_fee")
+  type                  String   @default("registration")
   status                String   @default("pending")
   stripeCheckoutSession String?  @unique
   stripePaymentIntent   String?

@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     const allowed: Record<string, unknown> = {};
     const ALLOWED_KEYS = [
       "name", "startDate", "endDate", "status", "registrationOpen",
-      "billingMode", "billingStatus", "platformFeeCents", "annualSubscriptionCents",
+      "billingMode", "billingStatus", "platformFeeCents", "platformFeePercentBps", "platformFeeMinCents", "platformFeeCapCents", "camperPriceCents", "annualSubscriptionCents",
       "primaryColor", "accentColor", "fontFamily",
     ];
     for (const key of ALLOWED_KEYS) {
@@ -50,6 +50,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     if (allowed.billingMode && !["campPays", "camperFee"].includes(String(allowed.billingMode))) delete allowed.billingMode;
     if (allowed.billingStatus && !["trial", "active", "past_due", "unpaid", "comped"].includes(String(allowed.billingStatus))) delete allowed.billingStatus;
     if (allowed.platformFeeCents !== undefined) allowed.platformFeeCents = Math.max(0, Number(allowed.platformFeeCents) || 300);
+    if (allowed.platformFeePercentBps !== undefined) allowed.platformFeePercentBps = Math.min(10000, Math.max(0, Number(allowed.platformFeePercentBps) || 300));
+    if (allowed.platformFeeMinCents !== undefined) allowed.platformFeeMinCents = Math.max(0, Number(allowed.platformFeeMinCents) || 200);
+    if (allowed.platformFeeCapCents !== undefined) allowed.platformFeeCapCents = Math.max(0, Number(allowed.platformFeeCapCents) || 2500);
+    if (allowed.camperPriceCents !== undefined) allowed.camperPriceCents = Math.max(0, Number(allowed.camperPriceCents) || 0);
     if (allowed.annualSubscriptionCents !== undefined) allowed.annualSubscriptionCents = Math.max(0, Number(allowed.annualSubscriptionCents) || 29900);
 
     await prisma.camp.update({ where: { id: campId }, data: allowed });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { getBaseUrl, getStripe } from "@/lib/billing";
+import { calculateRegistrationTotal, couponAllowsEmail, normalizeCouponCode, type PricingCoupon } from "@/lib/registration-pricing";
 
 interface RegistrationPayload {
   firstName: string;
@@ -20,6 +21,7 @@ interface RegistrationPayload {
   selectedSessionCourseIds?: Record<string, string>;
   customData?: Record<string, unknown>;
   formRef?: string;
+  couponCode?: string;
   updateExisting?: boolean;
   existingCamperId?: string;
 }
@@ -97,7 +99,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
   const camp = await prisma.camp.findUnique({
     where: { id: campId },
-    select: { id: true, name: true, registrationOpen: true, billingMode: true, platformFeeCents: true },
+    select: {
+      id: true,
+      name: true,
+      registrationOpen: true,
+      billingMode: true,
+      platformFeeCents: true,
+      platformFeePercentBps: true,
+      platformFeeMinCents: true,
+      platformFeeCapCents: true,
+      camperPriceCents: true,
+    },
   });
   if (!camp) return NextResponse.json({ error: "Camp not found" }, { status: 404 });
   if (!camp.registrationOpen) return NextResponse.json({ error: "Registration is closed" }, { status: 403 });
@@ -112,6 +124,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const lastName = clean(data.lastName);
   const guardianEmail = clean(data.guardianEmail).toLowerCase();
   const dob = normalizedDate(data.dateOfBirth);
+  const couponCode = normalizeCouponCode(data.couponCode);
+  let coupon: PricingCoupon | null = null;
+
+  if (couponCode) {
+    const dbCoupon = await prisma.campCoupon.findFirst({ where: { campId, code: couponCode, active: true } });
+    if (!dbCoupon) return NextResponse.json({ error: "Coupon code not found" }, { status: 400 });
+    if (dbCoupon.expiresAt && dbCoupon.expiresAt < new Date()) return NextResponse.json({ error: "Coupon code has expired" }, { status: 400 });
+    if (dbCoupon.maxRedemptions !== null && dbCoupon.redeemedCount >= dbCoupon.maxRedemptions) return NextResponse.json({ error: "Coupon code has reached its limit" }, { status: 400 });
+    if (!couponAllowsEmail(dbCoupon.restrictedEmails, guardianEmail)) return NextResponse.json({ error: "This coupon code is reserved for a specific family email" }, { status: 400 });
+    coupon = dbCoupon;
+  }
 
   if (!firstName || !lastName || !guardianEmail || !data.ageGroupId) {
     return NextResponse.json({ error: "Missing required registration fields" }, { status: 400 });
@@ -254,6 +277,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     }
   }
 
+  const totals = calculateRegistrationTotal(camp, coupon);
   const camperData = {
     firstName,
     lastName,
@@ -268,6 +292,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     medicalNotes: clean(data.medicalNotes) || undefined,
     dietaryNotes: clean(data.dietaryNotes) || undefined,
     customData: data.customData ? JSON.stringify(data.customData) : undefined,
+    couponCode: coupon?.code,
+    campPriceCents: totals.campPriceCents,
+    discountCents: totals.discountCents,
+    platformFeeCents: totals.platformFeeCents,
+    totalPaidCents: totals.totalCents,
+    paymentStatus: totals.totalCents > 0 && !updating ? "pending" : "not_required",
   };
 
   const camper = updating
@@ -357,9 +387,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     console.error("Registration confirmation email failed", error);
   }
 
-  if (camp.billingMode === "camperFee" && !updating) {
+  if (coupon?.id && !updating) {
+    await prisma.campCoupon.update({ where: { id: coupon.id }, data: { redeemedCount: { increment: 1 } } });
+  }
+
+  if (camp.billingMode === "camperFee" && !updating && totals.totalCents > 0) {
     const stripe = getStripe();
-    const amountCents = camp.platformFeeCents || 300;
+    const amountCents = totals.totalCents;
     if (stripe && amountCents > 0) {
       const checkout = await stripe.checkout.sessions.create({
         mode: "payment",
@@ -368,13 +402,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           price_data: {
             currency: "usd",
             unit_amount: amountCents,
-            product_data: { name: `${camp.name} platform fee` },
+            product_data: { name: `${camp.name} registration` },
           },
           quantity: 1,
         }],
         success_url: `${getBaseUrl()}/register/${campId}?payment=success`,
         cancel_url: `${getBaseUrl()}/register/${campId}?payment=cancelled`,
-        metadata: { campId, camperId: camper.id, type: "camper_platform_fee" },
+        metadata: { campId, camperId: camper.id, type: "camper_registration", couponCode: coupon?.code || "" },
       });
       await prisma.registrationPayment.create({
         data: {
@@ -382,15 +416,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           camperId: camper.id,
           guardianEmail,
           amountCents,
+          campPriceCents: totals.campPriceCents,
+          discountCents: totals.discountCents,
+          platformFeeCents: totals.platformFeeCents,
+          couponCode: coupon?.code,
           status: "pending",
           stripeCheckoutSession: checkout.id,
-          type: "platform_fee",
+          type: "registration",
         },
       });
-      return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent, paymentRequired: true, checkoutUrl: checkout.url });
+      return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent, paymentRequired: true, checkoutUrl: checkout.url, totals });
     }
-    return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent, paymentRequired: true, paymentUnavailable: true });
+    return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent, paymentRequired: true, paymentUnavailable: true, totals });
   }
 
-  return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent, paymentRequired: false });
+  return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent, paymentRequired: false, totals });
 }

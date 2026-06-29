@@ -117,6 +117,13 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const [regOpen, setRegOpen]       = useState(false);
   const [billingMode, setBillingMode] = useState<"campPays" | "camperFee">("campPays");
   const [platformFeeCents, setPlatformFeeCents] = useState(300);
+  const [platformFeePercentBps, setPlatformFeePercentBps] = useState(300);
+  const [platformFeeMinCents, setPlatformFeeMinCents] = useState(200);
+  const [platformFeeCapCents, setPlatformFeeCapCents] = useState(2500);
+  const [camperPriceCents, setCamperPriceCents] = useState(0);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponDiscountCents, setCouponDiscountCents] = useState(0);
+  const [couponMsg, setCouponMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [paymentNotice, setPaymentNotice] = useState("");
   const [loading, setLoading]       = useState(true);
   const [values, setValues]         = useState<Record<string, FieldValue>>({});
@@ -140,6 +147,10 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           setRegOpen(d.registrationOpen || false);
           setBillingMode(d.billingMode === "camperFee" ? "camperFee" : "campPays");
           setPlatformFeeCents(Number(d.platformFeeCents || 300));
+          setPlatformFeePercentBps(Number(d.platformFeePercentBps || 300));
+          setPlatformFeeMinCents(Number(d.platformFeeMinCents || 200));
+          setPlatformFeeCapCents(Number(d.platformFeeCapCents || 2500));
+          setCamperPriceCents(Number(d.camperPriceCents || 0));
           setPaymentNotice(searchParams.get("payment") === "success" ? "Payment received — thank you!" : searchParams.get("payment") === "cancelled" ? "Payment was cancelled. You can submit another registration when ready." : "");
           setAgeGroups(Array.isArray(d.ageGroups) ? d.ageGroups : []);
           setCourses(Array.isArray(d.courses) ? d.courses : []);
@@ -259,6 +270,28 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
 
   const selectedCourseIds = [...new Set(Object.values(selectedBySession).filter(Boolean))];
   const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+  const priceAfterDiscountCents = Math.max(0, camperPriceCents - couponDiscountCents);
+  const calculatedPlatformFeeCents = camperPriceCents > 0 ? (priceAfterDiscountCents > 0 ? Math.min(platformFeeCapCents, Math.max(platformFeeMinCents, Math.round(priceAfterDiscountCents * platformFeePercentBps / 10000))) : 0) : platformFeeCents;
+  const totalDueCents = billingMode === "camperFee" ? priceAfterDiscountCents + calculatedPlatformFeeCents : 0;
+
+  const applyCoupon = async () => {
+    setCouponMsg(null);
+    setCouponDiscountCents(0);
+    if (!couponCode.trim()) return;
+    const res = await fetch(`/api/camps/${campId}/coupons/validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: couponCode, guardianEmail: values.f6 || "" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.valid) {
+      setCouponDiscountCents(Number(data.totals?.discountCents || 0));
+      setCouponCode(data.coupon?.code || couponCode.toUpperCase());
+      setCouponMsg({ type: "success", text: `Coupon applied: ${money(Number(data.totals?.discountCents || 0))} off.` });
+    } else {
+      setCouponMsg({ type: "error", text: data.error || "Coupon could not be applied." });
+    }
+  };
 
   const submitRegistration = async (updateExisting = false, existingCamperId?: string) => {
     setSubmitting(true);
@@ -283,6 +316,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           selectedSessionCourseIds: classChoicesEnabled ? selectedBySession : {},
           selectedCourseIds: classChoicesEnabled ? selectedCourseIds : [],
           formRef,
+          couponCode: couponCode.trim() || undefined,
           updateExisting,
           existingCamperId,
           customData: Object.fromEntries(fields.filter(f => !SYSTEM_FIELD_IDS.has(f.id) && isInputField(f)).map(f => [f.label, values[f.id] || ""])),
@@ -426,8 +460,13 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {paymentNotice && <div className="mb-5 px-4 py-3 bg-forest-50 border border-forest-200 rounded-xl text-sm text-forest-800">{paymentNotice}</div>}
           {billingMode === "camperFee" && (
-            <div className="mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-xl text-sm text-sky-900">
-              A {money(platformFeeCents)} platform fee is collected after registration to help keep camp software costs off the camp budget.
+            <div className="mb-5 px-4 py-4 bg-sky-50 border border-sky-200 rounded-xl text-sm text-sky-900 space-y-3">
+              <p><strong>Registration total:</strong> {money(totalDueCents)} {camperPriceCents > 0 ? `(camp price ${money(camperPriceCents)}${couponDiscountCents ? ` − ${money(couponDiscountCents)} coupon` : ""} + ${money(calculatedPlatformFeeCents)} platform fee)` : `(platform fee ${money(platformFeeCents)})`}.</p>
+              <div className="flex gap-2">
+                <input value={couponCode} onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponDiscountCents(0); setCouponMsg(null); }} placeholder="Coupon code" className="flex-1 px-3 py-2 border border-sky-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                <button type="button" onClick={applyCoupon} className="px-3 py-2 bg-sky-600 text-white rounded-lg text-sm font-bold hover:bg-sky-700">Apply</button>
+              </div>
+              {couponMsg && <p className={`text-xs font-semibold ${couponMsg.type === "success" ? "text-forest-700" : "text-red-600"}`}>{couponMsg.text}</p>}
             </div>
           )}
           {errors._form && <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{errors._form}</div>}
@@ -534,7 +573,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                 <div className="flex gap-3">
                   <button type="button" onClick={prevStep} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">← Back</button>
                   <button type="submit" disabled={submitting} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
-                    {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</> : billingMode === "camperFee" ? `Submit + Pay ${money(platformFeeCents)} →` : "Submit Registration →"}
+                    {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</> : billingMode === "camperFee" && totalDueCents > 0 ? `Submit + Pay ${money(totalDueCents)} →` : "Submit Registration →"}
                   </button>
                 </div>
               </>

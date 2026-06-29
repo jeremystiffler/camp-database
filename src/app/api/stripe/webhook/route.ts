@@ -24,11 +24,15 @@ export async function POST(req: NextRequest) {
     const campId = session.metadata?.campId;
     const type = session.metadata?.type;
 
-    if (type === "camper_platform_fee") {
+    if (type === "camper_platform_fee" || type === "camper_registration") {
       await prisma.registrationPayment.updateMany({
         where: { stripeCheckoutSession: session.id },
         data: { status: "paid", stripePaymentIntent: typeof session.payment_intent === "string" ? session.payment_intent : undefined },
       });
+      const camperId = session.metadata?.camperId;
+      if (typeof camperId === "string" && camperId) {
+        await prisma.camper.updateMany({ where: { id: camperId }, data: { paymentStatus: "paid" } });
+      }
     }
 
     if (type === "camp_subscription" || type === "camp_subscription_one_time") {
