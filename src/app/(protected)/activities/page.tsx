@@ -729,7 +729,6 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
   const [sortDir, setSortDir]                   = useState<"asc" | "desc">("asc");
   const [statusFilter, setStatusFilter]         = useState<"all" | "needs" | "ready">("all");
   const [toolsOpen, setToolsOpen]               = useState(false);
-  const [openMenuId, setOpenMenuId]             = useState<string | null>(null);
   const [inlineSaving, setInlineSaving]         = useState<Record<string, boolean>>({});
   const [inlineErrors, setInlineErrors]         = useState<Record<string, string>>({});
   const [inlineConflicts, setInlineConflicts]   = useState<SchedulingConflict[]>([]);
@@ -777,7 +776,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
     setCourses(prev => prev.map(course => course.id === updated.id ? updated : course));
   };
 
-  const saveInlineCourse = async (course: Course, field: "teacher" | "room" | "cap" | "ages", body: Record<string, unknown>) => {
+  const saveInlineCourse = async (course: Course, field: "teacher" | "assistant" | "room" | "cap" | "ages", body: Record<string, unknown>) => {
     const key = `${course.id}:${field}`;
     setInlineSaving(prev => ({ ...prev, [key]: true }));
     setInlineErrors(prev => { const next = { ...prev }; delete next[course.id]; return next; });
@@ -854,7 +853,11 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
   const leadTeacher = (course: Course) =>
     course.courseTeachers?.find(ct => ct.person.role === "teacher" || ct.person.role === "director")?.person;
 
+  const assistant = (course: Course) =>
+    course.courseTeachers?.find(ct => ct.person.role === "assistant" || ct.person.role === "staff")?.person;
+
   const leadTeacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director");
+  const assistantOptions = persons.filter(p => p.role === "assistant" || p.role === "staff");
 
   const toggleInlineAgeGroup = (course: Course, ageGroupId: string) => {
     const currentIds = course.courseAgeGroups?.map(cag => cag.ageGroup.id) || [];
@@ -904,7 +907,6 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
               </button>
               {toolsOpen && (
                 <div className="absolute right-0 top-12 z-20 w-64 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-xl">
-                  <button onClick={() => { document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-sky-50">▦ Jump to working grid</button>
                   <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-amber-50">🔒 Add required assembly</button>
                   <a href={`/import${campId ? `?campId=${campId}` : ""}`} className="block rounded-xl px-3 py-2 font-semibold text-slate-700 hover:bg-emerald-50">📥 Import activities</a>
                   <button onClick={() => { setSortCol("name"); setSortDir("asc"); setStatusFilter("all"); setSearch(""); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-slate-50">✨ Reset filters</button>
@@ -993,6 +995,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                   <tr>
                     <th className="px-4 py-3 text-left">Activity</th>
                     <th className="px-3 py-3 text-left">Teacher</th>
+                    <th className="px-3 py-3 text-left">Assistant</th>
                     <th className="px-3 py-3 text-left">Room</th>
                     <th className="px-3 py-3 text-center">Total seats</th>
                     <th className="px-3 py-3 text-left">Ages</th>
@@ -1003,6 +1006,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                   {filteredByStatus.map(course => {
                     const status = activityStatus(course);
                     const teacher = leadTeacher(course);
+                    const helper = assistant(course);
                     return (
                       <tr key={course.id} className="align-top hover:bg-sky-50/30">
                         <td className="px-4 py-3">
@@ -1033,6 +1037,21 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             {leadTeacherOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
                           </select>
                           {inlineErrors[course.id] && <p className="mt-1 text-[10px] font-bold text-red-500">{inlineErrors[course.id]}</p>}
+                        </td>
+                        <td className="px-3 py-3 text-xs text-slate-600">
+                          <select
+                            value={helper?.id || ""}
+                            disabled={!!inlineSaving[`${course.id}:assistant`]}
+                            onChange={e => {
+                              const leadId = leadTeacher(course)?.id;
+                              const teacherIds = [leadId, e.target.value].filter(Boolean) as string[];
+                              saveInlineCourse(course, "assistant", { teacherIds });
+                            }}
+                            className={`w-full min-w-[145px] rounded-lg border px-2 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/30 ${helper ? "border-slate-200 bg-white text-slate-700" : "border-sky-100 bg-sky-50 text-sky-700"}`}
+                          >
+                            <option value="">Not assigned</option>
+                            {assistantOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+                          </select>
                         </td>
                         <td className="px-3 py-3 text-xs text-slate-600">
                           <select
@@ -1089,16 +1108,8 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             }) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">No ages set up</span>}
                           </div>
                         </td>
-                        <td className="relative px-4 py-3 text-right">
-                          <button onClick={() => { setEditingCourse(course); setShowModal(true); }} className="rounded-lg bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-100">Edit</button>
-                          <button onClick={() => setOpenMenuId(openMenuId === course.id ? null : course.id)} className="ml-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-500 hover:bg-slate-50">⋯</button>
-                          {openMenuId === course.id && (
-                            <div className="absolute right-4 top-10 z-10 w-48 rounded-2xl border border-slate-200 bg-white p-2 text-left shadow-xl">
-                              <button onClick={() => { setEditingCourse(course); setShowModal(true); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-slate-50">✏️ Edit details</button>
-                              <button onClick={() => { document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-600 hover:bg-sky-50">▦ Jump to grid</button>
-                              <button onClick={() => { deleteCourse(course.id); setOpenMenuId(null); }} className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50">🗑️ Delete</button>
-                            </div>
-                          )}
+                        <td className="px-4 py-3 text-right">
+                          <button onClick={() => deleteCourse(course.id)} className="rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100">Delete</button>
                         </td>
                       </tr>
                     );

@@ -39,6 +39,9 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const [rowSort, setRowSort] = useState<"name" | "teacher" | "ageGroup">("name");
   const [rowSortDir, setRowSortDir] = useState<"asc" | "desc">("asc");
   const [focusAgeGroupId, setFocusAgeGroupId] = useState("");
+  const [roomFilter, setRoomFilter] = useState("");
+  const [teacherFilter, setTeacherFilter] = useState("");
+  const [columnPage, setColumnPage] = useState(0);
   const [quickAddByGroup, setQuickAddByGroup] = useState<Record<string, string>>({});
   const [blockedCells, setBlockedCells] = useState<Set<string>>(new Set());
 
@@ -128,21 +131,33 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     course.courseAgeGroups?.map(cag => cag.ageGroup.name).sort((a, b) => a.localeCompare(b))[0] || "zzzz no age group";
 
   const filteredCourses = useMemo(() => {
-    const filtered = courses.filter(c => c.name.toLowerCase().includes(activityFilter.toLowerCase()));
+    const q = activityFilter.trim().toLowerCase();
+    const filtered = courses.filter(c => {
+      const teacherText = c.courseTeachers.map(ct => `${ct.person.firstName} ${ct.person.lastName}`).join(" ").toLowerCase();
+      const ageText = c.courseAgeGroups.map(cag => cag.ageGroup.name).join(" ").toLowerCase();
+      const haystack = `${c.name} ${c.room?.name || ""} ${teacherText} ${ageText}`.toLowerCase();
+      if (q && !haystack.includes(q)) return false;
+      if (focusAgeGroupId && !c.courseAgeGroups?.some(cag => cag.ageGroup.id === focusAgeGroupId)) return false;
+      if (roomFilter && (c.roomId || c.room?.id || "") !== roomFilter) return false;
+      if (teacherFilter && !c.courseTeachers?.some(ct => ct.person.id === teacherFilter)) return false;
+      return true;
+    });
     return [...filtered].sort((a, b) => {
-      if (focusAgeGroupId) {
-        const aFocused = a.courseAgeGroups?.some(cag => cag.ageGroup.id === focusAgeGroupId) ? 0 : 1;
-        const bFocused = b.courseAgeGroups?.some(cag => cag.ageGroup.id === focusAgeGroupId) ? 0 : 1;
-        if (aFocused !== bFocused) return aFocused - bFocused;
-      }
-
       const av = rowSort === "teacher" ? courseTeacherName(a) : rowSort === "ageGroup" ? courseAgeGroupLabel(a) : a.name;
       const bv = rowSort === "teacher" ? courseTeacherName(b) : rowSort === "ageGroup" ? courseAgeGroupLabel(b) : b.name;
       const primary = av.localeCompare(bv);
       const result = primary !== 0 ? primary : a.name.localeCompare(b.name);
       return rowSortDir === "asc" ? result : -result;
     });
-  }, [courses, activityFilter, rowSort, rowSortDir, focusAgeGroupId]);
+  }, [courses, activityFilter, rowSort, rowSortDir, focusAgeGroupId, roomFilter, teacherFilter]);
+
+  const pageSize = 7;
+  const totalColumnPages = Math.max(1, Math.ceil(sessionGroups.length / pageSize));
+  const visibleSessionGroups = useMemo(() => sessionGroups.slice(columnPage * pageSize, columnPage * pageSize + pageSize), [sessionGroups, columnPage]);
+
+  useEffect(() => {
+    if (columnPage > totalColumnPages - 1) setColumnPage(Math.max(totalColumnPages - 1, 0));
+  }, [columnPage, totalColumnPages]);
 
   const heatClass = (rate: number): string => {
     if (rate >= 1) return "bg-red-100 border-red-300 text-red-800";
@@ -178,7 +193,14 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const leadTeacherId = (course: Course): string =>
     course.courseTeachers.find(ct => ct.person.role === "teacher" || ct.person.role === "director")?.person.id || "";
 
-  const teacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director" || p.role === "assistant" || p.role === "staff");
+  const assistantId = (course: Course): string =>
+    course.courseTeachers.find(ct => ct.person.role === "assistant" || ct.person.role === "staff")?.person.id || "";
+
+  const teacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director");
+  const assistantOptions = persons.filter(p => p.role === "assistant" || p.role === "staff");
+  const allPersonOptions = persons.filter(p => p.role === "teacher" || p.role === "director" || p.role === "assistant" || p.role === "staff");
+
+  const replaceCourse = (updated: Course) => setCourses(prev => prev.map(c => c.id === updated.id ? updated : c));
 
   const isColumnFull = (sg: SessionGroup): boolean => courses.length > 0 && courses.every(c => courseCheckedGroups(c).has(sg.key));
 
@@ -223,7 +245,8 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
           setConflictToast({ courseName: course.name, sessionLabel: group.label, message: d.error || "Could not update this assignment." });
         }
       } else {
-        loadGridData();
+        const updated = await res.json();
+        replaceCourse(updated as Course);
       }
     } catch {
       setConflictToast({ courseName: course.name, sessionLabel: group.label, message: "Network error. Please try again." });
@@ -299,28 +322,45 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     }
   };
 
-  const updateRoom = async (course: Course, roomId: string) => {
+  const patchCourse = async (course: Course, body: Record<string, unknown>) => {
     setBlockedCells(new Set());
-    await fetch(`/api/camps/${campId}/courses/${course.id}`, {
+    const res = await fetch(`/api/camps/${campId}/courses/${course.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomId: roomId || null }),
+      body: JSON.stringify(body),
     });
-    loadGridData();
+    if (res.ok) replaceCourse(await res.json() as Course);
+    else {
+      const d = await res.json().catch(() => ({}));
+      if (d.error === "scheduling_conflict" && Array.isArray(d.conflicts)) {
+        setConflictToast({ courseName: course.name, sessionLabel: "Details", message: simpleConflictMessage(d.conflicts) });
+      } else {
+        setConflictToast({ courseName: course.name, sessionLabel: "Details", message: d.error || "Could not update this activity." });
+      }
+    }
+  };
+
+  const updateRoom = async (course: Course, roomId: string) => {
+    await patchCourse(course, { roomId: roomId || null });
   };
 
   const updateLeadTeacher = async (course: Course, personId: string) => {
-    setBlockedCells(new Set());
-    const nonLeadIds = course.courseTeachers
-      .filter(ct => !(ct.person.role === "teacher" || ct.person.role === "director"))
-      .map(ct => ct.person.id);
-    const teacherIds = personId ? [personId, ...nonLeadIds.filter(id => id !== personId)] : nonLeadIds;
-    await fetch(`/api/camps/${campId}/courses/${course.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherIds }),
-    });
-    loadGridData();
+    const helperId = assistantId(course);
+    const teacherIds = [personId, helperId].filter(Boolean);
+    await patchCourse(course, { teacherIds });
+  };
+
+  const updateAssistant = async (course: Course, personId: string) => {
+    const leadId = leadTeacherId(course);
+    const teacherIds = [leadId, personId].filter(Boolean);
+    await patchCourse(course, { teacherIds });
+  };
+
+  const updateCap = async (course: Course, value: string) => {
+    const nextCap = Number(value);
+    if (Number.isFinite(nextCap) && nextCap > 0 && nextCap !== (course.cap || 0)) {
+      await patchCourse(course, { cap: nextCap });
+    }
   };
 
   const quickAddCourseToGroup = async (sg: SessionGroup) => {
@@ -361,15 +401,12 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       </div>
 
       {allSessionGroups.length > 0 && (
-        <div className="mb-4 rounded-xl border border-amber-100 bg-amber-50/70 p-3">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wide text-amber-900">Locked schedule sessions</h3>
-              <p className="text-xs text-amber-800 mt-0.5">Opening assembly, lunch, closing, or any block everyone attends. Create these in Time Slots so each locked block has a location and cannot take activity assignments.</p>
-            </div>
-            {defaultSessionGroups.length > 0 && <span className="text-[11px] font-semibold text-sky-700 bg-white/80 border border-sky-200 rounded-full px-2.5 py-1">{defaultSessionGroups.length} locked</span>}
-          </div>
-          <div className="flex flex-wrap gap-2">
+        <details className="mb-3 rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2">
+          <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-wide text-amber-900">
+            <span className="inline-flex items-center gap-2">🔒 Locked schedule sessions <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] text-amber-700">{defaultSessionGroups.length} locked</span></span>
+            <span className="ml-2 text-[11px] font-semibold normal-case tracking-normal text-amber-700">click to edit</span>
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-1.5 border-t border-amber-100 pt-2">
             {allSessionGroups.map(sg => {
               const days = sessionTemplates.filter(st => sg.ids.includes(st.id) && st.dayOfWeek !== null).map(st => DAYS[st.dayOfWeek!]).join(", ");
               const saving = defaultSaving[sg.key];
@@ -380,20 +417,14 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                   disabled={saving}
                   onClick={() => setDefaultForGroup(sg, !sg.mandatory)}
                   title={sg.mandatory ? "Unlock this time block for activity scheduling again" : "Lock this time block onto everyone’s schedule"}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left transition-all disabled:opacity-60 ${sg.mandatory ? "border-amber-300 bg-white text-amber-900 shadow-sm" : "border-slate-200 bg-white/70 text-slate-600 hover:border-sky-200 hover:text-sky-700"}`}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition-all disabled:opacity-60 ${sg.mandatory ? "border-amber-300 bg-white text-amber-900" : "border-slate-200 bg-white/70 text-slate-600 hover:border-sky-200 hover:text-sky-700"}`}
                 >
-                  <span className={`relative w-8 h-4 rounded-full flex-shrink-0 ${sg.mandatory ? "bg-amber-500" : "bg-slate-200"}`}>
-                    <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${sg.mandatory ? "translate-x-4" : ""}`} />
-                  </span>
-                  <span>
-                    <span className="block text-xs font-bold">{sg.label}</span>
-                    <span className="block text-[11px] opacity-75">{sg.startTime}–{sg.endTime}{days ? ` · ${days}` : ""}</span>
-                  </span>
+                  {sg.mandatory ? "Locked" : "Open"} · {sg.label} · {sg.startTime}–{sg.endTime}{days ? ` · ${days}` : ""}
                 </button>
               );
             })}
           </div>
-        </div>
+        </details>
       )}
 
       {allSessionGroups.length === 0 && (
@@ -419,33 +450,36 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
       {courses.length > 0 && sessionGroups.length > 0 && (
         <>
-          <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <div className="mb-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 xl:grid-cols-[minmax(220px,1fr)_auto] xl:items-center">
+            <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
-              <input type="text" value={activityFilter} onChange={e => setActivityFilter(e.target.value)} placeholder="Filter activities…" className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white" />
+              <input type="text" value={activityFilter} onChange={e => setActivityFilter(e.target.value)} placeholder="Search activity, teacher, room, or age…" className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white" />
               {activityFilter && <button onClick={() => setActivityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">Sort rows</span>
               <select value={rowSort} onChange={e => setRowSort(e.target.value as "name" | "teacher" | "ageGroup")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
-                <option value="name">By activity name</option>
-                <option value="teacher">By teacher</option>
-                <option value="ageGroup">By age group</option>
+                <option value="name">Sort: activity</option>
+                <option value="teacher">Sort: teacher</option>
+                <option value="ageGroup">Sort: age group</option>
               </select>
-              <button type="button" onClick={() => setRowSortDir(dir => dir === "asc" ? "desc" : "asc")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-sky-50">
-                {rowSortDir === "asc" ? "A→Z" : "Z→A"}
-              </button>
+              <button type="button" onClick={() => setRowSortDir(dir => dir === "asc" ? "desc" : "asc")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-sky-50">{rowSortDir === "asc" ? "A→Z" : "Z→A"}</button>
               <select value={focusAgeGroupId} onChange={e => setFocusAgeGroupId(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
-                <option value="">All age groups</option>
-                {ageGroups.map(ageGroup => <option key={ageGroup.id} value={ageGroup.id}>Show {ageGroup.name} first</option>)}
+                <option value="">Age: all</option>
+                {ageGroups.map(ageGroup => <option key={ageGroup.id} value={ageGroup.id}>Age: {ageGroup.name}</option>)}
               </select>
-              {(activityFilter || focusAgeGroupId || rowSort !== "name" || rowSortDir !== "asc") && (
-                <button type="button" onClick={() => { setActivityFilter(""); setFocusAgeGroupId(""); setRowSort("name"); setRowSortDir("asc"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-400 hover:text-slate-700">
-                  Reset
-                </button>
+              <select value={roomFilter} onChange={e => setRoomFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+                <option value="">Room: all</option>
+                {rooms.map(room => <option key={room.id} value={room.id}>{room.name}</option>)}
+              </select>
+              <select value={teacherFilter} onChange={e => setTeacherFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+                <option value="">Person: all</option>
+                {allPersonOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+              </select>
+              {(activityFilter || focusAgeGroupId || roomFilter || teacherFilter || rowSort !== "name" || rowSortDir !== "asc") && (
+                <button type="button" onClick={() => { setActivityFilter(""); setFocusAgeGroupId(""); setRoomFilter(""); setTeacherFilter(""); setRowSort("name"); setRowSortDir("asc"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-400 hover:text-slate-700">Reset</button>
               )}
+              <span className="text-xs font-semibold text-slate-400">{filteredCourses.length}/{courses.length}</span>
             </div>
-            {(activityFilter || focusAgeGroupId) && <span className="text-xs font-semibold text-slate-400">{filteredCourses.length} of {courses.length}</span>}
           </div>
 
           {conflictToast && (
@@ -463,136 +497,31 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             </div>
           )}
 
-          <details className="mb-4 rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <summary className="cursor-pointer px-4 py-3 text-sm font-black text-slate-700 hover:text-sky-700">
-              Optional visual block builder — collapsed so the row grid stays primary
-            </summary>
-            <div className="grid gap-4 border-t border-slate-100 p-4 xl:grid-cols-2">
-            {sessionGroups.map(sg => {
-              const assignedCourses = filteredCourses.filter(course => courseCheckedGroups(course).has(sg.key));
-              const availableCourses = filteredCourses.filter(course => !courseCheckedGroups(course).has(sg.key));
-              const stats = sessionGroupStats(sg);
-              const selectedCourseId = quickAddByGroup[sg.key] || "";
-              const selectedCourse = courses.find(course => course.id === selectedCourseId);
-              const selectedSaving = selectedCourse ? assignSaving[cellKey(selectedCourse.id, sg.key)] : false;
-              const days = sessionTemplates.filter(st => sg.ids.includes(st.id) && st.dayOfWeek !== null).map(st => DAYS[st.dayOfWeek!]).join(", ");
-
-              return (
-                <section key={sg.key} className={`rounded-3xl border-2 p-4 shadow-sm ${columnHeatClass(sg)}`}>
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-black text-slate-900">{sg.label}</h3>
-                      <p className="text-xs font-semibold text-slate-600">{sg.startTime}–{sg.endTime}{days ? ` · ${days}` : ""}</p>
-                    </div>
-                    <div className="rounded-2xl bg-white/80 px-3 py-2 text-right shadow-sm border border-white/70">
-                      <div className="text-sm font-black text-slate-900">{stats.assignedCount}</div>
-                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">activities</div>
-                    </div>
-                  </div>
-
-                  <div className="mb-3 rounded-2xl bg-white/75 border border-white/70 p-3">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                      <span>{stats.registered} registered</span>
-                      <span>{stats.remaining} seats open</span>
-                    </div>
-                    <div className="mt-2 h-2 rounded-full bg-slate-100 overflow-hidden">
-                      <div className="h-full rounded-full bg-current transition-all" style={{ width: `${Math.min(Math.max(hasRegistrations && stats.totalCap > 0 ? Math.round(stats.fillRate * 100) : stats.totalCap > 0 ? 100 : 0, 0), 100)}%` }} />
-                    </div>
-                    <div className="mt-1 text-[11px] font-semibold text-slate-500">{stats.totalCap} total seats in this block</div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {assignedCourses.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-white/80 bg-white/50 px-4 py-6 text-center text-sm font-semibold text-slate-500">
-                        Nothing scheduled here yet — add the first activity below.
-                      </div>
-                    ) : assignedCourses.map(course => {
-                      const enrolled = courseEnrollmentForGroup(course, sg);
-                      const cap = course.cap || 0;
-                      const saveKey = cellKey(course.id, sg.key);
-                      const isSaving = assignSaving[saveKey];
-                      return (
-                        <div key={course.id} className="rounded-2xl border border-white/80 bg-white p-3 shadow-sm">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="font-black text-slate-900 truncate">{course.name}</div>
-                              <div className="mt-1 flex flex-wrap gap-1.5">
-                                {course.courseAgeGroups.map(cag => <span key={cag.ageGroup.id} className="rounded-full bg-berry-50 px-2 py-0.5 text-[10px] font-bold text-berry-700 border border-berry-100">{cag.ageGroup.name}</span>)}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              disabled={isSaving}
-                              onClick={() => toggleSlotGroup(course, sg, false)}
-                              className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-60"
-                              title="Remove this activity from this time block"
-                            >
-                              {isSaving ? "…" : "Remove"}
-                            </button>
-                          </div>
-                          <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-                            <label className="rounded-xl bg-slate-50 px-2.5 py-2">
-                              <span className="block text-[10px] font-bold uppercase text-slate-400">Room</span>
-                              <select value={course.roomId || course.room?.id || ""} onChange={e => updateRoom(course, e.target.value)} className="mt-1 w-full bg-white rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
-                                <option value="">No room</option>
-                                {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                              </select>
-                            </label>
-                            <label className="rounded-xl bg-slate-50 px-2.5 py-2">
-                              <span className="block text-[10px] font-bold uppercase text-slate-400">Teacher</span>
-                              <select value={leadTeacherId(course)} onChange={e => updateLeadTeacher(course, e.target.value)} className="mt-1 w-full bg-white rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
-                                <option value="">No teacher</option>
-                                {teacherOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
-                              </select>
-                            </label>
-                            <div className="rounded-xl bg-slate-50 px-2.5 py-2"><span className="block text-[10px] font-bold uppercase text-slate-400">Seats</span><span className="font-semibold text-slate-700">{enrolled}/{cap || "—"}</span></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-3 flex gap-2 rounded-2xl bg-white/70 border border-white/80 p-2">
-                    <select
-                      value={selectedCourseId}
-                      onChange={e => setQuickAddByGroup(prev => ({ ...prev, [sg.key]: e.target.value }))}
-                      className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
-                    >
-                      <option value="">Add activity to this block…</option>
-                      {availableCourses.map(course => <option key={course.id} value={course.id}>{course.name}</option>)}
-                    </select>
-                    <button
-                      type="button"
-                      disabled={!selectedCourseId || selectedSaving}
-                      onClick={() => quickAddCourseToGroup(sg)}
-                      className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white shadow-sm hover:bg-slate-700 disabled:opacity-40"
-                    >
-                      {selectedSaving ? "Adding…" : "Add"}
-                    </button>
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-          </details>
-
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-col gap-1 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-sm font-black text-slate-800">Activity scheduling grid</h3>
                 <p className="text-xs text-slate-500">One row per activity. Pick room, teacher, seats, and time cells without opening extra blocks.</p>
               </div>
-              <span className="text-xs font-bold text-slate-400">{filteredCourses.length} rows × {sessionGroups.length} times</span>
+              <span className="text-xs font-bold text-slate-400">{filteredCourses.length} rows × {visibleSessionGroups.length}/{sessionGroups.length} blocks</span>
             </div>
+            {totalColumnPages > 1 && (
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2 text-xs">
+                <button type="button" disabled={columnPage === 0} onClick={() => setColumnPage(p => Math.max(p - 1, 0))} className="rounded-lg border border-slate-200 px-2.5 py-1 font-bold text-slate-600 disabled:opacity-40">← Previous blocks</button>
+                <span className="font-bold text-slate-500">Block page {columnPage + 1} of {totalColumnPages}</span>
+                <button type="button" disabled={columnPage >= totalColumnPages - 1} onClick={() => setColumnPage(p => Math.min(p + 1, totalColumnPages - 1))} className="rounded-lg border border-slate-200 px-2.5 py-1 font-bold text-slate-600 disabled:opacity-40">Next blocks →</button>
+              </div>
+            )}
             <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full table-fixed text-xs border-collapse">
               <thead>
                 <tr className="bg-slate-50">
-                  <th className="sticky left-0 z-20 bg-slate-50 text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[190px]">Activity</th>
-                  <th className="text-left py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[150px]">Room</th>
-                  <th className="text-left py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[150px]">Teacher</th>
-                  <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 min-w-[86px]">Seats</th>
-                  {sessionGroups.map(sg => {
+                  <th className="sticky left-0 z-20 bg-slate-50 text-left py-3 px-4 text-xs font-semibold text-slate-500 border-b border-slate-200 w-[170px]">Activity</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 w-[120px]">Room</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 w-[120px]">Teacher</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 w-[120px]">Assistant</th>
+                  <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 w-[72px]">Seats</th>
+                  {visibleSessionGroups.map(sg => {
                     const days = sessionTemplates.filter(st => sg.ids.includes(st.id) && st.dayOfWeek !== null).map(st => DAYS[st.dayOfWeek!]).join(", ");
                     const full = isColumnFull(sg);
                     const partial = isColumnPartial(sg);
@@ -600,17 +529,13 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                     const fillPct = stats.totalCap > 0 ? Math.round(stats.fillRate * 100) : 0;
                     const balanceNote = !hasRegistrations && averageAssignedCapacity > 0 && stats.totalCap > 0 ? `${Math.round((stats.totalCap / averageAssignedCapacity) * 100)}% of avg` : `${fillPct}% full`;
                     return (
-                      <th key={sg.key} className={`text-center py-3 px-2 border-b min-w-[118px] align-top ${columnHeatClass(sg)}`}>
-                        <div className="font-semibold text-slate-800 text-xs">{sg.label}</div>
-                        <div className="text-slate-500 text-xs font-normal">{sg.startTime}–{sg.endTime}</div>
-                        {days && <div className="text-slate-400 text-xs font-normal">{days}</div>}
-                        <div className="mt-2 rounded-xl bg-white/75 border border-white/70 px-2 py-1.5 shadow-sm">
-                          <div className="text-[11px] font-bold text-slate-800">{stats.totalCap} seats</div>
-                          <div className="text-[10px] font-semibold text-slate-600">{stats.registered} reg · {stats.remaining} open</div>
-                          <div className="mt-1 h-1.5 rounded-full bg-white/80 overflow-hidden"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${Math.min(Math.max(hasRegistrations ? fillPct : stats.totalCap > 0 ? 100 : 0, 0), 100)}%` }} /></div>
-                          <div className="text-[10px] font-medium text-slate-500 mt-0.5">{balanceNote}</div>
-                        </div>
-                        <button type="button" onClick={() => toggleColumnAll(sg, !full)} title={full ? "Remove all from this session" : "Assign all activities to this session"} className="mt-2 text-[10px] font-bold text-slate-500 underline decoration-dotted underline-offset-2 hover:text-sky-700">
+                      <th key={sg.key} className={`text-center py-3 px-2 border-b w-[96px] align-top ${columnHeatClass(sg)}`}>
+                        <div className="font-black text-slate-800 text-[11px] leading-tight truncate" title={sg.label}>{sg.label}</div>
+                        <div className="text-slate-500 text-[10px] font-semibold">{sg.startTime}–{sg.endTime}</div>
+                        {days && <div className="text-slate-400 text-[10px] font-normal truncate" title={days}>{days}</div>}
+                        <div className="mt-1 text-[10px] font-bold text-slate-700">{stats.registered}/{stats.totalCap} · {stats.remaining} open</div>
+                        <div className="mt-1 h-1 rounded-full bg-white/80 overflow-hidden"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${Math.min(Math.max(hasRegistrations ? fillPct : stats.totalCap > 0 ? 100 : 0, 0), 100)}%` }} /></div>
+                        <button type="button" onClick={() => toggleColumnAll(sg, !full)} title={`${balanceNote} — ${full ? "Remove all from this session" : "Assign all activities to this session"}`} className="mt-1 text-[10px] font-bold text-slate-500 underline decoration-dotted underline-offset-2 hover:text-sky-700">
                           {full ? "clear all" : partial ? "partial" : "assign all"}
                         </button>
                       </th>
@@ -623,27 +548,41 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                   const checked = courseCheckedGroups(course);
                   return (
                     <tr key={course.id} className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} hover:bg-sky-50/20 transition-colors`}>
-                      <td className={`sticky left-0 z-10 py-3 px-4 border-b border-slate-100 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
-                        <div className="font-semibold text-slate-800 text-sm">{course.name}</div>
+                      <td className={`sticky left-0 z-10 py-2 px-3 border-b border-slate-100 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
+                        <div className="font-semibold text-slate-800 text-xs">{course.name}</div>
                         {course.courseAgeGroups.length > 0 && <div className="text-xs text-berry-600 font-medium mt-0.5">{course.courseAgeGroups.map(cag => cag.ageGroup.name).join(" · ")}</div>}
                       </td>
-                      <td className="py-3 px-3 border-b border-slate-100">
-                        <select value={course.roomId || course.room?.id || ""} onChange={e => updateRoom(course, e.target.value)} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white">
+                      <td className="py-2 px-2 border-b border-slate-100">
+                        <select value={course.roomId || course.room?.id || ""} onChange={e => updateRoom(course, e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white">
                           <option value="">No room</option>
                           {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                         </select>
                       </td>
-                      <td className="py-3 px-3 border-b border-slate-100">
-                        <select value={leadTeacherId(course)} onChange={e => updateLeadTeacher(course, e.target.value)} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white">
+                      <td className="py-2 px-2 border-b border-slate-100">
+                        <select value={leadTeacherId(course)} onChange={e => updateLeadTeacher(course, e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white">
                           <option value="">No teacher</option>
                           {teacherOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
                         </select>
                       </td>
-                      <td className="py-3 px-3 border-b border-slate-100 text-center">
-                        <div className="font-bold text-slate-700 text-sm">{course.cap || "—"}</div>
-                        {course.room?.capacity ? <div className="text-[10px] text-slate-400">room {course.room.capacity}</div> : null}
+                      <td className="py-2 px-2 border-b border-slate-100">
+                        <select value={assistantId(course)} onChange={e => updateAssistant(course, e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white">
+                          <option value="">No assistant</option>
+                          {assistantOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+                        </select>
                       </td>
-                      {sessionGroups.map(sg => {
+                      <td className="py-2 px-2 border-b border-slate-100 text-center">
+                        <input
+                          type="number"
+                          min={1}
+                          max={500}
+                          defaultValue={course.cap || 20}
+                          onBlur={e => updateCap(course, e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = String(course.cap || 20); e.currentTarget.blur(); } }}
+                          className="mx-auto w-14 rounded-lg border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
+                        />
+                        {course.room?.capacity ? <div className="text-[9px] text-slate-400">room {course.room.capacity}</div> : null}
+                      </td>
+                      {visibleSessionGroups.map(sg => {
                         const saveKey = cellKey(course.id, sg.key);
                         const isSaving = assignSaving[saveKey];
                         const isChecked = checked.has(sg.key);
@@ -659,7 +598,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                                 disabled={isBlocked}
                                 title={isBlocked ? "Blocked by a scheduling conflict" : isChecked ? `${enrolled}/${cap || "—"} registered/seats — click to remove` : "Click to schedule this activity in this time block"}
                                 onClick={() => toggleSlotGroup(course, sg, !isChecked)}
-                                className={`mx-auto flex h-14 min-w-[82px] items-center justify-center rounded-xl border-2 text-xs font-black shadow-sm transition-all ${
+                                className={`mx-auto flex h-10 w-full min-w-0 items-center justify-center rounded-lg border-2 text-[11px] font-black shadow-sm transition-all ${
                                   isChecked
                                     ? activeCellClass(course, sg)
                                     : isBlocked
@@ -669,7 +608,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                               >
                                 {isChecked ? (
                                   <span>
-                                    <span className="block text-sm leading-tight">{enrolled}/{cap || "—"}</span>
+                                    <span className="block text-xs leading-tight">{enrolled}/{cap || "—"}</span>
                                     <span className="block text-[10px] font-semibold opacity-70">{cap > 0 ? `${seatsLeft} open` : "no cap"}</span>
                                   </span>
                                 ) : isBlocked ? "!" : "+"}
@@ -687,8 +626,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
           </section>
 
           <div className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
-            <span>Rows are the default view: edit room, teacher, capacity, and schedule cells in one dense sheet</span>
-            <span>· optional visual blocks are collapsed above if you need them</span>
+            <span>Rows are the default view: edit room, teacher, assistant, capacity, and schedule cells in one dense sheet</span>
             <span className="basis-full h-0" />
             <span className="font-semibold text-slate-500">Capacity colors:</span>
             <span><span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300 align-middle" /> healthy</span>
