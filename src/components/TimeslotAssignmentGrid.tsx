@@ -108,18 +108,12 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
   const courseCapacityForGroup = (course: Course, sg: SessionGroup): number => courseCheckedGroups(course).has(sg.key) ? (course.cap || 0) : 0;
 
-  const sessionGroupStats = (sg: SessionGroup) => {
-    const assignedCourses = courses.filter(c => courseCheckedGroups(c).has(sg.key));
+  const sessionGroupStats = (sg: SessionGroup, courseList: Course[] = courses) => {
+    const assignedCourses = courseList.filter(c => courseCheckedGroups(c).has(sg.key));
     const totalCap = assignedCourses.reduce((sum, c) => sum + (c.cap || 0), 0);
     const registered = assignedCourses.reduce((sum, c) => sum + courseEnrollmentForGroup(c, sg), 0);
     return { assignedCount: assignedCourses.length, totalCap, registered, remaining: Math.max(totalCap - registered, 0), fillRate: totalCap > 0 ? registered / totalCap : 0 };
   };
-
-  const averageAssignedCapacity = useMemo(() => {
-    const stats = sessionGroups.map(sessionGroupStats).filter(s => s.assignedCount > 0);
-    if (stats.length === 0) return 0;
-    return stats.reduce((sum, s) => sum + s.totalCap, 0) / stats.length;
-  }, [courses, sessionGroups]);
 
   const hasRegistrations = useMemo(() => courses.some(c => (c.sessions || []).some(s => (s.enrolledCount || 0) > 0)), [courses]);
 
@@ -210,6 +204,12 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     });
   }, [courses, activityFilter, rowSort, rowSortDir, focusAgeGroupId, roomFilter, teacherFilter, availableOnly, sessionGroups]);
 
+  const averageAssignedCapacity = useMemo(() => {
+    const stats = sessionGroups.map(sg => sessionGroupStats(sg, filteredCourses)).filter(s => s.assignedCount > 0);
+    if (stats.length === 0) return 0;
+    return stats.reduce((sum, s) => sum + s.totalCap, 0) / stats.length;
+  }, [filteredCourses, sessionGroups]);
+
   const pageSize = 7;
   const totalColumnPages = Math.max(1, Math.ceil(sessionGroups.length / pageSize));
   const visibleSessionGroups = useMemo(() => sessionGroups.slice(columnPage * pageSize, columnPage * pageSize + pageSize), [sessionGroups, columnPage]);
@@ -226,8 +226,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     return "bg-emerald-100 border-emerald-300 text-emerald-800";
   };
 
-  const columnHeatClass = (sg: SessionGroup): string => {
-    const stats = sessionGroupStats(sg);
+  const columnHeatClass = (stats: ReturnType<typeof sessionGroupStats>): string => {
     if (stats.totalCap === 0) return "bg-slate-50 border-slate-200 text-slate-500";
     if (hasRegistrations) return heatClass(stats.fillRate);
     if (averageAssignedCapacity <= 0) return "bg-emerald-100 border-emerald-300 text-emerald-800";
@@ -254,8 +253,6 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const allPersonOptions = persons.filter(p => p.role === "teacher" || p.role === "director" || p.role === "assistant" || p.role === "staff");
 
   const replaceCourse = (updated: Course) => setCourses(prev => prev.map(c => c.id === updated.id ? updated : c));
-
-  const isColumnFull = (sg: SessionGroup): boolean => courses.length > 0 && courses.every(c => courseCheckedGroups(c).has(sg.key));
 
   const cellKey = (courseId: string, groupKey: string) => `${courseId}:${groupKey}`;
 
@@ -299,15 +296,6 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       setConflictToast({ courseId: course.id, courseName: course.name, sessionLabel: group.label, message: "Network error. Please try again." });
     } finally {
       setAssignSaving(prev => { const n = { ...prev }; delete n[saveKey]; return n; });
-    }
-  };
-
-  const toggleColumnAll = async (sg: SessionGroup, enable: boolean) => {
-    for (const course of courses) {
-      const alreadyOn = courseCheckedGroups(course).has(sg.key);
-      if (enable === alreadyOn) continue;
-      if (enable && getCellAvailability(course, sg, alreadyOn).status === "blocked") continue;
-      await toggleSlotGroup(course, sg, enable);
     }
   };
 
@@ -574,20 +562,15 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                   <th className="text-center py-3 px-3 text-xs font-semibold text-slate-500 border-b border-slate-200 w-[72px]">Seats</th>
                   {visibleSessionGroups.map(sg => {
                     const days = sessionTemplates.filter(st => sg.ids.includes(st.id) && st.dayOfWeek !== null).map(st => DAYS[st.dayOfWeek!]).join(", ");
-                    const full = isColumnFull(sg);
-                    const stats = sessionGroupStats(sg);
+                    const stats = sessionGroupStats(sg, filteredCourses);
                     const fillPct = stats.totalCap > 0 ? Math.round(stats.fillRate * 100) : 0;
-                    const balanceNote = !hasRegistrations && averageAssignedCapacity > 0 && stats.totalCap > 0 ? `${Math.round((stats.totalCap / averageAssignedCapacity) * 100)}% of avg` : `${fillPct}% full`;
                     return (
-                      <th key={sg.key} className={`text-center py-3 px-2 border-b w-[96px] align-top ${columnHeatClass(sg)}`}>
+                      <th key={sg.key} className={`text-center py-3 px-2 border-b w-[96px] align-top ${columnHeatClass(stats)}`}>
                         <div className="font-black text-slate-800 text-[11px] leading-tight truncate" title={sg.label}>{sg.label}</div>
                         <div className="text-slate-500 text-[10px] font-semibold">{sg.startTime}–{sg.endTime}</div>
                         {days && <div className="text-slate-400 text-[10px] font-normal truncate" title={days}>{days}</div>}
-                        <div className="mt-1 text-[10px] font-bold text-slate-700">{stats.registered}/{stats.totalCap} · {stats.remaining} open</div>
+                        <div className="mt-1 text-xs font-black text-slate-700">{stats.registered}/{stats.totalCap} · {stats.remaining} open</div>
                         <div className="mt-1 h-1 rounded-full bg-white/80 overflow-hidden"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${Math.min(Math.max(hasRegistrations ? fillPct : stats.totalCap > 0 ? 100 : 0, 0), 100)}%` }} /></div>
-                        <button type="button" onClick={() => toggleColumnAll(sg, !full)} title={`${balanceNote} — ${full ? "Remove all from this session" : "Assign all activities to this session"}`} className="mt-1 text-[10px] font-bold text-slate-500 underline decoration-dotted underline-offset-2 hover:text-sky-700">
-                          {full ? "clear all" : "assign all"}
-                        </button>
                       </th>
                     );
                   })}
