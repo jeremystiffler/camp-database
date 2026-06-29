@@ -169,7 +169,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
         status: "blocked",
         label: "×",
         title: conflicts.join(" • "),
-        className: "cursor-not-allowed border-red-300 bg-red-100 text-red-700 opacity-85",
+        className: "cursor-not-allowed border-slate-200 bg-slate-100/70 text-slate-400 opacity-65 shadow-none",
         conflicts,
       };
     }
@@ -676,7 +676,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                                   isChecked
                                     ? activeCellClass(course, sg)
                                     : isBlocked
-                                      ? (serverBlocked ? "cursor-not-allowed border-red-200 bg-red-50 text-red-300 opacity-60" : availability.className)
+                                      ? (serverBlocked ? "cursor-not-allowed border-slate-200 bg-slate-100/70 text-slate-400 opacity-60 shadow-none" : availability.className)
                                       : isAvailable
                                         ? availability.className
                                         : "border-dashed border-slate-200 bg-slate-50 text-slate-300 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
@@ -710,7 +710,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             <span><span className="inline-block w-4 h-3 rounded bg-amber-100 border border-amber-300 align-middle" /> watch</span>
             <span><span className="inline-block w-4 h-3 rounded bg-orange-100 border border-orange-300 align-middle" /> tight</span>
             <span><span className="inline-block w-4 h-3 rounded bg-red-100 border border-red-300 align-middle" /> full/short</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-red-100 border border-red-300 align-middle" /> unavailable — hover for reason</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-slate-100 border border-slate-200 align-middle opacity-70" /> unavailable — hover for reason</span>
             <span><span className="inline-block w-4 h-3 rounded bg-sky-100 border border-sky-300 align-middle" /> open + safe to schedule</span>
           </div>
         </>
