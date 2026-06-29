@@ -13,6 +13,7 @@ interface FormField {
   source?: string;
   placeholder?: string;
   helpText?: string;
+  checkboxDescription?: string;
 }
 
 interface AgeGroup { id: string; name: string; noSchedule?: boolean; }
@@ -56,7 +57,7 @@ interface WeeklyRegistrationSession extends RegistrationSession {
   options: SessionOption[];
 }
 
-type FieldValue = string | boolean;
+type FieldValue = string | boolean | string[];
 type Step = 1 | 2 | 3;
 
 const PARENT_FIELD_IDS = new Set(["f5", "f6", "f7"]);
@@ -160,6 +161,12 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     if (errors._form) setErrors(prev => { const n = { ...prev }; delete n._form; return n; });
   };
 
+  const toggleCheckboxOption = (id: string, option: string, checked: boolean) => {
+    const current = Array.isArray(values[id]) ? values[id] as string[] : [];
+    const next = checked ? [...new Set([...current, option])] : current.filter(v => v !== option);
+    setValue(id, next);
+  };
+
   const fieldsForStep = (targetStep: Step) => fields.filter(field => {
     if (!isInputField(field) && targetStep === 1) return true;
     if (targetStep === 1) return PARENT_FIELD_IDS.has(field.id) || STUDENT_FIELD_IDS.has(field.id);
@@ -202,7 +209,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     for (const f of targetFields) {
       if (f.required) {
         const val = values[f.id];
-        if (!val || (typeof val === "string" && !val.trim())) errs[f.id] = `${f.label} is required`;
+        if (!val || (typeof val === "string" && !val.trim()) || (Array.isArray(val) && val.length === 0)) errs[f.id] = `${f.label} is required`;
       }
     }
     if (targetStep === 1) {
@@ -353,19 +360,33 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     if (field.type === "divider") return <hr key={field.id} className="border-slate-100" />;
     return (
       <div key={field.id}>
-        {field.type !== "checkbox" && (
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            {field.label}{field.required && <span className="text-red-400 ml-0.5">*</span>}
-          </label>
-        )}
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          {field.label}{field.required && <span className="text-red-400 ml-0.5">*</span>}
+        </label>
         {field.helpText && <p className="text-xs text-slate-400 mb-1.5">{field.helpText}</p>}
         {field.type === "textarea" ? (
           <textarea rows={3} placeholder={field.placeholder} value={(values[field.id] as string) || ""} onChange={e => setValue(field.id, e.target.value)} className={inputCls(field.id) + " resize-none"} />
         ) : field.type === "checkbox" ? (
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" checked={Boolean(values[field.id])} onChange={e => setValue(field.id, e.target.checked)} className="w-4 h-4 mt-0.5 accent-forest-500" />
-            <span className="text-sm text-slate-700">{field.label}{field.required && <span className="text-red-400 ml-0.5">*</span>}</span>
-          </label>
+          field.options?.length ? (
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+              {field.options.map(option => (
+                <label key={option} className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Array.isArray(values[field.id]) && (values[field.id] as string[]).includes(option)}
+                    onChange={e => toggleCheckboxOption(field.id, option, e.target.checked)}
+                    className="w-4 h-4 mt-0.5 accent-forest-500"
+                  />
+                  <span className="text-sm text-slate-700">{option}</span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+              <input type="checkbox" checked={Boolean(values[field.id])} onChange={e => setValue(field.id, e.target.checked)} className="w-4 h-4 mt-0.5 accent-forest-500" />
+              <span className="text-sm text-slate-700">{field.checkboxDescription || field.label}</span>
+            </label>
+          )
         ) : field.type === "select" ? (
           <select value={(values[field.id] as string) || ""} onChange={e => setValue(field.id, e.target.value)} className={inputCls(field.id)}>
             <option value="">— select —</option>

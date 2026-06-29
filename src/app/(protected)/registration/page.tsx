@@ -14,6 +14,7 @@ interface FormField {
   source?: string;
   placeholder?: string;
   helpText?: string;
+  checkboxDescription?: string;
 }
 
 interface FormSummary {
@@ -59,8 +60,10 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
   { type: "tel", label: "Emergency backup phone", icon: "☎️", defaults: { label: "Backup emergency phone", placeholder: "If guardian cannot be reached" } },
   { type: "text", label: "Physician / clinic", icon: "🩺", defaults: { label: "Physician or clinic", placeholder: "Doctor/clinic name and phone" } },
   { type: "text", label: "Insurance info", icon: "🛡️", defaults: { label: "Insurance provider / policy", placeholder: "Optional, if your camp collects it" } },
-  { type: "checkbox", label: "Transportation permission", icon: "🚌", defaults: { label: "I give permission for camp-provided transportation when applicable." } },
-  { type: "checkbox", label: "Medical consent", icon: "✅", defaults: { label: "I authorize camp staff to seek emergency medical care if needed.", required: true } },
+  { type: "checkbox", label: "Single checkbox", icon: "☑", defaults: { label: "Agreement", checkboxDescription: "I agree to this statement." } },
+  { type: "checkbox", label: "Multiple checkboxes", icon: "☑☑", defaults: { label: "Select all that apply", options: ["Option 1", "Option 2", "Option 3"] } },
+  { type: "checkbox", label: "Transportation permission", icon: "🚌", defaults: { label: "Transportation permission", checkboxDescription: "I give permission for camp-provided transportation when applicable." } },
+  { type: "checkbox", label: "Medical consent", icon: "✅", defaults: { label: "Medical consent", checkboxDescription: "I authorize camp staff to seek emergency medical care if needed.", required: true } },
 ];
 
 const LAYOUT_FIELD_TYPES = new Set<FormField["type"]>(["heading", "subheading", "divider", "pageBreak"]);
@@ -86,9 +89,13 @@ function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id:
       {field.type === "textarea" ? (
         <textarea rows={2} placeholder={field.placeholder || ""} disabled className={inputCls + " resize-none"} />
       ) : field.type === "checkbox" ? (
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" disabled className="w-4 h-4" /> {field.label}
-        </label>
+        <div className="space-y-2">
+          {(field.options?.length ? field.options : [field.checkboxDescription || field.label]).map(option => (
+            <label key={option} className="flex items-start gap-2 text-sm text-slate-700">
+              <input type="checkbox" disabled className="mt-0.5 w-4 h-4" /> <span>{option}</span>
+            </label>
+          ))}
+        </div>
       ) : field.type === "select" ? (
         <select disabled className={inputCls}>
           <option>— select —</option>
@@ -108,24 +115,37 @@ function FieldEditor({ field, onChange }: { field: FormField; onChange: (f: Form
     <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200 mt-2">
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Label</label>
+          <label className="block text-xs font-medium text-slate-500 mb-1">{field.type === "checkbox" ? "Checkbox title" : "Label"}</label>
           <input value={field.label} onChange={e => onChange({ ...field, label: e.target.value })}
             className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400" />
         </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Placeholder</label>
-          <input value={field.placeholder || ""} onChange={e => onChange({ ...field, placeholder: e.target.value })}
-            className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400" />
-        </div>
+        {field.type !== "checkbox" && (
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Placeholder</label>
+            <input value={field.placeholder || ""} onChange={e => onChange({ ...field, placeholder: e.target.value })}
+              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400" />
+          </div>
+        )}
       </div>
       <div>
         <label className="block text-xs font-medium text-slate-500 mb-1">{field.type === "subheading" ? "Multi-line information" : "Help text"}</label>
         <textarea rows={field.type === "subheading" ? 4 : 2} value={field.helpText || ""} onChange={e => onChange({ ...field, helpText: e.target.value })}
           className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400 resize-none" />
       </div>
-      {field.type === "select" && !field.source && (
+      {field.type === "checkbox" && (
+        <div className="grid grid-cols-1 gap-2">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Single checkbox description</label>
+            <input value={field.checkboxDescription || ""} onChange={e => onChange({ ...field, checkboxDescription: e.target.value })}
+              placeholder="Text shown beside the checkbox"
+              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400" />
+            <p className="mt-1 text-[11px] text-slate-400">Used when the options box below is empty.</p>
+          </div>
+        </div>
+      )}
+      {(field.type === "select" || field.type === "checkbox") && !field.source && (
         <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">Options (one per line)</label>
+          <label className="block text-xs font-medium text-slate-500 mb-1">{field.type === "checkbox" ? "Multiple checkbox choices (one per line)" : "Options (one per line)"}</label>
           <textarea rows={3}
             value={field.options?.join("\n") || ""}
             onChange={e => onChange({ ...field, options: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })}
@@ -244,6 +264,7 @@ function RegistrationContent() {
       required: Boolean(item.defaults?.required),
       placeholder: item.defaults?.placeholder,
       helpText: item.defaults?.helpText,
+      checkboxDescription: item.defaults?.checkboxDescription,
       options: item.defaults?.options,
       source: item.defaults?.source,
       system: item.defaults?.system,
