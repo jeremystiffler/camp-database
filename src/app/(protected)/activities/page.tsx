@@ -730,6 +730,9 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
   const [statusFilter, setStatusFilter]         = useState<"all" | "needs" | "ready">("all");
   const [toolsOpen, setToolsOpen]               = useState(false);
   const [openMenuId, setOpenMenuId]             = useState<string | null>(null);
+  const [inlineSaving, setInlineSaving]         = useState<Record<string, boolean>>({});
+  const [inlineErrors, setInlineErrors]         = useState<Record<string, string>>({});
+  const [inlineConflicts, setInlineConflicts]   = useState<SchedulingConflict[]>([]);
 
   const toggleSort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -768,6 +771,36 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
     if (!confirm("Delete this activity?")) return;
     await fetch(`/api/camps/${campId}/courses/${id}`, { method: "DELETE" });
     load();
+  };
+
+  const replaceCourse = (updated: Course) => {
+    setCourses(prev => prev.map(course => course.id === updated.id ? updated : course));
+  };
+
+  const saveInlineCourse = async (course: Course, field: "teacher" | "room" | "cap", body: Record<string, unknown>) => {
+    const key = `${course.id}:${field}`;
+    setInlineSaving(prev => ({ ...prev, [key]: true }));
+    setInlineErrors(prev => { const next = { ...prev }; delete next[course.id]; return next; });
+    try {
+      const res = await fetch(`/api/camps/${campId}/courses/${course.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.status === 409) {
+        setInlineConflicts(Array.isArray(data.conflicts) ? data.conflicts : []);
+        setInlineErrors(prev => ({ ...prev, [course.id]: "Scheduling conflict — choose another option." }));
+      } else if (res.ok) {
+        replaceCourse(data as Course);
+      } else {
+        setInlineErrors(prev => ({ ...prev, [course.id]: data.error || "Could not save change." }));
+      }
+    } catch {
+      setInlineErrors(prev => ({ ...prev, [course.id]: "Could not save change." }));
+    } finally {
+      setInlineSaving(prev => ({ ...prev, [key]: false }));
+    }
   };
 
   const deleteMandatorySession = async (id: string) => {
@@ -820,6 +853,8 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
 
   const leadTeacher = (course: Course) =>
     course.courseTeachers?.find(ct => ct.person.role === "teacher" || ct.person.role === "director")?.person;
+
+  const leadTeacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director");
 
   const filteredByStatus = sortedFiltered.filter(course => {
     if (statusFilter === "all") return true;
@@ -974,9 +1009,56 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             </div>
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-xs text-slate-600">{teacher ? `${teacher.firstName} ${teacher.lastName}` : <span className="font-bold text-rose-600">Not assigned</span>}</td>
-                        <td className="px-3 py-3 text-xs text-slate-600">{course.room?.name || <span className="font-bold text-amber-600">Not assigned</span>}</td>
-                        <td className="px-3 py-3 text-center text-xs font-bold text-slate-700">{course.cap || "—"}</td>
+                        <td className="px-3 py-3 text-xs text-slate-600">
+                          <select
+                            value={teacher?.id || ""}
+                            disabled={!!inlineSaving[`${course.id}:teacher`]}
+                            onChange={e => {
+                              const assistantIds = course.courseTeachers
+                                ?.filter(ct => ct.person.role !== "teacher" && ct.person.role !== "director")
+                                .map(ct => ct.person.id) || [];
+                              saveInlineCourse(course, "teacher", { teacherIds: e.target.value ? [...assistantIds, e.target.value] : assistantIds });
+                            }}
+                            className={`w-full min-w-[145px] rounded-lg border px-2 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-forest-500/30 ${teacher ? "border-slate-200 bg-white text-slate-700" : "border-rose-200 bg-rose-50 text-rose-700"}`}
+                          >
+                            <option value="">Not assigned</option>
+                            {leadTeacherOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+                          </select>
+                          {inlineErrors[course.id] && <p className="mt-1 text-[10px] font-bold text-red-500">{inlineErrors[course.id]}</p>}
+                        </td>
+                        <td className="px-3 py-3 text-xs text-slate-600">
+                          <select
+                            value={course.room?.id || ""}
+                            disabled={!!inlineSaving[`${course.id}:room`]}
+                            onChange={e => saveInlineCourse(course, "room", { roomId: e.target.value || null })}
+                            className={`w-full min-w-[130px] rounded-lg border px-2 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-forest-500/30 ${course.room ? "border-slate-200 bg-white text-slate-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}
+                          >
+                            <option value="">Not assigned</option>
+                            {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-3 py-3 text-center text-xs font-bold text-slate-700">
+                          <input
+                            type="number"
+                            min={1}
+                            max={500}
+                            defaultValue={course.cap || 20}
+                            disabled={!!inlineSaving[`${course.id}:cap`]}
+                            onBlur={e => {
+                              const nextCap = Number(e.target.value);
+                              if (Number.isFinite(nextCap) && nextCap > 0 && nextCap !== course.cap) {
+                                saveInlineCourse(course, "cap", { cap: nextCap });
+                              } else {
+                                e.target.value = String(course.cap || 20);
+                              }
+                            }}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") e.currentTarget.blur();
+                              if (e.key === "Escape") { e.currentTarget.value = String(course.cap || 20); e.currentTarget.blur(); }
+                            }}
+                            className="mx-auto w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
+                          />
+                        </td>
                         <td className="px-3 py-3">
                           <div className="flex flex-wrap gap-1">
                             {course.courseAgeGroups && course.courseAgeGroups.length > 0 ? course.courseAgeGroups.map(cag => (
@@ -1031,6 +1113,10 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
           onClose={() => { setShowMandatoryModal(false); setEditingMandatory(undefined); }}
           onSaved={load}
         />
+      )}
+
+      {inlineConflicts.length > 0 && (
+        <ConflictModal conflicts={inlineConflicts} onClose={() => setInlineConflicts([])} />
       )}
     </div>
   );
