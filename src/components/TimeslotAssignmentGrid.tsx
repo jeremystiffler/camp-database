@@ -22,7 +22,7 @@ interface Course {
 }
 interface SchedulingConflict { type: string; detail: string; activityName: string; slotLabel: string; locationNote?: string; }
 
-const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DAYS = ["S","M","T","W","T","F","S"];
 
 export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -203,12 +203,6 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const replaceCourse = (updated: Course) => setCourses(prev => prev.map(c => c.id === updated.id ? updated : c));
 
   const isColumnFull = (sg: SessionGroup): boolean => courses.length > 0 && courses.every(c => courseCheckedGroups(c).has(sg.key));
-
-  const isColumnPartial = (sg: SessionGroup): boolean => {
-    if (courses.length === 0) return false;
-    const count = courses.filter(c => courseCheckedGroups(c).has(sg.key)).length;
-    return count > 0 && count < courses.length;
-  };
 
   const cellKey = (courseId: string, groupKey: string) => `${courseId}:${groupKey}`;
 
@@ -524,7 +518,6 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                   {visibleSessionGroups.map(sg => {
                     const days = sessionTemplates.filter(st => sg.ids.includes(st.id) && st.dayOfWeek !== null).map(st => DAYS[st.dayOfWeek!]).join(", ");
                     const full = isColumnFull(sg);
-                    const partial = isColumnPartial(sg);
                     const stats = sessionGroupStats(sg);
                     const fillPct = stats.totalCap > 0 ? Math.round(stats.fillRate * 100) : 0;
                     const balanceNote = !hasRegistrations && averageAssignedCapacity > 0 && stats.totalCap > 0 ? `${Math.round((stats.totalCap / averageAssignedCapacity) * 100)}% of avg` : `${fillPct}% full`;
@@ -536,7 +529,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                         <div className="mt-1 text-[10px] font-bold text-slate-700">{stats.registered}/{stats.totalCap} · {stats.remaining} open</div>
                         <div className="mt-1 h-1 rounded-full bg-white/80 overflow-hidden"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${Math.min(Math.max(hasRegistrations ? fillPct : stats.totalCap > 0 ? 100 : 0, 0), 100)}%` }} /></div>
                         <button type="button" onClick={() => toggleColumnAll(sg, !full)} title={`${balanceNote} — ${full ? "Remove all from this session" : "Assign all activities to this session"}`} className="mt-1 text-[10px] font-bold text-slate-500 underline decoration-dotted underline-offset-2 hover:text-sky-700">
-                          {full ? "clear all" : partial ? "partial" : "assign all"}
+                          {full ? "clear all" : "assign all"}
                         </button>
                       </th>
                     );
