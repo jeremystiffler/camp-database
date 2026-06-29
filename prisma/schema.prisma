@@ -8,14 +8,15 @@ datasource db {
 }
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  plan      String   @default("free")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  users     User[]
-  camps     Camp[]
+  id               String   @id @default(cuid())
+  name             String
+  slug             String   @unique
+  plan             String   @default("free")
+  stripeCustomerId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  users            User[]
+  camps            Camp[]
 }
 
 model User {
@@ -33,21 +34,28 @@ model User {
 }
 
 model Camp {
-  id                String             @id @default(cuid())
-  organizationId    String
-  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name              String
-  slug              String             @unique
-  startDate         DateTime?
-  endDate           DateTime?
-  status            String             @default("draft")
-  registrationOpen  Boolean            @default(false)
-  primaryColor      String             @default("#F0894A")
-  accentColor       String             @default("#E8A84C")
-  fontFamily        String             @default("Inter")
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  members           CampMember[]
+  id                       String             @id @default(cuid())
+  organizationId           String
+  organization             Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                     String
+  slug                     String             @unique
+  startDate                DateTime?
+  endDate                  DateTime?
+  status                   String             @default("draft")
+  registrationOpen         Boolean            @default(false)
+  billingMode              String             @default("campPays") // campPays | camperFee
+  billingStatus            String             @default("trial") // trial | active | past_due | unpaid | comped
+  platformFeeCents         Int                @default(300)
+  annualSubscriptionCents  Int                @default(29900)
+  stripeSubscriptionId     String?
+  stripePriceId            String?
+  trialEndsAt              DateTime?
+  primaryColor             String             @default("#F0894A")
+  accentColor              String             @default("#E8A84C")
+  fontFamily               String             @default("Inter")
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  members                  CampMember[]
   invites           CampInvite[]
   registrationForms RegistrationForm[]
   ageGroups         AgeGroup[]
@@ -57,9 +65,10 @@ model Camp {
   sessionTemplates  SessionTemplate[]
   sessions          Session[]
   mandatorySessions MandatorySession[]
-  campers           Camper[]
-  enrollments       Enrollment[]
-  registrationLinks RegistrationLink[]
+  campers                  Camper[]
+  enrollments              Enrollment[]
+  registrationLinks        RegistrationLink[]
+  registrationPayments     RegistrationPayment[]
 }
 
 model CampMember {
@@ -317,4 +326,20 @@ model RegistrationLink {
   maxStudents Int       @default(1)
   usedCount   Int       @default(0)
   createdAt   DateTime  @default(now())
+}
+
+model RegistrationPayment {
+  id                    String   @id @default(cuid())
+  campId                String
+  camp                  Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  camperId              String?
+  guardianEmail         String?
+  amountCents           Int
+  currency              String   @default("usd")
+  type                  String   @default("platform_fee")
+  status                String   @default("pending")
+  stripeCheckoutSession String?  @unique
+  stripePaymentIntent   String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }

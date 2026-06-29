@@ -112,6 +112,9 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const [courses, setCourses]       = useState<Course[]>([]);
   const [registrationSessions, setRegistrationSessions] = useState<RegistrationSession[]>([]);
   const [regOpen, setRegOpen]       = useState(false);
+  const [billingMode, setBillingMode] = useState<"campPays" | "camperFee">("campPays");
+  const [platformFeeCents, setPlatformFeeCents] = useState(300);
+  const [paymentNotice, setPaymentNotice] = useState("");
   const [loading, setLoading]       = useState(true);
   const [values, setValues]         = useState<Record<string, FieldValue>>({});
   const [selectedBySession, setSelectedBySession] = useState<Record<string, string>>({});
@@ -131,6 +134,9 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         .then(d => {
           setCampName(d.campName || "Camp");
           setRegOpen(d.registrationOpen || false);
+          setBillingMode(d.billingMode === "camperFee" ? "camperFee" : "campPays");
+          setPlatformFeeCents(Number(d.platformFeeCents || 300));
+          setPaymentNotice(searchParams.get("payment") === "success" ? "Payment received — thank you!" : searchParams.get("payment") === "cancelled" ? "Payment was cancelled. You can submit another registration when ready." : "");
           setAgeGroups(Array.isArray(d.ageGroups) ? d.ageGroups : []);
           setCourses(Array.isArray(d.courses) ? d.courses : []);
           setRegistrationSessions(Array.isArray(d.registrationSessions) ? d.registrationSessions : []);
@@ -241,6 +247,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   };
 
   const selectedCourseIds = [...new Set(Object.values(selectedBySession).filter(Boolean))];
+  const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 
   const submitRegistration = async (updateExisting = false, existingCamperId?: string) => {
     setSubmitting(true);
@@ -277,6 +284,13 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
       if (!res.ok) {
         setErrors({ _form: d.error || "Submission failed. Please try again." });
         return;
+      }
+      if (d.checkoutUrl) {
+        window.location.href = d.checkoutUrl;
+        return;
+      }
+      if (d.paymentUnavailable) {
+        setPaymentNotice("Registration saved. The payment system is not configured yet, so the camp will follow up about the platform fee.");
       }
       setSubmittedUpdated(Boolean(d.updated));
       setSubmitted(true);
@@ -384,6 +398,12 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-8">
+          {paymentNotice && <div className="mb-5 px-4 py-3 bg-forest-50 border border-forest-200 rounded-xl text-sm text-forest-800">{paymentNotice}</div>}
+          {billingMode === "camperFee" && (
+            <div className="mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-xl text-sm text-sky-900">
+              A {money(platformFeeCents)} platform fee is collected after registration to help keep camp software costs off the camp budget.
+            </div>
+          )}
           {errors._form && <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{errors._form}</div>}
           {duplicate && (
             <div className="mb-5 px-4 py-4 bg-amber-50 border border-amber-200 rounded-xl">
@@ -488,7 +508,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                 <div className="flex gap-3">
                   <button type="button" onClick={prevStep} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">← Back</button>
                   <button type="submit" disabled={submitting} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
-                    {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</> : "Submit Registration →"}
+                    {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</> : billingMode === "camperFee" ? `Submit + Pay ${money(platformFeeCents)} →` : "Submit Registration →"}
                   </button>
                 </div>
               </>

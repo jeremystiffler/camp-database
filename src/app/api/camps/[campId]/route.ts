@@ -37,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     const allowed: Record<string, unknown> = {};
     const ALLOWED_KEYS = [
       "name", "startDate", "endDate", "status", "registrationOpen",
+      "billingMode", "billingStatus", "platformFeeCents", "annualSubscriptionCents",
       "primaryColor", "accentColor", "fontFamily",
     ];
     for (const key of ALLOWED_KEYS) {
@@ -46,6 +47,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     // Coerce date strings to Date objects
     if (allowed.startDate) allowed.startDate = allowed.startDate ? new Date(allowed.startDate as string) : null;
     if (allowed.endDate)   allowed.endDate   = allowed.endDate   ? new Date(allowed.endDate   as string) : null;
+    if (allowed.billingMode && !["campPays", "camperFee"].includes(String(allowed.billingMode))) delete allowed.billingMode;
+    if (allowed.billingStatus && !["trial", "active", "past_due", "unpaid", "comped"].includes(String(allowed.billingStatus))) delete allowed.billingStatus;
+    if (allowed.platformFeeCents !== undefined) allowed.platformFeeCents = Math.max(0, Number(allowed.platformFeeCents) || 300);
+    if (allowed.annualSubscriptionCents !== undefined) allowed.annualSubscriptionCents = Math.max(0, Number(allowed.annualSubscriptionCents) || 29900);
 
     await prisma.camp.update({ where: { id: campId }, data: allowed });
     return NextResponse.json({ success: true });

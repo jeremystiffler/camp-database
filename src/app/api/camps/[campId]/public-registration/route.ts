@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getResend, FROM_EMAIL } from "@/lib/email";
+import { getBaseUrl, getStripe } from "@/lib/billing";
 
 interface RegistrationPayload {
   firstName: string;
@@ -89,7 +90,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const { campId } = await params;
   const data = await req.json() as RegistrationPayload;
 
-  const camp = await prisma.camp.findUnique({ where: { id: campId }, select: { id: true, name: true, registrationOpen: true } });
+  const camp = await prisma.camp.findUnique({
+    where: { id: campId },
+    select: { id: true, name: true, registrationOpen: true, billingMode: true, platformFeeCents: true },
+  });
   if (!camp) return NextResponse.json({ error: "Camp not found" }, { status: 404 });
   if (!camp.registrationOpen) return NextResponse.json({ error: "Registration is closed" }, { status: 403 });
 
@@ -342,5 +346,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     console.error("Registration confirmation email failed", error);
   }
 
-  return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent });
+  if (camp.billingMode === "camperFee" && !updating) {
+    const stripe = getStripe();
+    const amountCents = camp.platformFeeCents || 300;
+    if (stripe && amountCents > 0) {
+      const checkout = await stripe.checkout.sessions.create({
+        mode: "payment",
+        customer_email: guardianEmail,
+        line_items: [{
+          price_data: {
+            currency: "usd",
+            unit_amount: amountCents,
+            product_data: { name: `${camp.name} platform fee` },
+          },
+          quantity: 1,
+        }],
+        success_url: `${getBaseUrl()}/register/${campId}?payment=success`,
+        cancel_url: `${getBaseUrl()}/register/${campId}?payment=cancelled`,
+        metadata: { campId, camperId: camper.id, type: "camper_platform_fee" },
+      });
+      await prisma.registrationPayment.create({
+        data: {
+          campId,
+          camperId: camper.id,
+          guardianEmail,
+          amountCents,
+          status: "pending",
+          stripeCheckoutSession: checkout.id,
+          type: "platform_fee",
+        },
+      });
+      return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent, paymentRequired: true, checkoutUrl: checkout.url });
+    }
+    return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent, paymentRequired: true, paymentUnavailable: true });
+  }
+
+  return NextResponse.json({ success: true, updated: updating, camperId: camper.id, emailSent, paymentRequired: false });
 }

@@ -19,6 +19,13 @@ interface CampAppearance {
   fontFamily: string;
 }
 
+interface CampBilling {
+  billingMode: "campPays" | "camperFee";
+  billingStatus: string;
+  platformFeeCents: number;
+  annualSubscriptionCents: number;
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const COLOR_THEMES = [
@@ -74,6 +81,9 @@ function SettingsContent() {
   const [campName,        setCampName]        = useState("this camp");
   const [appearanceSaving, setAppearanceSaving] = useState(false);
   const [appearanceMsg,   setAppearanceMsg]   = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [billing, setBilling] = useState<CampBilling>({ billingMode: "campPays", billingStatus: "trial", platformFeeCents: 300, annualSubscriptionCents: 29900 });
+  const [billingSaving, setBillingSaving] = useState(false);
+  const [billingMsg, setBillingMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     // Load user profile
@@ -98,6 +108,12 @@ function SettingsContent() {
             primaryColor: d.primaryColor || "#22C55E",
             accentColor:  d.accentColor  || "#0EA5E9",
             fontFamily:   d.fontFamily   || "Inter",
+          });
+          setBilling({
+            billingMode: d.billingMode === "camperFee" ? "camperFee" : "campPays",
+            billingStatus: d.billingStatus || "trial",
+            platformFeeCents: Number(d.platformFeeCents || 300),
+            annualSubscriptionCents: Number(d.annualSubscriptionCents || 29900),
           });
         }
       });
@@ -147,6 +163,32 @@ function SettingsContent() {
     }
     setTimeout(() => setAppearanceMsg(null), 3000);
   };
+
+  const saveBilling = async () => {
+    if (!campId) return;
+    setBillingSaving(true); setBillingMsg(null);
+    const res = await fetch(`/api/camps/${campId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(billing),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBillingSaving(false);
+    setBillingMsg(res.ok ? { type: "success", text: "Billing preference saved." } : { type: "error", text: data.detail || data.error || "Failed to save billing" });
+    setTimeout(() => setBillingMsg(null), 3500);
+  };
+
+  const startCampCheckout = async () => {
+    if (!campId) return;
+    setBillingSaving(true); setBillingMsg(null);
+    const res = await fetch(`/api/camps/${campId}/billing/checkout`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    setBillingSaving(false);
+    if (res.ok && data.url) window.location.href = data.url;
+    else setBillingMsg({ type: "error", text: data.error || "Stripe checkout is not ready yet." });
+  };
+
+  const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 
   const inputCls = "w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400";
 
@@ -212,6 +254,51 @@ function SettingsContent() {
           </button>
         </div>
       </Section>
+
+      {/* ── Camp Billing ── */}
+      {campId && (
+        <Section title="💳 Billing" subtitle="Choose who covers the platform cost for this camp">
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "campPays" }))}
+                className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "campPays" ? "border-forest-400 bg-forest-50" : "border-slate-200 hover:border-slate-300"}`}>
+                <p className="text-sm font-bold text-slate-800">Camp pays yearly</p>
+                <p className="mt-1 text-2xl font-black text-forest-700">{money(billing.annualSubscriptionCents)}<span className="text-xs font-semibold text-slate-500">/year</span></p>
+                <p className="mt-2 text-xs text-slate-500">Best when the camp wants registration to feel completely free for families.</p>
+              </button>
+              <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "camperFee" }))}
+                className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "camperFee" ? "border-sky-400 bg-sky-50" : "border-slate-200 hover:border-slate-300"}`}>
+                <p className="text-sm font-bold text-slate-800">Campers pay platform fee</p>
+                <p className="mt-1 text-2xl font-black text-sky-700">{money(billing.platformFeeCents)}<span className="text-xs font-semibold text-slate-500">/registration</span></p>
+                <p className="mt-2 text-xs text-slate-500">Best when the camp wants no annual software bill and families cover the small fee.</p>
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              Current status: <span className="font-bold capitalize text-slate-800">{billing.billingStatus.replace(/_/g, " ")}</span>. Registration pages will show the {billing.billingMode === "camperFee" ? `${money(billing.platformFeeCents)} camper platform fee` : "camp-paid plan"} messaging.
+            </div>
+
+            {billingMsg && (
+              <div className={`px-4 py-2.5 rounded-xl text-sm ${billingMsg.type === "success" ? "bg-forest-50 text-forest-700 border border-forest-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                {billingMsg.text}
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-3">
+              <button onClick={saveBilling} disabled={billingSaving}
+                className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
+                {billingSaving ? "Saving..." : "Save Billing Choice"}
+              </button>
+              {billing.billingMode === "campPays" && (
+                <button onClick={startCampCheckout} disabled={billingSaving}
+                  className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 disabled:opacity-60">
+                  Pay {money(billing.annualSubscriptionCents)}/year with Stripe
+                </button>
+              )}
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* ── Camp Appearance ── */}
       {campId && (

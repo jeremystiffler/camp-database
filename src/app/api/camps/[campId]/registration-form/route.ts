@@ -81,6 +81,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
       id: true,
       name: true,
       registrationOpen: true,
+      billingMode: true,
+      billingStatus: true,
+      platformFeeCents: true,
+      annualSubscriptionCents: true,
       registrationForms: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
       ageGroups: { select: { id: true, name: true, minAge: true, maxAge: true, noSchedule: true } },
       sessionTemplates: {
@@ -172,6 +176,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
   return NextResponse.json({
     campName: camp.name,
     registrationOpen: formOpen,
+    billingMode: camp.billingMode,
+    billingStatus: camp.billingStatus,
+    platformFeeCents: camp.platformFeeCents,
+    annualSubscriptionCents: camp.annualSubscriptionCents,
     fields: selectedForm?.fields || DEFAULT_FIELDS,
     form: selectedForm ? compactForm(selectedForm) : null,
     forms: (member ? forms : visibleForms.filter(form => form.status === "public")).map(compactForm),
