@@ -241,11 +241,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
   const safeStatus = ["draft", "public", "linkOnly"].includes(status) ? status : existing.status;
   const nextSlug = slugify(typeof slug === "string" && slug.trim() ? slug : existing.slug || title || existing.title);
 
-  if (isDefault) {
-    await prisma.registrationForm.updateMany({ where: { campId, NOT: { id: existing.id } }, data: { isDefault: false } });
-  }
-
   try {
+    if (isDefault) {
+      const otherDefaultForms = await prisma.registrationForm.findMany({
+        where: { campId, NOT: { id: existing.id }, isDefault: true },
+        select: { id: true },
+      });
+      await Promise.all(otherDefaultForms.map(form =>
+        prisma.registrationForm.update({ where: { id: form.id }, data: { isDefault: false } })
+      ));
+    }
+
     const updated = await prisma.registrationForm.update({
       where: { id: existing.id },
       data: {
@@ -260,6 +266,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
     return NextResponse.json({ success: true, form: compactForm(updated), fields: updated.fields });
   } catch (error) {
     console.error("Failed to save registration form", error);
-    return NextResponse.json({ error: "That form link slug is already in use for this camp." }, { status: 409 });
+    const duplicateSlug = error instanceof Error && error.message.includes("Unique constraint");
+    const message = duplicateSlug
+      ? "That form link slug is already in use for this camp."
+      : error instanceof Error
+        ? error.message
+        : "Could not save this form.";
+    return NextResponse.json({ error: message }, { status: duplicateSlug ? 409 : 500 });
   }
 }
