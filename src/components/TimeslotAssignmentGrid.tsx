@@ -21,6 +21,7 @@ interface Course {
   sessions?: { id: string; sessionTemplateId: string | null; enrolledCount: number }[];
 }
 interface SchedulingConflict { type: string; detail: string; activityName: string; slotLabel: string; locationNote?: string; }
+type CellAvailability = { status: "scheduled" | "available" | "blocked"; label: string; title: string; className: string; conflicts: string[] };
 
 const DAYS = ["S","M","T","W","T","F","S"];
 
@@ -41,7 +42,6 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const [focusAgeGroupId, setFocusAgeGroupId] = useState("");
   const [roomFilter, setRoomFilter] = useState("");
   const [teacherFilter, setTeacherFilter] = useState("");
-  const [showAvailableSlots, setShowAvailableSlots] = useState(false);
   const [availableOnly, setAvailableOnly] = useState(false);
   const [columnPage, setColumnPage] = useState(0);
   const [quickAddByGroup, setQuickAddByGroup] = useState<Record<string, string>>({});
@@ -132,10 +132,61 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const courseAgeGroupLabel = (course: Course): string =>
     course.courseAgeGroups?.map(cag => cag.ageGroup.name).sort((a, b) => a.localeCompare(b))[0] || "zzzz no age group";
 
+  const leadTeacherId = (course: Course): string =>
+    course.courseTeachers.find(ct => ct.person.role === "teacher" || ct.person.role === "director")?.person.id || "";
+
+  const assistantId = (course: Course): string =>
+    course.courseTeachers.find(ct => ct.person.role === "assistant" || ct.person.role === "staff")?.person.id || "";
+
+  const personName = (personId: string): string => {
+    const person = persons.find(p => p.id === personId);
+    return person ? `${person.firstName} ${person.lastName}` : "This person";
+  };
+
+  const assignedCoursesForGroup = (sg: SessionGroup): Course[] =>
+    courses.filter(c => courseCheckedGroups(c).has(sg.key));
+
+  const getCellAvailability = (course: Course, sg: SessionGroup, isChecked = courseCheckedGroups(course).has(sg.key)): CellAvailability => {
+    if (isChecked) return { status: "scheduled", label: "scheduled", title: "Already scheduled in this time block", className: "", conflicts: [] };
+
+    const conflicts: string[] = [];
+    const assignedCourses = assignedCoursesForGroup(sg).filter(c => c.id !== course.id);
+    const roomId = course.roomId || course.room?.id || "";
+    const teacherId = leadTeacherId(course);
+    const helperId = assistantId(course);
+
+    const roomConflict = roomId ? assignedCourses.find(c => (c.roomId || c.room?.id || "") === roomId) : undefined;
+    if (roomConflict) conflicts.push(`Room booked: ${course.room?.name || "selected room"} is used by ${roomConflict.name}`);
+
+    const teacherConflict = teacherId ? assignedCourses.find(c => c.courseTeachers.some(ct => ct.person.id === teacherId)) : undefined;
+    if (teacherConflict) conflicts.push(`Teacher booked: ${personName(teacherId)} is assigned to ${teacherConflict.name}`);
+
+    const assistantConflict = helperId ? assignedCourses.find(c => c.courseTeachers.some(ct => ct.person.id === helperId)) : undefined;
+    if (assistantConflict) conflicts.push(`Assistant booked: ${personName(helperId)} is assigned to ${assistantConflict.name}`);
+
+    if (conflicts.length > 0) {
+      const kinds = [roomConflict && "room", teacherConflict && "teacher", assistantConflict && "assistant"].filter(Boolean) as string[];
+      return {
+        status: "blocked",
+        label: kinds.length > 1 ? `${kinds.length}x` : kinds[0] || "!",
+        title: conflicts.join(" • "),
+        className: "cursor-not-allowed border-red-200 bg-red-50 text-red-500 opacity-75",
+        conflicts,
+      };
+    }
+
+    return {
+      status: "available",
+      label: "open",
+      title: "Available to schedule — no room, teacher, or assistant conflicts detected",
+      className: "border-sky-300 bg-sky-100 text-sky-800 ring-2 ring-sky-200/70 hover:border-sky-400 hover:bg-sky-200",
+      conflicts: [],
+    };
+  };
+
   const courseHasAvailableSlot = (course: Course): boolean => {
     if (sessionGroups.length === 0) return false;
-    const checked = courseCheckedGroups(course);
-    return sessionGroups.some(sg => !checked.has(sg.key));
+    return sessionGroups.some(sg => getCellAvailability(course, sg).status === "available");
   };
 
   const filteredCourses = useMemo(() => {
@@ -199,12 +250,6 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     return "border-emerald-300 bg-emerald-100 text-emerald-800";
   };
 
-  const leadTeacherId = (course: Course): string =>
-    course.courseTeachers.find(ct => ct.person.role === "teacher" || ct.person.role === "director")?.person.id || "";
-
-  const assistantId = (course: Course): string =>
-    course.courseTeachers.find(ct => ct.person.role === "assistant" || ct.person.role === "staff")?.person.id || "";
-
   const teacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director");
   const assistantOptions = persons.filter(p => p.role === "assistant" || p.role === "staff");
   const allPersonOptions = persons.filter(p => p.role === "teacher" || p.role === "director" || p.role === "assistant" || p.role === "staff");
@@ -262,6 +307,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     for (const course of courses) {
       const alreadyOn = courseCheckedGroups(course).has(sg.key);
       if (enable === alreadyOn) continue;
+      if (enable && getCellAvailability(course, sg, alreadyOn).status === "blocked") continue;
       await toggleSlotGroup(course, sg, enable);
     }
   };
@@ -478,14 +524,11 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                 <option value="">Person: all</option>
                 {allPersonOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
               </select>
-              <button type="button" onClick={() => setShowAvailableSlots(v => !v)} className={`rounded-xl border px-3 py-2 text-xs font-black transition-all ${showAvailableSlots ? "border-sky-300 bg-sky-100 text-sky-800" : "border-slate-200 bg-white text-slate-500 hover:bg-sky-50"}`}>
-                {showAvailableSlots ? "Open cells: on" : "Open cells: off"}
-              </button>
               <button type="button" onClick={() => setAvailableOnly(v => !v)} className={`rounded-xl border px-3 py-2 text-xs font-black transition-all ${availableOnly ? "border-emerald-300 bg-emerald-100 text-emerald-800" : "border-slate-200 bg-white text-slate-500 hover:bg-emerald-50"}`}>
                 {availableOnly ? "Can schedule only" : "Show all classes"}
               </button>
-              {(activityFilter || focusAgeGroupId || roomFilter || teacherFilter || showAvailableSlots || availableOnly || rowSort !== "name" || rowSortDir !== "asc") && (
-                <button type="button" onClick={() => { setActivityFilter(""); setFocusAgeGroupId(""); setRoomFilter(""); setTeacherFilter(""); setShowAvailableSlots(false); setAvailableOnly(false); setRowSort("name"); setRowSortDir("asc"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-400 hover:text-slate-700">Reset</button>
+              {(activityFilter || focusAgeGroupId || roomFilter || teacherFilter || availableOnly || rowSort !== "name" || rowSortDir !== "asc") && (
+                <button type="button" onClick={() => { setActivityFilter(""); setFocusAgeGroupId(""); setRoomFilter(""); setTeacherFilter(""); setAvailableOnly(false); setRowSort("name"); setRowSortDir("asc"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-400 hover:text-slate-700">Reset</button>
               )}
               <span className="text-xs font-semibold text-slate-400">{filteredCourses.length}/{courses.length}</span>
             </div>
@@ -614,26 +657,29 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                         const saveKey = cellKey(course.id, sg.key);
                         const isSaving = assignSaving[saveKey];
                         const isChecked = checked.has(sg.key);
-                        const isBlocked = blockedCells.has(saveKey) && !isChecked;
-                        const isAvailable = showAvailableSlots && !isChecked && !isBlocked;
+                        const serverBlocked = blockedCells.has(saveKey) && !isChecked;
+                        const availability = getCellAvailability(course, sg, isChecked);
+                        const isBlocked = !isChecked && (serverBlocked || availability.status === "blocked");
+                        const isAvailable = !isChecked && !isBlocked && availability.status === "available";
                         const enrolled = courseEnrollmentForGroup(course, sg);
                         const cap = course.cap || 0;
                         const seatsLeft = Math.max(cap - enrolled, 0);
+                        const blockedTitle = serverBlocked ? "Blocked by a scheduling conflict" : availability.title;
                         return (
                           <td key={sg.key} className="text-center py-2 px-2 border-b border-slate-100 bg-white transition-colors">
                             {isSaving ? <div className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" /> : (
                               <button
                                 type="button"
                                 disabled={isBlocked}
-                                title={isBlocked ? "Blocked by a scheduling conflict" : isChecked ? `${enrolled}/${cap || "—"} registered/seats — click to remove` : isAvailable ? "Available to schedule — click to add this class here" : "Click to schedule this activity in this time block"}
+                                title={isBlocked ? blockedTitle : isChecked ? `${enrolled}/${cap || "—"} registered/seats — click to remove` : availability.title}
                                 onClick={() => toggleSlotGroup(course, sg, !isChecked)}
                                 className={`mx-auto flex h-10 w-full min-w-0 items-center justify-center rounded-lg border-2 text-[11px] font-black shadow-sm transition-all ${
                                   isChecked
                                     ? activeCellClass(course, sg)
                                     : isBlocked
-                                      ? "cursor-not-allowed border-red-200 bg-red-50 text-red-300 opacity-60"
+                                      ? (serverBlocked ? "cursor-not-allowed border-red-200 bg-red-50 text-red-300 opacity-60" : availability.className)
                                       : isAvailable
-                                        ? "border-sky-300 bg-sky-100 text-sky-800 ring-2 ring-sky-200/70 hover:border-sky-400 hover:bg-sky-200"
+                                        ? availability.className
                                         : "border-dashed border-slate-200 bg-slate-50 text-slate-300 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
                                 }`}
                               >
@@ -642,7 +688,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                                     <span className="block text-xs leading-tight">{enrolled}/{cap || "—"}</span>
                                     <span className="block text-[10px] font-semibold opacity-70">{cap > 0 ? `${seatsLeft} open` : "no cap"}</span>
                                   </span>
-                                ) : isBlocked ? "!" : isAvailable ? "open" : "+"}
+                                ) : isBlocked ? (serverBlocked ? "!" : availability.label) : isAvailable ? availability.label : "+"}
                               </button>
                             )}
                           </td>
@@ -665,7 +711,8 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             <span><span className="inline-block w-4 h-3 rounded bg-amber-100 border border-amber-300 align-middle" /> watch</span>
             <span><span className="inline-block w-4 h-3 rounded bg-orange-100 border border-orange-300 align-middle" /> tight</span>
             <span><span className="inline-block w-4 h-3 rounded bg-red-100 border border-red-300 align-middle" /> full/short</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-sky-100 border border-sky-300 align-middle" /> available slot highlight</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-red-50 border border-red-200 align-middle" /> blocked by room/person conflict</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-sky-100 border border-sky-300 align-middle" /> open + safe to schedule</span>
           </div>
         </>
       )}
