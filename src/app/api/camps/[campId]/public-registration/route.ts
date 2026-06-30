@@ -62,6 +62,23 @@ function weeklySessionKey(template: { label: string | null; startTime: string | 
   return `${template.label || "Session"}|${template.startTime || ""}|${template.endTime || ""}|${template.mandatory ? "required" : "optional"}`;
 }
 
+type MandatoryClassRule = { ageGroupId: string; courseId: string };
+
+function parseMandatoryClassRules(value: unknown): MandatoryClassRule[] {
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map(rule => ({
+        ageGroupId: typeof rule?.ageGroupId === "string" ? rule.ageGroupId.trim() : "",
+        courseId: typeof rule?.courseId === "string" ? rule.courseId.trim() : "",
+      }))
+      .filter(rule => rule.ageGroupId && rule.courseId);
+  } catch {
+    return [];
+  }
+}
+
 function escapeHtml(value: unknown) {
   return String(value ?? "").replace(/[&<>"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char] || char));
 }
@@ -172,14 +189,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const selectedForm = ref
     ? await prisma.registrationForm.findFirst({
         where: { campId, OR: [{ id: ref }, { slug: ref }], status: { in: ["public", "linkOnly"] } },
-        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, confirmationEmailSubject: true, confirmationEmailIntro: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
+        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
       })
     : await prisma.registrationForm.findFirst({
         where: { campId, isDefault: true, status: "public" },
-        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, confirmationEmailSubject: true, confirmationEmailIntro: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
+        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
       });
   const classChoicesEnabled = selectedForm?.classChoicesEnabled !== false;
   const familyRegistrationEnabled = Boolean(selectedForm?.familyRegistrationEnabled);
+  const mandatoryClassRules = parseMandatoryClassRules(selectedForm?.mandatoryClassRules);
 
   const guardianEmail = clean(data.guardianEmail).toLowerCase();
   const guardianName = clean(data.guardianName);
@@ -328,6 +346,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       });
       if (courses.length !== fallbackCourseIds.length) return NextResponse.json({ error: `One or more selected classes are not available for ${firstName}` }, { status: 400 });
       for (const course of courses) for (const cst of course.courseSessionTemplates) selections.push({ sessionTemplateId: cst.sessionTemplateId, course });
+    }
+
+    if (classChoicesEnabled && !ageGroup.noSchedule) {
+      const requiredRules = mandatoryClassRules.filter(rule => rule.ageGroupId === ageGroup.id);
+      if (requiredRules.length > 0) {
+        const selectedCourseIds = new Set(selections.map(selection => selection.course.id));
+        const missingRules = requiredRules.filter(rule => !selectedCourseIds.has(rule.courseId));
+        if (missingRules.length > 0) {
+          const missingCourses = await prisma.course.findMany({ where: { campId, id: { in: missingRules.map(rule => rule.courseId) } }, select: { name: true } });
+          const missingNames = missingCourses.map(course => course.name).join(", ") || "the required class";
+          return NextResponse.json({ error: `${firstName} must choose ${missingNames} before registering.` }, { status: 400 });
+        }
+      }
     }
 
     const updating = Boolean(existing && data.updateExisting && data.existingCamperId === existing.id && !familyRegistrationEnabled);

@@ -57,6 +57,8 @@ interface WeeklyRegistrationSession extends RegistrationSession {
   options: SessionOption[];
 }
 
+type MandatoryClassRule = { ageGroupId: string; courseId: string };
+
 type FieldValue = string | boolean | string[];
 type Step = 1 | 2 | 3;
 type StudentState = { id: string; values: Record<string, FieldValue>; selectedBySession: Record<string, string> };
@@ -116,6 +118,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const [registrationSessions, setRegistrationSessions] = useState<RegistrationSession[]>([]);
   const [classChoicesEnabled, setClassChoicesEnabled] = useState(true);
   const [familyRegistrationEnabled, setFamilyRegistrationEnabled] = useState(false);
+  const [mandatoryClassRules, setMandatoryClassRules] = useState<MandatoryClassRule[]>([]);
   const [formRef, setFormRef] = useState("");
   const [regOpen, setRegOpen]       = useState(false);
   const [billingMode, setBillingMode] = useState<"campPays" | "camperFee">("campPays");
@@ -162,6 +165,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           setRegistrationSessions(Array.isArray(d.registrationSessions) ? d.registrationSessions : []);
           setClassChoicesEnabled(d.form?.classChoicesEnabled !== false);
           setFamilyRegistrationEnabled(Boolean(d.form?.familyRegistrationEnabled));
+          setMandatoryClassRules(Array.isArray(d.form?.mandatoryClassRules) ? d.form.mandatoryClassRules : []);
           try {
             const parsed = typeof d.fields === "string" ? JSON.parse(d.fields) : d.fields;
             setFields(Array.isArray(parsed) ? parsed : []);
@@ -230,12 +234,14 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
       options,
     };
   });
-  const mandatoryWeeklySessions = selectableSessions.filter(session =>
-    session.mandatory || Boolean(session.mandatorySessions?.some(ms => ms.ageGroupId === selectedAgeGroupId))
-  );
   const requiredSessions = selectableSessions.filter(session =>
     !session.mandatory && !session.mandatorySessions?.some(ms => ms.ageGroupId === selectedAgeGroupId) && session.optionCount > 0
   );
+  const requiredClassRulesForAgeGroup = mandatoryClassRules.filter(rule => rule.ageGroupId === selectedAgeGroupId && rule.courseId);
+  const courseNameById = new Map(courses.map(course => [course.id, course.name]));
+  const selectedCourseIdsForActiveStudent = [...new Set(Object.values(activeSelectedBySession).filter(Boolean))];
+  const missingRequiredClassRules = requiredClassRulesForAgeGroup.filter(rule => !selectedCourseIdsForActiveStudent.includes(rule.courseId));
+  const requiredClassNames = requiredClassRulesForAgeGroup.map(rule => courseNameById.get(rule.courseId)).filter(Boolean).join(", ");
 
   const validateStep = (targetStep: Step): boolean => {
     const errs: Record<string, string> = {};
@@ -261,6 +267,10 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
       if (unavailable.length > 0) errs._form = "One or more sessions has no open classes left. Please contact the camp before registering.";
       else if (missing.length > 0) errs._form = "Please choose one class for each session.";
       else if (duplicateCourse) errs._form = "Each class can only be chosen once. Please pick a different class for one of the sessions.";
+      else if (missingRequiredClassRules.length > 0) {
+        const missingNames = missingRequiredClassRules.map(rule => courseNameById.get(rule.courseId) || "the required class").join(", ");
+        errs._form = `This age group must include ${missingNames}. Choose it in any available session before continuing.`;
+      }
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -289,7 +299,6 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     if (errors._form) setErrors(prev => { const n = { ...prev }; delete n._form; return n; });
   };
 
-  const selectedCourseIds = [...new Set(Object.values(activeSelectedBySession).filter(Boolean))];
   const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
   const familyCampPriceCents = camperPriceCents * activeStudentCount;
   const priceAfterDiscountCents = Math.max(0, familyCampPriceCents - couponDiscountCents);
@@ -535,7 +544,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
               </div>
             </div>
           )}
-          {errors._form && <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{errors._form}</div>}
+          {errors._form && step !== 2 && <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{errors._form}</div>}
           {duplicate && (
             <div className="mb-5 px-4 py-4 bg-amber-50 border border-amber-200 rounded-xl">
               <p className="text-sm font-semibold text-amber-900 mb-1">Possible duplicate registration</p>
@@ -567,24 +576,10 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                   <div className="px-4 py-6 bg-slate-50 border border-slate-200 rounded-xl text-center text-sm text-slate-500">No class sessions are currently available.</div>
                 ) : (
                   <div className="space-y-5">
-                    {mandatoryWeeklySessions.length > 0 && (
-                      <div className="rounded-2xl border border-forest-200 bg-forest-50 overflow-hidden">
-                        <div className="px-4 py-3 border-b border-forest-100">
-                          <p className="font-bold text-forest-800 text-sm">🔒 Included automatically</p>
-                          <p className="text-xs text-forest-700">These required assemblies are assigned to this age group and are not parent choices.</p>
-                        </div>
-                        <div className="divide-y divide-forest-100">
-                          {mandatoryWeeklySessions.map(session => {
-                            const block = session.mandatorySessions?.find(ms => ms.ageGroupId === selectedAgeGroupId);
-                            return <div key={session.id} className="px-4 py-3 text-sm text-forest-900">
-                              <p className="font-semibold">{block?.title || session.label || "Required session"} · {session.startTime}–{session.endTime}</p>
-                              <p className="text-xs text-forest-700 mt-0.5">
-                                {block?.room?.name ? `Location: ${block.room.name}` : "Location assigned by camp"}
-                                {block?.leader ? ` · Leader: ${block.leader.firstName} ${block.leader.lastName}` : ""}
-                              </p>
-                            </div>;
-                          })}
-                        </div>
+                    {requiredClassRulesForAgeGroup.length > 0 && (
+                      <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+                        <p className="font-bold">Required for this age group: {requiredClassNames}</p>
+                        <p className="mt-0.5 text-xs text-indigo-800">Choose {requiredClassRulesForAgeGroup.length === 1 ? "this class" : "these classes"} in any available session before continuing.</p>
                       </div>
                     )}
 
@@ -604,15 +599,19 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                               const checked = session.sessionIds.every(sessionId => activeSelectedBySession[sessionId] === option.courseId);
                               const selectedInAnotherSession = Object.entries(activeSelectedBySession).some(([sessionId, courseId]) => !session.sessionIds.includes(sessionId) && courseId === option.courseId);
                               const unavailableBecauseChosen = selectedInAnotherSession && !checked;
+                              const requiredForAgeGroup = requiredClassRulesForAgeGroup.some(rule => rule.courseId === option.courseId);
                               return <label key={option.courseId} className={`block p-4 transition-all ${unavailableBecauseChosen ? "bg-slate-50 opacity-50 cursor-not-allowed" : checked ? "bg-forest-50 cursor-pointer" : "hover:bg-slate-50 cursor-pointer"}`}>
                                 <div className="flex items-start gap-3">
                                   <input type="radio" name={`session-${session.id}`} checked={checked} disabled={unavailableBecauseChosen} onChange={() => selectCourseForSession(session.sessionIds, option.courseId)} className="mt-1 w-4 h-4 accent-forest-500 disabled:accent-slate-300" />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-3">
                                       <p className="font-semibold text-slate-800">{option.name}</p>
-                                      <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${unavailableBecauseChosen ? "text-slate-500 bg-slate-200" : "text-forest-700 bg-forest-100"}`}>
-                                        {unavailableBecauseChosen ? "Already chosen" : option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} seats left`}
-                                      </span>
+                                      <div className="flex flex-wrap justify-end gap-2">
+                                        {requiredForAgeGroup && <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-black text-indigo-700">Required</span>}
+                                        <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${unavailableBecauseChosen ? "text-slate-500 bg-slate-200" : "text-forest-700 bg-forest-100"}`}>
+                                          {unavailableBecauseChosen ? "Already chosen" : option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} seats left`}
+                                        </span>
+                                      </div>
                                     </div>
                                     {option.description && <p className="text-sm text-slate-500 mt-0.5">{option.description}</p>}
                                   </div>
@@ -625,6 +624,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                     ))}
                   </div>
                 )}
+                {errors._form && <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm font-bold text-red-700">{errors._form}</div>}
                 <div className="flex gap-3">
                   <button type="button" onClick={prevStep} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">← Back</button>
                   <button type="button" onClick={nextStep} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">Continue →</button>

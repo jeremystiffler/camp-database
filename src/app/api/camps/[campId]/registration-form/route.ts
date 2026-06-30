@@ -42,6 +42,30 @@ type RegistrationOption = {
   seatsLeft: number | null;
 };
 
+type MandatoryClassRule = { ageGroupId: string; courseId: string };
+
+function parseMandatoryClassRules(value: unknown): MandatoryClassRule[] {
+  try {
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
+    if (!Array.isArray(parsed)) return [];
+    const seen = new Set<string>();
+    return parsed
+      .map(rule => ({
+        ageGroupId: typeof rule?.ageGroupId === "string" ? rule.ageGroupId.trim() : "",
+        courseId: typeof rule?.courseId === "string" ? rule.courseId.trim() : "",
+      }))
+      .filter(rule => rule.ageGroupId && rule.courseId)
+      .filter(rule => {
+        const key = `${rule.ageGroupId}:${rule.courseId}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  } catch {
+    return [];
+  }
+}
+
 async function ensureDefaultForm(campId: string) {
   const forms = await prisma.registrationForm.findMany({ where: { campId }, orderBy: { createdAt: "asc" } });
   if (forms.length > 0) {
@@ -71,6 +95,7 @@ function compactForm(form: {
   confirmationIncludeClasses?: boolean;
   confirmationIncludeEmergency?: boolean;
   confirmationIncludePayment?: boolean;
+  mandatoryClassRules?: string | null;
   updatedAt: Date;
   createdAt: Date;
 }) {
@@ -89,6 +114,7 @@ function compactForm(form: {
     confirmationIncludeClasses: form.confirmationIncludeClasses !== false,
     confirmationIncludeEmergency: form.confirmationIncludeEmergency !== false,
     confirmationIncludePayment: form.confirmationIncludePayment !== false,
+    mandatoryClassRules: parseMandatoryClassRules(form.mandatoryClassRules),
     updatedAt: form.updatedAt,
     createdAt: form.createdAt,
   };
@@ -255,8 +281,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
   const { campId } = await params;
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { formId, fields, title, slug, status, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment } = await req.json();
+  const { formId, fields, title, slug, status, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, mandatoryClassRules } = await req.json();
   if (!Array.isArray(fields)) return NextResponse.json({ error: "fields must be an array" }, { status: 400 });
+
+  const cleanedRules = parseMandatoryClassRules(mandatoryClassRules);
+  if (cleanedRules.length > 0) {
+    const uniqueAgeGroupIds = [...new Set(cleanedRules.map(rule => rule.ageGroupId))];
+    const uniqueCourseIds = [...new Set(cleanedRules.map(rule => rule.courseId))];
+    const [ageGroupCount, courseCount] = await Promise.all([
+      prisma.ageGroup.count({ where: { campId, id: { in: uniqueAgeGroupIds } } }),
+      prisma.course.count({ where: { campId, id: { in: uniqueCourseIds } } }),
+    ]);
+    if (ageGroupCount !== uniqueAgeGroupIds.length || courseCount !== uniqueCourseIds.length) {
+      return NextResponse.json({ error: "One or more required class rules references an age group or class that no longer exists." }, { status: 400 });
+    }
+  }
 
   const existing = formId
     ? await prisma.registrationForm.findFirst({ where: { id: formId, campId } })
@@ -294,6 +333,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
         confirmationIncludeClasses: confirmationIncludeClasses !== false,
         confirmationIncludeEmergency: confirmationIncludeEmergency !== false,
         confirmationIncludePayment: confirmationIncludePayment !== false,
+        mandatoryClassRules: JSON.stringify(cleanedRules),
       },
     });
     return NextResponse.json({ success: true, form: compactForm(updated), fields: updated.fields });

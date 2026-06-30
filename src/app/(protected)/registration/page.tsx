@@ -25,6 +25,7 @@ interface FormSummary {
   isDefault: boolean;
   classChoicesEnabled?: boolean;
   familyRegistrationEnabled?: boolean;
+  mandatoryClassRules?: MandatoryClassRule[];
   confirmationEmailSubject?: string;
   confirmationEmailIntro?: string;
   confirmationIncludeGuardian?: boolean;
@@ -33,6 +34,15 @@ interface FormSummary {
   confirmationIncludeEmergency?: boolean;
   confirmationIncludePayment?: boolean;
 }
+
+interface CourseSummary {
+  id: string;
+  name: string;
+  ageGroupId?: string | null;
+  courseAgeGroups?: { ageGroupId: string }[];
+}
+
+type MandatoryClassRule = { ageGroupId: string; courseId: string };
 
 const FIELD_ICONS: Record<string, string> = {
   text: "Aa", email: "@", tel: "📞", date: "📅", number: "#", url: "🔗", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
@@ -211,7 +221,9 @@ function RegistrationContent() {
   const [confirmationIncludeClasses, setConfirmationIncludeClasses] = useState(true);
   const [confirmationIncludeEmergency, setConfirmationIncludeEmergency] = useState(true);
   const [confirmationIncludePayment, setConfirmationIncludePayment] = useState(true);
+  const [mandatoryClassRules, setMandatoryClassRules] = useState<MandatoryClassRule[]>([]);
   const [ageGroups, setAgeGroups]   = useState<{ id: string; name: string }[]>([]);
+  const [courses, setCourses]       = useState<CourseSummary[]>([]);
   const [campName, setCampName]     = useState("");
   const [regOpen, setRegOpen]       = useState(false);
   const [loading, setLoading]       = useState(true);
@@ -224,10 +236,11 @@ function RegistrationContent() {
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
 
-  const applyFormResponse = (d: { campName?: string; registrationOpen?: boolean; ageGroups?: { id: string; name: string }[]; forms?: FormSummary[]; form?: FormSummary | null; fields?: unknown }) => {
+  const applyFormResponse = (d: { campName?: string; registrationOpen?: boolean; ageGroups?: { id: string; name: string }[]; courses?: CourseSummary[]; forms?: FormSummary[]; form?: FormSummary | null; fields?: unknown }) => {
     setCampName(d.campName || "");
     setRegOpen(d.registrationOpen || false);
     setAgeGroups(Array.isArray(d.ageGroups) ? d.ageGroups : []);
+    setCourses(Array.isArray(d.courses) ? d.courses : []);
     setForms(Array.isArray(d.forms) ? d.forms : []);
     if (d.form) {
       setSelectedFormId(d.form.id);
@@ -244,6 +257,7 @@ function RegistrationContent() {
       setConfirmationIncludeClasses(d.form.confirmationIncludeClasses !== false);
       setConfirmationIncludeEmergency(d.form.confirmationIncludeEmergency !== false);
       setConfirmationIncludePayment(d.form.confirmationIncludePayment !== false);
+      setMandatoryClassRules(Array.isArray(d.form.mandatoryClassRules) ? d.form.mandatoryClassRules : []);
     }
     try { setFields(JSON.parse(typeof d.fields === "string" ? d.fields : JSON.stringify(d.fields))); } catch { setFields([]); }
   };
@@ -278,7 +292,7 @@ function RegistrationContent() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
-        body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, fields: cleanedFields }),
+        body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, familyRegistrationEnabled, mandatoryClassRules, confirmationEmailSubject, confirmationEmailIntro, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, fields: cleanedFields }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -299,6 +313,7 @@ function RegistrationContent() {
         setConfirmationIncludeClasses(d.form.confirmationIncludeClasses !== false);
         setConfirmationIncludeEmergency(d.form.confirmationIncludeEmergency !== false);
         setConfirmationIncludePayment(d.form.confirmationIncludePayment !== false);
+        setMandatoryClassRules(Array.isArray(d.form.mandatoryClassRules) ? d.form.mandatoryClassRules : []);
       }
       try { setFields(JSON.parse(typeof d.fields === "string" ? d.fields : JSON.stringify(d.fields ?? cleanedFields))); } catch { setFields(cleanedFields); }
       await refreshForms(d.form?.id || selectedFormId);
@@ -369,6 +384,26 @@ function RegistrationContent() {
   const currentPreviewPage = Math.min(previewPage, Math.max(previewPages.length - 1, 0));
   const ageGroupField = fields.find(field => field.id === "f4" || field.source === "ageGroups");
   const ageGroupReady = Boolean(ageGroupField?.required);
+  const eligibleCoursesForAgeGroup = (ageGroupId: string) => courses.filter(course =>
+    course.ageGroupId === ageGroupId || Boolean(course.courseAgeGroups?.some(ag => ag.ageGroupId === ageGroupId))
+  );
+  const addMandatoryRule = () => {
+    const firstAgeGroup = ageGroups[0]?.id || "";
+    const firstCourse = firstAgeGroup ? eligibleCoursesForAgeGroup(firstAgeGroup)[0]?.id || "" : "";
+    setMandatoryClassRules(prev => [...prev, { ageGroupId: firstAgeGroup, courseId: firstCourse }]);
+  };
+  const updateMandatoryRule = (index: number, updates: Partial<MandatoryClassRule>) => {
+    setMandatoryClassRules(prev => prev.map((rule, idx) => {
+      if (idx !== index) return rule;
+      const next = { ...rule, ...updates };
+      if (updates.ageGroupId) {
+        const eligible = eligibleCoursesForAgeGroup(updates.ageGroupId);
+        if (!eligible.some(course => course.id === next.courseId)) next.courseId = eligible[0]?.id || "";
+      }
+      return next;
+    }));
+  };
+  const removeMandatoryRule = (index: number) => setMandatoryClassRules(prev => prev.filter((_, idx) => idx !== index));
 
   useEffect(() => {
     if (previewPage > Math.max(previewPages.length - 1, 0)) setPreviewPage(Math.max(previewPages.length - 1, 0));
@@ -462,6 +497,47 @@ function RegistrationContent() {
             <input type="checkbox" checked={classChoicesEnabled} onChange={e => setClassChoicesEnabled(e.target.checked)} className="h-5 w-5 accent-forest-500" />
           </label>
         </div>
+
+        {classChoicesEnabled && (
+          <div className="mt-4 rounded-2xl border border-indigo-200 bg-white p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="max-w-2xl">
+                <p className="text-sm font-black text-indigo-950">Required class choices by age group</p>
+                <p className="mt-1 text-sm leading-relaxed text-indigo-800">Optional rule for classes that must be chosen by a specific age group. Families can pick the required class in <strong>any time slot where that class is offered</strong>. If they skip it, the registration form stops them before they continue.</p>
+                <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">Different from locked schedule blocks: this still gives families choices, but requires one selected class somewhere in their schedule.</p>
+              </div>
+              <button type="button" onClick={addMandatoryRule} disabled={ageGroups.length === 0 || courses.length === 0} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white hover:bg-indigo-700 disabled:opacity-50">+ Add required class</button>
+            </div>
+            {mandatoryClassRules.length === 0 ? (
+              <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">No required class-choice rules yet. Add one only when an age group must choose a specific class.</div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {mandatoryClassRules.map((rule, index) => {
+                  const eligible = eligibleCoursesForAgeGroup(rule.ageGroupId);
+                  return (
+                    <div key={`${rule.ageGroupId}-${rule.courseId}-${index}`} className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                      <label className="block">
+                        <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Age group that has the requirement</span>
+                        <select value={rule.ageGroupId} onChange={e => updateMandatoryRule(index, { ageGroupId: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
+                          {ageGroups.map(ageGroup => <option key={ageGroup.id} value={ageGroup.id}>{ageGroup.name}</option>)}
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Class they must choose somewhere</span>
+                        <select value={rule.courseId} onChange={e => updateMandatoryRule(index, { courseId: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
+                          <option value="">Select a class…</option>
+                          {eligible.map(course => <option key={course.id} value={course.id}>{course.name}</option>)}
+                        </select>
+                        {eligible.length === 0 && <p className="mt-1 text-[11px] font-bold text-red-600">No classes are assigned to this age group yet.</p>}
+                      </label>
+                      <button type="button" onClick={() => removeMandatoryRule(index)} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50">Remove</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm mb-6">
