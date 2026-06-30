@@ -14,8 +14,8 @@ interface Camper {
   firstName: string;
   lastName: string;
   fullName: string;
-  guardianName: string;
-  guardianEmail: string;
+  guardianName?: string;
+  guardianEmail?: string;
   guardianPhone?: string;
   emergencyPhone?: string;
   tshirtSize?: string;
@@ -39,105 +39,175 @@ function age(dob: string) {
 
 function CamperDrawer({
   camper,
+  campId,
+  ageGroups,
   onClose,
+  onSaved,
 }: {
   camper: Camper;
+  campId: string;
+  ageGroups: AgeGroup[];
   onClose: () => void;
+  onSaved: (camper: Camper) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    firstName: camper.firstName || "",
+    lastName: camper.lastName || "",
+    dateOfBirth: camper.dateOfBirth ? camper.dateOfBirth.slice(0, 10) : "",
+    ageGroupId: camper.ageGroup?.id || "",
+    guardianName: camper.guardianName || "",
+    guardianEmail: camper.guardianEmail || "",
+    guardianPhone: camper.guardianPhone || "",
+    emergencyPhone: camper.emergencyPhone || "",
+    tshirtSize: camper.tshirtSize || "",
+    photoConsent: camper.photoConsent,
+    medicalNotes: camper.medicalNotes || "",
+    dietaryNotes: camper.dietaryNotes || "",
+  });
+
+  const update = (key: keyof typeof form, value: string | boolean) => setForm(prev => ({ ...prev, [key]: value }));
+
+  const save = async () => {
+    const firstName = form.firstName.trim();
+    const lastName = form.lastName.trim();
+    if (!firstName || !lastName) { setError("Student first and last name are required."); return; }
+    setSaving(true); setError("");
+    const res = await fetch(`/api/camps/${campId}/campers/${camper.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        dateOfBirth: form.dateOfBirth || null,
+        ageGroupId: form.ageGroupId || null,
+        guardianName: form.guardianName.trim() || null,
+        guardianEmail: form.guardianEmail.trim() || null,
+        guardianPhone: form.guardianPhone.trim() || null,
+        emergencyPhone: form.emergencyPhone.trim() || null,
+        tshirtSize: form.tshirtSize || null,
+        photoConsent: form.photoConsent,
+        medicalNotes: form.medicalNotes.trim() || null,
+        dietaryNotes: form.dietaryNotes.trim() || null,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (res.ok) { onSaved(data); setEditing(false); }
+    else setError(data.detail || data.error || "Could not update this registration submission.");
+  };
+
+  const inputCls = "w-full px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30";
+  const currentName = `${camper.firstName} ${camper.lastName}`.trim();
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl">
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+      <div className="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-2xl">
+        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-berry-500 flex items-center justify-center text-white font-bold">
               {camper.firstName[0]}{camper.lastName[0]}
             </div>
             <div>
-              <h2 className="font-bold text-slate-800">{camper.fullName}</h2>
-              {camper.ageGroup && <p className="text-xs text-slate-500">{camper.ageGroup.name}</p>}
+              <h2 className="font-bold text-slate-800">{currentName}</h2>
+              <p className="text-xs text-slate-500">Registration submission</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">✕</button>
+          <div className="flex items-center gap-2">
+            {!editing && <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100">Edit Submission</button>}
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">✕</button>
+          </div>
         </div>
+
         <div className="px-6 py-5 space-y-5">
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Camper Info</h3>
-            <div className="space-y-2.5">
-              {camper.dateOfBirth && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Age</span>
-                  <span className="text-sm font-medium text-slate-800">{age(camper.dateOfBirth)} years old</span>
-                </div>
-              )}
-              {camper.tshirtSize && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">T-Shirt Size</span>
-                  <span className="text-sm font-medium text-slate-800">{camper.tshirtSize}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-sm text-slate-500">Photo Consent</span>
-                <span className={`text-sm font-medium ${camper.photoConsent ? "text-forest-600" : "text-red-500"}`}>
-                  {camper.photoConsent ? "✓ Granted" : "✗ Not granted"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-slate-500">Registered</span>
-                <span className="text-sm font-medium text-slate-800">
-                  {new Date(camper.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </div>
+          {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Guardian</h3>
-            <div className="space-y-2.5">
-              <div className="flex justify-between">
-                <span className="text-sm text-slate-500">Name</span>
-                <span className="text-sm font-medium text-slate-800">{camper.guardianName}</span>
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Parent / Guardian Info</h3>
+            {editing ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input className={inputCls} placeholder="Guardian name" value={form.guardianName} onChange={e => update("guardianName", e.target.value)} />
+                <input className={inputCls} placeholder="Guardian email" type="email" value={form.guardianEmail} onChange={e => update("guardianEmail", e.target.value)} />
+                <input className={inputCls} placeholder="Guardian phone" value={form.guardianPhone} onChange={e => update("guardianPhone", e.target.value)} />
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-slate-500">Email</span>
-                <a href={`mailto:${camper.guardianEmail}`} className="text-sm font-medium text-sky-600 hover:underline">{camper.guardianEmail}</a>
+            ) : (
+              <div className="space-y-2.5">
+                <Info label="Name" value={camper.guardianName || "—"} />
+                <Info label="Email" value={camper.guardianEmail || "—"} href={camper.guardianEmail ? `mailto:${camper.guardianEmail}` : undefined} tone="sky" />
+                <Info label="Phone" value={camper.guardianPhone || "—"} href={camper.guardianPhone ? `tel:${camper.guardianPhone}` : undefined} />
               </div>
-              {camper.guardianPhone && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Phone</span>
-                  <a href={`tel:${camper.guardianPhone}`} className="text-sm font-medium text-slate-800">{camper.guardianPhone}</a>
-                </div>
-              )}
-              {camper.emergencyPhone && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-slate-500">Emergency</span>
-                  <a href={`tel:${camper.emergencyPhone}`} className="text-sm font-medium text-red-600">{camper.emergencyPhone}</a>
-                </div>
-              )}
-            </div>
-          </div>
+            )}
+          </section>
 
-          {(camper.medicalNotes || camper.dietaryNotes) && (
-            <div>
-              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Notes</h3>
-              {camper.medicalNotes && (
-                <div className="mb-2">
-                  <p className="text-xs font-medium text-slate-500 mb-1">Medical</p>
-                  <p className="text-sm text-slate-700 bg-red-50 rounded-xl px-3 py-2">{camper.medicalNotes}</p>
-                </div>
-              )}
-              {camper.dietaryNotes && (
-                <div>
-                  <p className="text-xs font-medium text-slate-500 mb-1">Dietary</p>
-                  <p className="text-sm text-slate-700 bg-sunset-50 rounded-xl px-3 py-2">{camper.dietaryNotes}</p>
-                </div>
-              )}
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Student Info</h3>
+            {editing ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input className={inputCls} placeholder="First name" value={form.firstName} onChange={e => update("firstName", e.target.value)} />
+                <input className={inputCls} placeholder="Last name" value={form.lastName} onChange={e => update("lastName", e.target.value)} />
+                <input className={inputCls} type="date" value={form.dateOfBirth} onChange={e => update("dateOfBirth", e.target.value)} />
+                <select className={inputCls} value={form.ageGroupId} onChange={e => update("ageGroupId", e.target.value)}>
+                  <option value="">No age group</option>
+                  {ageGroups.map(ag => <option key={ag.id} value={ag.id}>{ag.name}</option>)}
+                </select>
+                <select className={inputCls} value={form.tshirtSize} onChange={e => update("tshirtSize", e.target.value)}>
+                  <option value="">No T-shirt size</option>
+                  {TSHIRT_SIZES.map(size => <option key={size} value={size}>{size}</option>)}
+                </select>
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={form.photoConsent} onChange={e => update("photoConsent", e.target.checked)} /> Photo consent granted</label>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {camper.dateOfBirth && <Info label="Age" value={`${age(camper.dateOfBirth)} years old`} />}
+                <Info label="Age Group" value={camper.ageGroup?.name || "—"} />
+                <Info label="T-Shirt Size" value={camper.tshirtSize || "—"} />
+                <Info label="Photo Consent" value={camper.photoConsent ? "✓ Granted" : "✗ Not granted"} tone={camper.photoConsent ? "forest" : "red"} />
+                <Info label="Registered" value={new Date(camper.createdAt).toLocaleDateString()} />
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Contact and Emergency Info</h3>
+            {editing ? (
+              <div className="space-y-3">
+                <input className={inputCls} placeholder="Emergency phone" value={form.emergencyPhone} onChange={e => update("emergencyPhone", e.target.value)} />
+                <textarea className={inputCls + " resize-none"} rows={3} placeholder="Medical notes" value={form.medicalNotes} onChange={e => update("medicalNotes", e.target.value)} />
+                <textarea className={inputCls + " resize-none"} rows={3} placeholder="Dietary notes" value={form.dietaryNotes} onChange={e => update("dietaryNotes", e.target.value)} />
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <Info label="Emergency Phone" value={camper.emergencyPhone || "—"} href={camper.emergencyPhone ? `tel:${camper.emergencyPhone}` : undefined} tone="red" />
+                {camper.medicalNotes && <Note label="Medical" value={camper.medicalNotes} tone="red" />}
+                {camper.dietaryNotes && <Note label="Dietary" value={camper.dietaryNotes} tone="sunset" />}
+                {!camper.medicalNotes && !camper.dietaryNotes && <p className="text-sm text-slate-400">No medical or dietary notes submitted.</p>}
+              </div>
+            )}
+          </section>
+
+          {editing && (
+            <div className="sticky bottom-0 bg-white border-t border-slate-100 py-4 flex gap-3">
+              <button onClick={() => { setEditing(false); setError(""); }} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button onClick={save} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60">{saving ? "Saving…" : "Save Submission"}</button>
             </div>
           )}
         </div>
       </div>
     </div>
   );
+}
+
+function Info({ label, value, href, tone = "slate" }: { label: string; value: string; href?: string; tone?: "slate" | "sky" | "forest" | "red" }) {
+  const color = tone === "sky" ? "text-sky-600" : tone === "forest" ? "text-forest-600" : tone === "red" ? "text-red-500" : "text-slate-800";
+  const content = <span className={`text-sm font-medium ${color}`}>{value}</span>;
+  return <div className="flex justify-between gap-4"><span className="text-sm text-slate-500">{label}</span>{href ? <a href={href} className={`${color} hover:underline text-sm font-medium`}>{value}</a> : content}</div>;
+}
+
+function Note({ label, value, tone }: { label: string; value: string; tone: "red" | "sunset" }) {
+  return <div><p className="text-xs font-medium text-slate-500 mb-1">{label}</p><p className={`text-sm text-slate-700 ${tone === "red" ? "bg-red-50" : "bg-sunset-50"} rounded-xl px-3 py-2`}>{value}</p></div>;
 }
 
 function CampersContent() {
@@ -171,11 +241,12 @@ function CampersContent() {
   const filtered = campers
     .filter((c) => {
       const q = search.toLowerCase();
+      const fullName = `${c.firstName} ${c.lastName}`.trim();
       const matchSearch =
         !q ||
-        c.fullName.toLowerCase().includes(q) ||
-        c.guardianName.toLowerCase().includes(q) ||
-        c.guardianEmail.toLowerCase().includes(q);
+        fullName.toLowerCase().includes(q) ||
+        (c.guardianName || "").toLowerCase().includes(q) ||
+        (c.guardianEmail || "").toLowerCase().includes(q);
       const matchAge = !filterAge || c.ageGroup?.id === filterAge;
       const matchSize = !filterSize || c.tshirtSize === filterSize;
       return matchSearch && matchAge && matchSize;
@@ -212,7 +283,7 @@ function CampersContent() {
                   c.lastName, c.firstName,
                   c.ageGroup?.name || "",
                   c.tshirtSize || "",
-                  c.guardianName, c.guardianEmail,
+                  c.guardianName || "", c.guardianEmail || "",
                   c.guardianPhone || "",
                   c.emergencyPhone || "",
                   c.photoConsent ? "Yes" : "No",
@@ -309,7 +380,7 @@ function CampersContent() {
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-berry-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                         {camper.firstName[0]}{camper.lastName[0]}
                       </div>
-                      <span className="font-medium text-slate-800">{camper.fullName}</span>
+                      <span className="font-medium text-slate-800">{`${camper.firstName} ${camper.lastName}`.trim()}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
@@ -322,8 +393,8 @@ function CampersContent() {
                     )}
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <div className="text-slate-800">{camper.guardianName}</div>
-                    <div className="text-slate-400 text-xs">{camper.guardianEmail}</div>
+                    <div className="text-slate-800">{camper.guardianName || "—"}</div>
+                    <div className="text-slate-400 text-xs">{camper.guardianEmail || "—"}</div>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <span className="text-slate-600">{camper.tshirtSize || "—"}</span>
@@ -349,7 +420,16 @@ function CampersContent() {
       )}
 
       {selectedCamper && (
-        <CamperDrawer camper={selectedCamper} onClose={() => setSelectedCamper(null)} />
+        <CamperDrawer
+          camper={selectedCamper}
+          campId={campId}
+          ageGroups={ageGroups}
+          onClose={() => setSelectedCamper(null)}
+          onSaved={(updated) => {
+            setCampers(prev => prev.map(c => c.id === updated.id ? updated : c));
+            setSelectedCamper(updated);
+          }}
+        />
       )}
     </div>
   );

@@ -66,6 +66,12 @@ function TeacherModal({ person, campId, ageGroups, defaultRole = "teacher", onCl
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanFirstName = firstName.trim();
+    const cleanLastName = lastName.trim();
+    if (!cleanFirstName || !cleanLastName) {
+      setError("First name and last name are required before saving a teacher.");
+      return;
+    }
     setLoading(true); setError("");
     try {
       const url    = person ? `/api/camps/${campId}/persons/${person.id}` : `/api/camps/${campId}/persons`;
@@ -73,11 +79,12 @@ function TeacherModal({ person, campId, ageGroups, defaultRole = "teacher", onCl
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName, email: email || undefined, phone: phone || undefined, role, bio: bio || undefined, ageGroupIds: selectedAgeGroups }),
+        body: JSON.stringify({ firstName: cleanFirstName, lastName: cleanLastName, email: email.trim() || undefined, phone: phone.trim() || undefined, role, bio: bio.trim() || undefined, ageGroupIds: selectedAgeGroups }),
       });
+      const d = await res.json().catch(() => ({}));
       if (res.ok) { onSaved(); onClose(); }
-      else { const d = await res.json(); setError(d.error || "Failed to save"); }
-    } catch { setError("Something went wrong"); }
+      else { setError(d.detail ? `${d.error || "Failed to save"}: ${d.detail}` : d.error || "Failed to save teacher. Check required fields and try again."); }
+    } catch (err) { setError(`Network error while saving teacher: ${err instanceof Error ? err.message : String(err)}`); }
     finally { setLoading(false); }
   };
 
@@ -465,9 +472,9 @@ export function TeachersContent() {
   const assistantPeople = filtered.filter(p => p.role === "assistant" || p.role === "staff");
 
   const ROLE_COLORS: Record<string, string> = {
-    teacher: "bg-berry-100 text-berry-600 border border-berry-100",
-    assistant: "bg-sky-100 text-sky-600 border border-sky-100",
-    director: "bg-sunset-100 text-sunset-600 border border-sunset-100",
+    teacher: "bg-berry-100 text-berry-700 border border-berry-200",
+    assistant: "bg-sky-100 text-sky-700 border border-sky-200",
+    director: "bg-sunset-100 text-sunset-700 border border-sunset-200",
     staff: "bg-slate-100 text-slate-600 border border-slate-200",
   };
 

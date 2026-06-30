@@ -10,6 +10,25 @@ function normalizeAgeGroupIds(value: unknown) {
   return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string" && id.length > 0) : [];
 }
 
+const VALID_ROLES = new Set(["teacher", "assistant", "director", "staff"]);
+
+function normalizePersonPayload(data: Record<string, unknown>) {
+  const firstName = typeof data.firstName === "string" ? data.firstName.trim() : "";
+  const lastName = typeof data.lastName === "string" ? data.lastName.trim() : "";
+  const role = typeof data.role === "string" && VALID_ROLES.has(data.role) ? data.role : "teacher";
+  if (!firstName || !lastName) return { error: "First name and last name are required" } as const;
+  return {
+    person: {
+      firstName,
+      lastName,
+      role,
+      email: typeof data.email === "string" && data.email.trim() ? data.email.trim() : null,
+      phone: typeof data.phone === "string" && data.phone.trim() ? data.phone.trim() : null,
+      bio: typeof data.bio === "string" && data.bio.trim() ? data.bio.trim() : null,
+    },
+  } as const;
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ campId: string; id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -19,28 +38,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const existing = await prisma.person.findFirst({ where: { id, campId }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
 
-  const data = await req.json();
-  const { ageGroupIds: rawAgeGroupIds, ...personData } = data;
-  const ageGroupIds = normalizeAgeGroupIds(rawAgeGroupIds);
+  try {
+    const data = await req.json();
+    const { ageGroupIds: rawAgeGroupIds } = data;
+    const normalized = normalizePersonPayload(data);
+    if ("error" in normalized) return NextResponse.json({ error: normalized.error }, { status: 400 });
+    const ageGroupIds = normalizeAgeGroupIds(rawAgeGroupIds);
 
-  const validAgeGroups = ageGroupIds.length
-    ? await prisma.ageGroup.findMany({ where: { campId, id: { in: ageGroupIds } }, select: { id: true } })
-    : [];
+    const validAgeGroups = ageGroupIds.length
+      ? await prisma.ageGroup.findMany({ where: { campId, id: { in: ageGroupIds } }, select: { id: true } })
+      : [];
 
-  const item = await prisma.person.update({
-    where: { id },
-    data: {
-      ...personData,
-      ...(rawAgeGroupIds !== undefined ? {
-        personAgeGroups: {
-          deleteMany: {},
-          create: validAgeGroups.map((ageGroup) => ({ ageGroupId: ageGroup.id })),
-        },
-      } : {}),
-    },
-    include: { personAgeGroups: { include: { ageGroup: true } } },
-  });
-  return NextResponse.json(item);
+    const item = await prisma.person.update({
+      where: { id },
+      data: {
+        ...normalized.person,
+        ...(rawAgeGroupIds !== undefined ? {
+          personAgeGroups: {
+            deleteMany: {},
+            create: validAgeGroups.map((ageGroup) => ({ ageGroupId: ageGroup.id })),
+          },
+        } : {}),
+      },
+      include: { personAgeGroups: { include: { ageGroup: true } } },
+    });
+    return NextResponse.json(item);
+  } catch (err) {
+    console.error("Person PATCH error:", err);
+    return NextResponse.json({ error: "Failed to save teacher", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ campId: string; id: string }> }) {

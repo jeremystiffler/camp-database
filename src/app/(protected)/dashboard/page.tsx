@@ -269,6 +269,9 @@ function DashboardContent() {
   const [loading,      setLoading]      = useState(true);
   const [showNewCamp,  setShowNewCamp]  = useState(false);
   const [copyingCamp,  setCopyingCamp]  = useState<Camp | null>(null);
+  const [renameValue,  setRenameValue]  = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [renameMsg,    setRenameMsg]    = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const campId     = searchParams.get("campId") || "";
   const activeCamp = camps.find((c) => c.id === campId) || camps[0];
@@ -280,8 +283,35 @@ function DashboardContent() {
       .catch(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    setRenameValue(activeCamp?.name || "");
+    setRenameMsg(null);
+  }, [activeCamp?.id, activeCamp?.name]);
+
   const reloadCamps = () => {
     fetch("/api/camps").then(r => r.json()).then(d => { if (Array.isArray(d)) setCamps(d); });
+  };
+
+  const saveCampName = async () => {
+    if (!activeCamp) return;
+    const name = renameValue.trim();
+    if (!name) { setRenameMsg({ type: "error", text: "Camp name cannot be blank." }); return; }
+    if (name === activeCamp.name) { setRenameMsg({ type: "error", text: "No rename needed — that is already the camp name." }); return; }
+    setRenameSaving(true); setRenameMsg(null);
+    const res = await fetch(`/api/camps/${activeCamp.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setRenameSaving(false);
+    if (res.ok) {
+      setCamps(prev => prev.map(c => c.id === activeCamp.id ? { ...c, name } : c));
+      window.dispatchEvent(new Event("camp:list-changed"));
+      setRenameMsg({ type: "success", text: "Camp renamed." });
+    } else {
+      setRenameMsg({ type: "error", text: data.detail || data.error || "Could not rename camp." });
+    }
   };
 
   const totalCampers    = camps.reduce((s, c) => s + (c._count?.campers   ?? 0), 0);
@@ -308,6 +338,30 @@ function DashboardContent() {
         <StatCard label="Camps"          value={loading ? "–" : camps.length}    icon="🏕️" gradient="stat-sunset" />
         <StatCard label="This Season"    value={loading ? "–" : (activeCamp?.status === "published" ? "LIVE" : "Draft")} icon="✅" gradient="stat-berry" />
       </div>
+
+      {activeCamp && (
+        <div className="camp-card p-5 mb-8 border-2 border-forest-100 bg-gradient-to-br from-white to-forest-50/40">
+          <div className="flex flex-col lg:flex-row lg:items-end gap-5 justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black uppercase tracking-wide text-forest-600 mb-2">Active camp command center</p>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">Rename camp</label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+                <button onClick={saveCampName} disabled={renameSaving} className="px-4 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-bold hover:bg-forest-700 disabled:opacity-60">
+                  {renameSaving ? "Saving…" : "Save Name"}
+                </button>
+              </div>
+              {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg.text}</p>}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:w-[520px]">
+              <Link href={`/setup?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-forest-300 hover:text-forest-700">🏕️ Setup</Link>
+              <Link href={`/teachers?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-berry-300 hover:text-berry-700">🧑‍🏫 Teachers</Link>
+              <Link href={`/registration?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-sky-300 hover:text-sky-700">📋 Reg. Form</Link>
+              <Link href={`/schedule?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-sunset-300 hover:text-sunset-700">📅 Schedule</Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Camp list */}
       <div className="mb-8">
@@ -369,7 +423,11 @@ function DashboardContent() {
           onClose={() => setShowNewCamp(false)}
           onCreated={(newCampId) => {
             setShowNewCamp(false);
-            router.push(`/activities?campId=${newCampId}`);
+            localStorage.setItem("activeCampId", newCampId);
+            window.dispatchEvent(new Event("camp:list-changed"));
+            reloadCamps();
+            router.push(`/setup?campId=${newCampId}`);
+            router.refresh();
           }}
         />
       )}
@@ -380,7 +438,11 @@ function DashboardContent() {
           onClose={() => { setCopyingCamp(null); reloadCamps(); }}
           onCopied={(newCampId) => {
             setCopyingCamp(null);
+            localStorage.setItem("activeCampId", newCampId);
+            window.dispatchEvent(new Event("camp:list-changed"));
+            reloadCamps();
             router.push(`/setup?campId=${newCampId}`);
+            router.refresh();
           }}
         />
       )}

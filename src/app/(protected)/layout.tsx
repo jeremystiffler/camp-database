@@ -8,7 +8,6 @@ import { Suspense } from "react";
 const navItems = [
   { href: "/dashboard",    label: "Dashboard",      icon: "📊" },
   { href: "/setup",        label: "Camp Setup",     icon: "🏕️" },
-  { href: "/activities",   label: "Activities",     icon: "🎯" },
   { href: "/campers",      label: "Campers",        icon: "👦" },
   { href: "/schedule",     label: "Schedule",       icon: "📅" },
   { href: "/registration", label: "Reg. Form",      icon: "📋" },
@@ -62,26 +61,43 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
-    fetch("/api/camps")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setCamps(data);
-          const saved = localStorage.getItem("activeCampId");
-          const found = data.find((c: Camp) => c.id === saved) || data[0];
-          setActiveCamp(found);
-        }
-      })
-      .catch(() => {});
+
+    const loadCamps = () => {
+      fetch("/api/camps")
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setCamps(data);
+            const urlCampId = new URLSearchParams(window.location.search).get("campId");
+            const saved = localStorage.getItem("activeCampId");
+            const found = data.find((c: Camp) => c.id === urlCampId) || data.find((c: Camp) => c.id === saved) || data[0];
+            setActiveCamp(found);
+            localStorage.setItem("activeCampId", found.id);
+          } else {
+            setCamps([]);
+            setActiveCamp(null);
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadCamps();
+    window.addEventListener("camp:list-changed", loadCamps);
+    window.addEventListener("focus", loadCamps);
+    return () => {
+      window.removeEventListener("camp:list-changed", loadCamps);
+      window.removeEventListener("focus", loadCamps);
+    };
   }, [user]);
 
   const handleCampChange = (camp: Camp) => {
     setActiveCamp(camp);
     localStorage.setItem("activeCampId", camp.id);
-    // Update URL with new campId on camp-scoped pages
+    // Update URL with new campId on camp-scoped pages, then force server/client data to refetch.
     const url = new URL(window.location.href);
     url.searchParams.set("campId", camp.id);
     router.replace(url.pathname + "?" + url.searchParams.toString());
+    router.refresh();
   };
 
   const navHref = (href: string) => {
