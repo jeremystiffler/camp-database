@@ -102,6 +102,14 @@ function money(cents: number) {
   return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 }
 
+function splitGuardianName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || "",
+    lastName: parts.slice(1).join(" "),
+  };
+}
+
 function formatSessionTime(startTime?: string | null, endTime?: string | null) {
   const formatOne = (value?: string | null) => {
     if (!value) return "";
@@ -150,7 +158,7 @@ function renderClassGrid(rows: ConfirmationScheduleRow[]) {
         <td valign="top" style="padding:14px;border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;font-size:17px;font-weight:900;color:#0f172a;white-space:nowrap;">${escapeHtml(formatSessionTime(row.startTime, row.endTime))}</td>
         <td valign="top" style="padding:14px;border-top:1px solid #e2e8f0;">
           <div style="font-size:18px;font-weight:900;color:#0f172a;line-height:1.25;">${escapeHtml(row.className)}</div>
-          <div style="font-size:13px;font-weight:700;color:#64748b;margin-top:3px;">${escapeHtml(row.label || "Session")}${row.mandatory ? ` <span style="display:inline-block;margin-left:8px;padding:2px 7px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;">Included</span>` : ""}</div>
+          <div style="font-size:13px;font-weight:700;color:#64748b;margin-top:3px;">${escapeHtml(row.label || "Session")}</div>
         </td>
       </tr>`).join("")}
     </tbody>
@@ -215,9 +223,10 @@ async function sendConfirmationEmail({
   const emergencyHtml = settings.confirmationIncludeEmergency !== false
     ? students.map((student, index) => {
         const studentName = `${student.firstName} ${student.lastName}`.trim() || `Student ${index + 1}`;
+        const guardianName = splitGuardianName(guardian.name);
         return `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;margin:10px 0;background:#ffffff;">
           <h3 style="font-size:15px;margin:0 0 6px;color:#0f172a;">${escapeHtml(studentName)}</h3>
-          <p style="margin:0;color:#475569;">Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}</p>
+          <p style="margin:0;color:#475569;">Guardian first name: ${escapeHtml(guardianName.firstName) || "—"}<br>Guardian last name: ${escapeHtml(guardianName.lastName) || "—"}<br>Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}<br>Email address: ${escapeHtml(guardian.email) || "—"}</p>
         </div>`;
       }).join("")
     : "";
