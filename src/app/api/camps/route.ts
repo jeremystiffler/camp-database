@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
   if (!user?.organizationId) return NextResponse.json({ error: "No organization" }, { status: 400 });
 
   const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-") + "-" + Date.now();
+  const trialEndsAt = new Date();
+  trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
   const camp = await prisma.camp.create({
     data: {
       organizationId: user.organizationId,
@@ -33,6 +36,8 @@ export async function POST(req: NextRequest) {
       slug,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
+      billingStatus: "trial",
+      trialEndsAt,
     },
   });
 

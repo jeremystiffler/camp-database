@@ -258,6 +258,9 @@ function Step3({
   };
 
   const remove = (i: number) => setRooms(rooms.filter((_, idx) => idx !== i));
+  const updateRoom = (i: number, data: Partial<RoomDraft>) => {
+    setRooms(rooms.map((room, idx) => idx === i ? { ...room, ...data } : room));
+  };
 
   return (
     <div className="space-y-5">
@@ -269,13 +272,27 @@ function Step3({
       {rooms.length > 0 && (
         <div className="space-y-2">
           {rooms.map((r, i) => (
-            <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="text-base">📍</span>
-                <span className="font-medium text-slate-800 text-sm">{r.name}</span>
-                <span className="text-xs text-slate-400">cap: {r.capacity}</span>
-              </div>
-              <button onClick={() => remove(i)} className="text-slate-300 hover:text-red-500 transition-colors text-sm">✕</button>
+            <div key={i} className="grid gap-2 bg-slate-50 rounded-xl px-4 py-3 sm:grid-cols-[1fr_90px_auto] sm:items-end">
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Room / location name</span>
+                <input
+                  type="text"
+                  value={r.name}
+                  onChange={(e) => updateRoom(i, { name: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Capacity</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={r.capacity}
+                  onChange={(e) => updateRoom(i, { capacity: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
+                />
+              </label>
+              <button onClick={() => remove(i)} className="text-slate-300 hover:text-red-500 transition-colors text-sm sm:pb-2" title="Remove room">✕</button>
             </div>
           ))}
         </div>

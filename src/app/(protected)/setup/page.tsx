@@ -158,12 +158,6 @@ function SetupContent() {
   const [newRoomCap,  setNewRoomCap]  = useState("30");
   const [newRoomDesc, setNewRoomDesc] = useState("");
 
-  // Room inline editing
-  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
-  const [editRoomName,  setEditRoomName]  = useState("");
-  const [editRoomCap,   setEditRoomCap]   = useState("");
-  const [editRoomDesc,  setEditRoomDesc]  = useState("");
-
   // New age group form
   const [newAgeName,  setNewAgeName]  = useState("");
   const [newAgeMin,   setNewAgeMin]   = useState("");
@@ -400,29 +394,21 @@ function SetupContent() {
     if (res.ok) { setNewRoomName(""); setNewRoomCap("30"); setNewRoomDesc(""); load(); }
   };
 
-  const startEditRoom = (room: Room) => {
-    setEditingRoomId(room.id);
-    setEditRoomName(room.name);
-    setEditRoomCap(room.capacity?.toString() ?? "");
-    setEditRoomDesc(room.description ?? "");
-  };
-
-  const saveRoom = async (id: string) => {
-    await fetch(`/api/camps/${campId}/rooms/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editRoomName, capacity: editRoomCap ? parseInt(editRoomCap) : undefined, description: editRoomDesc || undefined }),
-    });
-    setEditingRoomId(null);
-    load();
-  };
-
-  const saveRoomField = async (id: string, data: Partial<Pick<Room, "capacity" | "description">>) => {
-    await fetch(`/api/camps/${campId}/rooms/${id}`, {
+  const saveRoomField = async (id: string, data: Partial<Pick<Room, "name" | "capacity" | "description">>) => {
+    if ("name" in data && !data.name?.trim()) {
+      alert("Room name is required.");
+      load();
+      return;
+    }
+    const res = await fetch(`/api/camps/${campId}/rooms/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      alert(error?.error || "Could not save this room. Please try again.");
+    }
     load();
   };
 
@@ -826,61 +812,45 @@ function SetupContent() {
         <div className="space-y-3 mb-4">
           {rooms.length === 0 && <p className="text-slate-400 text-sm">No rooms yet. Add your first room below.</p>}
           {rooms.map(room => (
-            <div key={room.id}>
-              {editingRoomId === room.id ? (
-                <div className="flex flex-col gap-2 py-3 px-4 bg-sky-50 border border-sky-200 rounded-xl">
-                  <div className="flex gap-3 items-end flex-wrap">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">Room Name</label>
-                      <input type="text" value={editRoomName} onChange={e => setEditRoomName(e.target.value)} required
-                        className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => saveRoom(room.id)}
-                        className="px-4 py-2 bg-sky-500 text-white rounded-xl text-sm font-semibold hover:bg-sky-600 transition-colors">
-                        ✓ Save name
-                      </button>
-                      <button onClick={() => setEditingRoomId(null)}
-                        className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-colors">
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 md:grid-cols-[minmax(180px,1.1fr)_120px_minmax(220px,1.5fr)_auto] md:items-center">
-                  <div className="min-w-0">
-                    <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400">Room</span>
-                    <span className="font-bold text-slate-800 text-sm truncate block">{room.name}</span>
-                  </div>
-                  <label className="block">
-                    <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Capacity</span>
-                    <input
-                      type="number"
-                      min={1}
-                      defaultValue={room.capacity || ""}
-                      onBlur={e => saveRoomField(room.id, { capacity: e.target.value ? parseInt(e.target.value) : 0 })}
-                      onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                      className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
-                    />
-                  </label>
-                  <label className="block min-w-0">
-                    <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Location / description</span>
-                    <input
-                      type="text"
-                      defaultValue={room.description || ""}
-                      placeholder="e.g. North wing, second floor"
-                      onBlur={e => saveRoomField(room.id, { description: e.target.value || undefined })}
-                      onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30"
-                    />
-                  </label>
-                  <div className="flex items-center gap-2 md:justify-end">
-                    <button onClick={() => startEditRoom(room)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 hover:bg-sky-50 hover:text-sky-600 transition-colors" title="Edit room name">✏️ Rename</button>
-                    <button onClick={() => deleteRoom(room.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">🗑️</button>
-                  </div>
-                </div>
-              )}
+            <div key={room.id} className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 md:grid-cols-[minmax(180px,1.1fr)_120px_minmax(220px,1.5fr)_auto] md:items-center">
+              <label className="block min-w-0">
+                <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Room / location name</span>
+                <input
+                  type="text"
+                  defaultValue={room.name}
+                  onBlur={e => {
+                    const name = e.target.value.trim();
+                    if (name !== room.name) saveRoomField(room.id, { name });
+                  }}
+                  onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-bold text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                />
+              </label>
+              <label className="block">
+                <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Capacity</span>
+                <input
+                  type="number"
+                  min={1}
+                  defaultValue={room.capacity || ""}
+                  onBlur={e => saveRoomField(room.id, { capacity: e.target.value ? parseInt(e.target.value) : 0 })}
+                  onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                  className="w-24 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                />
+              </label>
+              <label className="block min-w-0">
+                <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Location / description</span>
+                <input
+                  type="text"
+                  defaultValue={room.description || ""}
+                  placeholder="e.g. North wing, second floor"
+                  onBlur={e => saveRoomField(room.id, { description: e.target.value || undefined })}
+                  onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                />
+              </label>
+              <div className="flex items-center gap-2 md:justify-end">
+                <button type="button" onClick={() => deleteRoom(room.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">🗑️</button>
+              </div>
             </div>
           ))}
         </div>
