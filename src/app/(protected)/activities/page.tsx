@@ -6,7 +6,7 @@ import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface AgeGroup { id: string; name: string; color: string; }
+interface AgeGroup { id: string; name: string; color: string; noSchedule?: boolean; }
 interface Room     { id: string; name: string; capacity: number; }
 interface Person   { id: string; firstName: string; lastName: string; email?: string; role: string; }
 interface SessionTemplate { id: string; label?: string; dayOfWeek?: number | null; startTime: string; endTime: string; }
@@ -176,12 +176,11 @@ function QuickAddPerson({
 
   const save = async () => {
     if (!firstName.trim() || !lastName.trim()) { setError("Name required"); return; }
-    if (!email.trim()) { setError("Email required to send schedule"); return; }
     setSaving(true); setError("");
     const res = await fetch(`/api/camps/${campId}/persons`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), role }),
+      body: JSON.stringify({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim() || undefined, role }),
     });
     if (res.ok) {
       const p = await res.json();
@@ -209,7 +208,7 @@ function QuickAddPerson({
         <input value={lastName} onChange={e => setLast(e.target.value)} placeholder="Last name *"
           className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
       </div>
-      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address * (required for schedule)"
+      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address (optional — add details later)"
         className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
       <div className="flex items-center gap-2">
         <select value={role} onChange={e => setRole(e.target.value as "teacher" | "assistant")}
@@ -357,6 +356,7 @@ function CourseModal({
   // Split persons by role
   const leadTeachers = localPersons.filter(p => p.role === "teacher" || p.role === "director");
   const assistants   = localPersons.filter(p => p.role === "assistant" || p.role === "staff");
+  const schedulableAgeGroups = ageGroups.filter(ag => !ag.noSchedule);
 
   const handlePersonAdded = (p: Person) => {
     const updated = [...localPersons, p];
@@ -453,11 +453,11 @@ function CourseModal({
               Age Groups
               <span className="ml-1 text-xs font-normal text-slate-400">(select all that apply)</span>
             </label>
-            {ageGroups.length === 0 ? (
-              <p className="text-xs text-slate-400 italic">No age groups set up yet — add them in Settings.</p>
+            {schedulableAgeGroups.length === 0 ? (
+              <p className="text-xs text-slate-400 italic">No schedulable age groups set up yet — age groups marked “No class schedule” do not need activities.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {ageGroups.map(ag => {
+                {schedulableAgeGroups.map(ag => {
                   const checked = selectedAgeGroups.includes(ag.id);
                   return (
                     <button key={ag.id} type="button"
@@ -858,6 +858,33 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
 
   const leadTeacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director");
   const assistantOptions = persons.filter(p => p.role === "assistant" || p.role === "staff");
+  const schedulableAgeGroups = ageGroups.filter(ageGroup => !ageGroup.noSchedule);
+
+  const quickAddInlinePerson = async (course: Course, role: "teacher" | "assistant") => {
+    const label = role === "assistant" ? "assistant" : "teacher";
+    const rawName = window.prompt(`Quick add ${label} name`, "");
+    if (!rawName?.trim()) return;
+    const parts = rawName.trim().split(/\s+/);
+    const firstName = parts.shift() || rawName.trim();
+    const lastName = parts.join(" ") || "TBD";
+    const res = await fetch(`/api/camps/${campId}/persons`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ firstName, lastName, role }),
+    });
+    const person = await res.json().catch(() => null) as Person | null;
+    if (!res.ok || !person?.id) {
+      setInlineErrors(prev => ({ ...prev, [course.id]: `Could not add ${label}.` }));
+      return;
+    }
+    setPersons(prev => [...prev, person]);
+    const existingLeadId = leadTeacher(course)?.id;
+    const existingAssistantId = assistant(course)?.id;
+    const teacherIds = role === "teacher"
+      ? [person.id, existingAssistantId].filter(Boolean) as string[]
+      : [existingLeadId, person.id].filter(Boolean) as string[];
+    await saveInlineCourse(course, role, { teacherIds });
+  };
 
   const toggleInlineAgeGroup = (course: Course, ageGroupId: string) => {
     const currentIds = course.courseAgeGroups?.map(cag => cag.ageGroup.id) || [];
@@ -998,7 +1025,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                     <th className="px-3 py-3 text-left">Assistant</th>
                     <th className="px-3 py-3 text-left">Room</th>
                     <th className="px-3 py-3 text-center">Total seats</th>
-                    <th className="px-3 py-3 text-left">Ages</th>
+                    <th className="px-4 py-3 text-left min-w-[280px]">Ages</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -1026,6 +1053,11 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             value={teacher?.id || ""}
                             disabled={!!inlineSaving[`${course.id}:teacher`]}
                             onChange={e => {
+                              if (e.target.value === "__add_teacher") {
+                                e.currentTarget.value = teacher?.id || "";
+                                quickAddInlinePerson(course, "teacher");
+                                return;
+                              }
                               const assistantIds = course.courseTeachers
                                 ?.filter(ct => ct.person.role !== "teacher" && ct.person.role !== "director")
                                 .map(ct => ct.person.id) || [];
@@ -1034,6 +1066,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             className={`w-full min-w-[145px] rounded-lg border px-2 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-forest-500/30 ${teacher ? "border-slate-200 bg-white text-slate-700" : "border-rose-200 bg-rose-50 text-rose-700"}`}
                           >
                             <option value="">Not assigned</option>
+                            <option value="__add_teacher">+ Add teacher…</option>
                             {leadTeacherOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
                           </select>
                           {inlineErrors[course.id] && <p className="mt-1 text-[10px] font-bold text-red-500">{inlineErrors[course.id]}</p>}
@@ -1043,6 +1076,11 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             value={helper?.id || ""}
                             disabled={!!inlineSaving[`${course.id}:assistant`]}
                             onChange={e => {
+                              if (e.target.value === "__add_assistant") {
+                                e.currentTarget.value = helper?.id || "";
+                                quickAddInlinePerson(course, "assistant");
+                                return;
+                              }
                               const leadId = leadTeacher(course)?.id;
                               const teacherIds = [leadId, e.target.value].filter(Boolean) as string[];
                               saveInlineCourse(course, "assistant", { teacherIds });
@@ -1050,6 +1088,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             className={`w-full min-w-[145px] rounded-lg border px-2 py-1.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/30 ${helper ? "border-slate-200 bg-white text-slate-700" : "border-sky-100 bg-sky-50 text-sky-700"}`}
                           >
                             <option value="">Not assigned</option>
+                            <option value="__add_assistant">+ Add assistant…</option>
                             {assistantOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
                           </select>
                         </td>
@@ -1086,9 +1125,9 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             className="mx-auto w-20 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-center text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
                           />
                         </td>
-                        <td className="px-3 py-3">
-                          <div className="flex max-w-[220px] flex-wrap gap-1">
-                            {ageGroups.length > 0 ? ageGroups.map(ageGroup => {
+                        <td className="px-4 py-3 min-w-[280px]">
+                          <div className="flex max-w-[360px] flex-wrap gap-1.5">
+                            {schedulableAgeGroups.length > 0 ? schedulableAgeGroups.map(ageGroup => {
                               const checked = course.courseAgeGroups?.some(cag => cag.ageGroup.id === ageGroup.id) || false;
                               return (
                                 <button
@@ -1097,7 +1136,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                                   disabled={!!inlineSaving[`${course.id}:ages`]}
                                   onClick={() => toggleInlineAgeGroup(course, ageGroup.id)}
                                   title={`${checked ? "Remove" : "Add"} ${ageGroup.name}`}
-                                  className={`rounded-full border px-2 py-0.5 text-[10px] font-bold transition-all disabled:opacity-60 ${
+                                  className={`rounded-full border px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-all disabled:opacity-60 ${
                                     checked ? "border-transparent text-white shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-sky-200 hover:text-sky-700"
                                   }`}
                                   style={checked ? { backgroundColor: ageGroup.color } : {}}

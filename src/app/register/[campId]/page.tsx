@@ -205,12 +205,14 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     setValue(id, next);
   };
 
-  const fieldsForStep = (targetStep: Step) => fields.filter(field => {
-    if (!isInputField(field) && targetStep === 1) return true;
-    if (targetStep === 1) return PARENT_FIELD_IDS.has(field.id) || STUDENT_FIELD_IDS.has(field.id);
-    if (targetStep === 3) return CONSENT_FIELD_IDS.has(field.id) || (!field.system && isInputField(field));
-    return false;
-  });
+  const fieldsForStep = (targetStep: Step) => {
+    const consentIndex = fields.findIndex(field => field.id === "section_consent");
+    const stepOneFields = consentIndex >= 0 ? fields.slice(0, consentIndex) : fields.filter(field => PARENT_FIELD_IDS.has(field.id) || STUDENT_FIELD_IDS.has(field.id));
+    const stepThreeFields = consentIndex >= 0 ? fields.slice(consentIndex) : fields.filter(field => CONSENT_FIELD_IDS.has(field.id) || (!field.system && isInputField(field)) || !isInputField(field));
+    if (targetStep === 1) return stepOneFields;
+    if (targetStep === 3) return stepThreeFields;
+    return [];
+  };
 
   const selectedAgeGroupId = String(activeValues.f4 || "");
   const selectedAgeGroup = ageGroups.find(ag => ag.id === selectedAgeGroupId);
@@ -458,7 +460,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         {field.helpText && <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-sky-800">{field.helpText}</p>}
       </div>
     );
-    if (field.type === "pageBreak") return <div key={field.id} className="my-2 rounded-xl border border-dashed border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-700">Continue on next page</div>;
+    if (field.type === "pageBreak") return <div key={field.id} className="my-6 flex items-center gap-3 text-xs font-black uppercase tracking-wide text-amber-700"><span className="h-px flex-1 bg-amber-200" /><span>{field.label || "Section break"}</span><span className="h-px flex-1 bg-amber-200" /></div>;
     if (field.type === "divider") return <hr key={field.id} className="border-slate-100" />;
     return (
       <div key={field.id}>

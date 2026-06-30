@@ -62,7 +62,7 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
   { category: "Layout", type: "heading",  label: "Section heading", icon: "H", description: "Bold section title", defaults: { label: "New section" } },
   { category: "Layout", type: "subheading", label: "Info / instructions", icon: "ℹ", description: "Instruction card", defaults: { label: "Important information", helpText: "Add multi-line details families should read before continuing." } },
   { category: "Layout", type: "divider",  label: "Divider", icon: "—", description: "Visual separator" },
-  { category: "Layout", type: "pageBreak", label: "Page break", icon: "↧", description: "Split the form into pages", defaults: { label: "Page break" } },
+  { category: "Layout", type: "pageBreak", label: "Section break", icon: "↧", description: "Start a new visual section", defaults: { label: "Section break" } },
 
   { category: "Basic", type: "text", label: "Short text", icon: "Aa", description: "Single-line answer", defaults: { label: "Short answer", placeholder: "Type your answer" } },
   { category: "Basic", type: "textarea", label: "Long text", icon: "¶", description: "Paragraph answer", defaults: { label: "Long answer", placeholder: "Type details here" } },
@@ -117,7 +117,7 @@ function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id:
       {field.helpText && <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-sky-800">{field.helpText}</p>}
     </div>
   );
-  if (field.type === "pageBreak") return <div className="my-3 rounded-xl border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-center text-xs font-bold text-amber-700">Page break</div>;
+  if (field.type === "pageBreak") return <div className="my-5 flex items-center gap-3 text-xs font-black uppercase tracking-wide text-amber-700"><span className="h-px flex-1 bg-amber-200" /><span>{field.label || "Section break"}</span><span className="h-px flex-1 bg-amber-200" /></div>;
   if (field.type === "divider") return <hr className="border-slate-200 my-2" />;
   return (
     <div>
@@ -232,7 +232,6 @@ function RegistrationContent() {
   const [saveError, setSaveError]   = useState("");
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
-  const [previewPage, setPreviewPage] = useState(0);
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
 
@@ -284,9 +283,10 @@ function RegistrationContent() {
     applyFormResponse(d);
   };
 
-  const save = async () => {
+  const save = async (overrideFields?: FormField[]) => {
     setSaving(true); setSaved(false); setSaveError("");
-    const cleanedFields = cleanFieldsForSave(fields);
+    const fieldsToSave = overrideFields || fields;
+    const cleanedFields = cleanFieldsForSave(fieldsToSave);
     try {
       const res = await fetch(`/api/camps/${campId}/registration-form`, {
         method: "PUT",
@@ -355,7 +355,6 @@ function RegistrationContent() {
     };
     setFields(prev => [...prev, newField]);
     setEditingId(isLayoutField(newField) && newField.type !== "heading" && newField.type !== "subheading" ? null : newField.id);
-    if (newField.type === "pageBreak") setPreviewPage(previewPages.length);
     setShowAddMenu(false);
   };
 
@@ -370,18 +369,12 @@ function RegistrationContent() {
     const [moved] = arr.splice(dragIdx.current, 1);
     arr.splice(dragOverIdx.current, 0, moved);
     setFields(arr);
+    void save(arr);
     dragIdx.current = null; dragOverIdx.current = null;
   };
 
-  const previewPages = fields.reduce<FormField[][]>((pages, field) => {
-    if (field.type === "pageBreak") {
-      pages.push([]);
-      return pages;
-    }
-    pages[pages.length - 1].push(field);
-    return pages;
-  }, [[]]);
-  const currentPreviewPage = Math.min(previewPage, Math.max(previewPages.length - 1, 0));
+  const previewPages: FormField[][] = [fields];
+  const currentPreviewPage = 0;
   const ageGroupField = fields.find(field => field.id === "f4" || field.source === "ageGroups");
   const ageGroupReady = Boolean(ageGroupField?.required);
   const eligibleCoursesForAgeGroup = (ageGroupId: string) => courses.filter(course =>
@@ -404,10 +397,6 @@ function RegistrationContent() {
     }));
   };
   const removeMandatoryRule = (index: number) => setMandatoryClassRules(prev => prev.filter((_, idx) => idx !== index));
-
-  useEffect(() => {
-    if (previewPage > Math.max(previewPages.length - 1, 0)) setPreviewPage(Math.max(previewPages.length - 1, 0));
-  }, [previewPage, previewPages.length]);
 
   const publicUrl = typeof window !== "undefined"
     ? `${window.location.origin}/register/${campId}${formSlug ? `?form=${encodeURIComponent(formSlug)}` : ""}`
@@ -433,7 +422,7 @@ function RegistrationContent() {
               👁 Preview Form
             </Link>
           )}
-          <button onClick={save} disabled={saving}
+          <button onClick={() => save()} disabled={saving}
             className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-forest-500 text-white" : "bg-gradient-to-r from-berry-500 to-berry-600 text-white hover:opacity-90"} disabled:opacity-60`}>
             {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Form"}
           </button>
@@ -645,7 +634,7 @@ function RegistrationContent() {
                   {indentField && <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wide text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">field</span>}
                   {field.required && <span className="text-red-400 text-xs">*</span>}
                   {field.system && <span className="text-xs text-slate-300 bg-slate-50 px-1.5 rounded border border-slate-100">system</span>}
-                  {field.type === "pageBreak" && <button type="button" onClick={e => { e.stopPropagation(); setPreviewPage(fields.slice(0, i).filter(f => f.type === "pageBreak").length + 1); }} className="text-xs font-bold text-amber-700 hover:text-amber-900">Preview next →</button>}
+                  {field.type === "pageBreak" && <button type="button" onClick={e => { e.stopPropagation(); }} className="text-xs font-bold text-amber-700">Section divider</button>}
                   <span className="text-slate-400 text-xs">{editingId === field.id ? "▲" : "▼"}</span>
                   <button onClick={e => { e.stopPropagation(); removeField(field.id); }}
                     className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>
@@ -662,22 +651,10 @@ function RegistrationContent() {
         <div className="lg:sticky lg:top-6">
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-slate-700">Live Preview</h2>
-            {previewPages.length > 1 && (
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                <button type="button" onClick={() => setPreviewPage(p => Math.max(0, p - 1))} disabled={currentPreviewPage === 0} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">←</button>
-                Page {currentPreviewPage + 1} of {previewPages.length}
-                <button type="button" onClick={() => setPreviewPage(p => Math.min(previewPages.length - 1, p + 1))} disabled={currentPreviewPage >= previewPages.length - 1} className="rounded-lg border border-slate-200 bg-white px-2 py-1 disabled:opacity-40">→</button>
-              </div>
-            )}
           </div>
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm max-h-[80vh] overflow-y-auto">
             <h1 className="text-xl font-bold text-slate-800 mb-1">{campName} Registration</h1>
             <p className="text-sm text-slate-500 mb-5">Fill out all required fields to complete registration.</p>
-            {previewPages.length > 1 && (
-              <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
-                Page break preview · families see this as page {currentPreviewPage + 1} of {previewPages.length}.
-              </div>
-            )}
             <div className="space-y-4">
               {previewPages[currentPreviewPage]?.length ? previewPages[currentPreviewPage].map(field => (
                 <FieldPreview key={field.id} field={field} ageGroups={ageGroups} />
@@ -710,12 +687,7 @@ function RegistrationContent() {
                 </div>
               </div>
             )}
-            {previewPages.length > 1 && (
-              <div className="mt-6 flex gap-3">
-                <button type="button" onClick={() => setPreviewPage(p => Math.max(0, p - 1))} disabled={currentPreviewPage === 0} className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-bold text-slate-600 disabled:opacity-40">← Back</button>
-                <button type="button" onClick={() => setPreviewPage(p => Math.min(previewPages.length - 1, p + 1))} disabled={currentPreviewPage >= previewPages.length - 1} className="flex-1 rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 py-3 text-sm font-bold text-white disabled:opacity-40">Next page →</button>
-              </div>
-            )}
+
             {currentPreviewPage === previewPages.length - 1 && (
               <button disabled className="mt-6 w-full py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold opacity-60 cursor-not-allowed">
                 Submit Registration
