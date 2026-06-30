@@ -90,6 +90,7 @@ function compactForm(form: {
   familyRegistrationEnabled?: boolean;
   confirmationEmailSubject?: string | null;
   confirmationEmailIntro?: string | null;
+  adminNotificationEmails?: string | null;
   confirmationIncludeGuardian?: boolean;
   confirmationIncludeStudents?: boolean;
   confirmationIncludeClasses?: boolean;
@@ -98,7 +99,7 @@ function compactForm(form: {
   mandatoryClassRules?: string | null;
   updatedAt: Date;
   createdAt: Date;
-}) {
+}, includePrivate = false) {
   return {
     id: form.id,
     title: form.title,
@@ -109,6 +110,7 @@ function compactForm(form: {
     familyRegistrationEnabled: Boolean(form.familyRegistrationEnabled),
     confirmationEmailSubject: form.confirmationEmailSubject || "",
     confirmationEmailIntro: form.confirmationEmailIntro || "",
+    ...(includePrivate ? { adminNotificationEmails: form.adminNotificationEmails || "" } : {}),
     confirmationIncludeGuardian: form.confirmationIncludeGuardian !== false,
     confirmationIncludeStudents: form.confirmationIncludeStudents !== false,
     confirmationIncludeClasses: form.confirmationIncludeClasses !== false,
@@ -241,8 +243,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
     camperPriceCents: camp.camperPriceCents,
     annualSubscriptionCents: camp.annualSubscriptionCents,
     fields: selectedForm?.fields || DEFAULT_FIELDS,
-    form: selectedForm ? compactForm(selectedForm) : null,
-    forms: (member ? forms : visibleForms.filter(form => form.status === "public")).map(compactForm),
+    form: selectedForm ? compactForm(selectedForm, Boolean(member)) : null,
+    forms: (member ? forms : visibleForms.filter((form: Parameters<typeof compactForm>[0]) => form.status === "public")).map((form: Parameters<typeof compactForm>[0]) => compactForm(form, Boolean(member))),
     ageGroups: camp.ageGroups,
     courses: camp.courses,
     registrationSessions,
@@ -271,7 +273,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       fields: DEFAULT_FIELDS,
     },
   });
-  return NextResponse.json({ success: true, form: compactForm(form), fields: form.fields });
+  return NextResponse.json({ success: true, form: compactForm(form, true), fields: form.fields });
 }
 
 // PUT — save form definition + metadata (auth required)
@@ -281,7 +283,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
   const { campId } = await params;
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { formId, fields, title, slug, status, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, mandatoryClassRules } = await req.json();
+  const { formId, fields, title, slug, status, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, adminNotificationEmails, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, mandatoryClassRules } = await req.json();
   if (!Array.isArray(fields)) return NextResponse.json({ error: "fields must be an array" }, { status: 400 });
 
   const cleanedRules = parseMandatoryClassRules(mandatoryClassRules);
@@ -328,6 +330,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
         familyRegistrationEnabled: Boolean(familyRegistrationEnabled),
         confirmationEmailSubject: typeof confirmationEmailSubject === "string" ? confirmationEmailSubject.trim() || null : existing.confirmationEmailSubject,
         confirmationEmailIntro: typeof confirmationEmailIntro === "string" ? confirmationEmailIntro.trim() || null : existing.confirmationEmailIntro,
+        adminNotificationEmails: typeof adminNotificationEmails === "string" ? adminNotificationEmails.trim() || null : existing.adminNotificationEmails,
         confirmationIncludeGuardian: confirmationIncludeGuardian !== false,
         confirmationIncludeStudents: confirmationIncludeStudents !== false,
         confirmationIncludeClasses: confirmationIncludeClasses !== false,
@@ -336,7 +339,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
         mandatoryClassRules: JSON.stringify(cleanedRules),
       },
     });
-    return NextResponse.json({ success: true, form: compactForm(updated), fields: updated.fields });
+    return NextResponse.json({ success: true, form: compactForm(updated, true), fields: updated.fields });
   } catch (error) {
     console.error("Failed to save registration form", error);
     const duplicateSlug = error instanceof Error && error.message.includes("Unique constraint");

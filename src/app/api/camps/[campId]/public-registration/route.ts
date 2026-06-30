@@ -33,6 +33,7 @@ interface RegistrationPayload extends StudentPayload {
 type ConfirmationSettings = {
   confirmationEmailSubject?: string | null;
   confirmationEmailIntro?: string | null;
+  adminNotificationEmails?: string | null;
   confirmationIncludeGuardian?: boolean;
   confirmationIncludeStudents?: boolean;
   confirmationIncludeClasses?: boolean;
@@ -42,6 +43,20 @@ type ConfirmationSettings = {
 
 function clean(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function parseNotificationEmails(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  const seen = new Set<string>();
+  return value
+    .split(/[\n,;]+/)
+    .map(email => email.trim().toLowerCase())
+    .filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    .filter(email => {
+      if (seen.has(email)) return false;
+      seen.add(email);
+      return true;
+    });
 }
 
 function slugRef(value: unknown): string {
@@ -242,6 +257,69 @@ async function sendConfirmationEmail({
   return { sent: true };
 }
 
+async function sendAdminNotificationEmail({
+  campName,
+  guardian,
+  students,
+  totals,
+  paymentRequired,
+  recipients,
+  updated,
+}: {
+  campName: string;
+  guardian: { name: string; email: string; phone?: string };
+  students: Array<{ firstName: string; lastName: string; dateOfBirth?: string; ageGroupName?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }>;
+  totals: { totalCents: number; campPriceCents: number; discountCents: number; platformFeeCents: number };
+  paymentRequired: boolean;
+  recipients: string[];
+  updated: boolean;
+}) {
+  if (!process.env.RESEND_API_KEY || recipients.length === 0) return { sent: false, count: 0 };
+
+  const resend = getResend();
+  const studentNames = students.map(student => `${student.firstName} ${student.lastName}`.trim()).filter(Boolean).join(", ");
+  const studentBlocks = students.map((student, index) => {
+    const studentName = `${student.firstName} ${student.lastName}`.trim() || `Student ${index + 1}`;
+    const detailParts = [
+      student.dateOfBirth ? `DOB: ${escapeHtml(student.dateOfBirth)}` : "",
+      student.ageGroupName ? `Age group: ${escapeHtml(student.ageGroupName)}` : "",
+    ].filter(Boolean).join(" • ");
+    const customRows = student.customData && Object.keys(student.customData).length
+      ? Object.entries(student.customData).filter(([, v]) => String(v ?? "").trim()).map(([key, value]) => `<li><strong>${escapeHtml(key)}:</strong> ${escapeHtml(Array.isArray(value) ? value.join(", ") : value)}</li>`).join("")
+      : "";
+    return `<div style="border:1px solid #bfdbfe;border-radius:18px;padding:16px;margin:14px 0;background:#f8fbff;">
+      <div style="font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#2563eb;margin-bottom:4px;">Student ${index + 1}</div>
+      <h2 style="font-size:22px;margin:0;color:#0f172a;line-height:1.2;">${escapeHtml(studentName)}</h2>
+      ${detailParts ? `<p style="margin:6px 0 0;color:#475569;font-size:15px;font-weight:700;">${detailParts}</p>` : ""}
+      <h3 style="font-size:16px;margin:16px 0 8px;color:#1e3a8a;">Class Schedule</h3>
+      ${renderClassGrid(student.classScheduleRows)}
+      <p style="margin:12px 0 0;color:#475569;">Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}<br>Photo consent: ${student.photoConsent ? "Yes" : "No"}</p>
+      ${customRows ? `<h3 style="font-size:15px;margin:12px 0 4px;color:#0f172a;">Additional information</h3><ul style="margin:0;padding-left:18px;color:#475569;">${customRows}</ul>` : ""}
+    </div>`;
+  }).join("");
+
+  const html = `
+    <div style="font-family:Inter,Arial,sans-serif;line-height:1.5;color:#1e293b;max-width:680px;margin:0 auto;padding:24px;">
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:16px;padding:20px;margin-bottom:18px;">
+        <h1 style="margin:0 0 8px;font-size:22px;color:#92400e;">${updated ? "Registration updated" : "New registration received"}</h1>
+        <p style="margin:0;color:#475569;">${escapeHtml(guardian.name)} submitted ${students.length} student${students.length === 1 ? "" : "s"} for ${escapeHtml(campName)}.</p>
+      </div>
+      <h2 style="font-size:16px;margin:0 0 8px;">Parent / Guardian</h2>
+      <p style="margin:0 0 10px;">${escapeHtml(guardian.name)}<br>${escapeHtml(guardian.email)}<br>${escapeHtml(guardian.phone || "")}</p>
+      ${studentBlocks}
+      <h2 style="font-size:16px;margin:18px 0 8px;">Payment</h2>
+      <p style="margin:0;">${paymentRequired ? `Payment required: <strong>${money(totals.totalCents)}</strong>` : "No payment required at submission."}<br>Camp price: ${money(totals.campPriceCents)}<br>Discount: ${money(totals.discountCents)}<br>Platform fee: ${money(totals.platformFeeCents)}</p>
+    </div>`;
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: recipients,
+    subject: `${updated ? "Updated" : "New"} ${campName} registration${studentNames ? `: ${studentNames}` : ""}`,
+    html,
+  });
+  return { sent: true, count: recipients.length };
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ campId: string }> }) {
   const { campId } = await params;
   const data = await req.json() as RegistrationPayload;
@@ -267,11 +345,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const selectedForm = ref
     ? await prisma.registrationForm.findFirst({
         where: { campId, OR: [{ id: ref }, { slug: ref }], status: { in: ["public", "linkOnly"] } },
-        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
+        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, adminNotificationEmails: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
       })
     : await prisma.registrationForm.findFirst({
         where: { campId, isDefault: true, status: "public" },
-        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
+        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, adminNotificationEmails: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
       });
   const classChoicesEnabled = selectedForm?.classChoicesEnabled !== false;
   const familyRegistrationEnabled = Boolean(selectedForm?.familyRegistrationEnabled);
@@ -551,6 +629,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     console.error("Registration confirmation email failed", error);
   }
 
+  let adminEmailSent = false;
+  let adminEmailCount = 0;
+  const adminRecipients = parseNotificationEmails(selectedForm?.adminNotificationEmails);
+  try {
+    const result = await sendAdminNotificationEmail({ campName: camp.name, guardian: { name: guardianName, email: guardianEmail, phone: guardianPhone }, students: createdStudents, totals: familyTotals, paymentRequired: emailPaymentRequired, recipients: adminRecipients, updated: anyUpdating });
+    adminEmailSent = result.sent;
+    adminEmailCount = result.count;
+  } catch (error) {
+    console.error("Registration admin notification email failed", error);
+  }
+
   if (coupon?.id && !anyUpdating) {
     await prisma.campCoupon.update({ where: { id: coupon.id }, data: { redeemedCount: { increment: 1 } } });
   }
@@ -569,10 +658,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       await prisma.registrationPayment.create({
         data: { campId, camperId: createdCamperIds[0] || undefined, guardianEmail, amountCents: familyTotals.totalCents, campPriceCents: familyTotals.campPriceCents, discountCents: familyTotals.discountCents, platformFeeCents: familyTotals.platformFeeCents, couponCode: coupon?.code, status: "pending", stripeCheckoutSession: checkout.id, type: createdStudents.length > 1 ? "family_registration" : "registration" },
       });
-      return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, paymentRequired: true, checkoutUrl: checkout.url, totals: familyTotals });
+      return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, adminEmailSent, adminEmailCount, paymentRequired: true, checkoutUrl: checkout.url, totals: familyTotals });
     }
-    return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, paymentRequired: true, paymentUnavailable: true, totals: familyTotals });
+    return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, adminEmailSent, adminEmailCount, paymentRequired: true, paymentUnavailable: true, totals: familyTotals });
   }
 
-  return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, paymentRequired: false, totals: familyTotals });
+  return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, adminEmailSent, adminEmailCount, paymentRequired: false, totals: familyTotals });
 }

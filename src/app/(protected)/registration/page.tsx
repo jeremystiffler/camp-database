@@ -28,6 +28,7 @@ interface FormSummary {
   mandatoryClassRules?: MandatoryClassRule[];
   confirmationEmailSubject?: string;
   confirmationEmailIntro?: string;
+  adminNotificationEmails?: string;
   confirmationIncludeGuardian?: boolean;
   confirmationIncludeStudents?: boolean;
   confirmationIncludeClasses?: boolean;
@@ -218,6 +219,7 @@ function RegistrationContent() {
   const [familyRegistrationEnabled, setFamilyRegistrationEnabled] = useState(false);
   const [confirmationEmailSubject, setConfirmationEmailSubject] = useState("{{campName}} registration confirmation");
   const [confirmationEmailIntro, setConfirmationEmailIntro] = useState("Thanks for registering for {{campName}}. Below is the information we received.");
+  const [adminNotificationEmails, setAdminNotificationEmails] = useState("");
   const [confirmationIncludeGuardian, setConfirmationIncludeGuardian] = useState(true);
   const [confirmationIncludeStudents, setConfirmationIncludeStudents] = useState(true);
   const [confirmationIncludeClasses, setConfirmationIncludeClasses] = useState(true);
@@ -254,6 +256,7 @@ function RegistrationContent() {
       setFamilyRegistrationEnabled(Boolean(d.form.familyRegistrationEnabled));
       setConfirmationEmailSubject(d.form.confirmationEmailSubject || "{{campName}} registration confirmation");
       setConfirmationEmailIntro(d.form.confirmationEmailIntro || "Thanks for registering for {{campName}}. Below is the information we received.");
+      setAdminNotificationEmails(d.form.adminNotificationEmails || "");
       setConfirmationIncludeGuardian(d.form.confirmationIncludeGuardian !== false);
       setConfirmationIncludeStudents(d.form.confirmationIncludeStudents !== false);
       setConfirmationIncludeClasses(d.form.confirmationIncludeClasses !== false);
@@ -295,7 +298,7 @@ function RegistrationContent() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
-        body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, familyRegistrationEnabled, mandatoryClassRules, confirmationEmailSubject, confirmationEmailIntro, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, fields: cleanedFields }),
+        body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, familyRegistrationEnabled, mandatoryClassRules, confirmationEmailSubject, confirmationEmailIntro, adminNotificationEmails, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, fields: cleanedFields }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -311,6 +314,7 @@ function RegistrationContent() {
         setFamilyRegistrationEnabled(Boolean(d.form.familyRegistrationEnabled));
         setConfirmationEmailSubject(d.form.confirmationEmailSubject || "{{campName}} registration confirmation");
         setConfirmationEmailIntro(d.form.confirmationEmailIntro || "Thanks for registering for {{campName}}. Below is the information we received.");
+        setAdminNotificationEmails(d.form.adminNotificationEmails || "");
         setConfirmationIncludeGuardian(d.form.confirmationIncludeGuardian !== false);
         setConfirmationIncludeStudents(d.form.confirmationIncludeStudents !== false);
         setConfirmationIncludeClasses(d.form.confirmationIncludeClasses !== false);
@@ -456,7 +460,7 @@ function RegistrationContent() {
               { key: "publish", title: "Basics & link", desc: formStatus === "draft" ? "Not live" : "Ready to share", icon: "🔗" },
               { key: "classes", title: "Class choices", desc: classChoicesEnabled ? `${mandatoryClassRules.length} required rule${mandatoryClassRules.length === 1 ? "" : "s"}` : "Disabled", icon: "🎯" },
               { key: "family", title: "Family mode", desc: familyRegistrationEnabled ? "Multiple students" : "Single student", icon: "👨‍👩‍👧‍👦" },
-              { key: "email", title: "Confirmation email", desc: "Subject, intro, sections", icon: "✉️" },
+              { key: "email", title: "Confirmation email", desc: adminNotificationEmails.trim() ? "Family + admin alerts" : "Subject, intro, sections", icon: "✉️" },
             ].map(item => (
               <button
                 key={item.key}
@@ -602,7 +606,7 @@ function RegistrationContent() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm font-black text-berry-950">Confirmation email</p>
-                  <p className="mt-1 text-sm text-berry-800">Edit the message families receive and choose which sections are sent back.</p>
+                  <p className="mt-1 text-sm text-berry-800">Edit the message families receive, choose which sections are sent back, and notify admins when a registration arrives.</p>
                   <p className="mt-2 text-xs text-slate-500">Tokens: <code>{"{{campName}}"}</code>, <code>{"{{guardianName}}"}</code>, <code>{"{{studentName}}"}</code>, <code>{"{{studentCount}}"}</code>, <code>{"{{totalDue}}"}</code></p>
                 </div>
                 <div className="grid gap-3">
@@ -613,6 +617,11 @@ function RegistrationContent() {
                   <label className="block">
                     <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Opening message</span>
                     <textarea rows={3} value={confirmationEmailIntro} onChange={e => setConfirmationEmailIntro(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30 resize-none" />
+                  </label>
+                  <label className="block rounded-2xl border border-amber-100 bg-amber-50/60 p-3">
+                    <span className="block text-xs font-black uppercase tracking-wide text-amber-700 mb-1">Admin notification emails</span>
+                    <textarea rows={3} value={adminNotificationEmails} onChange={e => setAdminNotificationEmails(e.target.value)} placeholder={"director@example.com\nregistrar@example.com"} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400/30 resize-none" />
+                    <p className="mt-1 text-xs font-semibold text-amber-800">Optional. Enter any number of admin emails, separated by commas or new lines. Each address receives an internal notice when a family registers or updates a registration.</p>
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {[
