@@ -67,6 +67,7 @@ interface PrintTemplate {
   settings: string;
   builtin?: boolean;
 }
+interface CampOption { id: string; name: string; startDate?: string | null; endDate?: string | null; }
 
 type ScheduleCell = { key: string; label: string; sortValue: string };
 type ScheduleSlot = { key: string; label: string; sortValue: string };
@@ -87,14 +88,16 @@ const PAPER_CSS: Record<PaperSize, string> = {
   "4x6": "6in 4in",
   "5x3": "5in 3in",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, groupByPage: true };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, groupByPage: true, badgeRows: 4, badgeCols: 3, showSchedule: false, showGuardian: false, showAgeGroup: true };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
   { builtin: true, name: "Teacher Schedules — Operation Packet", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true }) },
   { builtin: true, name: "Classroom Rosters — Teacher Packet", type: "class_rosters", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showEmergency: true, showMedical: true }) },
   { builtin: true, name: "Camper Roster", type: "camper_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "T-Shirt List", type: "tshirt_list", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
-  { builtin: true, name: "Camper Badges — Sheet", type: "badges", category: "badges", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large" }) },
+  { builtin: true, name: "Camper Badges — Sheet", type: "badges", category: "badges", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 4, badgeCols: 3, showAgeGroup: true }) },
+  { builtin: true, name: "Camper Lanyard Badge — 5×3", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showSchedule: true }) },
+  { builtin: true, name: "Camper Card — 4×6", type: "badges", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showGuardian: true, showSchedule: true }) },
 ];
 
 function parseSettings(template?: PrintTemplate) {
@@ -174,6 +177,13 @@ function rosterGroups(campers: Camper[]) {
   }
   return [...groups.values()].map(group => ({ ...group, campers: sortedCampersList(group.campers) })).sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 }
+function badgeScheduleSummary(camper: Camper) {
+  return scheduleCellsForCamper(camper)
+    .slice(0, 5)
+    .map(cell => cell.label.replace(/\n/g, " "))
+    .join(" • ");
+}
+
 function teacherRows(person: Person, courses: Course[], mandatorySessions: MandatorySession[]) {
   const rows: { time: string; title: string; room: string; age: string; sortValue: string }[] = [];
   for (const course of courses.filter(course => course.courseTeachers?.some(ct => ct.person.id === person.id))) {
@@ -195,6 +205,8 @@ function PrintContent() {
   const [persons, setPersons] = useState<Person[]>([]);
   const [mandatorySessions, setMandatorySessions] = useState<MandatorySession[]>([]);
   const [savedTemplates, setSavedTemplates] = useState<PrintTemplate[]>([]);
+  const [campOptions, setCampOptions] = useState<CampOption[]>([]);
+  const [sourceCampId, setSourceCampId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeDoc, setActiveDoc] = useState<PrintType | null>(null);
@@ -211,12 +223,16 @@ function PrintContent() {
       fetch(`/api/camps/${campId}/persons`).then(r => r.json()),
       fetch(`/api/camps/${campId}/mandatory-sessions`).then(r => r.json()),
       fetch(`/api/camps/${campId}/print-templates`).then(r => r.ok ? r.json() : []),
-    ]).then(([c, co, p, ms, templates]) => {
+      fetch(`/api/camps`).then(r => r.ok ? r.json() : []),
+    ]).then(([c, co, p, ms, templates, camps]) => {
       setCampers(Array.isArray(c) ? c : []);
       setCourses(Array.isArray(co) ? co : []);
       setPersons(Array.isArray(p) ? p : []);
       setMandatorySessions(Array.isArray(ms) ? ms : []);
       setSavedTemplates(Array.isArray(templates) ? templates : []);
+      const campList = Array.isArray(camps) ? camps : [];
+      setCampOptions(campList);
+      setSourceCampId(campList.find((camp: CampOption) => camp.id !== campId)?.id || "");
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [campId]);
@@ -231,6 +247,8 @@ function PrintContent() {
   const operationalPeople = persons.filter(p => ["teacher", "assistant", "director", "staff"].includes(p.role));
   const bodyFont = selectedSettings.density === "compact" ? "8px" : selectedSettings.density === "large" ? "11px" : "9px";
   const cellPadding = selectedSettings.density === "compact" ? "4px 3px" : selectedSettings.density === "large" ? "8px 6px" : "6px 4px";
+  const badgeCols = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeCols || 3)) : 1;
+  const badgeRows = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeRows || 4)) : 1;
 
   const chooseTemplate = (key: string) => {
     const template = allTemplates.find(t => t.id === key) || allTemplates[0];
@@ -267,6 +285,34 @@ function PrintContent() {
     if (res.ok) { setSavedTemplates(prev => prev.map(t => t.id === data.id ? data : t)); setDraftTemplate(data); setMessage("Template updated."); }
     else setMessage(data.detail || data.error || "Could not update template.");
   };
+  const importTemplatesFromCamp = async () => {
+    if (!sourceCampId || sourceCampId === campId) return;
+    setSaving(true); setMessage("");
+    try {
+      const sourceRes = await fetch(`/api/camps/${sourceCampId}/print-templates`);
+      const sourceTemplates = await sourceRes.json().catch(() => []);
+      if (!sourceRes.ok || !Array.isArray(sourceTemplates) || sourceTemplates.length === 0) {
+        setMessage("No saved templates found in that camp yet.");
+        setSaving(false);
+        return;
+      }
+      const copied: PrintTemplate[] = [];
+      for (const template of sourceTemplates) {
+        const res = await fetch(`/api/camps/${campId}/print-templates`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...template, id: undefined, builtin: undefined, isDefault: false, name: `${template.name} (copy)` }),
+        });
+        if (res.ok) copied.push(await res.json());
+      }
+      if (copied.length) {
+        setSavedTemplates(prev => [...prev, ...copied]);
+        setMessage(`Copied ${copied.length} template${copied.length === 1 ? "" : "s"} from ${campOptions.find(c => c.id === sourceCampId)?.name || "that camp"}.`);
+      } else setMessage("Could not copy templates from that camp.");
+    } finally {
+      setSaving(false);
+    }
+  };
   const printDoc = (type = draftTemplate.type) => { setActiveDoc(type); setTimeout(() => window.print(), 300); };
 
   if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a camp to print materials.</div>;
@@ -296,6 +342,12 @@ function PrintContent() {
         .ops-print .time-col { width: calc((100% - 105px) / ${Math.max(principalScheduleSlots.length, 1)}); text-align: center; }
         .ops-title { font-size: 20px; font-weight: 900; margin: 0 0 8px; }
         .ops-subtitle { font-size: 12px; margin: 0 0 14px; color: #444; }
+        .badge-sheet { display: grid; grid-template-columns: repeat(${badgeCols}, minmax(0, 1fr)); grid-auto-rows: ${draftTemplate.paperSize === "letter" ? `calc((10.5in - 0.18in * ${Math.max(badgeRows - 1, 0)}) / ${badgeRows})` : "auto"}; gap: 0.18in; }
+        .badge-card { border: 2px solid #111; border-radius: 10px; padding: 0.16in; text-align: center; page-break-inside: avoid; display: flex; flex-direction: column; justify-content: center; min-height: ${draftTemplate.paperSize === "letter" ? "auto" : "calc(100vh - 0.5in)"}; }
+        .badge-name { font-size: ${draftTemplate.paperSize === "letter" ? "24px" : "34px"}; font-weight: 900; line-height: 1; }
+        .badge-last { font-size: ${draftTemplate.paperSize === "letter" ? "14px" : "20px"}; margin-top: 4px; }
+        .single-badge-page { page-break-after: always; }
+        .single-badge-page:last-child { page-break-after: auto; }
       `}</style>
 
       <div className="no-print space-y-6">
@@ -308,10 +360,10 @@ function PrintContent() {
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="space-y-4">
               <div className="grid gap-3 md:grid-cols-3">
-                {BUILTIN_TEMPLATES.filter(t => t.category === "operations").map(template => (
+                {BUILTIN_TEMPLATES.map(template => (
                   <button key={template.type} onClick={() => { updateDraft({ ...template }); setSelectedTemplateKey(`builtin-${BUILTIN_TEMPLATES.findIndex(t => t.type === template.type)}`); }} className={`rounded-2xl border p-4 text-left transition ${draftTemplate.type === template.type ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-400"}`}>
                     <p className="text-sm font-black text-slate-900">{template.name}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "One operational schedule page per teacher/staff member." : template.type === "class_rosters" ? "Classroom rosters by activity/time with guardian and emergency columns." : "Reusable operating document."}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "One operational schedule page per teacher/staff member." : template.type === "class_rosters" ? "Classroom rosters by activity/time with guardian and emergency columns." : template.type === "badges" ? "Badge/label layouts for lanyards, cards, and sheets." : "Reusable operating document."}</p>
                   </button>
                 ))}
               </div>
@@ -319,13 +371,20 @@ function PrintContent() {
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <h2 className="text-sm font-black text-slate-900">Saved templates</h2>
-                    <p className="text-xs text-slate-500">Reuse these from this camp; duplicate/copy support can expand from here.</p>
+                    <p className="text-xs text-slate-500">Reuse these from this camp, or copy saved templates from another camp.</p>
                   </div>
                   <button onClick={saveAsTemplate} disabled={saving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Save as template</button>
                 </div>
                 <select value={selectedTemplateKey} onChange={e => chooseTemplate(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
                   {allTemplates.map(t => <option key={t.id} value={t.id}>{t.builtin ? "Preset: " : "Saved: "}{t.name}</option>)}
                 </select>
+                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <select value={sourceCampId} onChange={e => setSourceCampId(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                    <option value="">Copy templates from another camp…</option>
+                    {campOptions.filter(camp => camp.id !== campId).map(camp => <option key={camp.id} value={camp.id}>{camp.name}</option>)}
+                  </select>
+                  <button onClick={importTemplatesFromCamp} disabled={saving || !sourceCampId} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">Copy in</button>
+                </div>
                 {message && <p className="mt-2 text-xs font-semibold text-slate-600">{message}</p>}
               </div>
             </div>
@@ -345,6 +404,20 @@ function PrintContent() {
                   <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showEmergency} onChange={e => updateSettings({ showEmergency: e.target.checked })} /> Emergency</label>
                   <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showMedical} onChange={e => updateSettings({ showMedical: e.target.checked })} /> Medical</label>
                 </div>
+                {draftTemplate.type === "badges" && (
+                  <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge layout</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block text-xs font-bold text-slate-500">Rows<input type="number" min={1} max={8} value={badgeRows} onChange={e => updateSettings({ badgeRows: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
+                      <label className="block text-xs font-bold text-slate-500">Columns<input type="number" min={1} max={5} value={badgeCols} onChange={e => updateSettings({ badgeCols: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 text-xs font-bold text-slate-600">
+                      <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-2"><input type="checkbox" checked={selectedSettings.showAgeGroup} onChange={e => updateSettings({ showAgeGroup: e.target.checked })} /> Show age group</label>
+                      <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-2"><input type="checkbox" checked={selectedSettings.showGuardian} onChange={e => updateSettings({ showGuardian: e.target.checked })} /> Show guardian contact</label>
+                      <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-2"><input type="checkbox" checked={selectedSettings.showSchedule} onChange={e => updateSettings({ showSchedule: e.target.checked })} /> Show compact schedule</label>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-bold text-white">Print preview</button>
                   <button onClick={updateSavedTemplate} disabled={saving} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50">{draftTemplate.builtin ? "Save copy" : "Update"}</button>
@@ -365,7 +438,18 @@ function PrintContent() {
 
       {activeDoc === "tshirt_list" && <div className="print-doc ops-print"><h1 className="ops-title">T-Shirt Sizes</h1>{tshirtOrder.filter(s => sizeGroups[s]?.length).map(size => <section key={size} style={{marginBottom:18}}><h2 style={{fontSize:16, margin:"0 0 6px"}}>{size} ({sizeGroups[size].length})</h2><table><tbody>{sortedCampersList(sizeGroups[size]).map(c => <tr key={c.id}><td>{c.lastName}, {c.firstName}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></section>)}</div>}
 
-      {activeDoc === "badges" && <div className="print-doc ops-print"><div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"8px"}}>{sortedCampers.map(c => <div key={c.id} style={{border:"2px solid #111", borderRadius:8, padding:12, textAlign:"center", minHeight:96}}><div style={{fontSize:11, textTransform:"uppercase", letterSpacing:".08em"}}>Camper</div><div style={{fontSize:22, fontWeight:900}}>{c.firstName}</div><div>{c.lastName}</div><div style={{fontSize:12, marginTop:4}}>{c.ageGroup?.name || ""}</div></div>)}</div></div>}
+      {activeDoc === "badges" && <div className="print-doc ops-print">
+        <div className={draftTemplate.paperSize === "letter" ? "badge-sheet" : ""}>
+          {sortedCampers.map(c => <div key={c.id} className={`badge-card ${draftTemplate.paperSize === "letter" ? "" : "single-badge-page"}`}>
+            <div style={{fontSize:11, textTransform:"uppercase", letterSpacing:".12em", marginBottom:8}}>Camper</div>
+            <div className="badge-name">{c.firstName}</div>
+            <div className="badge-last">{c.lastName}</div>
+            {selectedSettings.showAgeGroup && <div style={{fontSize:13, fontWeight:800, marginTop:8, borderTop:"1px solid #ddd", paddingTop:8}}>{c.ageGroup?.name || ""}</div>}
+            {selectedSettings.showGuardian && <div style={{fontSize:10, marginTop:6}}>{c.guardianName || ""}{c.guardianPhone ? ` • ${c.guardianPhone}` : ""}</div>}
+            {selectedSettings.showSchedule && <div style={{fontSize:9, marginTop:8, lineHeight:1.25}}>{badgeScheduleSummary(c)}</div>}
+          </div>)}
+        </div>
+      </div>}
     </>
   );
 }
