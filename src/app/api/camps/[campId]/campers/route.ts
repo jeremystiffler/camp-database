@@ -41,7 +41,7 @@ async function replaceEnrollments(campId: string, camperId: string, nextSessionI
 const camperInclude = {
   ageGroup: true,
   enrollments: {
-    include: { session: { include: { course: true, room: true, sessionTemplate: true } } },
+    include: { session: { include: { course: true, mandatorySession: true, room: true, sessionTemplate: true } } },
     orderBy: { createdAt: "asc" as const },
   },
 };

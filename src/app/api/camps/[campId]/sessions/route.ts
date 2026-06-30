@@ -13,8 +13,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const items = await prisma.session.findMany({
     where: { campId },
-    include: { course: true, room: true, sessionTeachers: { include: { person: true } } },
-    orderBy: { date: "asc" },
+    include: { course: true, mandatorySession: true, room: true, sessionTemplate: true, sessionTeachers: { include: { person: true } } },
+    orderBy: [{ date: "asc" }, { startTime: "asc" }],
   });
   return NextResponse.json(items);
 }

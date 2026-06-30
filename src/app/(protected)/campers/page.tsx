@@ -15,6 +15,7 @@ interface CampSession {
   startTime?: string | null;
   endTime?: string | null;
   course?: { id: string; name: string } | null;
+  mandatorySession?: { id: string; title: string } | null;
   room?: { id: string; name: string } | null;
   sessionTemplate?: { id: string; label?: string | null; dayOfWeek?: number | null; startTime: string; endTime: string } | null;
 }
@@ -64,7 +65,7 @@ function age(dob: string) {
   return a;
 }
 function cents(value?: number) { return `$${((value || 0) / 100).toFixed(2)}`; }
-function sessionTitle(session?: CampSession | null) { return session?.course?.name || session?.sessionTemplate?.label || "Untitled session"; }
+function sessionTitle(session?: CampSession | null) { return session?.mandatorySession?.title || session?.course?.name || session?.sessionTemplate?.label || "Untitled session"; }
 function sessionDay(session?: CampSession | null) {
   if (session?.date) return new Date(session.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
   if (session?.sessionTemplate?.dayOfWeek != null) return DAYS[session.sessionTemplate.dayOfWeek];
@@ -76,16 +77,24 @@ function sessionTime(session?: CampSession | null) {
   return `${sessionDay(session)}${start || end ? ` · ${start}${end ? `–${end}` : ""}` : ""}`;
 }
 function sessionChoiceKey(session?: CampSession | null) {
-  const courseOrSession = session?.course?.id || session?.id || "missing";
   const template = session?.sessionTemplate;
   const label = template?.label || "Session";
   const start = session?.startTime || template?.startTime || "";
   const end = session?.endTime || template?.endTime || "";
+  if (session?.mandatorySession) {
+    return `mandatory|${session.mandatorySession.title}|${start}|${end}|${session.room?.id || ""}`;
+  }
+  const courseOrSession = session?.course?.id || session?.id || "missing";
   return `${courseOrSession}|${label}|${start}|${end}`;
 }
+function sessionSortValue(session?: CampSession | null) {
+  const day = session?.date ? new Date(session.date).getDay() : session?.sessionTemplate?.dayOfWeek ?? 99;
+  const time = session?.startTime || session?.sessionTemplate?.startTime || "99:99";
+  return `${String(day).padStart(2, "0")}|${time}|${sessionTitle(session).toLowerCase()}`;
+}
 function summarizedEnrollmentChoices(enrollments: Enrollment[] = []) {
-  const byChoice = new Map<string, { key: string; title: string; days: string[]; time: string; rooms: string[] }>();
-  for (const enrollment of enrollments) {
+  const byChoice = new Map<string, { key: string; title: string; days: string[]; time: string; rooms: string[]; sortValue: string }>();
+  for (const enrollment of [...enrollments].sort((a, b) => sessionSortValue(a.session).localeCompare(sessionSortValue(b.session)))) {
     const session = enrollment.session;
     const key = sessionChoiceKey(session);
     const title = sessionTitle(session);
@@ -94,12 +103,14 @@ function summarizedEnrollmentChoices(enrollments: Enrollment[] = []) {
     const end = session?.endTime || session?.sessionTemplate?.endTime || "";
     const time = start || end ? `${start}${end ? `–${end}` : ""}` : "";
     const room = session?.room?.name || "";
-    const existing = byChoice.get(key) || { key, title, days: [], time, rooms: [] };
+    const sortValue = sessionSortValue(session);
+    const existing = byChoice.get(key) || { key, title, days: [], time, rooms: [], sortValue };
+    if (sortValue < existing.sortValue) existing.sortValue = sortValue;
     if (day && !existing.days.includes(day)) existing.days.push(day);
     if (room && !existing.rooms.includes(room)) existing.rooms.push(room);
     byChoice.set(key, existing);
   }
-  return [...byChoice.values()];
+  return [...byChoice.values()].sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 }
 function choiceSummaryLine(choice: { days: string[]; time: string; rooms: string[] }) {
   const parts = [choice.days.join(", "), choice.time, choice.rooms.join(", ")].filter(Boolean);
