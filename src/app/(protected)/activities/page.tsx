@@ -732,6 +732,8 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
   const [inlineSaving, setInlineSaving]         = useState<Record<string, boolean>>({});
   const [inlineErrors, setInlineErrors]         = useState<Record<string, string>>({});
   const [inlineConflicts, setInlineConflicts]   = useState<SchedulingConflict[]>([]);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
+  const [bulkWorking, setBulkWorking]           = useState(false);
 
   const toggleSort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -766,9 +768,46 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
 
   useEffect(() => { load(); }, [campId]);
 
-  const deleteCourse = async (id: string) => {
-    if (!confirm("Delete this activity?")) return;
-    await fetch(`/api/camps/${campId}/courses/${id}`, { method: "DELETE" });
+  const toggleCourseSelected = (id: string) => {
+    setSelectedCourseIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteSelectedCourses = async () => {
+    const ids = [...selectedCourseIds];
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} selected activit${ids.length === 1 ? "y" : "ies"}? This cannot be undone.`)) return;
+    setBulkWorking(true);
+    await Promise.all(ids.map(id => fetch(`/api/camps/${campId}/courses/${id}`, { method: "DELETE" })));
+    setSelectedCourseIds(new Set());
+    setBulkWorking(false);
+    load();
+  };
+
+  const duplicateSelectedCourses = async () => {
+    const selected = courses.filter(course => selectedCourseIds.has(course.id));
+    if (selected.length === 0) return;
+    setBulkWorking(true);
+    await Promise.all(selected.map(course => fetch(`/api/camps/${campId}/courses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: `${course.name} Copy`,
+        description: course.description || undefined,
+        cap: course.cap || 20,
+        color: course.color || "#22C55E",
+        icon: course.icon || "🎯",
+        roomId: course.room?.id || null,
+        ageGroupIds: course.courseAgeGroups?.map(cag => cag.ageGroup.id) || [],
+        teacherIds: course.courseTeachers?.map(ct => ct.person.id) || [],
+      }),
+    })));
+    setSelectedCourseIds(new Set());
+    setBulkWorking(false);
     load();
   };
 
@@ -898,6 +937,17 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
     if (statusFilter === "all") return true;
     return activityStatus(course).priority === statusFilter;
   });
+  const selectedCount = selectedCourseIds.size;
+  const visibleIds = filteredByStatus.map(course => course.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedCourseIds.has(id));
+  const toggleAllVisible = () => {
+    setSelectedCourseIds(prev => {
+      const next = new Set(prev);
+      if (allVisibleSelected) visibleIds.forEach(id => next.delete(id));
+      else visibleIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
 
   const readyCount = courses.filter(c => activityStatus(c).priority === "ready").length;
   const needsCount = Math.max(courses.length - readyCount, 0);
@@ -1004,6 +1054,17 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
             </div>
           </div>
 
+          {selectedCount > 0 && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 shadow-sm">
+              <p className="text-sm font-black text-sky-900">{selectedCount} selected</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={duplicateSelectedCourses} disabled={bulkWorking} className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-black text-sky-700 hover:bg-sky-100 disabled:opacity-50">Duplicate</button>
+                <button type="button" onClick={deleteSelectedCourses} disabled={bulkWorking} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50 disabled:opacity-50">Delete</button>
+                <button type="button" onClick={() => setSelectedCourseIds(new Set())} disabled={bulkWorking} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-500 hover:bg-slate-50 disabled:opacity-50">Clear</button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex h-48 items-center justify-center rounded-2xl border border-slate-200 bg-white">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-forest-500 border-t-transparent" />
@@ -1020,7 +1081,18 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
               <table className="w-full min-w-[760px] text-sm">
                 <thead className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-3 text-left">Activity</th>
+                    <th className="px-4 py-3 text-left">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={allVisibleSelected}
+                          onChange={toggleAllVisible}
+                          aria-label="Select all visible activities"
+                          className="h-4 w-4 rounded border-slate-300 accent-sky-600"
+                        />
+                        <span>Activity</span>
+                      </div>
+                    </th>
                     <th className="px-3 py-3 text-left">Teacher</th>
                     <th className="px-3 py-3 text-left">Assistant</th>
                     <th className="px-3 py-3 text-left">Room</th>
@@ -1037,18 +1109,17 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                       <tr key={course.id} className="align-top hover:bg-sky-50/30">
                         <td className="px-4 py-3">
                           <div className="flex items-start gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedCourseIds.has(course.id)}
+                              onChange={() => toggleCourseSelected(course.id)}
+                              aria-label={`Select ${course.name}`}
+                              className="mt-2 h-4 w-4 shrink-0 rounded border-slate-300 accent-sky-600"
+                            />
                             <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-base text-white shadow-sm" style={{ backgroundColor: course.color || "#22C55E" }}>{course.icon || "🎯"}</span>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="truncate font-black text-slate-900">{course.name}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => deleteCourse(course.id)}
-                                  className="shrink-0 rounded-lg border border-red-100 bg-red-50 px-2 py-1 text-[11px] font-black text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
-                                  title={`Delete ${course.name}`}
-                                >
-                                  Delete
-                                </button>
                                 <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${status.tone}`}>{status.label}</span>
                               </div>
                               {course.description && <p className="mt-0.5 line-clamp-1 max-w-sm text-xs text-slate-500">{course.description}</p>}
