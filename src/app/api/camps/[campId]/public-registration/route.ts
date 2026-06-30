@@ -149,13 +149,15 @@ async function sendConfirmationEmail({
   guardian,
   students,
   totals,
+  paymentRequired,
   settings,
   updated,
 }: {
   campName: string;
   guardian: { name: string; email: string; phone?: string };
-  students: Array<{ firstName: string; lastName: string; dateOfBirth?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }>;
+  students: Array<{ firstName: string; lastName: string; dateOfBirth?: string; ageGroupName?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }>;
   totals: { totalCents: number; campPriceCents: number; discountCents: number; platformFeeCents: number };
+  paymentRequired: boolean;
   settings: ConfirmationSettings;
   updated: boolean;
 }) {
@@ -176,25 +178,46 @@ async function sendConfirmationEmail({
   const subject = applyTokens(subjectTemplate, tokenValues);
   const intro = applyTokens(settings.confirmationEmailIntro?.trim() || `Please review your registration details below for ${campName}.`, tokenValues);
 
-  const studentsHtml = students.map((student, index) => {
+  const studentScheduleHtml = students.map((student, index) => {
     const studentName = `${student.firstName} ${student.lastName}`.trim();
-    const customRows = student.customData && Object.keys(student.customData).length
-      ? `<ul>${Object.entries(student.customData).filter(([, v]) => String(v ?? "").trim()).map(([key, value]) => `<li><strong>${escapeHtml(key)}:</strong> ${escapeHtml(Array.isArray(value) ? value.join(", ") : value)}</li>`).join("")}</ul>`
-      : "";
+    const detailParts = [
+      student.dateOfBirth ? `DOB: ${escapeHtml(student.dateOfBirth)}` : "",
+      student.ageGroupName ? `Age group: ${escapeHtml(student.ageGroupName)}` : "",
+    ].filter(Boolean).join(" • ");
     const classesHtml = settings.confirmationIncludeClasses !== false
       ? `<h3 style="font-size:16px;margin:16px 0 8px;color:#1e3a8a;">Class Schedule</h3>${renderClassGrid(student.classScheduleRows)}`
       : "";
-    const emergencyHtml = settings.confirmationIncludeEmergency !== false
-      ? `<p style="margin:8px 0 0;color:#475569;">Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}<br>Photo consent: ${student.photoConsent ? "Yes" : "No"}</p>`
-      : "";
-    return `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin:12px 0;">
-      <h2 style="font-size:16px;margin:0 0 6px;color:#0f172a;">Student ${index + 1}: ${escapeHtml(studentName)}</h2>
-      ${student.dateOfBirth ? `<p style="margin:0;color:#64748b;">DOB: ${escapeHtml(student.dateOfBirth)}</p>` : ""}
-      ${customRows}
+    return `<div style="border:1px solid #bfdbfe;border-radius:18px;padding:16px;margin:14px 0;background:#f8fbff;">
+      <div style="font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#2563eb;margin-bottom:4px;">Student ${index + 1}</div>
+      <h2 style="font-size:22px;margin:0;color:#0f172a;line-height:1.2;">${escapeHtml(studentName)}</h2>
+      ${detailParts ? `<p style="margin:6px 0 0;color:#475569;font-size:15px;font-weight:700;">${detailParts}</p>` : ""}
       ${classesHtml}
-      ${emergencyHtml}
     </div>`;
   }).join("");
+
+  const emergencyHtml = settings.confirmationIncludeEmergency !== false
+    ? students.map((student, index) => {
+        const studentName = `${student.firstName} ${student.lastName}`.trim() || `Student ${index + 1}`;
+        return `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;margin:10px 0;background:#ffffff;">
+          <h3 style="font-size:15px;margin:0 0 6px;color:#0f172a;">${escapeHtml(studentName)}</h3>
+          <p style="margin:0;color:#475569;">Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}<br>Photo consent: ${student.photoConsent ? "Yes" : "No"}</p>
+        </div>`;
+      }).join("")
+    : "";
+
+  const additionalInfoHtml = settings.confirmationIncludeStudents !== false
+    ? students.map((student, index) => {
+        const studentName = `${student.firstName} ${student.lastName}`.trim() || `Student ${index + 1}`;
+        const rows = student.customData && Object.keys(student.customData).length
+          ? Object.entries(student.customData).filter(([, v]) => String(v ?? "").trim()).map(([key, value]) => `<li><strong>${escapeHtml(key)}:</strong> ${escapeHtml(Array.isArray(value) ? value.join(", ") : value)}</li>`).join("")
+          : "";
+        return rows ? `<div style="margin:8px 0;"><h3 style="font-size:15px;margin:0 0 4px;color:#0f172a;">${escapeHtml(studentName)}</h3><ul style="margin:0;padding-left:18px;color:#475569;">${rows}</ul></div>` : "";
+      }).filter(Boolean).join("")
+    : "";
+
+  const paymentHtml = settings.confirmationIncludePayment !== false && paymentRequired
+    ? `<h2 style="font-size:16px;margin:18px 0 8px;">Payment Summary</h2><p style="margin:0;">Camp price: ${money(totals.campPriceCents)}<br>Discount: ${money(totals.discountCents)}<br>Platform fee: ${money(totals.platformFeeCents)}<br><strong>Total due: ${money(totals.totalCents)}</strong></p>`
+    : "";
 
   const html = `
     <div style="font-family:Inter,Arial,sans-serif;line-height:1.5;color:#1e293b;max-width:680px;margin:0 auto;padding:24px;">
@@ -202,9 +225,11 @@ async function sendConfirmationEmail({
         <h1 style="margin:0 0 8px;font-size:22px;color:#166534;">${updated ? "Registration updated" : "Registration received"}</h1>
         <p style="margin:0;color:#475569;">${escapeHtml(intro)}</p>
       </div>
-      ${settings.confirmationIncludeGuardian !== false ? `<h2 style="font-size:16px;margin:18px 0 8px;">Parent / Guardian</h2><p style="margin:0 0 10px;">${escapeHtml(guardian.name)}<br>${escapeHtml(guardian.email)}<br>${escapeHtml(guardian.phone || "")}</p>` : ""}
-      ${settings.confirmationIncludeStudents !== false ? studentsHtml : ""}
-      ${settings.confirmationIncludePayment !== false ? `<h2 style="font-size:16px;margin:18px 0 8px;">Payment Summary</h2><p style="margin:0;">Camp price: ${money(totals.campPriceCents)}<br>Discount: ${money(totals.discountCents)}<br>Platform fee: ${money(totals.platformFeeCents)}<br><strong>Total: ${money(totals.totalCents)}</strong></p>` : ""}
+      ${settings.confirmationIncludeStudents !== false ? studentScheduleHtml : ""}
+      ${settings.confirmationIncludeGuardian !== false ? `<h2 style="font-size:16px;margin:20px 0 8px;">Parent / Guardian</h2><p style="margin:0 0 10px;">${escapeHtml(guardian.name)}<br>${escapeHtml(guardian.email)}<br>${escapeHtml(guardian.phone || "")}</p>` : ""}
+      ${emergencyHtml ? `<h2 style="font-size:16px;margin:18px 0 8px;">Emergency Information</h2>${emergencyHtml}` : ""}
+      ${additionalInfoHtml ? `<h2 style="font-size:16px;margin:18px 0 8px;">Additional Student Information</h2>${additionalInfoHtml}` : ""}
+      ${paymentHtml}
       <p style="margin-top:22px;color:#64748b;font-size:13px;">Need to change something? Contact the camp office, or return to the registration form and submit updated information.</p>
     </div>`;
 
@@ -304,7 +329,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
   const familyTotals = calculateRegistrationTotal(camp, coupon, campers.length);
   const perCamperTotals = calculateRegistrationTotal(camp, null, 1);
-  const createdStudents: Array<{ camperId: string; firstName: string; lastName: string; dateOfBirth?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }> = [];
+  const createdStudents: Array<{ camperId: string; firstName: string; lastName: string; dateOfBirth?: string; ageGroupName?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }> = [];
   const createdCamperIds: string[] = [];
   let anyUpdating = false;
 
@@ -336,7 +361,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
     const selectedBySession = Object.fromEntries(Object.entries(student.selectedSessionCourseIds || {}).filter(([sessionTemplateId, courseId]) => sessionTemplateId && courseId));
     const fallbackCourseIds = [...new Set((Array.isArray(student.selectedCourseIds) ? student.selectedCourseIds : []).filter(Boolean))];
-    const ageGroup = await prisma.ageGroup.findFirst({ where: { id: student.ageGroupId, campId }, select: { id: true, noSchedule: true } });
+    const ageGroup = await prisma.ageGroup.findFirst({ where: { id: student.ageGroupId, campId }, select: { id: true, name: true, noSchedule: true } });
     if (!ageGroup) return NextResponse.json({ error: `Selected age group is not available for ${firstName}` }, { status: 400 });
 
     const sessionTemplates = await prisma.sessionTemplate.findMany({
@@ -507,6 +532,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       firstName,
       lastName,
       dateOfBirth: student.dateOfBirth,
+      ageGroupName: ageGroup.name,
       emergencyPhone: student.emergencyPhone,
       photoConsent: Boolean(student.photoConsent),
       courseNames: classScheduleRows.map(row => row.mandatory ? `${row.className} (included)` : row.className),
@@ -515,9 +541,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     });
   }
 
+  const emailPaymentRequired = camp.billingMode === "camperFee" && !anyUpdating && familyTotals.totalCents > 0;
+
   let emailSent = false;
   try {
-    const result = await sendConfirmationEmail({ campName: camp.name, guardian: { name: guardianName, email: guardianEmail, phone: guardianPhone }, students: createdStudents, totals: familyTotals, settings: selectedForm || {}, updated: anyUpdating });
+    const result = await sendConfirmationEmail({ campName: camp.name, guardian: { name: guardianName, email: guardianEmail, phone: guardianPhone }, students: createdStudents, totals: familyTotals, paymentRequired: emailPaymentRequired, settings: selectedForm || {}, updated: anyUpdating });
     emailSent = result.sent;
   } catch (error) {
     console.error("Registration confirmation email failed", error);
