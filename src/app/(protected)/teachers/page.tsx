@@ -42,10 +42,11 @@ const ROLES = ["teacher", "assistant", "director", "staff"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 // ── Teacher add/edit modal ─────────────────────────────────────────────────
-function TeacherModal({ person, campId, ageGroups, onClose, onSaved }: {
+function TeacherModal({ person, campId, ageGroups, defaultRole = "teacher", onClose, onSaved }: {
   person?: Person | null;
   campId: string;
   ageGroups: AgeGroup[];
+  defaultRole?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -53,7 +54,7 @@ function TeacherModal({ person, campId, ageGroups, onClose, onSaved }: {
   const [lastName,  setLastName]  = useState(person?.lastName  || "");
   const [email,     setEmail]     = useState(person?.email     || "");
   const [phone,     setPhone]     = useState(person?.phone     || "");
-  const [role,      setRole]      = useState(person?.role      || "teacher");
+  const [role,      setRole]      = useState(person?.role      || defaultRole);
   const [bio,       setBio]       = useState(person?.bio       || "");
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>(person?.personAgeGroups?.map((pag) => pag.ageGroup.id) || []);
   const [loading,   setLoading]   = useState(false);
@@ -84,7 +85,7 @@ function TeacherModal({ person, campId, ageGroups, onClose, onSaved }: {
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="px-6 py-5 border-b border-slate-100">
-          <h2 className="font-bold text-lg text-slate-800">{person ? "Edit Teacher" : "Add Teacher"}</h2>
+          <h2 className="font-bold text-lg text-slate-800">{person ? "Edit Person" : defaultRole === "assistant" ? "Add Assistant" : "Add Teacher"}</h2>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {error && <div className="bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>}
@@ -343,6 +344,82 @@ function SendScheduleModal({ person, campId, onClose }: {
   );
 }
 
+function PersonRow({ person: p, roleColors, onSchedule, onEdit, onDelete }: {
+  person: Person;
+  roleColors: Record<string, string>;
+  onSchedule: (person: Person) => void;
+  onEdit: (person: Person) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="px-4 py-4 md:px-5 hover:bg-slate-50/70 transition-colors">
+      <div className="grid gap-3 md:grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] md:items-center md:gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
+            {p.firstName[0]}{p.lastName[0]}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-slate-800 truncate">{p.firstName} {p.lastName}</h3>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${roleColors[p.role] || "bg-slate-100 text-slate-600"}`}>
+                {p.role}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-sm md:text-xs min-w-0">
+          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Email</span>
+          {p.email
+            ? <span className="text-slate-600 truncate block">{p.email}</span>
+            : <span className="text-amber-500 italic">No email — add one to send schedule</span>}
+        </div>
+
+        <div className="text-sm md:text-xs min-w-0">
+          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Phone</span>
+          {p.phone
+            ? <span className="text-slate-500 truncate block">{p.phone}</span>
+            : <span className="text-slate-300 italic">—</span>}
+        </div>
+
+        <div className="text-sm md:text-xs min-w-0">
+          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Age Groups</span>
+          {p.personAgeGroups && p.personAgeGroups.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {p.personAgeGroups.map(({ ageGroup }) => (
+                <span key={ageGroup.id} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 border border-indigo-100">
+                  {ageGroup.name}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-slate-300 italic">—</span>
+          )}
+        </div>
+
+        <div className="text-sm md:text-xs min-w-0">
+          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Notes</span>
+          {p.bio
+            ? <span className="text-slate-500 italic line-clamp-2">{p.bio}</span>
+            : <span className="text-slate-300 italic">—</span>}
+        </div>
+
+        <div className="flex items-center gap-2 md:justify-end">
+          <button onClick={() => onSchedule(p)}
+            title="Send schedule email"
+            className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold transition-colors">📧 Schedule</button>
+          <button onClick={() => onEdit(p)}
+            title="Edit person"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">✏️</button>
+          <button onClick={() => onDelete(p.id)}
+            title="Remove person"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 text-sm">🗑️</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export function TeachersContent() {
   const searchParams = useSearchParams();
@@ -353,6 +430,7 @@ export function TeachersContent() {
   const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState("");
   const [editing,    setEditing]    = useState<Person | null | undefined>(undefined);
+  const [modalDefaultRole, setModalDefaultRole] = useState("teacher");
   const [showModal,  setShowModal]  = useState(false);
   const [scheduling, setScheduling] = useState<Person | null>(null);
 
@@ -383,11 +461,26 @@ export function TeachersContent() {
     `${p.firstName} ${p.lastName} ${p.email || ""}`.toLowerCase().includes(search.toLowerCase())
   );
 
+  const leadPeople = filtered.filter(p => p.role === "teacher" || p.role === "director");
+  const assistantPeople = filtered.filter(p => p.role === "assistant" || p.role === "staff");
+
   const ROLE_COLORS: Record<string, string> = {
     teacher: "bg-berry-100 text-berry-600 border border-berry-100",
     assistant: "bg-sky-100 text-sky-600 border border-sky-100",
     director: "bg-sunset-100 text-sunset-600 border border-sunset-100",
     staff: "bg-slate-100 text-slate-600 border border-slate-200",
+  };
+
+  const openAddModal = (role: "teacher" | "assistant") => {
+    setModalDefaultRole(role);
+    setEditing(null);
+    setShowModal(true);
+  };
+
+  const openEditModal = (person: Person) => {
+    setModalDefaultRole(person.role || "teacher");
+    setEditing(person);
+    setShowModal(true);
   };
 
   if (!campId) return (
@@ -403,10 +496,16 @@ export function TeachersContent() {
           <h1 className="text-2xl font-bold text-slate-800">Teachers</h1>
           <p className="text-slate-500 text-sm mt-0.5">{persons.length} {persons.length === 1 ? "person" : "people"}</p>
         </div>
-        <button onClick={() => { setEditing(null); setShowModal(true); }}
-          className="px-4 py-2.5 bg-gradient-to-r from-berry-500 to-berry-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
-          + Add Teacher
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => openAddModal("teacher")}
+            className="px-4 py-2.5 bg-gradient-to-r from-berry-500 to-berry-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
+            + Add Teacher
+          </button>
+          <button onClick={() => openAddModal("assistant")}
+            className="px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
+            + Add Assistant
+          </button>
+        </div>
       </div>
 
       <div className="mb-5">
@@ -422,94 +521,69 @@ export function TeachersContent() {
       ) : filtered.length === 0 ? (
         <div className="camp-card p-12 text-center">
           <span className="text-5xl mb-4 block">🧑‍🏫</span>
-          <h3 className="font-bold text-slate-700 mb-2">{search ? "No teachers match" : "No teachers yet"}</h3>
-          <p className="text-slate-400 text-sm mb-5">Add teachers to assign them to activities.</p>
+          <h3 className="font-bold text-slate-700 mb-2">{search ? "No people match" : "No teachers or assistants yet"}</h3>
+          <p className="text-slate-400 text-sm mb-5">Add teachers and assistants to assign them to activities.</p>
           {!search && (
-            <button onClick={() => { setEditing(null); setShowModal(true); }}
-              className="px-5 py-2.5 bg-gradient-to-r from-berry-500 to-berry-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
-              + Add First Teacher
-            </button>
+            <div className="flex justify-center gap-2 flex-wrap">
+              <button onClick={() => openAddModal("teacher")}
+                className="px-5 py-2.5 bg-gradient-to-r from-berry-500 to-berry-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+                + Add First Teacher
+              </button>
+              <button onClick={() => openAddModal("assistant")}
+                className="px-5 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+                + Add First Assistant
+              </button>
+            </div>
           )}
         </div>
       ) : (
-        <div className="camp-card overflow-hidden">
-          <div className="hidden md:grid grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase tracking-wide text-slate-500">
-            <div>Teacher</div>
-            <div>Email</div>
-            <div>Phone</div>
-            <div>Age Groups</div>
-            <div>Notes</div>
-            <div className="text-right">Actions</div>
+        <div className="space-y-6">
+          <div className="camp-card overflow-hidden">
+            <div className="px-5 py-4 bg-berry-50 border-b border-berry-100 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-bold text-slate-800">Lead Teachers & Directors</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Primary instructors who lead classes and appear in teacher assignment lists.</p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-berry-700 border border-berry-100">{leadPeople.length}</span>
+            </div>
+            {leadPeople.length === 0 ? (
+              <div className="px-5 py-8 text-sm text-slate-400 text-center">No lead teachers match this view.</div>
+            ) : (
+              <>
+                <div className="hidden md:grid grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <div>Teacher</div><div>Email</div><div>Phone</div><div>Age Groups</div><div>Notes</div><div className="text-right">Actions</div>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {leadPeople.map(p => (
+                    <PersonRow key={p.id} person={p} roleColors={ROLE_COLORS} onSchedule={setScheduling} onEdit={openEditModal} onDelete={deletePerson} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="divide-y divide-slate-100">
-            {filtered.map(p => (
-              <div key={p.id} className="px-4 py-4 md:px-5 hover:bg-slate-50/70 transition-colors">
-                <div className="grid gap-3 md:grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] md:items-center md:gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
-                      {p.firstName[0]}{p.lastName[0]}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-slate-800 truncate">{p.firstName} {p.lastName}</h3>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_COLORS[p.role] || "bg-slate-100 text-slate-600"}`}>
-                          {p.role}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-sm md:text-xs min-w-0">
-                    <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Email</span>
-                    {p.email
-                      ? <span className="text-slate-600 truncate block">{p.email}</span>
-                      : <span className="text-amber-500 italic">No email — add one to send schedule</span>}
-                  </div>
-
-                  <div className="text-sm md:text-xs min-w-0">
-                    <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Phone</span>
-                    {p.phone
-                      ? <span className="text-slate-500 truncate block">{p.phone}</span>
-                      : <span className="text-slate-300 italic">—</span>}
-                  </div>
-
-                  <div className="text-sm md:text-xs min-w-0">
-                    <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Age Groups</span>
-                    {p.personAgeGroups && p.personAgeGroups.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {p.personAgeGroups.map(({ ageGroup }) => (
-                          <span key={ageGroup.id} className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 border border-indigo-100">
-                            {ageGroup.name}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-slate-300 italic">—</span>
-                    )}
-                  </div>
-
-                  <div className="text-sm md:text-xs min-w-0">
-                    <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Notes</span>
-                    {p.bio
-                      ? <span className="text-slate-500 italic line-clamp-2">{p.bio}</span>
-                      : <span className="text-slate-300 italic">—</span>}
-                  </div>
-
-                  <div className="flex items-center gap-2 md:justify-end">
-                    <button onClick={() => setScheduling(p)}
-                      title="Send schedule email"
-                      className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold transition-colors">📧 Schedule</button>
-                    <button onClick={() => { setEditing(p); setShowModal(true); }}
-                      title="Edit teacher"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">✏️</button>
-                    <button onClick={() => deletePerson(p.id)}
-                      title="Remove teacher"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 text-sm">🗑️</button>
-                  </div>
-                </div>
+          <div className="camp-card overflow-hidden">
+            <div className="px-5 py-4 bg-sky-50 border-b border-sky-100 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-bold text-slate-800">Assistants & Staff</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Helpers and support staff stay in their own section and appear in assistant assignment lists.</p>
               </div>
-            ))}
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-sky-700 border border-sky-100">{assistantPeople.length}</span>
+            </div>
+            {assistantPeople.length === 0 ? (
+              <div className="px-5 py-8 text-sm text-slate-400 text-center">No assistants match this view.</div>
+            ) : (
+              <>
+                <div className="hidden md:grid grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <div>Assistant</div><div>Email</div><div>Phone</div><div>Age Groups</div><div>Notes</div><div className="text-right">Actions</div>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {assistantPeople.map(p => (
+                    <PersonRow key={p.id} person={p} roleColors={ROLE_COLORS} onSchedule={setScheduling} onEdit={openEditModal} onDelete={deletePerson} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -519,6 +593,7 @@ export function TeachersContent() {
           person={editing}
           campId={campId}
           ageGroups={ageGroups}
+          defaultRole={modalDefaultRole}
           onClose={() => { setShowModal(false); setEditing(undefined); }}
           onSaved={load}
         />
