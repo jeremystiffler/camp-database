@@ -69,9 +69,10 @@ const STUDENT_FIELD_IDS = new Set(["f1", "f2", "f3", "f4"]);
 const CONSENT_FIELD_IDS = new Set(["f8", "f9", "f10", "f11", "f12"]);
 const SYSTEM_FIELD_IDS = new Set(["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"]);
 
-function isInputField(field: FormField) {
+const isInputField = (field: FormField) => {
   return !["heading", "subheading", "divider", "pageBreak"].includes(field.type);
-}
+};
+const sectionBreakLabel = (field: FormField) => field.label === "Page break" ? "Section break" : (field.label || "Section break");
 
 function ageMatches(course: Course, ageGroupId: string) {
   if (!ageGroupId) return false;
@@ -460,7 +461,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         {field.helpText && <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-sky-800">{field.helpText}</p>}
       </div>
     );
-    if (field.type === "pageBreak") return <div key={field.id} className="my-6 flex items-center gap-3 text-xs font-black uppercase tracking-wide text-amber-700"><span className="h-px flex-1 bg-amber-200" /><span>{field.label || "Section break"}</span><span className="h-px flex-1 bg-amber-200" /></div>;
+    if (field.type === "pageBreak") return <div key={field.id} className="my-6 flex items-center gap-3 text-xs font-black uppercase tracking-wide text-amber-700"><span className="h-px flex-1 bg-amber-200" /><span>{sectionBreakLabel(field)}</span><span className="h-px flex-1 bg-amber-200" /></div>;
     if (field.type === "divider") return <hr key={field.id} className="border-slate-100" />;
     return (
       <div key={field.id}>

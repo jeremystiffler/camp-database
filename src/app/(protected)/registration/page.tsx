@@ -103,8 +103,10 @@ const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", 
 const LAYOUT_FIELD_TYPES = new Set<FormField["type"]>(["heading", "subheading", "divider", "pageBreak"]);
 const isLayoutField = (field: FormField) => LAYOUT_FIELD_TYPES.has(field.type);
 const cleanOptionLines = (options?: string[]) => (options || []).map(option => option.trim()).filter(Boolean);
+const sectionBreakLabel = (field: FormField) => field.label === "Page break" ? "Section break" : (field.label || "Section break");
 const cleanFieldsForSave = (fields: FormField[]) => fields.map(field => ({
   ...field,
+  label: field.type === "pageBreak" ? sectionBreakLabel(field) : field.label,
   options: field.type === "select" || field.type === "checkbox" ? cleanOptionLines(field.options) : field.options,
 }));
 
@@ -117,7 +119,7 @@ function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id:
       {field.helpText && <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-sky-800">{field.helpText}</p>}
     </div>
   );
-  if (field.type === "pageBreak") return <div className="my-5 flex items-center gap-3 text-xs font-black uppercase tracking-wide text-amber-700"><span className="h-px flex-1 bg-amber-200" /><span>{field.label || "Section break"}</span><span className="h-px flex-1 bg-amber-200" /></div>;
+  if (field.type === "pageBreak") return <div className="my-5 flex items-center gap-3 text-xs font-black uppercase tracking-wide text-amber-700"><span className="h-px flex-1 bg-amber-200" /><span>{sectionBreakLabel(field)}</span><span className="h-px flex-1 bg-amber-200" /></div>;
   if (field.type === "divider") return <hr className="border-slate-200 my-2" />;
   return (
     <div>
@@ -630,7 +632,7 @@ function RegistrationContent() {
                   <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${indentField ? "bg-sky-50 text-sky-600" : field.type === "pageBreak" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
                     {FIELD_ICONS[field.type] || field.type}
                   </span>
-                  <span className={`flex-1 text-sm truncate ${indentField ? "font-medium text-slate-800" : "font-black text-slate-700"}`}>{field.label}</span>
+                  <span className={`flex-1 text-sm truncate ${indentField ? "font-medium text-slate-800" : "font-black text-slate-700"}`}>{field.type === "pageBreak" ? sectionBreakLabel(field) : field.label}</span>
                   {indentField && <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wide text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">field</span>}
                   {field.required && <span className="text-red-400 text-xs">*</span>}
                   {field.system && <span className="text-xs text-slate-300 bg-slate-50 px-1.5 rounded border border-slate-100">system</span>}
