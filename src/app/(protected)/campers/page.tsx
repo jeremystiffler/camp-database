@@ -9,25 +9,52 @@ interface AgeGroup {
   color: string;
 }
 
+interface CampSession {
+  id: string;
+  date?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  course?: { id: string; name: string } | null;
+  room?: { id: string; name: string } | null;
+  sessionTemplate?: { id: string; label?: string | null; dayOfWeek?: number | null; startTime: string; endTime: string } | null;
+}
+
+interface Enrollment {
+  id: string;
+  sessionId: string;
+  status: string;
+  session?: CampSession | null;
+}
+
 interface Camper {
   id: string;
   firstName: string;
   lastName: string;
   fullName: string;
-  guardianName?: string;
-  guardianEmail?: string;
-  guardianPhone?: string;
-  emergencyPhone?: string;
-  tshirtSize?: string;
+  guardianName?: string | null;
+  guardianEmail?: string | null;
+  guardianPhone?: string | null;
+  emergencyPhone?: string | null;
+  tshirtSize?: string | null;
   photoConsent: boolean;
-  medicalNotes?: string;
-  dietaryNotes?: string;
-  dateOfBirth?: string;
+  medicalNotes?: string | null;
+  dietaryNotes?: string | null;
+  customData?: string | null;
+  couponCode?: string | null;
+  campPriceCents?: number;
+  discountCents?: number;
+  platformFeeCents?: number;
+  totalPaidCents?: number;
+  paymentStatus?: string;
+  dateOfBirth?: string | null;
   ageGroup?: AgeGroup | null;
+  enrollments?: Enrollment[];
   createdAt: string;
 }
 
 const TSHIRT_SIZES = ["YXS", "YS", "YM", "YL", "AS", "AM", "AL", "AXL", "A2XL"];
+const PAYMENT_STATUSES = ["not_required", "unpaid", "paid", "refunded", "comped"];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function age(dob: string) {
   const d = new Date(dob);
@@ -36,22 +63,40 @@ function age(dob: string) {
   if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) a--;
   return a;
 }
+function cents(value?: number) { return `$${((value || 0) / 100).toFixed(2)}`; }
+function sessionTitle(session?: CampSession | null) { return session?.course?.name || session?.sessionTemplate?.label || "Untitled session"; }
+function sessionTime(session?: CampSession | null) {
+  const day = session?.date ? new Date(session.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : session?.sessionTemplate?.dayOfWeek != null ? DAYS[session.sessionTemplate.dayOfWeek] : "Any day";
+  const start = session?.startTime || session?.sessionTemplate?.startTime || "";
+  const end = session?.endTime || session?.sessionTemplate?.endTime || "";
+  return `${day}${start || end ? ` · ${start}${end ? `–${end}` : ""}` : ""}`;
+}
+function parseCustomData(raw?: string | null): Record<string, unknown> | null {
+  if (!raw) return null;
+  try { const parsed = JSON.parse(raw); return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null; } catch { return null; }
+}
 
 function CamperDrawer({
   camper,
   campId,
   ageGroups,
+  sessions,
   onClose,
   onSaved,
+  onDeleted,
 }: {
   camper: Camper;
   campId: string;
   ageGroups: AgeGroup[];
+  sessions: CampSession[];
   onClose: () => void;
   onSaved: (camper: Camper) => void;
+  onDeleted: (id: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(camper.id === "__new__");
+  const isNew = camper.id === "__new__";
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     firstName: camper.firstName || "",
@@ -66,17 +111,26 @@ function CamperDrawer({
     photoConsent: camper.photoConsent,
     medicalNotes: camper.medicalNotes || "",
     dietaryNotes: camper.dietaryNotes || "",
+    customData: camper.customData || "",
+    couponCode: camper.couponCode || "",
+    campPriceCents: String(camper.campPriceCents || 0),
+    discountCents: String(camper.discountCents || 0),
+    platformFeeCents: String(camper.platformFeeCents || 0),
+    totalPaidCents: String(camper.totalPaidCents || 0),
+    paymentStatus: camper.paymentStatus || "not_required",
   });
+  const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>((camper.enrollments || []).map(e => e.sessionId));
 
   const update = (key: keyof typeof form, value: string | boolean) => setForm(prev => ({ ...prev, [key]: value }));
+  const toggleSession = (sessionId: string) => setSelectedSessionIds(prev => prev.includes(sessionId) ? prev.filter(id => id !== sessionId) : [...prev, sessionId]);
 
   const save = async () => {
     const firstName = form.firstName.trim();
     const lastName = form.lastName.trim();
     if (!firstName || !lastName) { setError("Student first and last name are required."); return; }
     setSaving(true); setError("");
-    const res = await fetch(`/api/camps/${campId}/campers/${camper.id}`, {
-      method: "PATCH",
+    const res = await fetch(isNew ? `/api/camps/${campId}/campers` : `/api/camps/${campId}/campers/${camper.id}`, {
+      method: isNew ? "POST" : "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         firstName,
@@ -91,12 +145,30 @@ function CamperDrawer({
         photoConsent: form.photoConsent,
         medicalNotes: form.medicalNotes.trim() || null,
         dietaryNotes: form.dietaryNotes.trim() || null,
+        customData: form.customData.trim() || null,
+        couponCode: form.couponCode.trim() || null,
+        campPriceCents: Number(form.campPriceCents) || 0,
+        discountCents: Number(form.discountCents) || 0,
+        platformFeeCents: Number(form.platformFeeCents) || 0,
+        totalPaidCents: Number(form.totalPaidCents) || 0,
+        paymentStatus: form.paymentStatus,
+        sessionIds: selectedSessionIds,
       }),
     });
     const data = await res.json().catch(() => ({}));
     setSaving(false);
     if (res.ok) { onSaved(data); setEditing(false); }
-    else setError(data.detail || data.error || "Could not update this registration submission.");
+    else setError(data.detail || data.error || "Could not update this camper.");
+  };
+
+  const remove = async () => {
+    if (!confirm(`Delete ${camper.firstName} ${camper.lastName}? This removes the camper and their registration choices.`)) return;
+    setDeleting(true); setError("");
+    const res = await fetch(`/api/camps/${campId}/campers/${camper.id}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setDeleting(false);
+    if (res.ok) onDeleted(camper.id);
+    else setError(data.detail || data.error || "Could not delete this camper.");
   };
 
   const inputCls = "w-full px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30";
@@ -117,7 +189,8 @@ function CamperDrawer({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {!editing && <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100">Edit Submission</button>}
+            {!editing && <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100">Edit Camper</button>}
+            {!editing && !isNew && <button onClick={remove} disabled={deleting} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 disabled:opacity-50">{deleting ? "Deleting…" : "Delete"}</button>}
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">✕</button>
           </div>
         </div>
@@ -188,10 +261,63 @@ function CamperDrawer({
             )}
           </section>
 
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Registration Choices</h3>
+            {editing ? (
+              <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-100 divide-y divide-slate-100">
+                {sessions.length === 0 ? <p className="text-sm text-slate-400 p-3">No scheduled sessions yet.</p> : sessions.map((session) => (
+                  <label key={session.id} className="flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer">
+                    <input type="checkbox" className="mt-1" checked={selectedSessionIds.includes(session.id)} onChange={() => toggleSession(session.id)} />
+                    <div>
+                      <div className="text-sm font-semibold text-slate-800">{sessionTitle(session)}</div>
+                      <div className="text-xs text-slate-500">{sessionTime(session)}{session.room?.name ? ` · ${session.room.name}` : ""}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(camper.enrollments || []).length === 0 ? <p className="text-sm text-slate-400">No registration choices selected.</p> : (camper.enrollments || []).map((enrollment) => (
+                  <div key={enrollment.id} className="rounded-xl border border-slate-100 px-3 py-2">
+                    <div className="text-sm font-semibold text-slate-800">{sessionTitle(enrollment.session)}</div>
+                    <div className="text-xs text-slate-500">{sessionTime(enrollment.session)}{enrollment.session?.room?.name ? ` · ${enrollment.session.room.name}` : ""}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 p-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Payment and Custom Data</h3>
+            {editing ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input className={inputCls} placeholder="Coupon code" value={form.couponCode} onChange={e => update("couponCode", e.target.value)} />
+                <select className={inputCls} value={form.paymentStatus} onChange={e => update("paymentStatus", e.target.value)}>{PAYMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select>
+                <input className={inputCls} type="number" placeholder="Camp price cents" value={form.campPriceCents} onChange={e => update("campPriceCents", e.target.value)} />
+                <input className={inputCls} type="number" placeholder="Discount cents" value={form.discountCents} onChange={e => update("discountCents", e.target.value)} />
+                <input className={inputCls} type="number" placeholder="Platform fee cents" value={form.platformFeeCents} onChange={e => update("platformFeeCents", e.target.value)} />
+                <input className={inputCls} type="number" placeholder="Total paid cents" value={form.totalPaidCents} onChange={e => update("totalPaidCents", e.target.value)} />
+                <textarea className={inputCls + " resize-none sm:col-span-2 font-mono"} rows={4} placeholder='Custom form data JSON' value={form.customData} onChange={e => update("customData", e.target.value)} />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid sm:grid-cols-2 gap-2.5">
+                  <Info label="Status" value={camper.paymentStatus || "not_required"} />
+                  <Info label="Coupon" value={camper.couponCode || "—"} />
+                  <Info label="Camp price" value={cents(camper.campPriceCents)} />
+                  <Info label="Discount" value={cents(camper.discountCents)} />
+                  <Info label="Platform fee" value={cents(camper.platformFeeCents)} />
+                  <Info label="Total paid" value={cents(camper.totalPaidCents)} />
+                </div>
+                {parseCustomData(camper.customData) ? <div className="grid sm:grid-cols-2 gap-2">{Object.entries(parseCustomData(camper.customData) || {}).map(([key, value]) => <Info key={key} label={key} value={String(value ?? "—")} />)}</div> : camper.customData ? <Note label="Custom Data" value={camper.customData} tone="sunset" /> : null}
+              </div>
+            )}
+          </section>
+
           {editing && (
             <div className="sticky bottom-0 bg-white border-t border-slate-100 py-4 flex gap-3">
-              <button onClick={() => { setEditing(false); setError(""); }} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button onClick={save} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60">{saving ? "Saving…" : "Save Submission"}</button>
+              <button onClick={() => { if (isNew) onClose(); else setEditing(false); setError(""); }} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button onClick={save} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60">{saving ? "Saving…" : isNew ? "Add Camper" : "Save Camper"}</button>
             </div>
           )}
         </div>
@@ -216,11 +342,13 @@ function CampersContent() {
 
   const [campers, setCampers] = useState<Camper[]>([]);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>([]);
+  const [sessions, setSessions] = useState<CampSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterAge, setFilterAge] = useState("");
   const [filterSize, setFilterSize] = useState("");
   const [selectedCamper, setSelectedCamper] = useState<Camper | null>(null);
+  const [addingCamper, setAddingCamper] = useState(false);
   const [sortField, setSortField] = useState<"lastName" | "createdAt">("lastName");
 
   const load = () => {
@@ -229,9 +357,11 @@ function CampersContent() {
     Promise.all([
       fetch(`/api/camps/${campId}/campers`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/age-groups`).then((r) => r.json()),
-    ]).then(([c, ag]) => {
+      fetch(`/api/camps/${campId}/sessions`).then((r) => r.json()),
+    ]).then(([c, ag, sess]) => {
       setCampers(Array.isArray(c) ? c : []);
       setAgeGroups(Array.isArray(ag) ? ag : []);
+      setSessions(Array.isArray(sess) ? sess : []);
       setLoading(false);
     }).catch(() => setLoading(false));
   };
@@ -275,6 +405,7 @@ function CampersContent() {
           <p className="text-slate-500 text-sm mt-0.5">{campers.length} registered</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => setAddingCamper(true)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800">+ Add Camper</button>
           <button
             onClick={() => {
               const csv = [
@@ -367,6 +498,8 @@ function CampersContent() {
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Camper</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Age Group</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Guardian</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Choices</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Payment</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">T-Shirt</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Photo</th>
                 <th className="px-4 py-3" />
@@ -397,6 +530,14 @@ function CampersContent() {
                     <div className="text-slate-400 text-xs">{camper.guardianEmail || "—"}</div>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
+                    <div className="text-slate-800">{camper.enrollments?.length || 0} selected</div>
+                    <div className="text-slate-400 text-xs max-w-[180px] truncate">{(camper.enrollments || []).map(e => sessionTitle(e.session)).join(" · ") || "—"}</div>
+                  </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    <div className="text-slate-800">{camper.paymentStatus || "not_required"}</div>
+                    <div className="text-slate-400 text-xs">{cents(camper.totalPaidCents)}</div>
+                  </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
                     <span className="text-slate-600">{camper.tshirtSize || "—"}</span>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
@@ -419,15 +560,30 @@ function CampersContent() {
         </div>
       )}
 
-      {selectedCamper && (
+      {(selectedCamper || addingCamper) && (
         <CamperDrawer
-          camper={selectedCamper}
+          camper={selectedCamper || {
+            id: "__new__",
+            firstName: "",
+            lastName: "",
+            fullName: "",
+            photoConsent: false,
+            createdAt: new Date().toISOString(),
+            enrollments: [],
+          }}
           campId={campId}
           ageGroups={ageGroups}
-          onClose={() => setSelectedCamper(null)}
+          sessions={sessions}
+          onClose={() => { setSelectedCamper(null); setAddingCamper(false); }}
           onSaved={(updated) => {
-            setCampers(prev => prev.map(c => c.id === updated.id ? updated : c));
+            setCampers(prev => prev.some(c => c.id === updated.id) ? prev.map(c => c.id === updated.id ? updated : c) : [...prev, updated]);
             setSelectedCamper(updated);
+            setAddingCamper(false);
+          }}
+          onDeleted={(id) => {
+            setCampers(prev => prev.filter(c => c.id !== id));
+            setSelectedCamper(null);
+            setAddingCamper(false);
           }}
         />
       )}
