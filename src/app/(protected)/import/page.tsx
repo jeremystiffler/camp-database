@@ -467,7 +467,7 @@ function ImportContent() {
 
       {/* ── Beta warning ── */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
-        <span className="text-xl flex-shrink-0">⚠️</span>
+        <span className="text-xl flex-shrink-0"></span>
         <div>
           <p className="text-sm font-semibold text-amber-800">Beta Feature</p>
           <p className="text-xs text-amber-700 mt-0.5">
@@ -491,7 +491,7 @@ function ImportContent() {
         {/* Column guide */}
         <details className="mb-5">
           <summary className="text-xs font-semibold text-slate-500 cursor-pointer hover:text-slate-700 select-none mb-2">
-            📋 Column Reference (click to expand)
+             Column Reference (click to expand)
           </summary>
           <div className="overflow-x-auto mt-2">
             <table className="w-full text-xs">
@@ -531,7 +531,7 @@ function ImportContent() {
               <span className="text-4xl mb-2 block">📂</span>
               <p className="text-sm font-semibold text-slate-700 mb-1">Drop your file here or click to browse</p>
               <p className="text-xs text-slate-400">Supports .xlsx, .xls, .csv</p>
-              {fileName && <p className="text-xs text-forest-600 font-semibold mt-2">📄 {fileName}</p>}
+              {fileName && <p className="text-xs text-forest-600 font-semibold mt-2">File: {fileName}</p>}
             </div>
 
             {parseError && <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-4 text-sm text-red-700">{parseError}</div>}
@@ -542,8 +542,8 @@ function ImportContent() {
                 <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                   <div>
                     <span className="text-sm font-semibold text-slate-700">{rows.length} row{rows.length !== 1 ? "s" : ""} parsed</span>
-                    <span className="text-xs text-forest-600 ml-3">✅ {validRows.length} valid</span>
-                    {invalidRows.length > 0 && <span className="text-xs text-red-500 ml-2">⚠️ {invalidRows.length} missing activity_name</span>}
+                    <span className="text-xs text-forest-600 ml-3"> {validRows.length} valid</span>
+                    {invalidRows.length > 0 && <span className="text-xs text-red-500 ml-2"> {invalidRows.length} missing activity_name</span>}
                   </div>
                   <button onClick={reset} className="text-xs text-slate-400 hover:text-slate-600">✕ Clear</button>
                 </div>
@@ -603,7 +603,7 @@ function ImportContent() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { icon: "✅", label: "Activities created",  val: result.coursesCreated  },
+                { icon: "", label: "Activities created",  val: result.coursesCreated  },
                 { icon: "🔄", label: "Activities updated",  val: result.coursesUpdated  },
                 { icon: "👤", label: "People added",        val: result.teachersCreated },
                 { icon: "📍", label: "Rooms created",       val: result.roomsCreated    },
@@ -617,7 +617,7 @@ function ImportContent() {
             </div>
             {result.errors.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                <p className="text-sm font-semibold text-red-700 mb-2">⚠️ {result.errors.length} row{result.errors.length !== 1 ? "s" : ""} had errors:</p>
+                <p className="text-sm font-semibold text-red-700 mb-2"> {result.errors.length} row{result.errors.length !== 1 ? "s" : ""} had errors:</p>
                 <ul className="space-y-1">{result.errors.map((e, i) => <li key={i} className="text-xs text-red-600">• {e}</li>)}</ul>
               </div>
             )}

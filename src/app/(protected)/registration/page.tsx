@@ -49,7 +49,7 @@ type EmailBlockType = "hero" | "text" | "studentSchedule" | "guardian" | "emerge
 type EmailTemplateBlock = { id: string; type: EmailBlockType; title?: string; content?: string; enabled?: boolean };
 
 const FIELD_ICONS: Record<string, string> = {
-  text: "Aa", email: "@", tel: "📞", date: "📅", number: "#", url: "🔗", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
+  text: "Aa", email: "@", tel: "📞", date: "Date", number: "#", url: "🔗", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
 };
 
 type AddFieldCategory = "Basic" | "Contact" | "Choice" | "Camp" | "Consent" | "Layout";
@@ -71,7 +71,7 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
   { category: "Basic", type: "text", label: "Short text", icon: "Aa", description: "Single-line answer", defaults: { label: "Short answer", placeholder: "Type your answer" } },
   { category: "Basic", type: "textarea", label: "Long text", icon: "¶", description: "Paragraph answer", defaults: { label: "Long answer", placeholder: "Type details here" } },
   { category: "Basic", type: "number", label: "Number", icon: "#", description: "Numeric answer", defaults: { label: "Number", placeholder: "0" } },
-  { category: "Basic", type: "date", label: "Date picker", icon: "📅", description: "Calendar date", defaults: { label: "Date" } },
+  { category: "Basic", type: "date", label: "Date picker", icon: "Date", description: "Calendar date", defaults: { label: "Date" } },
   { category: "Basic", type: "url", label: "Website / link", icon: "🔗", description: "URL field", defaults: { label: "Website", placeholder: "https://" } },
 
   { category: "Contact", type: "text", label: "Full name", icon: "👤", description: "Person name", defaults: { label: "Full name", placeholder: "First and last name" } },
@@ -98,7 +98,7 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
   { category: "Camp", type: "text", label: "Insurance info", icon: "🛡️", description: "Policy details", defaults: { label: "Insurance provider / policy", placeholder: "Optional, if your camp collects it" } },
 
   { category: "Consent", type: "checkbox", label: "Transportation permission", icon: "🚌", description: "Travel consent", defaults: { label: "Transportation permission", checkboxDescription: "I give permission for camp-provided transportation when applicable." } },
-  { category: "Consent", type: "checkbox", label: "Medical consent", icon: "✅", description: "Emergency care", defaults: { label: "Medical consent", checkboxDescription: "I authorize camp staff to seek emergency medical care if needed.", required: true } },
+  { category: "Consent", type: "checkbox", label: "Medical consent", icon: "Required", description: "Emergency care", defaults: { label: "Medical consent", checkboxDescription: "I authorize camp staff to seek emergency medical care if needed.", required: true } },
   { category: "Consent", type: "checkbox", label: "Code of conduct", icon: "🤝", description: "Behavior agreement", defaults: { label: "Code of conduct", checkboxDescription: "I have reviewed the camp expectations with my camper and agree to support them.", required: true } },
 ];
 
@@ -482,7 +482,7 @@ function RegistrationContent() {
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">📋</span><p>Select a camp to manage its registration form.</p></div>
+      <div className="text-center"><span className="text-4xl mb-3 block">Form</span><p>Select a camp to manage its registration form.</p></div>
     </div>
   );
 
@@ -529,8 +529,8 @@ function RegistrationContent() {
           <div className="border-b border-slate-100 bg-slate-50/70 p-3 lg:border-b-0 lg:border-r">
             {[
               { key: "publish", title: "Basics & link", desc: formStatus === "draft" ? "Not live" : "Ready to share", icon: "🔗" },
-              { key: "classes", title: "Class choices", desc: classChoicesEnabled ? `${mandatoryClassRules.length} required rule${mandatoryClassRules.length === 1 ? "" : "s"}` : "Disabled", icon: "🎯" },
-              { key: "family", title: "Family mode", desc: familyRegistrationEnabled ? "Multiple students" : "Single student", icon: "👨‍👩‍👧‍👦" },
+              { key: "classes", title: "Class choices", desc: classChoicesEnabled ? `${mandatoryClassRules.length} required rule${mandatoryClassRules.length === 1 ? "" : "s"}` : "Disabled", icon: "Classes" },
+              { key: "family", title: "Family mode", desc: familyRegistrationEnabled ? "Multiple students" : "Single student", icon: "Family" },
               { key: "email", title: "Confirmation email", desc: adminNotificationEmails.trim() ? "Family + admin alerts" : "Subject, intro, sections", icon: "✉️" },
             ].map(item => (
               <button

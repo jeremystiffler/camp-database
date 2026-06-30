@@ -78,7 +78,7 @@ function ScheduleContent() {
     return (
       <div className="flex items-center justify-center h-64 text-slate-400">
         <div className="text-center">
-          <span className="text-4xl mb-3 block">📅</span>
+          <span className="text-4xl mb-3 block">Date</span>
           <p>Select a camp to view its schedule.</p>
         </div>
       </div>
@@ -149,7 +149,7 @@ function ScheduleContent() {
         </div>
       ) : sessions.length === 0 ? (
         <div className="camp-card p-12 text-center">
-          <span className="text-5xl mb-4 block">📅</span>
+          <span className="text-5xl mb-4 block">Date</span>
           <h3 className="font-bold text-slate-700 mb-2">No sessions scheduled yet</h3>
           <p className="text-slate-400 text-sm mb-2">Sessions are created from session templates + activities.</p>
           <p className="text-slate-400 text-sm">
@@ -165,7 +165,7 @@ function ScheduleContent() {
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
                 style={{ backgroundColor: session.course?.color || "#94a3b8" }}
               >
-                {session.course?.icon || "📅"}
+                {session.course?.icon || "Date"}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-800 truncate">{session.course?.name || "Unassigned"}</p>
@@ -201,7 +201,7 @@ function ScheduleContent() {
                           className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm flex-shrink-0"
                           style={{ backgroundColor: session.course?.color || "#94a3b8" }}
                         >
-                          {session.course?.icon || "📅"}
+                          {session.course?.icon || "Date"}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-slate-800 text-sm truncate">{session.course?.name || "Unassigned"}</p>

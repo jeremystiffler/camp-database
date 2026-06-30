@@ -219,11 +219,11 @@ function SendScheduleModal({ person, campId, onClose }: {
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
           <div>
-            <h2 className="font-bold text-lg text-slate-800">📧 Send Schedule to {person.firstName}</h2>
+            <h2 className="font-bold text-lg text-slate-800">Email Send Schedule to {person.firstName}</h2>
             <p className="text-sm text-slate-500 mt-0.5">
               {person.email
                 ? <>Will send to <strong className="text-slate-700">{person.email}</strong></>
-                : <span className="text-amber-600 font-medium">⚠️ No email on file — edit teacher to add one</span>}
+                : <span className="text-amber-600 font-medium"> No email on file — edit teacher to add one</span>}
             </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 text-lg">✕</button>
@@ -239,7 +239,7 @@ function SendScheduleModal({ person, campId, onClose }: {
 
           {!loading && sent && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <span className="text-6xl mb-4">✅</span>
+              <span className="text-6xl mb-4"></span>
               <h3 className="font-bold text-lg text-slate-800 mb-1">Email Sent!</h3>
               <p className="text-slate-500 text-sm">Schedule delivered to {person.email}</p>
             </div>
@@ -297,7 +297,7 @@ function SendScheduleModal({ person, campId, onClose }: {
                           {course.campers.map((c, i) => (
                             <span key={i} className="text-xs bg-white border border-slate-200 rounded-full px-2.5 py-1 text-slate-700">
                               {c.firstName} {c.lastName}
-                              {c.medicalNotes && <span className="text-red-500 ml-1">⚠️</span>}
+                              {c.medicalNotes && <span className="text-red-500 ml-1"></span>}
                             </span>
                           ))}
                         </div>
@@ -334,7 +334,7 @@ function SendScheduleModal({ person, campId, onClose }: {
               {sending ? (
                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending...</>
               ) : (
-                <>📧 Send Schedule Email</>
+                <>Email Send Schedule Email</>
               )}
             </button>
           </div>
@@ -414,13 +414,13 @@ function PersonRow({ person: p, roleColors, onSchedule, onEdit, onDelete }: {
         <div className="flex items-center gap-2 md:justify-end">
           <button onClick={() => onSchedule(p)}
             title="Send schedule email"
-            className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold transition-colors">📧 Schedule</button>
+            className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold transition-colors">Email Schedule</button>
           <button onClick={() => onEdit(p)}
             title="Edit person"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">✏️</button>
+            className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">Edit</button>
           <button onClick={() => onDelete(p.id)}
             title="Remove person"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 text-sm">🗑️</button>
+            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 text-sm">Delete</button>
         </div>
       </div>
     </div>

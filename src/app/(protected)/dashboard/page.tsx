@@ -116,7 +116,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100">
-          <h2 className="font-bold text-lg text-slate-800">📋 Copy Camp</h2>
+          <h2 className="font-bold text-lg text-slate-800">Copy Camp</h2>
           <p className="text-sm text-slate-500 mt-0.5">Copying from <strong>{sourceCamp.name}</strong></p>
         </div>
 
@@ -177,7 +177,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
                 {copying
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Copying…</>
-                  : "📋 Copy Camp"}
+                  : "Copy Camp"}
               </button>
             </div>
           </>
@@ -228,7 +228,7 @@ function CampCard({ camp, onCopy }: { camp: Camp; onCopy: (camp: Camp) => void }
         onClick={e => { e.preventDefault(); onCopy(camp); }}
         title="Copy this camp"
         className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 hover:text-sky-500 hover:bg-sky-50 transition-colors opacity-0 group-hover:opacity-100 text-sm z-10">
-        📋
+        
       </button>
 
       <Link href={`/activities?campId=${camp.id}`} className="block">
@@ -373,7 +373,7 @@ function DashboardContent() {
           </div>
         ) : camps.length === 0 ? (
           <div className="camp-card p-12 text-center">
-            <span className="text-5xl mb-4 block">🏕️</span>
+            <span className="text-5xl mb-4 block"></span>
             <h3 className="font-bold text-slate-700 mb-2">No camps yet</h3>
             <p className="text-slate-400 text-sm mb-5">Create your first camp to get started.</p>
             <button onClick={() => setShowNewCamp(true)}

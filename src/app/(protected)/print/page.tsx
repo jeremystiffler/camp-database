@@ -54,7 +54,7 @@ function PrintContent() {
   if (!campId) {
     return (
       <div className="flex items-center justify-center h-64 text-slate-400">
-        <div className="text-center"><span className="text-4xl mb-3 block">🖨️</span><p>Select a camp to print materials.</p></div>
+        <div className="text-center"><span className="text-4xl mb-3 block"></span><p>Select a camp to print materials.</p></div>
       </div>
     );
   }
@@ -97,7 +97,7 @@ function PrintContent() {
             {[
               {
                 id: "roster",
-                icon: "📋",
+                icon: "",
                 title: "Camper Roster",
                 desc: `Full alphabetical list of ${campers.length} campers with guardian info and age groups.`,
                 gradient: "stat-forest",
@@ -113,7 +113,7 @@ function PrintContent() {
               },
               {
                 id: "activities",
-                icon: "🎯",
+                icon: "",
                 title: "Activity List",
                 desc: `${courses.length} activities with rooms, teachers, and capacity.`,
                 gradient: "stat-sunset",
@@ -139,7 +139,7 @@ function PrintContent() {
                   disabled={!doc.available}
                   className="w-full py-2 bg-slate-800 text-white rounded-xl text-sm font-semibold hover:bg-slate-700 transition-colors disabled:cursor-not-allowed"
                 >
-                  🖨️ Print {doc.title}
+                   Print {doc.title}
                 </button>
               </div>
             ))}
@@ -223,7 +223,7 @@ function PrintContent() {
           <div className="grid grid-cols-3 gap-2">
             {[...campers].sort((a, b) => a.lastName.localeCompare(b.lastName)).map((c) => (
               <div key={c.id} className="border-2 border-black rounded p-3 text-center" style={{ height: "96px" }}>
-                <div className="text-xs text-gray-500 uppercase tracking-wider">🏕️ Creator&apos;s Camp</div>
+                <div className="text-xs text-gray-500 uppercase tracking-wider"> Creator&apos;s Camp</div>
                 <div className="text-lg font-bold mt-1 leading-tight">{c.firstName}</div>
                 <div className="text-sm text-gray-600">{c.lastName}</div>
                 {c.ageGroup && <div className="text-xs mt-1 bg-gray-100 rounded px-1">{c.ageGroup.name}</div>}

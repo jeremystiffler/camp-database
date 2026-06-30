@@ -162,7 +162,7 @@ function SetupContent() {
   const [newAgeName,  setNewAgeName]  = useState("");
   const [newAgeMin,   setNewAgeMin]   = useState("");
   const [newAgeMax,   setNewAgeMax]   = useState("");
-  const [newAgeColor, setNewAgeColor] = useState("#22C55E");
+  const [newAgeColor, setNewAgeColor] = useState("#6B7D5F");
 
   // Age group inline editing
   const [editingAgeGroupId, setEditingAgeGroupId] = useState<string | null>(null);
@@ -663,7 +663,7 @@ function SetupContent() {
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">🏕️</span><p>Select a camp to configure it.</p></div>
+      <div className="text-center"><span className="text-4xl mb-3 block"></span><p>Select a camp to configure it.</p></div>
     </div>
   );
 
@@ -749,7 +749,7 @@ function SetupContent() {
             >
               <span className="mb-1 flex items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wide">
                 <span>{index + 1}. {step.shortLabel}</span>
-                <span>{step.done ? "✓" : step.locked ? "🔒" : "○"}</span>
+                <span>{step.done ? "Done" : step.locked ? "Locked" : "Open"}</span>
               </span>
               <span className="block truncate text-sm font-black">{step.label}</span>
               <span className={`mt-0.5 block text-[11px] ${activeTab === step.key ? "text-white/60" : "text-slate-400"}`}>{step.help}</span>
@@ -792,15 +792,15 @@ function SetupContent() {
             <div className="flex items-center gap-2 mt-5">
               <button type="button" role="switch" aria-checked={registrationOpen}
                 onClick={() => setRegistrationOpen(v => !v)}
-                className={`relative w-10 h-5 rounded-full transition-colors ${registrationOpen ? "bg-forest-500" : "bg-slate-200"}`}>
+                className={`relative w-10 h-5 rounded-full transition-colors ${registrationOpen ? "bg-slate-900" : "bg-slate-200"}`}>
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${registrationOpen ? "translate-x-5" : ""}`} />
               </button>
               <span className="text-sm font-medium text-slate-700">Registration Open</span>
             </div>
           </div>
           <button onClick={() => saveCamp()} disabled={saving}
-            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-forest-500 text-white" : "bg-gradient-to-r from-berry-500 to-berry-600 text-white hover:opacity-90"} disabled:opacity-60`}>
-            {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Changes"}
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-slate-900 text-white" : "bg-slate-900 text-white hover:bg-slate-800"} disabled:opacity-60`}>
+            {saved ? "Saved" : saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </Section>
@@ -849,7 +849,7 @@ function SetupContent() {
                 />
               </label>
               <div className="flex items-center gap-2 md:justify-end">
-                <button type="button" onClick={() => deleteRoom(room.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">🗑️</button>
+                <button type="button" onClick={() => deleteRoom(room.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">Delete</button>
               </div>
             </div>
           ))}
@@ -870,7 +870,7 @@ function SetupContent() {
             <input type="text" value={newRoomDesc} onChange={e => setNewRoomDesc(e.target.value)} placeholder="e.g. North wing"
               className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
-          <button type="submit" className="px-4 py-2 bg-forest-500 text-white rounded-xl text-sm font-semibold hover:bg-forest-600 transition-colors">
+          <button type="submit" className="minimal-button-primary">
             + Add Room
           </button>
         </form>
@@ -900,8 +900,8 @@ function SetupContent() {
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => saveAgeGroupName(ag.id)} className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-600">
-                        ✓ Save name
+                      <button type="button" onClick={() => saveAgeGroupName(ag.id)} className="minimal-button-primary">
+                        Save name
                       </button>
                       <button type="button" onClick={() => setEditingAgeGroupId(null)} className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-200">
                         Cancel
@@ -938,8 +938,8 @@ function SetupContent() {
                         </button>
                         <span className="text-xs text-slate-500 whitespace-nowrap">No classes</span>
                       </label>
-                      <button type="button" onClick={() => startEditAgeGroup(ag)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-sky-50 hover:text-sky-600" title="Rename age group">✏️ Rename</button>
-                      <button type="button" onClick={() => deleteAgeGroup(ag.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">🗑️</button>
+                      <button type="button" onClick={() => startEditAgeGroup(ag)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-sky-50 hover:text-sky-600" title="Rename age group">Rename</button>
+                      <button type="button" onClick={() => deleteAgeGroup(ag.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">Delete</button>
                     </div>
                   </div>
                 )}
@@ -967,7 +967,7 @@ function SetupContent() {
             <input type="color" value={newAgeColor} onChange={e => setNewAgeColor(e.target.value)}
               className="w-10 h-9 border border-slate-200 rounded-xl cursor-pointer" />
           </div>
-          <button type="submit" className="px-4 py-2 bg-forest-500 text-white rounded-xl text-sm font-semibold hover:bg-forest-600 transition-colors">
+          <button type="submit" className="minimal-button-primary">
             + Add Group
           </button>
         </form>
@@ -984,7 +984,7 @@ function SetupContent() {
         {/* No dates warning */}
         {campDates.length === 0 && (
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 mb-4">
-            <span className="text-lg">📅</span>
+            <span className="text-lg"></span>
             <span>Set your camp <strong>Start Date</strong> and <strong>End Date</strong> above to use the schedule grid.</span>
           </div>
         )}
@@ -1098,7 +1098,7 @@ function SetupContent() {
                                 onClick={() => deleteSessionRow(row)}
                                 className="mt-1 text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 text-xs"
                                 title="Delete session"
-                              >🗑️</button>
+                              >Delete</button>
                             </div>
                             <div className="flex flex-wrap items-center gap-2 pl-2">
                               <button
@@ -1334,7 +1334,7 @@ function SetupContent() {
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {setupSteps.slice(0, 8).map(step => (
                 <button key={step.key} type="button" onClick={() => setActiveTab(step.key)} className={`rounded-xl border px-3 py-2 text-left text-sm transition ${step.done ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"}`}>
-                  <span className="font-black">{step.done ? "✓" : "⚠️"} {step.label}</span>
+                  <span className="font-black">{step.done ? "Done" : "Needs"} {step.label}</span>
                   <span className="mt-0.5 block text-xs opacity-75">{step.done ? "Ready" : step.help}</span>
                 </button>
               ))}
@@ -1348,7 +1348,7 @@ function SetupContent() {
                   onClick={() => saveCamp({ registrationOpen: true, status: "published" })}
                   className="rounded-xl bg-forest-500 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-forest-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {registrationOpen ? "✓ Registration is open" : saving ? "Opening..." : "Open registration"}
+                  {registrationOpen ? "Registration is open" : saving ? "Opening..." : "Open registration"}
                 </button>
                 <Link href={`/registration?campId=${campId}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Manage registration settings</Link>
                 <Link href={`/print?campId=${campId}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Print materials →</Link>

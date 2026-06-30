@@ -30,15 +30,15 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const AGE_COLORS = [
-  "#22C55E", "#0EA5E9", "#F97316", "#A855F7",
-  "#EAB308", "#EC4899", "#14B8A6", "#6366F1",
+  "#64748B", "#78716C", "#6B7D5F", "#7A8060",
+  "#A1624A", "#9A7A3D", "#607A8C", "#7A667A",
 ];
 
 const STEPS = [
-  { num: 1, label: "Camp Info",   icon: "🏕️" },
-  { num: 2, label: "Age Groups",  icon: "👦" },
-  { num: 3, label: "Rooms",       icon: "📍" },
-  { num: 4, label: "Time Slots",  icon: "⏰" },
+  { num: 1, label: "Camp Info",   icon: "1" },
+  { num: 2, label: "Age Groups",  icon: "2" },
+  { num: 3, label: "Rooms",       icon: "3" },
+  { num: 4, label: "Time Slots",  icon: "4" },
 ];
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -50,16 +50,16 @@ function StepIndicator({ current }: { current: number }) {
         <div key={s.num} className="flex items-center gap-1">
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
             s.num === current
-              ? "bg-forest-500 text-white shadow-sm"
+              ? "bg-slate-900 text-white shadow-sm"
               : s.num < current
-              ? "bg-forest-100 text-forest-700"
+              ? "bg-stone-200 text-stone-700"
               : "bg-slate-100 text-slate-400"
           }`}>
             <span>{s.icon}</span>
             <span className="hidden sm:inline">{s.label}</span>
           </div>
           {i < STEPS.length - 1 && (
-            <div className={`w-6 h-px ${s.num < current ? "bg-forest-300" : "bg-slate-200"}`} />
+            <div className={`w-6 h-px ${s.num < current ? "bg-stone-400" : "bg-slate-200"}`} />
           )}
         </div>
       ))}
@@ -157,7 +157,7 @@ function Step2({
           {groups.map((g, i) => (
             <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
               <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: g.color }} />
+                <div className="ui-age-dot w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: g.color }} />
                 <span className="font-medium text-slate-800 text-sm">{g.name}</span>
                 {(g.minAge || g.maxAge) && (
                   <span className="text-xs text-slate-400">
@@ -213,7 +213,7 @@ function Step2({
                 key={c}
                 type="button"
                 onClick={() => setColor(c)}
-                className={`w-6 h-6 rounded-full border-2 transition-transform ${color === c ? "border-slate-700 scale-110" : "border-transparent"}`}
+                className={`ui-age-dot w-6 h-6 rounded-full border-2 transition-transform ${color === c ? "border-slate-900 scale-110" : "border-transparent"}`}
                 style={{ backgroundColor: c }}
               />
             ))}
@@ -231,7 +231,7 @@ function Step2({
 
       {groups.length === 0 && (
         <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-4 py-3">
-          ⚠️ At least one age group is required to assign campers and activities.
+          At least one age group is required to assign campers and activities.
         </p>
       )}
     </div>
@@ -330,7 +330,7 @@ function Step3({
 
       {rooms.length === 0 && (
         <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-4 py-3">
-          ⚠️ At least one room is required before you can create activities.
+          At least one room is required before you can create activities.
         </p>
       )}
     </div>
@@ -392,7 +392,6 @@ function Step4({
             return (
               <div key={key} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-base">⏰</span>
                   <span className="font-medium text-slate-800 text-sm">{first.label}</span>
                   <span className="text-xs text-slate-500 font-mono">{first.startTime} – {first.endTime}</span>
                   <div className="flex gap-1">
@@ -484,7 +483,7 @@ function Step4({
 
       {slots.length === 0 && (
         <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-4 py-3">
-          ⚠️ At least one time slot is required to build your schedule.
+          At least one time slot is required to build your schedule.
         </p>
       )}
     </div>
@@ -642,7 +641,7 @@ export default function NewCampWizard({ onClose, onCreated }: {
               <button
                 onClick={() => setStep(step + 1)}
                 disabled={!canNext()}
-                className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity"
+                className="minimal-button-primary disabled:opacity-40"
               >
                 Next →
               </button>
@@ -650,9 +649,9 @@ export default function NewCampWizard({ onClose, onCreated }: {
               <button
                 onClick={handleFinish}
                 disabled={loading || slots.length === 0}
-                className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-sky-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity"
+                className="minimal-button-primary disabled:opacity-40"
               >
-                {loading ? "Creating..." : "🚀 Launch Camp"}
+                {loading ? "Creating..." : "Create Camp"}
               </button>
             )}
           </div>

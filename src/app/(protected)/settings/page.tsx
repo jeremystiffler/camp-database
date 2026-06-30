@@ -47,12 +47,12 @@ interface Coupon {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const COLOR_THEMES = [
-  { name: "Forest & Sky",   primary: "#22C55E", accent: "#0EA5E9", preview: ["#22C55E","#0EA5E9"] },
-  { name: "Sunset Blaze",   primary: "#F97316", accent: "#EAB308", preview: ["#F97316","#EAB308"] },
-  { name: "Berry & Violet", primary: "#A855F7", accent: "#EC4899", preview: ["#A855F7","#EC4899"] },
-  { name: "Ocean Deep",     primary: "#0EA5E9", accent: "#14B8A6", preview: ["#0EA5E9","#14B8A6"] },
-  { name: "Campfire",       primary: "#F0894A", accent: "#E8A84C", preview: ["#F0894A","#E8A84C"] },
-  { name: "Midnight",       primary: "#6366F1", accent: "#8B5CF6", preview: ["#6366F1","#8B5CF6"] },
+  { name: "Slate",      primary: "#64748B", accent: "#475569", preview: ["#64748B","#475569"] },
+  { name: "Stone",      primary: "#78716C", accent: "#57534E", preview: ["#78716C","#57534E"] },
+  { name: "Sage",       primary: "#6B7D5F", accent: "#4F6F56", preview: ["#6B7D5F","#4F6F56"] },
+  { name: "Moss",       primary: "#7A8060", accent: "#5F6548", preview: ["#7A8060","#5F6548"] },
+  { name: "Clay",       primary: "#A1624A", accent: "#7C4A3A", preview: ["#A1624A","#7C4A3A"] },
+  { name: "Blue Gray",  primary: "#607A8C", accent: "#465E6F", preview: ["#607A8C","#465E6F"] },
 ];
 
 const FONT_OPTIONS = [
@@ -95,7 +95,7 @@ function SettingsContent() {
   const [profileMsg,      setProfileMsg]      = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // ── Camp appearance state ──
-  const [appearance,      setAppearance]      = useState<CampAppearance>({ primaryColor: "#22C55E", accentColor: "#0EA5E9", fontFamily: "Inter" });
+  const [appearance,      setAppearance]      = useState<CampAppearance>({ primaryColor: "#64748B", accentColor: "#475569", fontFamily: "Inter" });
   const [campName,        setCampName]        = useState("this camp");
   const [appearanceSaving, setAppearanceSaving] = useState(false);
   const [appearanceMsg,   setAppearanceMsg]   = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -125,8 +125,8 @@ function SettingsContent() {
         if (d && !d.error) {
           setCampName(d.name || "this camp");
           setAppearance({
-            primaryColor: d.primaryColor || "#22C55E",
-            accentColor:  d.accentColor  || "#0EA5E9",
+            primaryColor: d.primaryColor || "#64748B",
+            accentColor:  d.accentColor  || "#475569",
             fontFamily:   d.fontFamily   || "Inter",
           });
           setBilling({
@@ -537,8 +537,8 @@ function SettingsContent() {
       <div id="utilities" className="camp-card p-5 border border-slate-200 bg-white mb-5 scroll-mt-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-forest-400 flex items-center justify-center text-white text-xl flex-shrink-0">
-              📥
+            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white text-sm font-black flex-shrink-0">
+              I
             </div>
             <div>
               <p className="font-semibold text-slate-800 text-sm">Bulk Import</p>
@@ -565,7 +565,7 @@ function SettingsContent() {
             }}
             className="px-4 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors"
           >
-            🗑️ Delete This Camp
+            Delete This Camp
           </button>
         </Section>
       )}

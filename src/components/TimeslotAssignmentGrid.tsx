@@ -172,7 +172,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       status: "available",
       label: "open",
       title: "Available to schedule — no room, teacher, or assistant conflicts detected",
-      className: "border-sky-300 bg-sky-100 text-sky-800 ring-2 ring-sky-200/70 hover:border-sky-400 hover:bg-sky-200",
+      className: "border-stone-300 bg-stone-100 text-stone-800 ring-2 ring-stone-200/70 hover:border-stone-400 hover:bg-stone-200",
       conflicts: [],
     };
   };
@@ -219,33 +219,33 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   }, [columnPage, totalColumnPages]);
 
   const heatClass = (rate: number): string => {
-    if (rate >= 1) return "bg-red-100 border-red-300 text-red-800";
-    if (rate >= 0.9) return "bg-rose-100 border-rose-300 text-rose-800";
-    if (rate >= 0.75) return "bg-orange-100 border-orange-300 text-orange-800";
-    if (rate >= 0.5) return "bg-amber-100 border-amber-300 text-amber-800";
-    return "bg-emerald-100 border-emerald-300 text-emerald-800";
+    if (rate >= 1) return "bg-stone-300 border-stone-400 text-stone-900";
+    if (rate >= 0.9) return "bg-stone-200 border-stone-400 text-stone-900";
+    if (rate >= 0.75) return "bg-stone-200 border-stone-300 text-stone-800";
+    if (rate >= 0.5) return "bg-stone-100 border-stone-300 text-stone-800";
+    return "bg-zinc-100 border-zinc-300 text-zinc-800";
   };
 
   const columnHeatClass = (stats: ReturnType<typeof sessionGroupStats>): string => {
     if (stats.totalCap === 0) return "bg-slate-50 border-slate-200 text-slate-500";
     if (hasRegistrations) return heatClass(stats.fillRate);
-    if (averageAssignedCapacity <= 0) return "bg-emerald-100 border-emerald-300 text-emerald-800";
+    if (averageAssignedCapacity <= 0) return "bg-zinc-100 border-zinc-300 text-zinc-800";
     const capacityRatio = stats.totalCap / averageAssignedCapacity;
-    if (capacityRatio < 0.55) return "bg-red-100 border-red-300 text-red-800";
-    if (capacityRatio < 0.75) return "bg-orange-100 border-orange-300 text-orange-800";
-    if (capacityRatio < 0.9) return "bg-amber-100 border-amber-300 text-amber-800";
-    return "bg-emerald-100 border-emerald-300 text-emerald-800";
+    if (capacityRatio < 0.55) return "bg-stone-300 border-stone-400 text-stone-900";
+    if (capacityRatio < 0.75) return "bg-stone-200 border-stone-300 text-stone-800";
+    if (capacityRatio < 0.9) return "bg-stone-100 border-stone-300 text-stone-800";
+    return "bg-zinc-100 border-zinc-300 text-zinc-800";
   };
 
   const activeCellClass = (course: Course, sg: SessionGroup): string => {
     const cap = course.cap || 0;
     if (cap <= 0) return "border-slate-300 bg-slate-100 text-slate-700";
     const rate = courseEnrollmentForGroup(course, sg) / cap;
-    if (rate >= 1) return "border-red-300 bg-red-100 text-red-800";
-    if (rate >= 0.9) return "border-rose-300 bg-rose-100 text-rose-800";
-    if (rate >= 0.75) return "border-orange-300 bg-orange-100 text-orange-800";
-    if (rate >= 0.5) return "border-amber-300 bg-amber-100 text-amber-800";
-    return "border-emerald-300 bg-emerald-100 text-emerald-800";
+    if (rate >= 1) return "border-stone-400 bg-stone-300 text-stone-900";
+    if (rate >= 0.9) return "border-stone-400 bg-stone-200 text-stone-900";
+    if (rate >= 0.75) return "border-stone-300 bg-stone-200 text-stone-800";
+    if (rate >= 0.5) return "border-stone-300 bg-stone-100 text-stone-800";
+    return "border-zinc-300 bg-zinc-100 text-zinc-800";
   };
 
   const teacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director");
@@ -409,7 +409,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
   if (loading) return (
     <div className="camp-card p-8 mb-5 flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
@@ -418,28 +418,27 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <span className="w-7 h-7 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center">▦</span>
             Visual Schedule Builder
           </h2>
           <p className="text-xs text-slate-500 mt-1">Put the pieces together visually: choose a time block, drop in activities, confirm room + teacher, and keep the detailed grid one click away.</p>
         </div>
-        <span className="text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 rounded-full px-3 py-1 whitespace-nowrap">
+        <span className="text-xs font-semibold text-slate-600 bg-stone-100 border border-stone-200 rounded-full px-3 py-1 whitespace-nowrap">
           {sessionGroups.length} time blocks · {defaultSessionGroups.length} locked
         </span>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs text-slate-600">
         <span className="font-black uppercase tracking-wide text-slate-500">At a glance</span>
-        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-berry-700 shadow-sm">{teacherOptions.length} teachers</span>
-        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-sky-700 shadow-sm">{sessionGroups.length} time rows</span>
-        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-forest-700 shadow-sm">{courses.length} activities</span>
-        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-amber-700 shadow-sm">{ageGroups.length} age groups</span>
+        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-slate-600 shadow-sm">{teacherOptions.length} teachers</span>
+        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-slate-600 shadow-sm">{sessionGroups.length} time rows</span>
+        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-slate-600 shadow-sm">{courses.length} activities</span>
+        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-slate-600 shadow-sm">{ageGroups.length} age groups</span>
       </div>
 
       {allSessionGroups.length > 0 && (
         <details className="mb-3 rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2">
           <summary className="cursor-pointer list-none text-xs font-black uppercase tracking-wide text-amber-900">
-            <span className="inline-flex items-center gap-2">🔒 Locked schedule sessions <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] text-amber-700">{defaultSessionGroups.length} locked</span></span>
+            <span className="inline-flex items-center gap-2">Locked schedule sessions <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] text-amber-700">{defaultSessionGroups.length} locked</span></span>
             <span className="ml-2 text-[11px] font-semibold normal-case tracking-normal text-amber-700">click to edit</span>
           </summary>
           <div className="mt-2 flex flex-wrap gap-1.5 border-t border-amber-100 pt-2">
@@ -465,21 +464,21 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
       {allSessionGroups.length === 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
-          <span className="text-lg">🕐</span>
+          <span className="text-lg"></span>
           <span>No time slots set up yet. Create the camp&apos;s base times in <strong>Camp Setup</strong>, then assign activities here.</span>
         </div>
       )}
 
       {courses.length === 0 && sessionGroups.length > 0 && (
         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
-          <span className="text-lg">📭</span>
+          <span className="text-lg"></span>
           <span>No activities yet — add one above or import a spreadsheet first.</span>
         </div>
       )}
 
       {courses.length > 0 && sessionGroups.length === 0 && allSessionGroups.length > 0 && (
         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
-          <span className="text-lg">✅</span>
+          <span className="text-lg"></span>
           <span>All time slots are locked to the schedule. Unlock a row in Time Slots to make that slot assignable to activities.</span>
         </div>
       )}
@@ -488,7 +487,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
         <>
           <div className="mb-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 xl:grid-cols-[minmax(220px,1fr)_auto] xl:items-center">
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">/</span>
               <input type="text" value={activityFilter} onChange={e => setActivityFilter(e.target.value)} placeholder="Search activity, teacher, room, or age…" className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white" />
               {activityFilter && <button onClick={() => setActivityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>}
             </div>
@@ -511,7 +510,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                 <option value="">Person: all</option>
                 {allPersonOptions.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
               </select>
-              <button type="button" onClick={() => setAvailableOnly(v => !v)} className={`rounded-xl border px-3 py-2 text-xs font-black transition-all ${availableOnly ? "border-emerald-300 bg-emerald-100 text-emerald-800" : "border-slate-200 bg-white text-slate-500 hover:bg-emerald-50"}`}>
+              <button type="button" onClick={() => setAvailableOnly(v => !v)} className={`rounded-xl border px-3 py-2 text-xs font-black transition-all ${availableOnly ? "border-stone-300 bg-stone-100 text-stone-800" : "border-slate-200 bg-white text-slate-500 hover:bg-stone-50"}`}>
                 {availableOnly ? "Can schedule only" : "Show all classes"}
               </button>
               {(activityFilter || focusAgeGroupId || roomFilter || teacherFilter || availableOnly || rowSort !== "name" || rowSortDir !== "asc") && (
@@ -525,7 +524,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-2">
-                  <span className="text-lg flex-shrink-0">🚫</span>
+                  <span className="text-lg flex-shrink-0"></span>
                   <div>
                     <p className="text-sm font-semibold text-red-800">Can&apos;t assign <span className="italic">{conflictToast.courseName}</span> to <span className="italic">{conflictToast.sessionLabel}</span></p>
                     <p className="text-xs text-red-700 mt-1">{conflictToast.message}</p>
@@ -588,7 +587,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                             <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-left shadow-sm">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-start gap-2">
-                                  <span className="text-base flex-shrink-0">🚫</span>
+                                  <span className="text-base flex-shrink-0"></span>
                                   <div>
                                     <p className="text-sm font-semibold text-red-800">Can&apos;t assign <span className="italic">{rowConflict.courseName}</span> to <span className="italic">{rowConflict.sessionLabel}</span></p>
                                     <p className="text-xs text-red-700 mt-1">{rowConflict.message}</p>
@@ -600,10 +599,10 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                           </td>
                         </tr>
                       )}
-                      <tr className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} hover:bg-sky-50/20 transition-colors`}>
+                      <tr className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} hover:bg-stone-50 transition-colors`}>
                       <td className={`sticky left-0 z-10 py-2 px-3 border-b border-slate-100 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
                         <div className="font-semibold text-slate-800 text-xs">{course.name}</div>
-                        {course.courseAgeGroups.length > 0 && <div className="text-xs text-berry-600 font-medium mt-0.5">{course.courseAgeGroups.map(cag => cag.ageGroup.name).join(" · ")}</div>}
+                        {course.courseAgeGroups.length > 0 && <div className="text-xs text-slate-500 font-medium mt-0.5">{course.courseAgeGroups.map(cag => cag.ageGroup.name).join(" · ")}</div>}
                       </td>
                       <td className="py-2 px-2 border-b border-slate-100">
                         <select value={course.roomId || course.room?.id || ""} onChange={e => updateRoom(course, e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-[11px] text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white">
@@ -649,7 +648,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                         const blockedTitle = serverBlocked ? "Blocked by a scheduling conflict" : availability.title;
                         return (
                           <td key={sg.key} className="text-center py-2 px-2 border-b border-slate-100 bg-white transition-colors">
-                            {isSaving ? <div className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto" /> : (
+                            {isSaving ? <div className="w-5 h-5 border-2 border-slate-700 border-t-transparent rounded-full animate-spin mx-auto" /> : (
                               <button
                                 type="button"
                                 disabled={isBlocked}
@@ -662,7 +661,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                                       ? (serverBlocked ? "cursor-not-allowed border-slate-200 bg-slate-100/70 text-slate-400 opacity-60 shadow-none" : availability.className)
                                       : isAvailable
                                         ? availability.className
-                                        : "border-dashed border-slate-200 bg-slate-50 text-slate-300 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
+                                        : "border-dashed border-slate-200 bg-slate-50 text-slate-300 hover:border-stone-300 hover:bg-stone-50 hover:text-stone-700"
                                 }`}
                               >
                                 {isChecked ? (
@@ -688,13 +687,13 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
           <div className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
             <span>Rows are the default view: edit room, teacher, assistant, capacity, and schedule cells in one dense sheet</span>
             <span className="basis-full h-0" />
-            <span className="font-semibold text-slate-500">Capacity colors:</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300 align-middle" /> healthy</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-amber-100 border border-amber-300 align-middle" /> watch</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-orange-100 border border-orange-300 align-middle" /> tight</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-red-100 border border-red-300 align-middle" /> full/short</span>
+            <span className="font-semibold text-slate-500">Capacity shading:</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-zinc-100 border border-zinc-300 align-middle" /> healthy</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-stone-100 border border-stone-300 align-middle" /> watch</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-stone-200 border border-stone-300 align-middle" /> tight</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-stone-300 border border-stone-400 align-middle" /> full/short</span>
             <span><span className="inline-block w-4 h-3 rounded bg-slate-100 border border-slate-200 align-middle opacity-70" /> unavailable — hover for reason</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-sky-100 border border-sky-300 align-middle" /> open + safe to schedule</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-stone-100 border border-stone-300 align-middle" /> open + safe to schedule</span>
           </div>
         </>
       )}

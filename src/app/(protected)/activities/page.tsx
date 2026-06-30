@@ -32,7 +32,7 @@ function ConflictModal({ conflicts, onClose }: { conflicts: SchedulingConflict[]
         {/* Header */}
         <div className="px-6 py-5 border-b border-red-100 bg-red-50 rounded-t-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-xl flex-shrink-0">⚠️</div>
+            <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center text-xl flex-shrink-0"></div>
             <div>
               <h2 className="font-bold text-base text-red-800">Scheduling Conflict</h2>
               <p className="text-sm text-red-600 mt-0.5">
@@ -151,8 +151,8 @@ interface MandatorySession {
   sessionTemplate: SessionTemplate;
 }
 
-const COLORS = ["#22C55E","#0EA5E9","#F97316","#A855F7","#EAB308","#EC4899","#14B8A6","#6366F1"];
-const ICONS  = ["🎨","🎭","🎵","📖","🏃","🎯","🔬","🏕️","⚽","🎤","🎺","✏️"];
+const COLORS = ["#64748B","#78716C","#6B7D5F","#7A8060","#A1624A","#9A7A3D","#607A8C","#7A667A"];
+const ICONS  = ["A","B","C","D","E","F","G","H","I","J","K","L"];
 const DAYS   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 // ─── Quick-add person inline ──────────────────────────────────────────────────
@@ -249,7 +249,7 @@ function CourseModal({
   const [description, setDescription] = useState(course?.description || "");
   const [cap, setCap]                 = useState(String(course?.cap || 20));
   const [color, setColor]             = useState(course?.color || COLORS[0]);
-  const [icon, setIcon]               = useState(course?.icon || "🎯");
+  const [icon, setIcon]               = useState(course?.icon || "A");
   const [roomId, setRoomId]           = useState(course?.room?.id || "");
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState("");
@@ -508,7 +508,7 @@ function CourseModal({
                         <div className="min-w-0">
                           <span className="text-sm font-medium text-slate-800">{p.firstName} {p.lastName}</span>
                           {p.email && <span className="text-xs text-slate-400 ml-1.5 truncate">{p.email}</span>}
-                          {!p.email && <span className="text-xs text-amber-500 ml-1.5">⚠️ no email</span>}
+                          {!p.email && <span className="text-xs text-amber-500 ml-1.5"> no email</span>}
                         </div>
                       </div>
                     </label>
@@ -546,7 +546,7 @@ function CourseModal({
                         <div className="min-w-0">
                           <span className="text-sm font-medium text-slate-800">{p.firstName} {p.lastName}</span>
                           {p.email && <span className="text-xs text-slate-400 ml-1.5 truncate">{p.email}</span>}
-                          {!p.email && <span className="text-xs text-amber-500 ml-1.5">⚠️ no email</span>}
+                          {!p.email && <span className="text-xs text-amber-500 ml-1.5"> no email</span>}
                         </div>
                       </div>
                     </label>
@@ -799,8 +799,8 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
         name: `${course.name} Copy`,
         description: course.description || undefined,
         cap: course.cap || 20,
-        color: course.color || "#22C55E",
-        icon: course.icon || "🎯",
+        color: course.color || "#64748B",
+        icon: course.icon || "A",
         roomId: course.room?.id || null,
         ageGroupIds: course.courseAgeGroups?.map(cag => cag.ageGroup.id) || [],
         teacherIds: course.courseTeachers?.map(ct => ct.person.id) || [],
@@ -956,7 +956,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">🎯</span><p>Select a camp to view activities.</p></div>
+      <div className="text-center"><span className="text-4xl mb-3 block">A</span><p>Select a camp to view activities.</p></div>
     </div>
   );
 
@@ -969,7 +969,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-sky-700 shadow-sm">
-              🏕️ Activity command center
+              Activity command center
             </div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Activities</h1>
             <p className="mt-1 max-w-2xl text-sm text-slate-600">
@@ -984,8 +984,8 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
               </button>
               {toolsOpen && (
                 <div className="absolute right-0 top-12 z-20 w-64 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-xl">
-                  <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-amber-50">🔒 Add required assembly</button>
-                  <a href={`/import${campId ? `?campId=${campId}` : ""}`} className="block rounded-xl px-3 py-2 font-semibold text-slate-700 hover:bg-emerald-50">📥 Import activities</a>
+                  <button onClick={() => { setEditingMandatory(null); setShowMandatoryModal(true); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-amber-50">Add required assembly</button>
+                  <a href={`/import${campId ? `?campId=${campId}` : ""}`} className="block rounded-xl px-3 py-2 font-semibold text-slate-700 hover:bg-emerald-50">Import activities</a>
                   <button onClick={() => { setSortCol("name"); setSortDir("asc"); setStatusFilter("all"); setSearch(""); setToolsOpen(false); }} className="w-full rounded-xl px-3 py-2 text-left font-semibold text-slate-700 hover:bg-slate-50">✨ Reset filters</button>
                 </div>
               )}
@@ -1071,7 +1071,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
             </div>
           ) : filteredByStatus.length === 0 ? (
             <div className="camp-card p-12 text-center">
-              <span className="mb-4 block text-5xl">🎯</span>
+              <span className="mb-4 block text-5xl">A</span>
               <h3 className="mb-2 font-bold text-slate-700">{search || statusFilter !== "all" ? "No activities match" : "No activities yet"}</h3>
               <p className="mb-5 text-sm text-slate-400">Create activities first, then schedule them in the grid above.</p>
               <button onClick={() => { setEditingCourse(null); setShowModal(true); }} className="rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">+ Add First Activity</button>
@@ -1116,7 +1116,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                               aria-label={`Select ${course.name}`}
                               className="mt-2 h-4 w-4 shrink-0 rounded border-slate-300 accent-sky-600"
                             />
-                            <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-base text-white shadow-sm" style={{ backgroundColor: course.color || "#22C55E" }}>{course.icon || "🎯"}</span>
+                            <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-base text-white shadow-sm" style={{ backgroundColor: course.color || "#64748B" }}>{course.icon || "A"}</span>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="truncate font-black text-slate-900">{course.name}</span>
