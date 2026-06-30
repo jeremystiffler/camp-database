@@ -234,6 +234,7 @@ function RegistrationContent() {
   const [saveError, setSaveError]   = useState("");
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [settingsPanel, setSettingsPanel] = useState<"publish" | "classes" | "family" | "email">("publish");
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
 
@@ -432,147 +433,203 @@ function RegistrationContent() {
         </div>
       </div>
 
-      {/* Form picker + publishing */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm mb-6">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[220px] flex-1">
-            <label className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Form</label>
-            <select value={selectedFormId} onChange={e => loadForm(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
-              {forms.map(form => <option key={form.id} value={form.id}>{form.title}{form.isDefault ? " · default" : ""}</option>)}
-            </select>
-          </div>
-          <button type="button" onClick={createForm} className="rounded-xl border border-forest-200 bg-forest-50 px-3 py-2 text-sm font-bold text-forest-700 hover:bg-forest-100">+ New Form</button>
-          <div className="min-w-[220px] flex-1">
-            <label className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Title</label>
-            <input value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
-          </div>
-          <div className="min-w-[180px]">
-            <label className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Link slug</label>
-            <input value={formSlug} onChange={e => setFormSlug(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
-          </div>
-          <div>
-            <label className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Status</label>
-            <select value={formStatus} onChange={e => setFormStatus(e.target.value as FormSummary["status"])} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
-              <option value="draft">Draft</option>
-              <option value="public">Public</option>
-              <option value="linkOnly">Link only</option>
-            </select>
-          </div>
-          <label className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">
-            <input type="checkbox" checked={isDefault} onChange={e => setIsDefault(e.target.checked)} className="h-4 w-4 accent-forest-500" /> Default
-          </label>
-        </div>
-        <div className={`mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 border ${formStatus !== "draft" && regOpen ? "bg-forest-50 border-forest-200" : "bg-slate-50 border-slate-200"}`}>
-          <div>
-            <p className="text-sm font-semibold text-slate-800">{formStatus === "draft" ? "⚪ Draft — not available to families" : formStatus === "linkOnly" ? "🔗 Link-only — available only with this link" : "🟢 Public form"}</p>
-            {formStatus !== "draft" && <p className="text-xs text-slate-500 mt-0.5 font-mono break-all">{publicUrl}</p>}
-          </div>
-          {formStatus !== "draft" && <button onClick={() => navigator.clipboard.writeText(publicUrl)} className="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium">📋 Copy Link</button>}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm mb-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <p className="text-sm font-black text-sky-950">Class choices automation</p>
-            <p className="mt-1 text-sm text-sky-800">When enabled, families first pick an <strong>Age Group</strong>, then the registration form automatically inserts a class-choice step using your Schedule Grid. Full classes hide themselves; newly opened seats reappear.</p>
-            <p className={`mt-2 rounded-xl px-3 py-2 text-xs font-bold ${ageGroupReady ? "bg-forest-50 text-forest-800 border border-forest-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
-              {ageGroupReady ? "✓ Age Group is present and required — families can register." : "⚠ Age Group MUST be on this form and marked required, or families cannot register."}
-            </p>
-          </div>
-          <label className="flex min-w-[220px] items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-white px-4 py-3 shadow-sm">
-            <span>
-              <span className="block text-sm font-black text-slate-800">Enable class choices</span>
-              <span className="block text-xs text-slate-500">Turn off for a simple intake form.</span>
-            </span>
-            <input type="checkbox" checked={classChoicesEnabled} onChange={e => setClassChoicesEnabled(e.target.checked)} className="h-5 w-5 accent-forest-500" />
-          </label>
-        </div>
-
-        {classChoicesEnabled && (
-          <div className="mt-4 rounded-2xl border border-indigo-200 bg-white p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="max-w-2xl">
-                <p className="text-sm font-black text-indigo-950">Required class choices by age group</p>
-                <p className="mt-1 text-sm leading-relaxed text-indigo-800">Optional rule for classes that must be chosen by a specific age group. Families can pick the required class in <strong>any time slot where that class is offered</strong>. If they skip it, the registration form stops them before they continue.</p>
-                <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">Different from locked schedule blocks: this still gives families choices, but requires one selected class somewhere in their schedule.</p>
-              </div>
-              <button type="button" onClick={addMandatoryRule} disabled={ageGroups.length === 0 || courses.length === 0} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white hover:bg-indigo-700 disabled:opacity-50">+ Add required class</button>
+      {/* Minimal form setup workspace */}
+      <div className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Form setup</p>
+              <h2 className="mt-1 text-lg font-black text-slate-900">Settings without the scroll avalanche</h2>
+              <p className="mt-1 text-sm text-slate-500">Choose a section on the left, adjust only what matters, then save. Calm as a monk with a spreadsheet.</p>
             </div>
-            {mandatoryClassRules.length === 0 ? (
-              <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">No required class-choice rules yet. Add one only when an age group must choose a specific class.</div>
-            ) : (
-              <div className="mt-3 space-y-3">
-                {mandatoryClassRules.map((rule, index) => {
-                  const eligible = eligibleCoursesForAgeGroup(rule.ageGroupId);
-                  return (
-                    <div key={`${rule.ageGroupId}-${rule.courseId}-${index}`} className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
-                      <label className="block">
-                        <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Age group that has the requirement</span>
-                        <select value={rule.ageGroupId} onChange={e => updateMandatoryRule(index, { ageGroupId: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
-                          {ageGroups.map(ageGroup => <option key={ageGroup.id} value={ageGroup.id}>{ageGroup.name}</option>)}
-                        </select>
-                      </label>
-                      <label className="block">
-                        <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Class they must choose somewhere</span>
-                        <select value={rule.courseId} onChange={e => updateMandatoryRule(index, { courseId: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
-                          <option value="">Select a class…</option>
-                          {eligible.map(course => <option key={course.id} value={course.id}>{course.name}</option>)}
-                        </select>
-                        {eligible.length === 0 && <p className="mt-1 text-[11px] font-bold text-red-600">No classes are assigned to this age group yet.</p>}
-                      </label>
-                      <button type="button" onClick={() => removeMandatoryRule(index)} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50">Remove</button>
-                    </div>
-                  );
-                })}
+            <div className="flex flex-wrap gap-2 text-xs font-bold">
+              <span className={`rounded-full px-3 py-1 ${formStatus === "draft" ? "bg-slate-100 text-slate-600" : formStatus === "linkOnly" ? "bg-sky-100 text-sky-700" : "bg-forest-100 text-forest-700"}`}>{formStatus === "draft" ? "Draft" : formStatus === "linkOnly" ? "Link only" : "Public"}</span>
+              <span className={`rounded-full px-3 py-1 ${classChoicesEnabled ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500"}`}>{classChoicesEnabled ? "Class choices on" : "Simple intake"}</span>
+              <span className={`rounded-full px-3 py-1 ${familyRegistrationEnabled ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{familyRegistrationEnabled ? "Family mode" : "One camper"}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-0 lg:grid-cols-[260px_1fr]">
+          <div className="border-b border-slate-100 bg-slate-50/70 p-3 lg:border-b-0 lg:border-r">
+            {[
+              { key: "publish", title: "Basics & link", desc: formStatus === "draft" ? "Not live" : "Ready to share", icon: "🔗" },
+              { key: "classes", title: "Class choices", desc: classChoicesEnabled ? `${mandatoryClassRules.length} required rule${mandatoryClassRules.length === 1 ? "" : "s"}` : "Disabled", icon: "🎯" },
+              { key: "family", title: "Family mode", desc: familyRegistrationEnabled ? "Multiple students" : "Single student", icon: "👨‍👩‍👧‍👦" },
+              { key: "email", title: "Confirmation email", desc: "Subject, intro, sections", icon: "✉️" },
+            ].map(item => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setSettingsPanel(item.key as "publish" | "classes" | "family" | "email")}
+                className={`mb-2 flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all ${settingsPanel === item.key ? "border-slate-900 bg-white shadow-sm" : "border-transparent bg-transparent hover:border-slate-200 hover:bg-white"}`}
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-base shadow-sm ring-1 ring-slate-100">{item.icon}</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-black text-slate-800">{item.title}</span>
+                  <span className="block truncate text-xs text-slate-500">{item.desc}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="p-5">
+            {settingsPanel === "publish" && (
+              <div className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                  <label className="block">
+                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Active form</span>
+                    <select value={selectedFormId} onChange={e => loadForm(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
+                      {forms.map(form => <option key={form.id} value={form.id}>{form.title}{form.isDefault ? " · default" : ""}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" onClick={createForm} className="rounded-xl border border-forest-200 bg-forest-50 px-3 py-2 text-sm font-bold text-forest-700 hover:bg-forest-100">+ New Form</button>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-[1fr_180px_150px]">
+                  <label className="block">
+                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Title</span>
+                    <input value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
+                  </label>
+                  <label className="block">
+                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Link slug</span>
+                    <input value={formSlug} onChange={e => setFormSlug(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
+                  </label>
+                  <label className="block">
+                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Status</span>
+                    <select value={formStatus} onChange={e => setFormStatus(e.target.value as FormSummary["status"])} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
+                      <option value="draft">Draft</option>
+                      <option value="public">Public</option>
+                      <option value="linkOnly">Link only</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                    <input type="checkbox" checked={isDefault} onChange={e => setIsDefault(e.target.checked)} className="h-4 w-4 accent-forest-500" /> Make this the default form
+                  </label>
+                  <span className="hidden h-5 w-px bg-slate-200 sm:block" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-700">{formStatus === "draft" ? "⚪ Draft — hidden from families" : formStatus === "linkOnly" ? "🔗 Link-only — available only with this URL" : "🟢 Public form — discoverable and shareable"}</p>
+                    {formStatus !== "draft" && <p className="mt-0.5 truncate font-mono text-[11px] text-slate-500">{publicUrl}</p>}
+                  </div>
+                  {formStatus !== "draft" && <button onClick={() => navigator.clipboard.writeText(publicUrl)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">Copy Link</button>}
+                </div>
               </div>
             )}
-          </div>
-        )}
-      </div>
 
-      <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm mb-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl">
-            <p className="text-sm font-black text-amber-950">Family registration mode</p>
-            <p className="mt-1 text-sm text-amber-800">When enabled, one guardian can add multiple students, choose classes for each child, pay once, and receive one family confirmation email.</p>
-          </div>
-          <label className="flex min-w-[220px] items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-3 shadow-sm">
-            <span>
-              <span className="block text-sm font-black text-slate-800">Allow multiple students</span>
-              <span className="block text-xs text-slate-500">Best for siblings and households.</span>
-            </span>
-            <input type="checkbox" checked={familyRegistrationEnabled} onChange={e => setFamilyRegistrationEnabled(e.target.checked)} className="h-5 w-5 accent-amber-500" />
-          </label>
-        </div>
-      </div>
+            {settingsPanel === "classes" && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+                  <div className="max-w-2xl">
+                    <p className="text-sm font-black text-sky-950">Class choices automation</p>
+                    <p className="mt-1 text-sm text-sky-800">Families pick an <strong>Age Group</strong>, then the form inserts class choices from your Schedule Grid. Full classes hide themselves; opened seats reappear.</p>
+                    <p className={`mt-2 rounded-xl px-3 py-2 text-xs font-bold ${ageGroupReady ? "bg-forest-50 text-forest-800 border border-forest-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
+                      {ageGroupReady ? "✓ Age Group is present and required." : "⚠ Age Group must be on this form and marked required before families can register."}
+                    </p>
+                  </div>
+                  <label className="flex min-w-[220px] items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-white px-4 py-3 shadow-sm">
+                    <span>
+                      <span className="block text-sm font-black text-slate-800">Enable class choices</span>
+                      <span className="block text-xs text-slate-500">Turn off for simple intake.</span>
+                    </span>
+                    <input type="checkbox" checked={classChoicesEnabled} onChange={e => setClassChoicesEnabled(e.target.checked)} className="h-5 w-5 accent-forest-500" />
+                  </label>
+                </div>
 
-      <div className="rounded-2xl border border-berry-200 bg-gradient-to-br from-berry-50 to-white p-4 shadow-sm mb-6">
-        <div className="mb-4">
-          <p className="text-sm font-black text-berry-950">Confirmation email</p>
-          <p className="mt-1 text-sm text-berry-800">Edit the message families receive and choose which sections are sent back. Tokens: <code>{"{{campName}}"}</code>, <code>{"{{guardianName}}"}</code>, <code>{"{{studentName}}"}</code>, <code>{"{{studentCount}}"}</code>, <code>{"{{totalDue}}"}</code>.</p>
-        </div>
-        <div className="grid gap-3">
-          <label className="block">
-            <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Subject</span>
-            <input value={confirmationEmailSubject} onChange={e => setConfirmationEmailSubject(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30" />
-          </label>
-          <label className="block">
-            <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Opening message</span>
-            <textarea rows={3} value={confirmationEmailIntro} onChange={e => setConfirmationEmailIntro(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30 resize-none" />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {[
-              ["Guardian info", confirmationIncludeGuardian, setConfirmationIncludeGuardian],
-              ["Student details", confirmationIncludeStudents, setConfirmationIncludeStudents],
-              ["Class choices", confirmationIncludeClasses, setConfirmationIncludeClasses],
-              ["Emergency/consent", confirmationIncludeEmergency, setConfirmationIncludeEmergency],
-              ["Payment summary", confirmationIncludePayment, setConfirmationIncludePayment],
-            ].map(([label, checked, setter]) => (
-              <label key={label as string} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">
-                <input type="checkbox" checked={checked as boolean} onChange={e => (setter as (v: boolean) => void)(e.target.checked)} className="h-4 w-4 accent-berry-500" /> {label as string}
-              </label>
-            ))}
+                {classChoicesEnabled && (
+                  <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="max-w-2xl">
+                        <p className="text-sm font-black text-indigo-950">Required class choices by age group</p>
+                        <p className="mt-1 text-sm leading-relaxed text-indigo-800">Use only when an age group must choose a specific class in any available time slot.</p>
+                      </div>
+                      <button type="button" onClick={addMandatoryRule} disabled={ageGroups.length === 0 || courses.length === 0} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white hover:bg-indigo-700 disabled:opacity-50">+ Add required class</button>
+                    </div>
+                    {mandatoryClassRules.length === 0 ? (
+                      <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">No required class-choice rules yet.</div>
+                    ) : (
+                      <div className="mt-3 space-y-3">
+                        {mandatoryClassRules.map((rule, index) => {
+                          const eligible = eligibleCoursesForAgeGroup(rule.ageGroupId);
+                          return (
+                            <div key={`${rule.ageGroupId}-${rule.courseId}-${index}`} className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                              <label className="block">
+                                <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Age group</span>
+                                <select value={rule.ageGroupId} onChange={e => updateMandatoryRule(index, { ageGroupId: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
+                                  {ageGroups.map(ageGroup => <option key={ageGroup.id} value={ageGroup.id}>{ageGroup.name}</option>)}
+                                </select>
+                              </label>
+                              <label className="block">
+                                <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Required class</span>
+                                <select value={rule.courseId} onChange={e => updateMandatoryRule(index, { courseId: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
+                                  <option value="">Select a class…</option>
+                                  {eligible.map(course => <option key={course.id} value={course.id}>{course.name}</option>)}
+                                </select>
+                                {eligible.length === 0 && <p className="mt-1 text-[11px] font-bold text-red-600">No classes are assigned to this age group yet.</p>}
+                              </label>
+                              <button type="button" onClick={() => removeMandatoryRule(index)} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50">Remove</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {settingsPanel === "family" && (
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-2xl">
+                    <p className="text-sm font-black text-amber-950">Family registration mode</p>
+                    <p className="mt-1 text-sm text-amber-800">One guardian can add multiple students, choose classes for each child, pay once, and receive one family confirmation email.</p>
+                  </div>
+                  <label className="flex min-w-[240px] items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-3 shadow-sm">
+                    <span>
+                      <span className="block text-sm font-black text-slate-800">Allow multiple students</span>
+                      <span className="block text-xs text-slate-500">Best for siblings and households.</span>
+                    </span>
+                    <input type="checkbox" checked={familyRegistrationEnabled} onChange={e => setFamilyRegistrationEnabled(e.target.checked)} className="h-5 w-5 accent-amber-500" />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {settingsPanel === "email" && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-black text-berry-950">Confirmation email</p>
+                  <p className="mt-1 text-sm text-berry-800">Edit the message families receive and choose which sections are sent back.</p>
+                  <p className="mt-2 text-xs text-slate-500">Tokens: <code>{"{{campName}}"}</code>, <code>{"{{guardianName}}"}</code>, <code>{"{{studentName}}"}</code>, <code>{"{{studentCount}}"}</code>, <code>{"{{totalDue}}"}</code></p>
+                </div>
+                <div className="grid gap-3">
+                  <label className="block">
+                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Subject</span>
+                    <input value={confirmationEmailSubject} onChange={e => setConfirmationEmailSubject(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30" />
+                  </label>
+                  <label className="block">
+                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Opening message</span>
+                    <textarea rows={3} value={confirmationEmailIntro} onChange={e => setConfirmationEmailIntro(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30 resize-none" />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      ["Guardian info", confirmationIncludeGuardian, setConfirmationIncludeGuardian],
+                      ["Student details", confirmationIncludeStudents, setConfirmationIncludeStudents],
+                      ["Class choices", confirmationIncludeClasses, setConfirmationIncludeClasses],
+                      ["Emergency/consent", confirmationIncludeEmergency, setConfirmationIncludeEmergency],
+                      ["Payment summary", confirmationIncludePayment, setConfirmationIncludePayment],
+                    ].map(([label, checked, setter]) => (
+                      <label key={label as string} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">
+                        <input type="checkbox" checked={checked as boolean} onChange={e => (setter as (v: boolean) => void)(e.target.checked)} className="h-4 w-4 accent-berry-500" /> {label as string}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
