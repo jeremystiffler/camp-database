@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "camper_roster" | "tshirt_list" | "badges";
 type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3";
@@ -198,8 +198,11 @@ function teacherRows(person: Person, courses: Course[], mandatorySessions: Manda
 }
 
 function PrintContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const campId = searchParams.get("campId") || "";
+  const campIdFromUrl = searchParams.get("campId") || "";
+  const [resolvedCampId, setResolvedCampId] = useState(campIdFromUrl);
+  const campId = campIdFromUrl || resolvedCampId;
   const [campers, setCampers] = useState<Camper[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
@@ -213,6 +216,31 @@ function PrintContent() {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("builtin-0");
   const [draftTemplate, setDraftTemplate] = useState<PrintTemplate>(BUILTIN_TEMPLATES[0]);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (campIdFromUrl) {
+      setResolvedCampId(campIdFromUrl);
+      return;
+    }
+
+    const savedCampId = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
+    if (savedCampId) {
+      setResolvedCampId(savedCampId);
+      router.replace(`/print?campId=${savedCampId}`);
+      return;
+    }
+
+    fetch("/api/camps")
+      .then(r => r.ok ? r.json() : [])
+      .then(camps => {
+        if (Array.isArray(camps) && camps[0]?.id) {
+          setResolvedCampId(camps[0].id);
+          if (typeof window !== "undefined") localStorage.setItem("activeCampId", camps[0].id);
+          router.replace(`/print?campId=${camps[0].id}`);
+        }
+      })
+      .catch(() => {});
+  }, [campIdFromUrl, router]);
 
   useEffect(() => {
     if (!campId) return;
@@ -315,7 +343,7 @@ function PrintContent() {
   };
   const printDoc = (type = draftTemplate.type) => { setActiveDoc(type); setTimeout(() => window.print(), 300); };
 
-  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a camp to print materials.</div>;
+  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Finding your active camp…</div>;
 
   return (
     <>
@@ -360,8 +388,8 @@ function PrintContent() {
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="space-y-4">
               <div className="grid gap-3 md:grid-cols-3">
-                {BUILTIN_TEMPLATES.map(template => (
-                  <button key={template.type} onClick={() => { updateDraft({ ...template }); setSelectedTemplateKey(`builtin-${BUILTIN_TEMPLATES.findIndex(t => t.type === template.type)}`); }} className={`rounded-2xl border p-4 text-left transition ${draftTemplate.type === template.type ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-400"}`}>
+                {BUILTIN_TEMPLATES.map((template, index) => (
+                  <button key={`${template.type}-${template.name}`} onClick={() => { updateDraft({ ...template, id: `builtin-${index}`, builtin: true }); setSelectedTemplateKey(`builtin-${index}`); }} className={`rounded-2xl border p-4 text-left transition ${selectedTemplateKey === `builtin-${index}` || (!draftTemplate.id && draftTemplate.name === template.name) ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-400"}`}>
                     <p className="text-sm font-black text-slate-900">{template.name}</p>
                     <p className="mt-2 text-xs leading-relaxed text-slate-500">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "One operational schedule page per teacher/staff member." : template.type === "class_rosters" ? "Classroom rosters by activity/time with guardian and emergency columns." : template.type === "badges" ? "Badge/label layouts for lanyards, cards, and sheets." : "Reusable operating document."}</p>
                   </button>

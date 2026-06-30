@@ -38,9 +38,15 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [camps, setCamps] = useState<Camp[]>([]);
   const [activeCamp, setActiveCamp] = useState<Camp | null>(null);
+  const [lastKnownCampId, setLastKnownCampId] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const campId = searchParams.get("campId") || activeCamp?.id || "";
+  const campId = searchParams.get("campId") || activeCamp?.id || lastKnownCampId || "";
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
+    if (saved) setLastKnownCampId(saved);
+  }, []);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -72,6 +78,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             const saved = localStorage.getItem("activeCampId");
             const found = data.find((c: Camp) => c.id === urlCampId) || data.find((c: Camp) => c.id === saved) || data[0];
             setActiveCamp(found);
+            setLastKnownCampId(found.id);
             localStorage.setItem("activeCampId", found.id);
           } else {
             setCamps([]);
@@ -92,6 +99,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
   const handleCampChange = (camp: Camp) => {
     setActiveCamp(camp);
+    setLastKnownCampId(camp.id);
     localStorage.setItem("activeCampId", camp.id);
     // Update URL with new campId on camp-scoped pages, then force server/client data to refetch.
     const url = new URL(window.location.href);
@@ -102,7 +110,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
   const navHref = (href: string) => {
     if (href === "/dashboard") return "/dashboard";
-    if (activeCamp?.id) return `${href}?campId=${activeCamp.id}`;
+    if (campId) return `${href}?campId=${campId}`;
     return href;
   };
 
