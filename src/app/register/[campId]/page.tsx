@@ -61,6 +61,7 @@ type MandatoryClassRule = { ageGroupId: string; courseId: string };
 
 type FieldValue = string | boolean | string[];
 type Step = 1 | 2 | 3;
+type FormPage = { id: string; title?: string; fields: FormField[] };
 type StudentState = { id: string; values: Record<string, FieldValue>; selectedBySession: Record<string, string> };
 const makeStudent = (index: number): StudentState => ({ id: `student-${Date.now()}-${index}`, values: {}, selectedBySession: {} });
 
@@ -73,6 +74,17 @@ const isInputField = (field: FormField) => {
   return !["heading", "subheading", "divider", "pageBreak"].includes(field.type);
 };
 const sectionBreakLabel = (field: FormField) => field.label === "Page break" ? "Section break" : (field.label || "Section break");
+const splitFieldsIntoPages = (sourceFields: FormField[]): FormPage[] => {
+  const pages: FormPage[] = [{ id: "page-1", fields: [] }];
+  sourceFields.forEach(field => {
+    if (field.type === "pageBreak") {
+      pages.push({ id: field.id, title: sectionBreakLabel(field), fields: [] });
+    } else {
+      pages[pages.length - 1].fields.push(field);
+    }
+  });
+  return pages.filter(page => page.fields.length > 0);
+};
 
 function ageMatches(course: Course, ageGroupId: string) {
   if (!ageGroupId) return false;
@@ -142,6 +154,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const [submittedUpdated, setSubmittedUpdated] = useState(false);
   const [errors, setErrors]         = useState<Record<string, string>>({});
   const [step, setStep]             = useState<Step>(1);
+  const [sectionPageIndex, setSectionPageIndex] = useState(0);
   const [duplicate, setDuplicate]   = useState<{ camperId: string; message: string } | null>(null);
 
   useEffect(() => {
@@ -215,6 +228,8 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     return [];
   };
 
+  const pagesForStep = (targetStep: Step) => splitFieldsIntoPages(fieldsForStep(targetStep));
+
   const selectedAgeGroupId = String(activeValues.f4 || "");
   const selectedAgeGroup = ageGroups.find(ag => ag.id === selectedAgeGroupId);
   const selectableSessions: WeeklyRegistrationSession[] = !classChoicesEnabled || selectedAgeGroup?.noSchedule ? [] : Array.from(
@@ -246,16 +261,16 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const missingRequiredClassRules = requiredClassRulesForAgeGroup.filter(rule => !selectedCourseIdsForActiveStudent.includes(rule.courseId));
   const requiredClassNames = requiredClassRulesForAgeGroup.map(rule => courseNameById.get(rule.courseId)).filter(Boolean).join(", ");
 
-  const validateStep = (targetStep: Step): boolean => {
+  const validateStep = (targetStep: Step, options: { fieldsOverride?: FormField[]; leavingStep?: boolean } = {}): boolean => {
     const errs: Record<string, string> = {};
-    const targetFields = fieldsForStep(targetStep).filter(isInputField);
+    const targetFields = (options.fieldsOverride || fieldsForStep(targetStep)).filter(isInputField);
     for (const f of targetFields) {
       if (f.required) {
         const val = activeValues[f.id];
         if (!val || (typeof val === "string" && !val.trim()) || (Array.isArray(val) && val.length === 0)) errs[f.id] = `${f.label} is required`;
       }
     }
-    if (targetStep === 1) {
+    if (targetStep === 1 && (options.leavingStep ?? true)) {
       for (const requiredId of ["f1", "f2", "f4", "f5", "f6"]) {
         if (fields.some(f => f.id === requiredId) && !activeValues[requiredId]) errs[requiredId] = "Required";
       }
@@ -280,14 +295,33 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   };
 
   const nextStep = () => {
-    if (!validateStep(step)) return;
+    const currentPages = pagesForStep(step);
+    const currentPage = currentPages[Math.min(sectionPageIndex, currentPages.length - 1)];
+    const hasNextPageInStep = sectionPageIndex < currentPages.length - 1;
+    if (!validateStep(step, { fieldsOverride: currentPage?.fields, leavingStep: !hasNextPageInStep })) return;
+    if (hasNextPageInStep) {
+      setSectionPageIndex(prev => prev + 1);
+      setErrors({});
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    setSectionPageIndex(0);
     setStep(prev => (prev === 1 ? (classChoicesEnabled ? 2 : 3) : 3));
     setErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const prevStep = () => {
-    setStep(prev => (prev === 3 ? (classChoicesEnabled ? 2 : 1) : 1));
+    if (sectionPageIndex > 0) {
+      setSectionPageIndex(prev => Math.max(prev - 1, 0));
+      setErrors({});
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    const previousStep: Step = step === 3 ? (classChoicesEnabled ? 2 : 1) : 1;
+    const previousPages = pagesForStep(previousStep);
+    setStep(previousStep);
+    setSectionPageIndex(Math.max(previousPages.length - 1, 0));
     setErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -349,6 +383,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     setStudents(prev => [...prev, makeStudent(prev.length + 1)]);
     setActiveStudentIndex(students.length);
     setStep(1);
+    setSectionPageIndex(0);
     setErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -411,6 +446,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
       if (invalidIndex >= 0) {
         setActiveStudentIndex(invalidIndex);
         setStep(1);
+        setSectionPageIndex(0);
         setErrors({ _form: `Student ${invalidIndex + 1} needs first name, last name, and age group before submitting.` });
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
@@ -441,7 +477,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         <span className="text-6xl mb-4 block">🎉</span>
         <h1 className="text-2xl font-bold text-slate-800 mb-2">{submittedUpdated ? "Registration updated!" : "You're registered!"}</h1>
         <p className="text-slate-500 mb-6">Your registration for <strong>{campName}</strong> has been {submittedUpdated ? "updated" : "submitted"}. Check your email for a confirmation copy.</p>
-        <button onClick={() => { setSubmitted(false); setSubmittedUpdated(false); setValues({}); setStudents([makeStudent(1)]); setActiveStudentIndex(0); setSelectedBySession({}); setStep(1); }}
+        <button onClick={() => { setSubmitted(false); setSubmittedUpdated(false); setValues({}); setStudents([makeStudent(1)]); setActiveStudentIndex(0); setSelectedBySession({}); setStep(1); setSectionPageIndex(0); }}
           className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
           Register Another Camper
         </button>
@@ -453,6 +489,11 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     errors[id] ? "border-red-400 focus:ring-red-300" : "border-slate-200 focus:ring-forest-500/30 focus:border-forest-400"
   }`;
 
+  const currentStepPages = pagesForStep(step);
+  const currentPageIndex = Math.min(sectionPageIndex, Math.max(currentStepPages.length - 1, 0));
+  const currentPage = currentStepPages[currentPageIndex] || { id: "page-1", fields: fieldsForStep(step) };
+  const hasMultiplePagesInStep = currentStepPages.length > 1;
+
   const renderField = (field: FormField) => {
     if (field.type === "heading") return <div key={field.id} className="pt-2"><h3 className="font-bold text-slate-800 text-base border-b border-slate-100 pb-2">{field.label}</h3></div>;
     if (field.type === "subheading") return (
@@ -461,7 +502,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         {field.helpText && <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-sky-800">{field.helpText}</p>}
       </div>
     );
-    if (field.type === "pageBreak") return <div key={field.id} className="my-6 flex items-center gap-3 text-xs font-black uppercase tracking-wide text-amber-700"><span className="h-px flex-1 bg-amber-200" /><span>{sectionBreakLabel(field)}</span><span className="h-px flex-1 bg-amber-200" /></div>;
+    if (field.type === "pageBreak") return null;
     if (field.type === "divider") return <hr key={field.id} className="border-slate-100" />;
     return (
       <div key={field.id}>
@@ -540,7 +581,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
               <p className="text-xs font-black uppercase tracking-wide text-sky-700 mb-2">Students in this family registration</p>
               <div className="flex flex-wrap gap-2">
                 {students.map((student, idx) => (
-                  <button key={student.id} type="button" onClick={() => { setActiveStudentIndex(idx); setStep(1); setErrors({}); }} className={`rounded-xl px-3 py-2 text-sm font-bold border ${idx === activeStudentIndex ? "bg-sky-600 text-white border-sky-600" : "bg-white text-sky-800 border-sky-200"}`}>
+                  <button key={student.id} type="button" onClick={() => { setActiveStudentIndex(idx); setStep(1); setSectionPageIndex(0); setErrors({}); }} className={`rounded-xl px-3 py-2 text-sm font-bold border ${idx === activeStudentIndex ? "bg-sky-600 text-white border-sky-600" : "bg-white text-sky-800 border-sky-200"}`}>
                     {student.values.f1 || student.values.f2 ? `${student.values.f1 || "Student"} ${student.values.f2 || ""}` : `Student ${idx + 1}`}
                   </button>
                 ))}
@@ -564,8 +605,9 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
               <>
                 <h2 className="text-xl font-bold text-slate-800">{familyRegistrationEnabled ? `Parent + student ${activeStudentIndex + 1} info` : "Parent + student info"}</h2>
                 <p className="text-sm text-slate-500">Age Group is required for registration. {classChoicesEnabled ? "The next step will show classroom choices based on the selected age group." : "Class choices are disabled for this form, so families will continue directly to consent."}</p>
-                {fieldsForStep(1).map(renderField)}
-                <button type="button" onClick={nextStep} className="w-full py-3.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">{classChoicesEnabled ? "Continue to Classes →" : "Continue →"}</button>
+                {hasMultiplePagesInStep && <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Page {currentPageIndex + 1} of {currentStepPages.length}{currentPage.title ? ` · ${currentPage.title}` : ""}</p>}
+                {currentPage.fields.map(renderField)}
+                <button type="button" onClick={nextStep} className="w-full py-3.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">{currentPageIndex < currentStepPages.length - 1 ? "Continue →" : classChoicesEnabled ? "Continue to Classes →" : "Continue →"}</button>
               </>
             )}
 
@@ -581,8 +623,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                   <div className="space-y-5">
                     {requiredClassRulesForAgeGroup.length > 0 && (
                       <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
-                        <p className="font-bold">Required for this age group: {requiredClassNames}</p>
-                        <p className="mt-0.5 text-xs text-indigo-800">Choose {requiredClassRulesForAgeGroup.length === 1 ? "this class" : "these classes"} in any available session before continuing.</p>
+                        <p className="font-bold">This age group must include {requiredClassNames}. Choose {requiredClassRulesForAgeGroup.length === 1 ? "it" : "them"} in any available session before continuing.</p>
                       </div>
                     )}
 
@@ -602,7 +643,6 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                               const checked = session.sessionIds.every(sessionId => activeSelectedBySession[sessionId] === option.courseId);
                               const selectedInAnotherSession = Object.entries(activeSelectedBySession).some(([sessionId, courseId]) => !session.sessionIds.includes(sessionId) && courseId === option.courseId);
                               const unavailableBecauseChosen = selectedInAnotherSession && !checked;
-                              const requiredForAgeGroup = requiredClassRulesForAgeGroup.some(rule => rule.courseId === option.courseId);
                               return <label key={option.courseId} className={`block p-4 transition-all ${unavailableBecauseChosen ? "bg-slate-50 opacity-50 cursor-not-allowed" : checked ? "bg-forest-50 cursor-pointer" : "hover:bg-slate-50 cursor-pointer"}`}>
                                 <div className="flex items-start gap-3">
                                   <input type="radio" name={`session-${session.id}`} checked={checked} disabled={unavailableBecauseChosen} onChange={() => selectCourseForSession(session.sessionIds, option.courseId)} className="mt-1 w-4 h-4 accent-forest-500 disabled:accent-slate-300" />
@@ -610,7 +650,6 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                                     <div className="flex items-start justify-between gap-3">
                                       <p className="font-semibold text-slate-800">{option.name}</p>
                                       <div className="flex flex-wrap justify-end gap-2">
-                                        {requiredForAgeGroup && <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-black text-indigo-700">Required</span>}
                                         <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${unavailableBecauseChosen ? "text-slate-500 bg-slate-200" : "text-forest-700 bg-forest-100"}`}>
                                           {unavailableBecauseChosen ? "Already chosen" : option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} seats left`}
                                         </span>
@@ -638,13 +677,20 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
             {step === 3 && (
               <>
                 <h2 className="text-xl font-bold text-slate-800">Consent + emergency info</h2>
-                {fieldsForStep(3).map(renderField)}
+                {hasMultiplePagesInStep && <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Page {currentPageIndex + 1} of {currentStepPages.length}{currentPage.title ? ` · ${currentPage.title}` : ""}</p>}
+                {currentPage.fields.map(renderField)}
                 <div className="flex gap-3">
                   <button type="button" onClick={prevStep} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">← Back</button>
-                  {familyRegistrationEnabled && <button type="button" onClick={addAnotherStudent} className="flex-1 py-3 border border-sky-200 bg-sky-50 text-sky-700 rounded-xl text-sm font-bold hover:bg-sky-100">+ Add Student</button>}
-                  <button type="submit" disabled={submitting} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
-                    {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</> : billingMode === "camperFee" && totalDueCents > 0 ? `Submit ${activeStudentCount} + Pay ${money(totalDueCents)} →` : `Submit ${familyRegistrationEnabled ? `${activeStudentCount} Student${activeStudentCount === 1 ? "" : "s"}` : "Registration"} →`}
-                  </button>
+                  {currentPageIndex < currentStepPages.length - 1 ? (
+                    <button type="button" onClick={nextStep} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">Continue →</button>
+                  ) : (
+                    <>
+                      {familyRegistrationEnabled && <button type="button" onClick={addAnotherStudent} className="flex-1 py-3 border border-sky-200 bg-sky-50 text-sky-700 rounded-xl text-sm font-bold hover:bg-sky-100">+ Add Student</button>}
+                      <button type="submit" disabled={submitting} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
+                        {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</> : billingMode === "camperFee" && totalDueCents > 0 ? `Submit ${activeStudentCount} + Pay ${money(totalDueCents)} →` : `Submit ${familyRegistrationEnabled ? `${activeStudentCount} Student${activeStudentCount === 1 ? "" : "s"}` : "Registration"} →`}
+                      </button>
+                    </>
+                  )}
                 </div>
               </>
             )}

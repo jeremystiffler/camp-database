@@ -62,7 +62,7 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
   { category: "Layout", type: "heading",  label: "Section heading", icon: "H", description: "Bold section title", defaults: { label: "New section" } },
   { category: "Layout", type: "subheading", label: "Info / instructions", icon: "ℹ", description: "Instruction card", defaults: { label: "Important information", helpText: "Add multi-line details families should read before continuing." } },
   { category: "Layout", type: "divider",  label: "Divider", icon: "—", description: "Visual separator" },
-  { category: "Layout", type: "pageBreak", label: "Section break", icon: "↧", description: "Start a new visual section", defaults: { label: "Section break" } },
+  { category: "Layout", type: "pageBreak", label: "Section break", icon: "↧", description: "Start a new page for the following fields", defaults: { label: "Section break" } },
 
   { category: "Basic", type: "text", label: "Short text", icon: "Aa", description: "Single-line answer", defaults: { label: "Short answer", placeholder: "Type your answer" } },
   { category: "Basic", type: "textarea", label: "Long text", icon: "¶", description: "Paragraph answer", defaults: { label: "Long answer", placeholder: "Type details here" } },
