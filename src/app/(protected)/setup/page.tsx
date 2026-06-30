@@ -170,6 +170,10 @@ function SetupContent() {
   const [newAgeMax,   setNewAgeMax]   = useState("");
   const [newAgeColor, setNewAgeColor] = useState("#22C55E");
 
+  // Age group inline editing
+  const [editingAgeGroupId, setEditingAgeGroupId] = useState<string | null>(null);
+  const [editAgeName, setEditAgeName] = useState("");
+
   // Time Slots grid state
   const [weekOffset, setWeekOffset] = useState(0);
   const [draftRows,  setDraftRows]  = useState<DraftRow[]>([]);
@@ -436,6 +440,32 @@ function SetupContent() {
       body: JSON.stringify({ name: newAgeName, minAge: newAgeMin ? parseInt(newAgeMin) : undefined, maxAge: newAgeMax ? parseInt(newAgeMax) : undefined, color: newAgeColor, displayOrder: ageGroups.length }),
     });
     if (res.ok) { setNewAgeName(""); setNewAgeMin(""); setNewAgeMax(""); load(); }
+  };
+
+  const startEditAgeGroup = (ageGroup: AgeGroup) => {
+    setEditingAgeGroupId(ageGroup.id);
+    setEditAgeName(ageGroup.name);
+  };
+
+  const saveAgeGroupName = async (id: string) => {
+    const name = editAgeName.trim();
+    if (!name) {
+      alert("Age group name is required.");
+      return;
+    }
+    const res = await fetch(`/api/camps/${campId}/age-groups/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      alert(error?.error || "Could not rename this age group. Please try again.");
+      return;
+    }
+    setEditingAgeGroupId(null);
+    setAgeGroups(prev => prev.map(group => group.id === id ? { ...group, name } : group));
+    load();
   };
 
   const deleteAgeGroup = async (id: string) => {
@@ -885,37 +915,64 @@ function SetupContent() {
           {ageGroups
             .sort((a, b) => a.displayOrder - b.displayOrder)
             .map(ag => (
-              <div key={ag.id} className="flex items-center justify-between py-2.5 px-4 bg-slate-50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: ag.color }} />
-                  <span className="font-medium text-slate-800 text-sm">{ag.name}</span>
-                  {(ag.minAge || ag.maxAge) && (
-                    <span className="text-slate-400 text-xs">{ag.minAge ?? "?"}-{ag.maxAge ?? "?"} yrs</span>
-                  )}
-                  {ag.noSchedule && (
-                    <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">
-                      No class schedule
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-1.5 cursor-pointer" title="No schedule — registration, t-shirts, nametags only">
-                    <button type="button" role="switch" aria-checked={ag.noSchedule}
-                      onClick={async () => {
-                        await fetch(`/api/camps/${campId}/age-groups/${ag.id}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ noSchedule: !ag.noSchedule }),
-                        });
-                        setAgeGroups(prev => prev.map(g => g.id === ag.id ? { ...g, noSchedule: !g.noSchedule } : g));
-                      }}
-                      className={`relative w-8 h-4 rounded-full transition-colors flex-shrink-0 ${ag.noSchedule ? "bg-amber-400" : "bg-slate-200"}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${ag.noSchedule ? "translate-x-4" : ""}`} />
-                    </button>
-                    <span className="text-xs text-slate-500 whitespace-nowrap">No classes</span>
-                  </label>
-                  <button onClick={() => deleteAgeGroup(ag.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1">🗑️</button>
-                </div>
+              <div key={ag.id} className="rounded-xl bg-slate-50 px-4 py-3">
+                {editingAgeGroupId === ag.id ? (
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Age Group Name</label>
+                      <input
+                        type="text"
+                        value={editAgeName}
+                        onChange={e => setEditAgeName(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") saveAgeGroupName(ag.id); if (e.key === "Escape") setEditingAgeGroupId(null); }}
+                        autoFocus
+                        className="w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => saveAgeGroupName(ag.id)} className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-600">
+                        ✓ Save name
+                      </button>
+                      <button type="button" onClick={() => setEditingAgeGroupId(null)} className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-200">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: ag.color }} />
+                      <span className="font-medium text-slate-800 text-sm truncate">{ag.name}</span>
+                      {(ag.minAge || ag.maxAge) && (
+                        <span className="text-slate-400 text-xs whitespace-nowrap">{ag.minAge ?? "?"}-{ag.maxAge ?? "?"} yrs</span>
+                      )}
+                      {ag.noSchedule && (
+                        <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                          No class schedule
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 sm:justify-end">
+                      <label className="flex items-center gap-1.5 cursor-pointer" title="No schedule — registration, t-shirts, nametags only">
+                        <button type="button" role="switch" aria-checked={ag.noSchedule}
+                          onClick={async () => {
+                            await fetch(`/api/camps/${campId}/age-groups/${ag.id}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ noSchedule: !ag.noSchedule }),
+                            });
+                            setAgeGroups(prev => prev.map(g => g.id === ag.id ? { ...g, noSchedule: !g.noSchedule } : g));
+                          }}
+                          className={`relative w-8 h-4 rounded-full transition-colors flex-shrink-0 ${ag.noSchedule ? "bg-amber-400" : "bg-slate-200"}`}>
+                          <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${ag.noSchedule ? "translate-x-4" : ""}`} />
+                        </button>
+                        <span className="text-xs text-slate-500 whitespace-nowrap">No classes</span>
+                      </label>
+                      <button type="button" onClick={() => startEditAgeGroup(ag)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-sky-50 hover:text-sky-600" title="Rename age group">✏️ Rename</button>
+                      <button type="button" onClick={() => deleteAgeGroup(ag.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">🗑️</button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
         </div>
