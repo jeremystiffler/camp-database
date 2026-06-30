@@ -65,11 +65,45 @@ function age(dob: string) {
 }
 function cents(value?: number) { return `$${((value || 0) / 100).toFixed(2)}`; }
 function sessionTitle(session?: CampSession | null) { return session?.course?.name || session?.sessionTemplate?.label || "Untitled session"; }
+function sessionDay(session?: CampSession | null) {
+  if (session?.date) return new Date(session.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  if (session?.sessionTemplate?.dayOfWeek != null) return DAYS[session.sessionTemplate.dayOfWeek];
+  return "Any day";
+}
 function sessionTime(session?: CampSession | null) {
-  const day = session?.date ? new Date(session.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) : session?.sessionTemplate?.dayOfWeek != null ? DAYS[session.sessionTemplate.dayOfWeek] : "Any day";
   const start = session?.startTime || session?.sessionTemplate?.startTime || "";
   const end = session?.endTime || session?.sessionTemplate?.endTime || "";
-  return `${day}${start || end ? ` · ${start}${end ? `–${end}` : ""}` : ""}`;
+  return `${sessionDay(session)}${start || end ? ` · ${start}${end ? `–${end}` : ""}` : ""}`;
+}
+function sessionChoiceKey(session?: CampSession | null) {
+  const courseOrSession = session?.course?.id || session?.id || "missing";
+  const template = session?.sessionTemplate;
+  const label = template?.label || "Session";
+  const start = session?.startTime || template?.startTime || "";
+  const end = session?.endTime || template?.endTime || "";
+  return `${courseOrSession}|${label}|${start}|${end}`;
+}
+function summarizedEnrollmentChoices(enrollments: Enrollment[] = []) {
+  const byChoice = new Map<string, { key: string; title: string; days: string[]; time: string; rooms: string[] }>();
+  for (const enrollment of enrollments) {
+    const session = enrollment.session;
+    const key = sessionChoiceKey(session);
+    const title = sessionTitle(session);
+    const day = sessionDay(session);
+    const start = session?.startTime || session?.sessionTemplate?.startTime || "";
+    const end = session?.endTime || session?.sessionTemplate?.endTime || "";
+    const time = start || end ? `${start}${end ? `–${end}` : ""}` : "";
+    const room = session?.room?.name || "";
+    const existing = byChoice.get(key) || { key, title, days: [], time, rooms: [] };
+    if (day && !existing.days.includes(day)) existing.days.push(day);
+    if (room && !existing.rooms.includes(room)) existing.rooms.push(room);
+    byChoice.set(key, existing);
+  }
+  return [...byChoice.values()];
+}
+function choiceSummaryLine(choice: { days: string[]; time: string; rooms: string[] }) {
+  const parts = [choice.days.join(", "), choice.time, choice.rooms.join(", ")].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Selected class";
 }
 function parseCustomData(raw?: string | null): Record<string, unknown> | null {
   if (!raw) return null;
@@ -120,6 +154,10 @@ function CamperDrawer({
     paymentStatus: camper.paymentStatus || "not_required",
   });
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>((camper.enrollments || []).map(e => e.sessionId));
+  const [showSessionCatalog, setShowSessionCatalog] = useState(isNew);
+  const selectedSessions = sessions.filter(session => selectedSessionIds.includes(session.id));
+  const sessionChoicesToRender = showSessionCatalog ? sessions : selectedSessions;
+  const selectedChoiceCount = summarizedEnrollmentChoices(camper.enrollments || []).length || new Set(selectedSessions.map(sessionChoiceKey)).size;
 
   const update = (key: keyof typeof form, value: string | boolean) => setForm(prev => ({ ...prev, [key]: value }));
   const toggleSession = (sessionId: string) => setSelectedSessionIds(prev => prev.includes(sessionId) ? prev.filter(id => id !== sessionId) : [...prev, sessionId]);
@@ -262,10 +300,30 @@ function CamperDrawer({
           </section>
 
           <section className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Registration Choices</h3>
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Registration Choices</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  {editing
+                    ? showSessionCatalog
+                      ? "Showing the full class catalogue so you can add or remove choices."
+                      : `Showing only this camper's ${selectedChoiceCount || selectedSessionIds.length} selected choice${(selectedChoiceCount || selectedSessionIds.length) === 1 ? "" : "s"}.`
+                    : "Only classes chosen for this camper are shown here."}
+                </p>
+              </div>
+              {editing && !isNew && sessions.length > selectedSessions.length && (
+                <button
+                  type="button"
+                  onClick={() => setShowSessionCatalog(prev => !prev)}
+                  className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  {showSessionCatalog ? "Show selected only" : "Add/change classes"}
+                </button>
+              )}
+            </div>
             {editing ? (
               <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-100 divide-y divide-slate-100">
-                {sessions.length === 0 ? <p className="text-sm text-slate-400 p-3">No scheduled sessions yet.</p> : sessions.map((session) => (
+                {sessionChoicesToRender.length === 0 ? <p className="text-sm text-slate-400 p-3">No classes selected for this camper.</p> : sessionChoicesToRender.map((session) => (
                   <label key={session.id} className="flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer">
                     <input type="checkbox" className="mt-1" checked={selectedSessionIds.includes(session.id)} onChange={() => toggleSession(session.id)} />
                     <div>
@@ -277,10 +335,10 @@ function CamperDrawer({
               </div>
             ) : (
               <div className="space-y-2">
-                {(camper.enrollments || []).length === 0 ? <p className="text-sm text-slate-400">No registration choices selected.</p> : (camper.enrollments || []).map((enrollment) => (
-                  <div key={enrollment.id} className="rounded-xl border border-slate-100 px-3 py-2">
-                    <div className="text-sm font-semibold text-slate-800">{sessionTitle(enrollment.session)}</div>
-                    <div className="text-xs text-slate-500">{sessionTime(enrollment.session)}{enrollment.session?.room?.name ? ` · ${enrollment.session.room.name}` : ""}</div>
+                {summarizedEnrollmentChoices(camper.enrollments || []).length === 0 ? <p className="text-sm text-slate-400">No registration choices selected.</p> : summarizedEnrollmentChoices(camper.enrollments || []).map((choice) => (
+                  <div key={choice.key} className="rounded-xl border border-slate-100 px-3 py-2">
+                    <div className="text-sm font-semibold text-slate-800">{choice.title}</div>
+                    <div className="text-xs text-slate-500">{choiceSummaryLine(choice)}</div>
                   </div>
                 ))}
               </div>
@@ -530,8 +588,8 @@ function CampersContent() {
                     <div className="text-slate-400 text-xs">{camper.guardianEmail || "—"}</div>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <div className="text-slate-800">{camper.enrollments?.length || 0} selected</div>
-                    <div className="text-slate-400 text-xs max-w-[180px] truncate">{(camper.enrollments || []).map(e => sessionTitle(e.session)).join(" · ") || "—"}</div>
+                    <div className="text-slate-800">{summarizedEnrollmentChoices(camper.enrollments || []).length} selected</div>
+                    <div className="text-slate-400 text-xs max-w-[180px] truncate">{summarizedEnrollmentChoices(camper.enrollments || []).map(choice => choice.title).join(" · ") || "—"}</div>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <div className="text-slate-800">{camper.paymentStatus || "not_required"}</div>
