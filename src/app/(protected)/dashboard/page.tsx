@@ -24,14 +24,15 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon, gradient, sub }: StatCardProps) {
   return (
-    <div className={`${gradient} rounded-2xl p-5 text-white shadow-md`}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-2xl">{icon}</span>
-        <span className="text-xs font-semibold bg-white/20 px-2.5 py-1 rounded-full">Live</span>
+    <div className={`${gradient} rounded-2xl p-5`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-3xl font-black tracking-tight text-slate-900 mb-1">{value}</div>
+          <div className="text-sm font-semibold text-slate-600">{label}</div>
+          {sub && <div className="text-xs text-slate-400 mt-1">{sub}</div>}
+        </div>
+        <span className="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-xs font-black text-slate-500">{icon}</span>
       </div>
-      <div className="text-3xl font-bold mb-1">{value}</div>
-      <div className="text-sm font-medium opacity-90">{label}</div>
-      {sub && <div className="text-xs opacity-70 mt-1">{sub}</div>}
     </div>
   );
 }
@@ -46,12 +47,12 @@ interface QuickActionProps {
 
 function QuickAction({ href, icon, title, desc, iconClass }: QuickActionProps) {
   return (
-    <Link href={href} className="camp-card p-5 flex items-start gap-4 group block">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${iconClass}`}>
+    <Link href={href} className="camp-card p-4 flex items-start gap-3 group block">
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 ${iconClass}`}>
         {icon}
       </div>
       <div>
-        <h3 className="font-semibold text-slate-800 group-hover:text-forest-600 transition-colors text-sm">{title}</h3>
+        <h3 className="font-bold text-slate-900 group-hover:text-slate-700 transition-colors text-sm">{title}</h3>
         <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">{desc}</p>
       </div>
     </Link>
@@ -232,8 +233,8 @@ function CampCard({ camp, onCopy }: { camp: Camp; onCopy: (camp: Camp) => void }
 
       <Link href={`/activities?campId=${camp.id}`} className="block">
         <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-forest-500 to-sky-500 flex items-center justify-center text-white text-lg">
-            🏕️
+          <div className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 text-xs font-black">
+            CC
           </div>
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full mr-7 ${statusColors[camp.status] || "bg-slate-100 text-slate-600"}`}>
             {camp.status}
@@ -326,38 +327,38 @@ function DashboardContent() {
           <p className="text-slate-500 text-sm mt-0.5">Welcome back! Here&apos;s your camp overview.</p>
         </div>
         <button onClick={() => setShowNewCamp(true)}
-          className="px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold shadow-sm shadow-forest-500/20 hover:opacity-90 transition-opacity flex items-center gap-2">
+          className="minimal-button-primary flex items-center gap-2">
           <span>+</span> New Camp
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total Campers"  value={loading ? "–" : totalCampers}    icon="👦" gradient="stat-forest" />
-        <StatCard label="Activities"     value={loading ? "–" : totalActivities} icon="🎯" gradient="stat-sky" />
-        <StatCard label="Camps"          value={loading ? "–" : camps.length}    icon="🏕️" gradient="stat-sunset" />
-        <StatCard label="This Season"    value={loading ? "–" : (activeCamp?.status === "published" ? "LIVE" : "Draft")} icon="✅" gradient="stat-berry" />
+        <StatCard label="Total Campers"  value={loading ? "–" : totalCampers}    icon="C" gradient="stat-forest" />
+        <StatCard label="Activities"     value={loading ? "–" : totalActivities} icon="A" gradient="stat-sky" />
+        <StatCard label="Camps"          value={loading ? "–" : camps.length}    icon="N" gradient="stat-sunset" />
+        <StatCard label="This Season"    value={loading ? "–" : (activeCamp?.status === "published" ? "Live" : "Draft")} icon="S" gradient="stat-berry" />
       </div>
 
       {activeCamp && (
-        <div className="camp-card p-5 mb-8 border-2 border-forest-100 bg-gradient-to-br from-white to-forest-50/40">
+        <div className="camp-card p-5 mb-8 bg-white">
           <div className="flex flex-col lg:flex-row lg:items-end gap-5 justify-between">
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-black uppercase tracking-wide text-forest-600 mb-2">Active camp command center</p>
+              <p className="minimal-section-title mb-2">Active camp</p>
               <label className="block text-sm font-bold text-slate-700 mb-1.5">Rename camp</label>
               <div className="flex flex-col sm:flex-row gap-2">
-                <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
-                <button onClick={saveCampName} disabled={renameSaving} className="px-4 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-bold hover:bg-forest-700 disabled:opacity-60">
+                <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input flex-1" />
+                <button onClick={saveCampName} disabled={renameSaving} className="minimal-button-primary">
                   {renameSaving ? "Saving…" : "Save Name"}
                 </button>
               </div>
               {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg.text}</p>}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:w-[520px]">
-              <Link href={`/setup?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-forest-300 hover:text-forest-700">🏕️ Setup</Link>
-              <Link href={`/teachers?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-berry-300 hover:text-berry-700">🧑‍🏫 Teachers</Link>
-              <Link href={`/registration?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-sky-300 hover:text-sky-700">📋 Reg. Form</Link>
-              <Link href={`/schedule?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-sunset-300 hover:text-sunset-700">📅 Schedule</Link>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:w-[560px]">
+              <Link href={`/setup?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Setup</Link>
+              <Link href={`/teachers?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Teachers</Link>
+              <Link href={`/registration?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Registration</Link>
+              <Link href={`/schedule?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Schedule</Link>
             </div>
           </div>
         </div>
@@ -401,16 +402,16 @@ function DashboardContent() {
             Quick Actions — <span className="text-forest-600">{activeCamp.name}</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <QuickAction href={`/activities?campId=${activeCamp.id}`}  icon="🎯" title="Activities"   desc="Create and manage camp activities, teachers, rooms, and capacity"  iconClass="icon-badge-forest" />
-            <QuickAction href={`/campers?campId=${activeCamp.id}`}     icon="👦" title="Campers"      desc="View all registered campers, search, and manage enrollments"       iconClass="icon-badge-sky" />
-            <QuickAction href={`/schedule?campId=${activeCamp.id}`}    icon="📅" title="Schedule"     desc="View the full camp schedule grid by time slot"                     iconClass="icon-badge-sunset" />
-            <QuickAction href={`/print?campId=${activeCamp.id}`}       icon="🖨️" title="Print Center" desc="Generate schedules, rosters, and name badges"                      iconClass="icon-badge-berry" />
-            <QuickAction href={`/settings?campId=${activeCamp.id}`}    icon="⚙️" title="Settings"     desc="Profile, appearance, and camp-level actions"                       iconClass="icon-badge-forest" />
+            <QuickAction href={`/activities?campId=${activeCamp.id}`}  icon="A" title="Activities"   desc="Create and manage activities, teachers, rooms, and capacity"  iconClass="icon-badge-forest" />
+            <QuickAction href={`/campers?campId=${activeCamp.id}`}     icon="C" title="Campers"      desc="View registrations, search, and manage enrollments"       iconClass="icon-badge-sky" />
+            <QuickAction href={`/schedule?campId=${activeCamp.id}`}    icon="S" title="Schedule"     desc="View the full camp schedule grid by time slot"                     iconClass="icon-badge-sunset" />
+            <QuickAction href={`/print?campId=${activeCamp.id}`}       icon="P" title="Print Center" desc="Generate schedules, rosters, and name badges"                      iconClass="icon-badge-berry" />
+            <QuickAction href={`/settings?campId=${activeCamp.id}`}    icon="Se" title="Settings"     desc="Profile, appearance, billing, and camp-level actions"              iconClass="icon-badge-forest" />
             <button onClick={() => setCopyingCamp(activeCamp)}
-              className="camp-card p-5 flex items-start gap-4 group text-left">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 icon-badge-sky">📋</div>
+              className="camp-card p-4 flex items-start gap-3 group text-left">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 icon-badge-sky">Cp</div>
               <div>
-                <h3 className="font-semibold text-slate-800 group-hover:text-sky-600 transition-colors text-sm">Copy Camp</h3>
+                <h3 className="font-bold text-slate-900 group-hover:text-slate-700 transition-colors text-sm">Copy Camp</h3>
                 <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">Clone this camp&apos;s structure for a new season</p>
               </div>
             </button>

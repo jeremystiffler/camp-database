@@ -89,29 +89,84 @@
   box-shadow: 0 0 6px var(--color-ember-500);
 }
 
-/* ===================== Colorful SaaS (dashboard) ===================== */
+/* ===================== Minimal Admin System ===================== */
 .camp-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  transition: box-shadow 0.2s, transform 0.2s;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
 }
 .camp-card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-  transform: translateY(-2px);
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.055);
 }
 
-.stat-forest { background: linear-gradient(135deg, #22C55E, #16A34A); }
-.stat-sky    { background: linear-gradient(135deg, #0EA5E9, #0284C7); }
-.stat-sunset { background: linear-gradient(135deg, #F97316, #EA580C); }
-.stat-berry  { background: linear-gradient(135deg, #A855F7, #9333EA); }
-.stat-earth  { background: linear-gradient(135deg, #EAB308, #CA8A04); }
+.stat-forest,
+.stat-sky,
+.stat-sunset,
+.stat-berry,
+.stat-earth {
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e5e7eb;
+}
 
-.icon-badge-forest { background: #DCFCE7; color: #16A34A; }
-.icon-badge-sky    { background: #E0F2FE; color: #0284C7; }
-.icon-badge-sunset { background: #FFEDD5; color: #EA580C; }
-.icon-badge-berry  { background: #F3E8FF; color: #9333EA; }
+.icon-badge-forest,
+.icon-badge-sky,
+.icon-badge-sunset,
+.icon-badge-berry {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.minimal-input {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.875rem;
+  padding: 0.625rem 0.875rem;
+  outline: none;
+}
+.minimal-input:focus {
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18);
+}
+
+.minimal-button-primary {
+  border-radius: 12px;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.625rem 1rem;
+  transition: background-color 0.16s ease, opacity 0.16s ease;
+}
+.minimal-button-primary:hover { background: #1e293b; }
+.minimal-button-primary:disabled { opacity: 0.6; }
+
+.minimal-button-secondary {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.625rem 1rem;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+.minimal-button-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+.minimal-section-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
 
 @keyframes animate-float {
   0%, 100% { transform: translateY(0); }

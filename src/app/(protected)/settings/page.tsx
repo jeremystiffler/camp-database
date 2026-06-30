@@ -68,13 +68,13 @@ const FONT_OPTIONS = [
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="camp-card p-6 mb-5">
+    <section id={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")} className="camp-card p-6 mb-5 scroll-mt-6">
       <div className="mb-4">
-        <h2 className="font-bold text-slate-800 text-base">{title}</h2>
-        {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+        <h2 className="font-black text-slate-900 text-base">{title}</h2>
+        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
       </div>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -244,20 +244,40 @@ function SettingsContent() {
   const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
   const platformEstimate = Math.min(billing.platformFeeCapCents, Math.max(billing.platformFeeMinCents, Math.round(billing.camperPriceCents * billing.platformFeePercentBps / 10000)));
 
-  const inputCls = "w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400";
+  const inputCls = "minimal-input";
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-5xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Your profile, camp appearance, and account actions</p>
+        <p className="minimal-section-title mb-2">Camp administration</p>
+        <h1 className="text-2xl font-black tracking-tight text-slate-900">Settings</h1>
+        <p className="text-slate-500 text-sm mt-0.5">Profile, billing, appearance, utilities, and camp-level actions.</p>
       </div>
 
+      {campId && (
+        <div className="camp-card p-4 mb-5">
+          <p className="minimal-section-title mb-3">Jump to</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <a href="#your-profile" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Profile</a>
+            <a href="#billing" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Billing</a>
+            <a href="#camp-appearance" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Appearance</a>
+            <a href="#utilities" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Utilities</a>
+          </div>
+          <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 border-t border-slate-100 pt-3">
+            <Link href={`/setup?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Setup</Link>
+            <Link href={`/registration?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Registration</Link>
+            <Link href={`/activities?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Activities</Link>
+            <Link href={`/schedule?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Schedule</Link>
+            <Link href={`/print?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Print</Link>
+          </div>
+        </div>
+      )}
+
       {/* ── Your Profile ── */}
-      <Section title="👤 Your Profile" subtitle="Update your name, email, and password">
+      <Section title="Your Profile" subtitle="Update your name, email, and password">
         {user && (
           <div className="flex items-center gap-4 mb-5 pb-5 border-b border-slate-100">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+            <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
               {(user.name?.[0] || user.email[0]).toUpperCase()}
             </div>
             <div>
@@ -303,7 +323,7 @@ function SettingsContent() {
           )}
 
           <button onClick={saveProfile} disabled={profileSaving}
-            className="px-5 py-2.5 bg-gradient-to-r from-berry-500 to-berry-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
+            className="minimal-button-primary">
             {profileSaving ? "Saving..." : "Save Profile"}
           </button>
         </div>
@@ -311,7 +331,7 @@ function SettingsContent() {
 
       {/* ── Camp Billing ── */}
       {campId && (
-        <Section title="💳 Billing" subtitle="Choose who covers the platform cost for this camp">
+        <Section title="Billing" subtitle="Choose who covers the platform cost for this camp">
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "campPays" }))}
@@ -405,12 +425,12 @@ function SettingsContent() {
 
             <div className="flex flex-wrap gap-3">
               <button onClick={saveBilling} disabled={billingSaving}
-                className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
+                className="minimal-button-primary">
                 {billingSaving ? "Saving..." : "Save Billing Settings"}
               </button>
               {billing.billingMode === "campPays" && (
                 <button onClick={startCampCheckout} disabled={billingSaving}
-                  className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 disabled:opacity-60">
+                  className="minimal-button-secondary">
                   Pay {money(billing.annualSubscriptionCents)}/year with Stripe
                 </button>
               )}
@@ -421,7 +441,7 @@ function SettingsContent() {
 
       {/* ── Camp Appearance ── */}
       {campId && (
-        <Section title="🎨 Camp Appearance" subtitle={`Customize how ${campName}'s registration page and print materials look`}>
+        <Section title="Camp Appearance" subtitle={`Customize how ${campName}'s registration page and print materials look`}>
           <div className="space-y-5">
 
             {/* Color themes */}
@@ -506,7 +526,7 @@ function SettingsContent() {
             )}
 
             <button onClick={saveAppearance} disabled={appearanceSaving}
-              className="px-5 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
+              className="minimal-button-primary">
               {appearanceSaving ? "Saving..." : "Save Appearance"}
             </button>
           </div>
@@ -514,7 +534,7 @@ function SettingsContent() {
       )}
 
       {/* ── Import shortcut ── */}
-      <div className="camp-card p-5 border-2 border-dashed border-slate-200 bg-slate-50/50 mb-5">
+      <div id="utilities" className="camp-card p-5 border border-slate-200 bg-white mb-5 scroll-mt-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-forest-400 flex items-center justify-center text-white text-xl flex-shrink-0">
@@ -534,7 +554,7 @@ function SettingsContent() {
 
       {/* ── Danger Zone ── */}
       {campId && (
-        <Section title="⚠️ Danger Zone" subtitle="These actions are permanent and cannot be undone">
+        <Section title="Danger Zone" subtitle="These actions are permanent and cannot be undone">
           <button
             onClick={() => {
               if (confirm(`Delete "${campName}" and all its data? This cannot be undone.`)) {

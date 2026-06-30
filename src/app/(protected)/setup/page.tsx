@@ -683,15 +683,15 @@ function SetupContent() {
   const registrationReady = detailsDone && ageGroups.length > 0 && rooms.length > 0 && sessionRows.length > 0 && teachersDone && activitiesDone && scheduleDone;
 
   const setupSteps: SetupStep[] = [
-    { key: "details", label: "Camp Info", shortLabel: "Camp", icon: "🏕️", help: "Name, dates, registration status, and basic identity.", question: "What camp am I building?", done: detailsDone, actionLabel: "Set camp info" },
-    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "👦", help: "Who is this camp serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, actionLabel: "Add age groups" },
-    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "📍", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, actionLabel: "Add rooms" },
-    { key: "times", label: "Time Slots", shortLabel: "Times", icon: "🕐", help: "Build the skeleton of each camp day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, actionLabel: "Build day schedule" },
-    { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "🧑‍🏫", help: "Add staff before assigning classes.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, actionLabel: "Add teachers" },
-    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "🎯", help: "Create the catalog of classes and activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, actionLabel: "Create activities" },
-    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "▦", help: "Assign activities to time slots with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, actionLabel: "Schedule activities" },
-    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "📝", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, actionLabel: "Prepare registration" },
-    { key: "review", label: "Review & Open", shortLabel: "Review", icon: "✅", help: "Run the readiness checklist before parents see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, actionLabel: registrationOpen ? "Review live camp" : "Open registration" },
+    { key: "details", label: "Camp Info", shortLabel: "Camp", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What camp am I building?", done: detailsDone, actionLabel: "Set camp info" },
+    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this camp serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, actionLabel: "Add age groups" },
+    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, actionLabel: "Add rooms" },
+    { key: "times", label: "Time Slots", shortLabel: "Times", icon: "4", help: "Build the skeleton of each camp day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, actionLabel: "Build day schedule" },
+    { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning classes.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, actionLabel: "Add teachers" },
+    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of classes and activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, actionLabel: "Create activities" },
+    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time slots with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, actionLabel: "Schedule activities" },
+    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, actionLabel: "Prepare registration" },
+    { key: "review", label: "Review & Open", shortLabel: "Review", icon: "9", help: "Run the readiness checklist before parents see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, actionLabel: registrationOpen ? "Review live camp" : "Open registration" },
   ];
   const completedSteps = setupSteps.filter(step => step.done).length;
   const nextStep = setupSteps.find(step => !step.done && !step.locked) || setupSteps.find(step => !step.done) || setupSteps[setupSteps.length - 1];
@@ -720,10 +720,10 @@ function SetupContent() {
       </div>
 
       <div className="camp-card mb-5 overflow-hidden p-0">
-        <div className="border-b border-slate-100 bg-gradient-to-r from-sky-50 via-white to-amber-50 p-5">
+        <div className="border-b border-slate-100 bg-white p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-wide text-sky-700">Setup progress</p>
+              <p className="minimal-section-title">Setup progress</p>
               <h2 className="mt-1 text-lg font-black text-slate-900">{completedSteps} of {setupSteps.length} steps complete</h2>
               <p className="mt-1 text-sm text-slate-600">{nextStep.question} <span className="font-semibold text-slate-900">Start with {nextStep.label}.</span></p>
             </div>
@@ -733,7 +733,7 @@ function SetupContent() {
                 <span>{setupPercent}%</span>
               </div>
               <div className="h-3 overflow-hidden rounded-full bg-white shadow-inner">
-                <div className="h-full rounded-full bg-gradient-to-r from-forest-400 to-sky-500 transition-all" style={{ width: `${setupPercent}%` }} />
+                <div className="h-full rounded-full bg-slate-900 transition-all" style={{ width: `${setupPercent}%` }} />
               </div>
             </div>
           </div>
@@ -751,7 +751,7 @@ function SetupContent() {
                 <span>{index + 1}. {step.shortLabel}</span>
                 <span>{step.done ? "✓" : step.locked ? "🔒" : "○"}</span>
               </span>
-              <span className="block truncate text-sm font-black">{step.icon} {step.label}</span>
+              <span className="block truncate text-sm font-black">{step.label}</span>
               <span className={`mt-0.5 block text-[11px] ${activeTab === step.key ? "text-white/60" : "text-slate-400"}`}>{step.help}</span>
             </button>
           ))}
@@ -760,7 +760,7 @@ function SetupContent() {
 
       {/* ── Camp Details ── */}
       {activeTab === "details" && (
-      <Section title="🏕️ Camp Details">
+      <Section title="Camp Details">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Camp Name</label>
@@ -808,7 +808,7 @@ function SetupContent() {
 
       {/* ── Rooms ── */}
       {activeTab === "rooms" && (
-      <Section title="📍 Rooms & Locations">
+      <Section title="Rooms & Locations">
         <div className="space-y-3 mb-4">
           {rooms.length === 0 && <p className="text-slate-400 text-sm">No rooms yet. Add your first room below.</p>}
           {rooms.map(room => (
@@ -879,7 +879,7 @@ function SetupContent() {
 
       {/* ── Age Groups ── */}
       {activeTab === "ages" && (
-      <Section title="👦 Age Groups">
+      <Section title="Age Groups">
         <div className="space-y-3 mb-4">
           {ageGroups.length === 0 && <p className="text-slate-400 text-sm">No age groups yet. Add your first group below.</p>}
           {ageGroups
@@ -976,7 +976,7 @@ function SetupContent() {
 
       {/* ── Time Slots ── */}
       {activeTab === "times" && (
-      <Section title="🕐 Time Slots">
+      <Section title="Time Slots">
         <p className="text-xs text-slate-400 mb-4">
           Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of camp. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
         </p>
@@ -1311,7 +1311,7 @@ function SetupContent() {
       )}
 
       {activeTab === "registration" && (
-        <Section title="📝 Registration Form">
+        <Section title="Registration">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <p className="text-sm text-slate-600">Once the schedule is sane, preview what families will see. Campers will only see eligible, non-mandatory activity choices, and full classes stay protected by capacity rules.</p>
@@ -1329,7 +1329,7 @@ function SetupContent() {
       )}
 
       {activeTab === "review" && (
-        <Section title="✅ Review & Open">
+        <Section title="Review & Open">
           <div className="space-y-4">
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {setupSteps.slice(0, 8).map(step => (
