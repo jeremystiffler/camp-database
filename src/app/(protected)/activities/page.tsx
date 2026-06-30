@@ -1026,7 +1026,6 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                     <th className="px-3 py-3 text-left">Room</th>
                     <th className="px-3 py-3 text-center">Total seats</th>
                     <th className="px-4 py-3 text-left min-w-[280px]">Ages</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1042,6 +1041,14 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="truncate font-black text-slate-900">{course.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteCourse(course.id)}
+                                  className="shrink-0 rounded-lg border border-red-100 bg-red-50 px-2 py-1 text-[11px] font-black text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
+                                  title={`Delete ${course.name}`}
+                                >
+                                  Delete
+                                </button>
                                 <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${status.tone}`}>{status.label}</span>
                               </div>
                               {course.description && <p className="mt-0.5 line-clamp-1 max-w-sm text-xs text-slate-500">{course.description}</p>}
@@ -1146,9 +1153,6 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                               );
                             }) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">No ages set up</span>}
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button onClick={() => deleteCourse(course.id)} className="rounded-lg border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100">Delete</button>
                         </td>
                       </tr>
                     );
