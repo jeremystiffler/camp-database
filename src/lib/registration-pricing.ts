@@ -32,13 +32,15 @@ export function calculateDiscount(priceCents: number, coupon?: PricingCoupon | n
   return 0;
 }
 
-export function calculateRegistrationTotal(camp: PricingCamp, coupon?: PricingCoupon | null) {
-  const campPriceCents = Math.max(0, camp.camperPriceCents ?? 0);
+export function calculateRegistrationTotal(camp: PricingCamp, coupon?: PricingCoupon | null, quantity = 1) {
+  const safeQuantity = Math.max(1, Math.floor(quantity || 1));
+  const perCamperPriceCents = Math.max(0, camp.camperPriceCents ?? 0);
+  const campPriceCents = perCamperPriceCents * safeQuantity;
   const discountCents = calculateDiscount(campPriceCents, coupon);
   const subtotalCents = Math.max(0, campPriceCents - discountCents);
-  const platformFeeCents = campPriceCents > 0 ? calculatePlatformFee(subtotalCents, camp) : Math.max(0, camp.platformFeeCents ?? 0);
+  const platformFeeCents = perCamperPriceCents > 0 ? calculatePlatformFee(subtotalCents, camp) : Math.max(0, camp.platformFeeCents ?? 0);
   const totalCents = subtotalCents + platformFeeCents;
-  return { campPriceCents, discountCents, subtotalCents, platformFeeCents, totalCents };
+  return { campPriceCents, discountCents, subtotalCents, platformFeeCents, totalCents, quantity: safeQuantity, perCamperPriceCents };
 }
 
 export function normalizeCouponCode(value: unknown) {

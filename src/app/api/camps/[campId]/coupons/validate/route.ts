@@ -18,7 +18,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (coupon.expiresAt && coupon.expiresAt < new Date()) return NextResponse.json({ valid: false, error: "Coupon code has expired" }, { status: 400 });
   if (coupon.maxRedemptions !== null && coupon.redeemedCount >= coupon.maxRedemptions) return NextResponse.json({ valid: false, error: "Coupon code has reached its limit" }, { status: 400 });
   if (!couponAllowsEmail(coupon.restrictedEmails, guardianEmail)) return NextResponse.json({ valid: false, error: "This code is reserved for a specific family email" }, { status: 403 });
-  const totals = calculateRegistrationTotal(camp, coupon);
+  const quantity = Math.max(1, Math.min(12, Math.floor(Number(body.quantity || 1)) || 1));
+  const totals = calculateRegistrationTotal(camp, coupon, quantity);
   return NextResponse.json({
     valid: true,
     coupon: { code: coupon.code, description: coupon.description, discountType: coupon.discountType },

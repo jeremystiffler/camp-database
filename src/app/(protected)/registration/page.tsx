@@ -24,6 +24,14 @@ interface FormSummary {
   status: "draft" | "public" | "linkOnly";
   isDefault: boolean;
   classChoicesEnabled?: boolean;
+  familyRegistrationEnabled?: boolean;
+  confirmationEmailSubject?: string;
+  confirmationEmailIntro?: string;
+  confirmationIncludeGuardian?: boolean;
+  confirmationIncludeStudents?: boolean;
+  confirmationIncludeClasses?: boolean;
+  confirmationIncludeEmergency?: boolean;
+  confirmationIncludePayment?: boolean;
 }
 
 const FIELD_ICONS: Record<string, string> = {
@@ -195,6 +203,14 @@ function RegistrationContent() {
   const [formStatus, setFormStatus] = useState<FormSummary["status"]>("public");
   const [isDefault, setIsDefault]   = useState(true);
   const [classChoicesEnabled, setClassChoicesEnabled] = useState(true);
+  const [familyRegistrationEnabled, setFamilyRegistrationEnabled] = useState(false);
+  const [confirmationEmailSubject, setConfirmationEmailSubject] = useState("{{campName}} registration confirmation");
+  const [confirmationEmailIntro, setConfirmationEmailIntro] = useState("Thanks for registering for {{campName}}. Below is the information we received.");
+  const [confirmationIncludeGuardian, setConfirmationIncludeGuardian] = useState(true);
+  const [confirmationIncludeStudents, setConfirmationIncludeStudents] = useState(true);
+  const [confirmationIncludeClasses, setConfirmationIncludeClasses] = useState(true);
+  const [confirmationIncludeEmergency, setConfirmationIncludeEmergency] = useState(true);
+  const [confirmationIncludePayment, setConfirmationIncludePayment] = useState(true);
   const [ageGroups, setAgeGroups]   = useState<{ id: string; name: string }[]>([]);
   const [campName, setCampName]     = useState("");
   const [regOpen, setRegOpen]       = useState(false);
@@ -220,6 +236,14 @@ function RegistrationContent() {
       setFormStatus(d.form.status || "public");
       setIsDefault(Boolean(d.form.isDefault));
       setClassChoicesEnabled(d.form.classChoicesEnabled !== false);
+      setFamilyRegistrationEnabled(Boolean(d.form.familyRegistrationEnabled));
+      setConfirmationEmailSubject(d.form.confirmationEmailSubject || "{{campName}} registration confirmation");
+      setConfirmationEmailIntro(d.form.confirmationEmailIntro || "Thanks for registering for {{campName}}. Below is the information we received.");
+      setConfirmationIncludeGuardian(d.form.confirmationIncludeGuardian !== false);
+      setConfirmationIncludeStudents(d.form.confirmationIncludeStudents !== false);
+      setConfirmationIncludeClasses(d.form.confirmationIncludeClasses !== false);
+      setConfirmationIncludeEmergency(d.form.confirmationIncludeEmergency !== false);
+      setConfirmationIncludePayment(d.form.confirmationIncludePayment !== false);
     }
     try { setFields(JSON.parse(typeof d.fields === "string" ? d.fields : JSON.stringify(d.fields))); } catch { setFields([]); }
   };
@@ -254,7 +278,7 @@ function RegistrationContent() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
-        body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, fields: cleanedFields }),
+        body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, fields: cleanedFields }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -267,6 +291,14 @@ function RegistrationContent() {
         setFormStatus(d.form.status);
         setIsDefault(d.form.isDefault);
         setClassChoicesEnabled(d.form.classChoicesEnabled !== false);
+        setFamilyRegistrationEnabled(Boolean(d.form.familyRegistrationEnabled));
+        setConfirmationEmailSubject(d.form.confirmationEmailSubject || "{{campName}} registration confirmation");
+        setConfirmationEmailIntro(d.form.confirmationEmailIntro || "Thanks for registering for {{campName}}. Below is the information we received.");
+        setConfirmationIncludeGuardian(d.form.confirmationIncludeGuardian !== false);
+        setConfirmationIncludeStudents(d.form.confirmationIncludeStudents !== false);
+        setConfirmationIncludeClasses(d.form.confirmationIncludeClasses !== false);
+        setConfirmationIncludeEmergency(d.form.confirmationIncludeEmergency !== false);
+        setConfirmationIncludePayment(d.form.confirmationIncludePayment !== false);
       }
       try { setFields(JSON.parse(typeof d.fields === "string" ? d.fields : JSON.stringify(d.fields ?? cleanedFields))); } catch { setFields(cleanedFields); }
       await refreshForms(d.form?.id || selectedFormId);
@@ -429,6 +461,52 @@ function RegistrationContent() {
             </span>
             <input type="checkbox" checked={classChoicesEnabled} onChange={e => setClassChoicesEnabled(e.target.checked)} className="h-5 w-5 accent-forest-500" />
           </label>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <p className="text-sm font-black text-amber-950">Family registration mode</p>
+            <p className="mt-1 text-sm text-amber-800">When enabled, one guardian can add multiple students, choose classes for each child, pay once, and receive one family confirmation email.</p>
+          </div>
+          <label className="flex min-w-[220px] items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-3 shadow-sm">
+            <span>
+              <span className="block text-sm font-black text-slate-800">Allow multiple students</span>
+              <span className="block text-xs text-slate-500">Best for siblings and households.</span>
+            </span>
+            <input type="checkbox" checked={familyRegistrationEnabled} onChange={e => setFamilyRegistrationEnabled(e.target.checked)} className="h-5 w-5 accent-amber-500" />
+          </label>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-berry-200 bg-gradient-to-br from-berry-50 to-white p-4 shadow-sm mb-6">
+        <div className="mb-4">
+          <p className="text-sm font-black text-berry-950">Confirmation email</p>
+          <p className="mt-1 text-sm text-berry-800">Edit the message families receive and choose which sections are sent back. Tokens: <code>{"{{campName}}"}</code>, <code>{"{{guardianName}}"}</code>, <code>{"{{studentName}}"}</code>, <code>{"{{studentCount}}"}</code>, <code>{"{{totalDue}}"}</code>.</p>
+        </div>
+        <div className="grid gap-3">
+          <label className="block">
+            <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Subject</span>
+            <input value={confirmationEmailSubject} onChange={e => setConfirmationEmailSubject(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30" />
+          </label>
+          <label className="block">
+            <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Opening message</span>
+            <textarea rows={3} value={confirmationEmailIntro} onChange={e => setConfirmationEmailIntro(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30 resize-none" />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ["Guardian info", confirmationIncludeGuardian, setConfirmationIncludeGuardian],
+              ["Student details", confirmationIncludeStudents, setConfirmationIncludeStudents],
+              ["Class choices", confirmationIncludeClasses, setConfirmationIncludeClasses],
+              ["Emergency/consent", confirmationIncludeEmergency, setConfirmationIncludeEmergency],
+              ["Payment summary", confirmationIncludePayment, setConfirmationIncludePayment],
+            ].map(([label, checked, setter]) => (
+              <label key={label as string} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">
+                <input type="checkbox" checked={checked as boolean} onChange={e => (setter as (v: boolean) => void)(e.target.checked)} className="h-4 w-4 accent-berry-500" /> {label as string}
+              </label>
+            ))}
+          </div>
         </div>
       </div>
 

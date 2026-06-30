@@ -59,6 +59,8 @@ interface WeeklyRegistrationSession extends RegistrationSession {
 
 type FieldValue = string | boolean | string[];
 type Step = 1 | 2 | 3;
+type StudentState = { id: string; values: Record<string, FieldValue>; selectedBySession: Record<string, string> };
+const makeStudent = (index: number): StudentState => ({ id: `student-${Date.now()}-${index}`, values: {}, selectedBySession: {} });
 
 const PARENT_FIELD_IDS = new Set(["f5", "f6", "f7"]);
 const STUDENT_FIELD_IDS = new Set(["f1", "f2", "f3", "f4"]);
@@ -113,6 +115,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const [courses, setCourses]       = useState<Course[]>([]);
   const [registrationSessions, setRegistrationSessions] = useState<RegistrationSession[]>([]);
   const [classChoicesEnabled, setClassChoicesEnabled] = useState(true);
+  const [familyRegistrationEnabled, setFamilyRegistrationEnabled] = useState(false);
   const [formRef, setFormRef] = useState("");
   const [regOpen, setRegOpen]       = useState(false);
   const [billingMode, setBillingMode] = useState<"campPays" | "camperFee">("campPays");
@@ -127,6 +130,8 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const [paymentNotice, setPaymentNotice] = useState("");
   const [loading, setLoading]       = useState(true);
   const [values, setValues]         = useState<Record<string, FieldValue>>({});
+  const [students, setStudents] = useState<StudentState[]>(() => [makeStudent(1)]);
+  const [activeStudentIndex, setActiveStudentIndex] = useState(0);
   const [selectedBySession, setSelectedBySession] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted]   = useState(false);
@@ -156,6 +161,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           setCourses(Array.isArray(d.courses) ? d.courses : []);
           setRegistrationSessions(Array.isArray(d.registrationSessions) ? d.registrationSessions : []);
           setClassChoicesEnabled(d.form?.classChoicesEnabled !== false);
+          setFamilyRegistrationEnabled(Boolean(d.form?.familyRegistrationEnabled));
           try {
             const parsed = typeof d.fields === "string" ? JSON.parse(d.fields) : d.fields;
             setFields(Array.isArray(parsed) ? parsed : []);
@@ -166,18 +172,31 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     });
   }, [params, searchParams]);
 
+  const activeStudent = students[Math.min(activeStudentIndex, students.length - 1)] || students[0];
+  const activeStudentValues = activeStudent?.values || {};
+  const activeValues = familyRegistrationEnabled ? { ...values, ...activeStudentValues } : values;
+  const activeSelectedBySession = familyRegistrationEnabled ? (activeStudent?.selectedBySession || {}) : selectedBySession;
+  const activeStudentCount = familyRegistrationEnabled ? students.length : 1;
+  const isGuardianField = (id: string) => PARENT_FIELD_IDS.has(id);
+
   const setValue = (id: string, val: FieldValue) => {
-    setValues(prev => {
-      const next = { ...prev, [id]: val };
-      if (id === "f4") setSelectedBySession({});
-      return next;
-    });
+    if (familyRegistrationEnabled && !isGuardianField(id)) {
+      setStudents(prev => prev.map((student, idx) => idx === activeStudentIndex
+        ? { ...student, values: { ...student.values, [id]: val }, selectedBySession: id === "f4" ? {} : student.selectedBySession }
+        : student));
+    } else {
+      setValues(prev => {
+        const next = { ...prev, [id]: val };
+        if (id === "f4") setSelectedBySession({});
+        return next;
+      });
+    }
     if (errors[id]) setErrors(prev => { const n = { ...prev }; delete n[id]; return n; });
     if (errors._form) setErrors(prev => { const n = { ...prev }; delete n._form; return n; });
   };
 
   const toggleCheckboxOption = (id: string, option: string, checked: boolean) => {
-    const current = Array.isArray(values[id]) ? values[id] as string[] : [];
+    const current = Array.isArray(activeValues[id]) ? activeValues[id] as string[] : [];
     const next = checked ? [...new Set([...current, option])] : current.filter(v => v !== option);
     setValue(id, next);
   };
@@ -189,7 +208,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     return false;
   });
 
-  const selectedAgeGroupId = String(values.f4 || "");
+  const selectedAgeGroupId = String(activeValues.f4 || "");
   const selectedAgeGroup = ageGroups.find(ag => ag.id === selectedAgeGroupId);
   const selectableSessions: WeeklyRegistrationSession[] = !classChoicesEnabled || selectedAgeGroup?.noSchedule ? [] : Array.from(
     registrationSessions.reduce<Map<string, RegistrationSession[]>>((groups, session) => {
@@ -223,20 +242,20 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     const targetFields = fieldsForStep(targetStep).filter(isInputField);
     for (const f of targetFields) {
       if (f.required) {
-        const val = values[f.id];
+        const val = activeValues[f.id];
         if (!val || (typeof val === "string" && !val.trim()) || (Array.isArray(val) && val.length === 0)) errs[f.id] = `${f.label} is required`;
       }
     }
     if (targetStep === 1) {
       for (const requiredId of ["f1", "f2", "f4", "f5", "f6"]) {
-        if (fields.some(f => f.id === requiredId) && !values[requiredId]) errs[requiredId] = "Required";
+        if (fields.some(f => f.id === requiredId) && !activeValues[requiredId]) errs[requiredId] = "Required";
       }
     }
     if (targetStep === 2 && classChoicesEnabled && !selectedAgeGroup?.noSchedule) {
       const unavailable = requiredSessions.filter(session => session.options.length === 0);
-      const missing = requiredSessions.filter(session => session.options.length > 0 && !session.sessionIds.every(sessionId => selectedBySession[sessionId]));
+      const missing = requiredSessions.filter(session => session.options.length > 0 && !session.sessionIds.every(sessionId => activeSelectedBySession[sessionId]));
       const selectedCoursesByWeeklySession = requiredSessions
-        .map(session => session.sessionIds.map(sessionId => selectedBySession[sessionId]).find(Boolean))
+        .map(session => session.sessionIds.map(sessionId => activeSelectedBySession[sessionId]).find(Boolean))
         .filter((courseId): courseId is string => Boolean(courseId));
       const duplicateCourse = selectedCoursesByWeeklySession.find((courseId, index) => selectedCoursesByWeeklySession.indexOf(courseId) !== index);
       if (unavailable.length > 0) errs._form = "One or more sessions has no open classes left. Please contact the camp before registering.";
@@ -261,16 +280,19 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   };
 
   const selectCourseForSession = (sessionIds: string[], courseId: string) => {
-    setSelectedBySession(prev => ({
-      ...prev,
-      ...Object.fromEntries(sessionIds.map(sessionId => [sessionId, courseId])),
-    }));
+    const additions = Object.fromEntries(sessionIds.map(sessionId => [sessionId, courseId]));
+    if (familyRegistrationEnabled) {
+      setStudents(prev => prev.map((student, idx) => idx === activeStudentIndex ? { ...student, selectedBySession: { ...student.selectedBySession, ...additions } } : student));
+    } else {
+      setSelectedBySession(prev => ({ ...prev, ...additions }));
+    }
     if (errors._form) setErrors(prev => { const n = { ...prev }; delete n._form; return n; });
   };
 
-  const selectedCourseIds = [...new Set(Object.values(selectedBySession).filter(Boolean))];
+  const selectedCourseIds = [...new Set(Object.values(activeSelectedBySession).filter(Boolean))];
   const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
-  const priceAfterDiscountCents = Math.max(0, camperPriceCents - couponDiscountCents);
+  const familyCampPriceCents = camperPriceCents * activeStudentCount;
+  const priceAfterDiscountCents = Math.max(0, familyCampPriceCents - couponDiscountCents);
   const calculatedPlatformFeeCents = camperPriceCents > 0 ? (priceAfterDiscountCents > 0 ? Math.min(platformFeeCapCents, Math.max(platformFeeMinCents, Math.round(priceAfterDiscountCents * platformFeePercentBps / 10000))) : 0) : platformFeeCents;
   const totalDueCents = billingMode === "camperFee" ? priceAfterDiscountCents + calculatedPlatformFeeCents : 0;
 
@@ -281,7 +303,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     const res = await fetch(`/api/camps/${campId}/coupons/validate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: couponCode, guardianEmail: values.f6 || "" }),
+      body: JSON.stringify({ code: couponCode, guardianEmail: values.f6 || "", quantity: activeStudentCount }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.valid) {
@@ -293,6 +315,32 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     }
   };
 
+  const buildStudentPayload = (student: StudentState) => ({
+    firstName: student.values.f1 || "",
+    lastName: student.values.f2 || "",
+    dateOfBirth: student.values.f3 || undefined,
+    ageGroupId: student.values.f4 || undefined,
+    emergencyPhone: student.values.f8 || undefined,
+    tshirtSize: student.values.f9 || undefined,
+    medicalNotes: student.values.f10 || undefined,
+    dietaryNotes: student.values.f11 || undefined,
+    photoConsent: Boolean(student.values.f12),
+    selectedSessionCourseIds: classChoicesEnabled ? student.selectedBySession : {},
+    selectedCourseIds: classChoicesEnabled ? [...new Set(Object.values(student.selectedBySession).filter(Boolean))] : [],
+    customData: Object.fromEntries(fields.filter(f => !SYSTEM_FIELD_IDS.has(f.id) && isInputField(f)).map(f => [f.label, student.values[f.id] || ""])),
+  });
+
+  const addAnotherStudent = () => {
+    if (!validateStep(3)) return;
+    setCouponDiscountCents(0);
+    if (couponCode.trim()) setCouponMsg({ type: "error", text: "Student count changed — reapply the coupon so the family total is recalculated." });
+    setStudents(prev => [...prev, makeStudent(prev.length + 1)]);
+    setActiveStudentIndex(students.length);
+    setStep(1);
+    setErrors({});
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const submitRegistration = async (updateExisting = false, existingCamperId?: string) => {
     setSubmitting(true);
     setDuplicate(null);
@@ -300,26 +348,22 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
       const res = await fetch(`/api/camps/${campId}/public-registration`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: values.f1 || "",
-          lastName: values.f2 || "",
-          dateOfBirth: values.f3 || undefined,
-          ageGroupId: values.f4 || undefined,
+        body: JSON.stringify(familyRegistrationEnabled ? {
           guardianName: values.f5 || "",
           guardianEmail: values.f6 || "",
           guardianPhone: values.f7 || "",
-          emergencyPhone: values.f8 || undefined,
-          tshirtSize: values.f9 || undefined,
-          medicalNotes: values.f10 || undefined,
-          dietaryNotes: values.f11 || undefined,
-          photoConsent: Boolean(values.f12),
-          selectedSessionCourseIds: classChoicesEnabled ? selectedBySession : {},
-          selectedCourseIds: classChoicesEnabled ? selectedCourseIds : [],
+          campers: students.map(buildStudentPayload),
+          formRef,
+          couponCode: couponCode.trim() || undefined,
+        } : {
+          ...buildStudentPayload({ id: "single", values, selectedBySession }),
+          guardianName: values.f5 || "",
+          guardianEmail: values.f6 || "",
+          guardianPhone: values.f7 || "",
           formRef,
           couponCode: couponCode.trim() || undefined,
           updateExisting,
           existingCamperId,
-          customData: Object.fromEntries(fields.filter(f => !SYSTEM_FIELD_IDS.has(f.id) && isInputField(f)).map(f => [f.label, values[f.id] || ""])),
         }),
       });
       const d = await res.json();
@@ -350,6 +394,16 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep(3)) return;
+    if (familyRegistrationEnabled) {
+      const invalidIndex = students.findIndex(student => !student.values.f1 || !student.values.f2 || !student.values.f4);
+      if (invalidIndex >= 0) {
+        setActiveStudentIndex(invalidIndex);
+        setStep(1);
+        setErrors({ _form: `Student ${invalidIndex + 1} needs first name, last name, and age group before submitting.` });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+    }
     await submitRegistration(false);
   };
 
@@ -375,7 +429,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         <span className="text-6xl mb-4 block">🎉</span>
         <h1 className="text-2xl font-bold text-slate-800 mb-2">{submittedUpdated ? "Registration updated!" : "You're registered!"}</h1>
         <p className="text-slate-500 mb-6">Your registration for <strong>{campName}</strong> has been {submittedUpdated ? "updated" : "submitted"}. Check your email for a confirmation copy.</p>
-        <button onClick={() => { setSubmitted(false); setSubmittedUpdated(false); setValues({}); setSelectedBySession({}); setStep(1); }}
+        <button onClick={() => { setSubmitted(false); setSubmittedUpdated(false); setValues({}); setStudents([makeStudent(1)]); setActiveStudentIndex(0); setSelectedBySession({}); setStep(1); }}
           className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
           Register Another Camper
         </button>
@@ -404,7 +458,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         </label>
         {field.helpText && <p className="text-xs text-slate-400 mb-1.5">{field.helpText}</p>}
         {field.type === "textarea" ? (
-          <textarea rows={3} placeholder={field.placeholder} value={(values[field.id] as string) || ""} onChange={e => setValue(field.id, e.target.value)} className={inputCls(field.id) + " resize-none"} />
+          <textarea rows={3} placeholder={field.placeholder} value={(activeValues[field.id] as string) || ""} onChange={e => setValue(field.id, e.target.value)} className={inputCls(field.id) + " resize-none"} />
         ) : field.type === "checkbox" ? (
           field.options?.length ? (
             <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
@@ -412,7 +466,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                 <label key={option} className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={Array.isArray(values[field.id]) && (values[field.id] as string[]).includes(option)}
+                    checked={Array.isArray(activeValues[field.id]) && (activeValues[field.id] as string[]).includes(option)}
                     onChange={e => toggleCheckboxOption(field.id, option, e.target.checked)}
                     className="w-4 h-4 mt-0.5 accent-forest-500"
                   />
@@ -422,17 +476,17 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
             </div>
           ) : (
             <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-              <input type="checkbox" checked={Boolean(values[field.id])} onChange={e => setValue(field.id, e.target.checked)} className="w-4 h-4 mt-0.5 accent-forest-500" />
+              <input type="checkbox" checked={Boolean(activeValues[field.id])} onChange={e => setValue(field.id, e.target.checked)} className="w-4 h-4 mt-0.5 accent-forest-500" />
               <span className="text-sm text-slate-700">{field.checkboxDescription || field.label}</span>
             </label>
           )
         ) : field.type === "select" ? (
-          <select value={(values[field.id] as string) || ""} onChange={e => setValue(field.id, e.target.value)} className={inputCls(field.id)}>
+          <select value={(activeValues[field.id] as string) || ""} onChange={e => setValue(field.id, e.target.value)} className={inputCls(field.id)}>
             <option value="">— select —</option>
             {field.source === "ageGroups" ? ageGroups.map(ag => <option key={ag.id} value={ag.id}>{ag.name}</option>) : field.options?.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
         ) : (
-          <input type={field.type} placeholder={field.placeholder} value={(values[field.id] as string) || ""} onChange={e => setValue(field.id, e.target.value)} className={inputCls(field.id)} />
+          <input type={field.type} placeholder={field.placeholder} value={(activeValues[field.id] as string) || ""} onChange={e => setValue(field.id, e.target.value)} className={inputCls(field.id)} />
         )}
         {errors[field.id] && <p className="text-xs text-red-500 mt-1">{errors[field.id]}</p>}
       </div>
@@ -445,7 +499,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-forest-500 to-sky-500 flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg">🏕️</div>
           <h1 className="text-3xl font-bold text-slate-800">{campName}</h1>
-          <p className="text-slate-500 mt-1">Camper Registration</p>
+          <p className="text-slate-500 mt-1">{familyRegistrationEnabled ? "Family Registration" : "Camper Registration"}</p>
         </div>
 
         <div className="flex items-center gap-2 mb-5">
@@ -461,12 +515,24 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           {paymentNotice && <div className="mb-5 px-4 py-3 bg-forest-50 border border-forest-200 rounded-xl text-sm text-forest-800">{paymentNotice}</div>}
           {billingMode === "camperFee" && (
             <div className="mb-5 px-4 py-4 bg-sky-50 border border-sky-200 rounded-xl text-sm text-sky-900 space-y-3">
-              <p><strong>Registration total:</strong> {money(totalDueCents)} {camperPriceCents > 0 ? `(camp price ${money(camperPriceCents)}${couponDiscountCents ? ` − ${money(couponDiscountCents)} coupon` : ""} + ${money(calculatedPlatformFeeCents)} platform fee)` : `(platform fee ${money(platformFeeCents)})`}.</p>
+              <p><strong>Registration total:</strong> {money(totalDueCents)} {camperPriceCents > 0 ? `(${activeStudentCount} student${activeStudentCount === 1 ? "" : "s"} · camp price ${money(familyCampPriceCents)}${couponDiscountCents ? ` − ${money(couponDiscountCents)} coupon` : ""} + ${money(calculatedPlatformFeeCents)} platform fee)` : `(platform fee ${money(platformFeeCents)})`}.</p>
               <div className="flex gap-2">
                 <input value={couponCode} onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponDiscountCents(0); setCouponMsg(null); }} placeholder="Coupon code" className="flex-1 px-3 py-2 border border-sky-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
                 <button type="button" onClick={applyCoupon} className="px-3 py-2 bg-sky-600 text-white rounded-lg text-sm font-bold hover:bg-sky-700">Apply</button>
               </div>
               {couponMsg && <p className={`text-xs font-semibold ${couponMsg.type === "success" ? "text-forest-700" : "text-red-600"}`}>{couponMsg.text}</p>}
+            </div>
+          )}
+          {familyRegistrationEnabled && (
+            <div className="mb-5 rounded-2xl border border-sky-200 bg-sky-50 p-3">
+              <p className="text-xs font-black uppercase tracking-wide text-sky-700 mb-2">Students in this family registration</p>
+              <div className="flex flex-wrap gap-2">
+                {students.map((student, idx) => (
+                  <button key={student.id} type="button" onClick={() => { setActiveStudentIndex(idx); setStep(1); setErrors({}); }} className={`rounded-xl px-3 py-2 text-sm font-bold border ${idx === activeStudentIndex ? "bg-sky-600 text-white border-sky-600" : "bg-white text-sky-800 border-sky-200"}`}>
+                    {student.values.f1 || student.values.f2 ? `${student.values.f1 || "Student"} ${student.values.f2 || ""}` : `Student ${idx + 1}`}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {errors._form && <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{errors._form}</div>}
@@ -475,7 +541,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
               <p className="text-sm font-semibold text-amber-900 mb-1">Possible duplicate registration</p>
               <p className="text-sm text-amber-800 mb-3">{duplicate.message}</p>
               <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={submitting} onClick={() => submitRegistration(true, duplicate.camperId)} className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-60">Update Original Submission</button>
+                {!familyRegistrationEnabled && <button type="button" disabled={submitting} onClick={() => submitRegistration(true, duplicate.camperId)} className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold hover:bg-amber-600 disabled:opacity-60">Update Original Submission</button>}
                 <button type="button" onClick={() => setDuplicate(null)} className="px-4 py-2 bg-white border border-amber-200 text-amber-800 rounded-lg text-sm font-semibold hover:bg-amber-100">Go Back & Edit</button>
               </div>
             </div>
@@ -484,7 +550,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {step === 1 && (
               <>
-                <h2 className="text-xl font-bold text-slate-800">Parent + student info</h2>
+                <h2 className="text-xl font-bold text-slate-800">{familyRegistrationEnabled ? `Parent + student ${activeStudentIndex + 1} info` : "Parent + student info"}</h2>
                 <p className="text-sm text-slate-500">Age Group is required for registration. {classChoicesEnabled ? "The next step will show classroom choices based on the selected age group." : "Class choices are disabled for this form, so families will continue directly to consent."}</p>
                 {fieldsForStep(1).map(renderField)}
                 <button type="button" onClick={nextStep} className="w-full py-3.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">{classChoicesEnabled ? "Continue to Classes →" : "Continue →"}</button>
@@ -493,7 +559,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
 
             {step === 2 && (
               <>
-                <h2 className="text-xl font-bold text-slate-800">Choose classes by session</h2>
+                <h2 className="text-xl font-bold text-slate-800">Choose classes {familyRegistrationEnabled ? `for student ${activeStudentIndex + 1}` : "by session"}</h2>
                 <p className="text-sm text-slate-500">Pick one class for each session. Full classes are hidden automatically; if seats are added later, they reappear here.</p>
                 {selectedAgeGroup?.noSchedule ? (
                   <div className="px-4 py-6 bg-amber-50 border border-amber-200 rounded-xl text-center text-sm text-amber-700">This age group is marked “No Schedule,” so no class choices are required.</div>
@@ -535,8 +601,8 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                         ) : (
                           <div className="divide-y divide-slate-100">
                             {session.options.map(option => {
-                              const checked = session.sessionIds.every(sessionId => selectedBySession[sessionId] === option.courseId);
-                              const selectedInAnotherSession = Object.entries(selectedBySession).some(([sessionId, courseId]) => !session.sessionIds.includes(sessionId) && courseId === option.courseId);
+                              const checked = session.sessionIds.every(sessionId => activeSelectedBySession[sessionId] === option.courseId);
+                              const selectedInAnotherSession = Object.entries(activeSelectedBySession).some(([sessionId, courseId]) => !session.sessionIds.includes(sessionId) && courseId === option.courseId);
                               const unavailableBecauseChosen = selectedInAnotherSession && !checked;
                               return <label key={option.courseId} className={`block p-4 transition-all ${unavailableBecauseChosen ? "bg-slate-50 opacity-50 cursor-not-allowed" : checked ? "bg-forest-50 cursor-pointer" : "hover:bg-slate-50 cursor-pointer"}`}>
                                 <div className="flex items-start gap-3">
@@ -572,8 +638,9 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                 {fieldsForStep(3).map(renderField)}
                 <div className="flex gap-3">
                   <button type="button" onClick={prevStep} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">← Back</button>
+                  {familyRegistrationEnabled && <button type="button" onClick={addAnotherStudent} className="flex-1 py-3 border border-sky-200 bg-sky-50 text-sky-700 rounded-xl text-sm font-bold hover:bg-sky-100">+ Add Student</button>}
                   <button type="submit" disabled={submitting} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
-                    {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</> : billingMode === "camperFee" && totalDueCents > 0 ? `Submit + Pay ${money(totalDueCents)} →` : "Submit Registration →"}
+                    {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</> : billingMode === "camperFee" && totalDueCents > 0 ? `Submit ${activeStudentCount} + Pay ${money(totalDueCents)} →` : `Submit ${familyRegistrationEnabled ? `${activeStudentCount} Student${activeStudentCount === 1 ? "" : "s"}` : "Registration"} →`}
                   </button>
                 </div>
               </>

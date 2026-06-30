@@ -25,14 +25,24 @@ export async function POST(req: NextRequest) {
     const type = session.metadata?.type;
 
     if (type === "camper_platform_fee" || type === "camper_registration") {
-      await prisma.registrationPayment.updateMany({
+      const payments = await prisma.registrationPayment.findMany({
         where: { stripeCheckoutSession: session.id },
-        data: { status: "paid", stripePaymentIntent: typeof session.payment_intent === "string" ? session.payment_intent : undefined },
+        select: { id: true },
       });
-      const camperId = session.metadata?.camperId;
-      if (typeof camperId === "string" && camperId) {
-        await prisma.camper.updateMany({ where: { id: camperId }, data: { paymentStatus: "paid" } });
-      }
+      await Promise.all(payments.map(payment =>
+        prisma.registrationPayment.update({
+          where: { id: payment.id },
+          data: { status: "paid", stripePaymentIntent: typeof session.payment_intent === "string" ? session.payment_intent : undefined },
+        })
+      ));
+      const camperIds = typeof session.metadata?.camperIds === "string" && session.metadata.camperIds
+        ? session.metadata.camperIds.split(",").map((id: string) => id.trim()).filter(Boolean)
+        : typeof session.metadata?.camperId === "string" && session.metadata.camperId
+          ? [session.metadata.camperId]
+          : [];
+      await Promise.all(camperIds.map((camperId: string) =>
+        prisma.camper.update({ where: { id: camperId }, data: { paymentStatus: "paid" } })
+      ));
     }
 
     if (type === "camp_subscription" || type === "camp_subscription_one_time") {

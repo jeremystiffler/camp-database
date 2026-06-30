@@ -56,7 +56,24 @@ async function ensureDefaultForm(campId: string) {
   });
 }
 
-function compactForm(form: { id: string; title: string; slug: string; status: string; isDefault: boolean; classChoicesEnabled?: boolean; updatedAt: Date; createdAt: Date }) {
+function compactForm(form: {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  isDefault: boolean;
+  classChoicesEnabled?: boolean;
+  familyRegistrationEnabled?: boolean;
+  confirmationEmailSubject?: string | null;
+  confirmationEmailIntro?: string | null;
+  confirmationIncludeGuardian?: boolean;
+  confirmationIncludeStudents?: boolean;
+  confirmationIncludeClasses?: boolean;
+  confirmationIncludeEmergency?: boolean;
+  confirmationIncludePayment?: boolean;
+  updatedAt: Date;
+  createdAt: Date;
+}) {
   return {
     id: form.id,
     title: form.title,
@@ -64,6 +81,14 @@ function compactForm(form: { id: string; title: string; slug: string; status: st
     status: form.status,
     isDefault: form.isDefault,
     classChoicesEnabled: form.classChoicesEnabled !== false,
+    familyRegistrationEnabled: Boolean(form.familyRegistrationEnabled),
+    confirmationEmailSubject: form.confirmationEmailSubject || "",
+    confirmationEmailIntro: form.confirmationEmailIntro || "",
+    confirmationIncludeGuardian: form.confirmationIncludeGuardian !== false,
+    confirmationIncludeStudents: form.confirmationIncludeStudents !== false,
+    confirmationIncludeClasses: form.confirmationIncludeClasses !== false,
+    confirmationIncludeEmergency: form.confirmationIncludeEmergency !== false,
+    confirmationIncludePayment: form.confirmationIncludePayment !== false,
     updatedAt: form.updatedAt,
     createdAt: form.createdAt,
   };
@@ -230,7 +255,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
   const { campId } = await params;
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { formId, fields, title, slug, status, isDefault, classChoicesEnabled } = await req.json();
+  const { formId, fields, title, slug, status, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment } = await req.json();
   if (!Array.isArray(fields)) return NextResponse.json({ error: "fields must be an array" }, { status: 400 });
 
   const existing = formId
@@ -261,6 +286,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
         status: safeStatus,
         isDefault: Boolean(isDefault) || existing.isDefault,
         classChoicesEnabled: classChoicesEnabled !== false,
+        familyRegistrationEnabled: Boolean(familyRegistrationEnabled),
+        confirmationEmailSubject: typeof confirmationEmailSubject === "string" ? confirmationEmailSubject.trim() || null : existing.confirmationEmailSubject,
+        confirmationEmailIntro: typeof confirmationEmailIntro === "string" ? confirmationEmailIntro.trim() || null : existing.confirmationEmailIntro,
+        confirmationIncludeGuardian: confirmationIncludeGuardian !== false,
+        confirmationIncludeStudents: confirmationIncludeStudents !== false,
+        confirmationIncludeClasses: confirmationIncludeClasses !== false,
+        confirmationIncludeEmergency: confirmationIncludeEmergency !== false,
+        confirmationIncludePayment: confirmationIncludePayment !== false,
       },
     });
     return NextResponse.json({ success: true, form: compactForm(updated), fields: updated.fields });

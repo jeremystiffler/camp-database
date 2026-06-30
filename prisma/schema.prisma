@@ -308,6 +308,14 @@ model RegistrationForm {
   status    String   @default("public") // draft | public | linkOnly
   isDefault Boolean  @default(false)
   classChoicesEnabled Boolean @default(true)
+  familyRegistrationEnabled Boolean @default(false)
+  confirmationEmailSubject String?
+  confirmationEmailIntro String?
+  confirmationIncludeGuardian Boolean @default(true)
+  confirmationIncludeStudents Boolean @default(true)
+  confirmationIncludeClasses Boolean @default(true)
+  confirmationIncludeEmergency Boolean @default(true)
+  confirmationIncludePayment Boolean @default(true)
   fields    String   @default("[]") // JSON array of field definitions
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
