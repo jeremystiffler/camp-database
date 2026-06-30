@@ -87,6 +87,59 @@ function money(cents: number) {
   return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
 }
 
+function formatSessionTime(startTime?: string | null, endTime?: string | null) {
+  const formatOne = (value?: string | null) => {
+    if (!value) return "";
+    const [rawHour, rawMinute = "00"] = value.split(":");
+    const hour = Number(rawHour);
+    if (!Number.isFinite(hour)) return value;
+    const minute = rawMinute.padStart(2, "0").slice(0, 2);
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minute} ${suffix}`;
+  };
+  const start = formatOne(startTime);
+  const end = formatOne(endTime);
+  return start && end ? `${start} – ${end}` : start || end || "Time TBA";
+}
+
+function sessionSortValue(row: { dayOfWeek?: number | null; startTime?: string | null; label?: string }) {
+  const day = typeof row.dayOfWeek === "number" ? row.dayOfWeek : 0;
+  return `${String(day).padStart(2, "0")}|${row.startTime || "99:99"}|${row.label || ""}`;
+}
+
+type ConfirmationScheduleRow = {
+  label: string;
+  className: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  dayOfWeek?: number | null;
+  mandatory?: boolean;
+};
+
+function renderClassGrid(rows: ConfirmationScheduleRow[]) {
+  if (rows.length === 0) return `<p style="margin:0;color:#64748b;font-size:15px;">No classes selected.</p>`;
+  const uniqueRows = Array.from(new Map(rows.map(row => [`${row.startTime || ""}|${row.endTime || ""}|${row.label || ""}|${row.className}|${row.mandatory ? "1" : "0"}`, row])).values());
+  const sortedRows = [...uniqueRows].sort((a, b) => sessionSortValue(a).localeCompare(sessionSortValue(b)));
+  return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:separate;border-spacing:0;border:1px solid #dbeafe;border-radius:18px;overflow:hidden;background:#ffffff;box-shadow:0 12px 28px rgba(37,99,235,0.08);">
+    <thead>
+      <tr style="background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;">
+        <th align="left" style="padding:12px 14px;border-right:1px solid #dbeafe;width:150px;">Time</th>
+        <th align="left" style="padding:12px 14px;">Session / Class</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${sortedRows.map((row, index) => `<tr style="background:${index % 2 === 0 ? "#ffffff" : "#f8fafc"};">
+        <td valign="top" style="padding:14px;border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;font-size:17px;font-weight:900;color:#0f172a;white-space:nowrap;">${escapeHtml(formatSessionTime(row.startTime, row.endTime))}</td>
+        <td valign="top" style="padding:14px;border-top:1px solid #e2e8f0;">
+          <div style="font-size:18px;font-weight:900;color:#0f172a;line-height:1.25;">${escapeHtml(row.className)}</div>
+          <div style="font-size:13px;font-weight:700;color:#64748b;margin-top:3px;">${escapeHtml(row.label || "Session")}${row.mandatory ? ` <span style="display:inline-block;margin-left:8px;padding:2px 7px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;">Included</span>` : ""}</div>
+        </td>
+      </tr>`).join("")}
+    </tbody>
+  </table>`;
+}
+
 function applyTokens(template: string, values: Record<string, string>) {
   return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{{${key}}}`, value), template);
 }
@@ -101,7 +154,7 @@ async function sendConfirmationEmail({
 }: {
   campName: string;
   guardian: { name: string; email: string; phone?: string };
-  students: Array<{ firstName: string; lastName: string; dateOfBirth?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; customData?: Record<string, unknown> }>;
+  students: Array<{ firstName: string; lastName: string; dateOfBirth?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }>;
   totals: { totalCents: number; campPriceCents: number; discountCents: number; platformFeeCents: number };
   settings: ConfirmationSettings;
   updated: boolean;
@@ -129,7 +182,7 @@ async function sendConfirmationEmail({
       ? `<ul>${Object.entries(student.customData).filter(([, v]) => String(v ?? "").trim()).map(([key, value]) => `<li><strong>${escapeHtml(key)}:</strong> ${escapeHtml(Array.isArray(value) ? value.join(", ") : value)}</li>`).join("")}</ul>`
       : "";
     const classesHtml = settings.confirmationIncludeClasses !== false
-      ? `<h3 style="font-size:14px;margin:12px 0 6px;">Classes</h3>${student.courseNames.length ? `<ul>${student.courseNames.map(name => `<li>${escapeHtml(name)}</li>`).join("")}</ul>` : `<p style="margin:0;color:#64748b;">No classes selected.</p>`}`
+      ? `<h3 style="font-size:16px;margin:16px 0 8px;color:#1e3a8a;">Class Schedule</h3>${renderClassGrid(student.classScheduleRows)}`
       : "";
     const emergencyHtml = settings.confirmationIncludeEmergency !== false
       ? `<p style="margin:8px 0 0;color:#475569;">Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}<br>Photo consent: ${student.photoConsent ? "Yes" : "No"}</p>`
@@ -251,7 +304,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
   const familyTotals = calculateRegistrationTotal(camp, coupon, campers.length);
   const perCamperTotals = calculateRegistrationTotal(camp, null, 1);
-  const createdStudents: Array<{ camperId: string; firstName: string; lastName: string; dateOfBirth?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; customData?: Record<string, unknown> }> = [];
+  const createdStudents: Array<{ camperId: string; firstName: string; lastName: string; dateOfBirth?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }> = [];
   const createdCamperIds: string[] = [];
   let anyUpdating = false;
 
@@ -303,7 +356,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     });
 
-    const selections: Array<{ sessionTemplateId: string; course: any }> = [];
+    const selections: Array<{ sessionTemplateId: string; course: any; template?: { label: string | null; startTime: string | null; endTime: string | null; dayOfWeek?: number | null } }> = [];
     const mandatoryAssignments = !classChoicesEnabled || ageGroup.noSchedule ? [] : await prisma.mandatorySession.findMany({
       where: { campId, ageGroupId: ageGroup.id },
       include: { sessionTemplate: true, room: true, leader: true, sessions: { where: { campId }, select: { id: true } } },
@@ -336,7 +389,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         courseSlots.add(slotKey);
         selectedCourseWeeklySlots.set(selectedCourse.id, courseSlots);
         if (courseSlots.size > 1) return NextResponse.json({ error: `Each class can only be chosen once for ${firstName}.` }, { status: 400 });
-        selections.push({ sessionTemplateId: template.id, course: selectedCourse });
+        selections.push({ sessionTemplateId: template.id, course: selectedCourse, template });
       }
     } else if (classChoicesEnabled && fallbackCourseIds.length > 0) {
       const courses = await prisma.course.findMany({
@@ -345,7 +398,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         orderBy: { name: "asc" },
       });
       if (courses.length !== fallbackCourseIds.length) return NextResponse.json({ error: `One or more selected classes are not available for ${firstName}` }, { status: 400 });
-      for (const course of courses) for (const cst of course.courseSessionTemplates) selections.push({ sessionTemplateId: cst.sessionTemplateId, course });
+      for (const course of courses) {
+        for (const cst of course.courseSessionTemplates) {
+          const template = sessionTemplates.find(t => t.id === cst.sessionTemplateId);
+          selections.push({ sessionTemplateId: cst.sessionTemplateId, course, template });
+        }
+      }
     }
 
     if (classChoicesEnabled && !ageGroup.noSchedule) {
@@ -425,6 +483,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       }
     }
 
+    const classScheduleRows: ConfirmationScheduleRow[] = [
+      ...mandatoryAssignments.map(assignment => ({
+        label: assignment.sessionTemplate.label || "Required session",
+        className: assignment.title,
+        startTime: assignment.sessionTemplate.startTime,
+        endTime: assignment.sessionTemplate.endTime,
+        dayOfWeek: assignment.sessionTemplate.dayOfWeek,
+        mandatory: true,
+      })),
+      ...selections.map(selection => ({
+        label: selection.template?.label || "Session",
+        className: selection.course.name,
+        startTime: selection.template?.startTime,
+        endTime: selection.template?.endTime,
+        dayOfWeek: selection.template?.dayOfWeek,
+        mandatory: false,
+      })),
+    ];
+
     createdStudents.push({
       camperId: camper.id,
       firstName,
@@ -432,7 +509,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       dateOfBirth: student.dateOfBirth,
       emergencyPhone: student.emergencyPhone,
       photoConsent: Boolean(student.photoConsent),
-      courseNames: [...mandatoryAssignments.map(a => `${a.title} (required)`), ...selections.map(s => s.course.name)],
+      courseNames: classScheduleRows.map(row => row.mandatory ? `${row.className} (included)` : row.className),
+      classScheduleRows,
       customData: student.customData,
     });
   }
