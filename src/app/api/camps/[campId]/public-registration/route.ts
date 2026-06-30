@@ -118,9 +118,11 @@ function formatSessionTime(startTime?: string | null, endTime?: string | null) {
   return start && end ? `${start} – ${end}` : start || end || "Time TBA";
 }
 
-function sessionSortValue(row: { dayOfWeek?: number | null; startTime?: string | null; label?: string }) {
-  const day = typeof row.dayOfWeek === "number" ? row.dayOfWeek : 0;
-  return `${String(day).padStart(2, "0")}|${row.startTime || "99:99"}|${row.label || ""}`;
+function sessionSortValue(row: { startTime?: string | null; endTime?: string | null; label?: string }) {
+  // Confirmation emails summarize the weekly schedule by time slot, not by calendar day.
+  // Sorting by day first can put repeated daily required sessions (like Opening Assembly)
+  // after Monday class rows if the first deduped assembly row happened to come from a later day.
+  return `${row.startTime || "99:99"}|${row.endTime || "99:99"}|${row.label || ""}`;
 }
 
 type ConfirmationScheduleRow = {
@@ -215,7 +217,7 @@ async function sendConfirmationEmail({
         const studentName = `${student.firstName} ${student.lastName}`.trim() || `Student ${index + 1}`;
         return `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;margin:10px 0;background:#ffffff;">
           <h3 style="font-size:15px;margin:0 0 6px;color:#0f172a;">${escapeHtml(studentName)}</h3>
-          <p style="margin:0;color:#475569;">Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}<br>Photo consent: ${student.photoConsent ? "Yes" : "No"}</p>
+          <p style="margin:0;color:#475569;">Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}</p>
         </div>`;
       }).join("")
     : "";
@@ -293,7 +295,7 @@ async function sendAdminNotificationEmail({
       ${detailParts ? `<p style="margin:6px 0 0;color:#475569;font-size:15px;font-weight:700;">${detailParts}</p>` : ""}
       <h3 style="font-size:16px;margin:16px 0 8px;color:#1e3a8a;">Class Schedule</h3>
       ${renderClassGrid(student.classScheduleRows)}
-      <p style="margin:12px 0 0;color:#475569;">Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}<br>Photo consent: ${student.photoConsent ? "Yes" : "No"}</p>
+      <p style="margin:12px 0 0;color:#475569;">Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}</p>
       ${customRows ? `<h3 style="font-size:15px;margin:12px 0 4px;color:#0f172a;">Additional information</h3><ul style="margin:0;padding-left:18px;color:#475569;">${customRows}</ul>` : ""}
     </div>`;
   }).join("");
