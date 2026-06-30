@@ -90,6 +90,7 @@ function compactForm(form: {
   familyRegistrationEnabled?: boolean;
   confirmationEmailSubject?: string | null;
   confirmationEmailIntro?: string | null;
+  confirmationEmailTemplate?: string | null;
   adminNotificationEmails?: string | null;
   confirmationIncludeGuardian?: boolean;
   confirmationIncludeStudents?: boolean;
@@ -110,6 +111,7 @@ function compactForm(form: {
     familyRegistrationEnabled: Boolean(form.familyRegistrationEnabled),
     confirmationEmailSubject: form.confirmationEmailSubject || "",
     confirmationEmailIntro: form.confirmationEmailIntro || "",
+    confirmationEmailTemplate: form.confirmationEmailTemplate || "",
     ...(includePrivate ? { adminNotificationEmails: form.adminNotificationEmails || "" } : {}),
     confirmationIncludeGuardian: form.confirmationIncludeGuardian !== false,
     confirmationIncludeStudents: form.confirmationIncludeStudents !== false,
@@ -283,7 +285,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
   const { campId } = await params;
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { formId, fields, title, slug, status, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, adminNotificationEmails, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, mandatoryClassRules } = await req.json();
+  const { formId, fields, title, slug, status, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, confirmationEmailTemplate, adminNotificationEmails, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, mandatoryClassRules } = await req.json();
   if (!Array.isArray(fields)) return NextResponse.json({ error: "fields must be an array" }, { status: 400 });
 
   const cleanedRules = parseMandatoryClassRules(mandatoryClassRules);
@@ -330,6 +332,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
         familyRegistrationEnabled: Boolean(familyRegistrationEnabled),
         confirmationEmailSubject: typeof confirmationEmailSubject === "string" ? confirmationEmailSubject.trim() || null : existing.confirmationEmailSubject,
         confirmationEmailIntro: typeof confirmationEmailIntro === "string" ? confirmationEmailIntro.trim() || null : existing.confirmationEmailIntro,
+        confirmationEmailTemplate: typeof confirmationEmailTemplate === "string" ? confirmationEmailTemplate.trim() || null : existing.confirmationEmailTemplate,
         adminNotificationEmails: typeof adminNotificationEmails === "string" ? adminNotificationEmails.trim() || null : existing.adminNotificationEmails,
         confirmationIncludeGuardian: confirmationIncludeGuardian !== false,
         confirmationIncludeStudents: confirmationIncludeStudents !== false,

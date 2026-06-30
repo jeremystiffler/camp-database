@@ -30,9 +30,18 @@ interface RegistrationPayload extends StudentPayload {
   campers?: StudentPayload[];
 }
 
+type EmailTemplateBlock = {
+  id?: string;
+  type?: string;
+  title?: string;
+  content?: string;
+  enabled?: boolean;
+};
+
 type ConfirmationSettings = {
   confirmationEmailSubject?: string | null;
   confirmationEmailIntro?: string | null;
+  confirmationEmailTemplate?: string | null;
   adminNotificationEmails?: string | null;
   confirmationIncludeGuardian?: boolean;
   confirmationIncludeStudents?: boolean;
@@ -165,8 +174,43 @@ function renderClassGrid(rows: ConfirmationScheduleRow[]) {
   </table>`;
 }
 
-function applyTokens(template: string, values: Record<string, string>) {
-  return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{{${key}}}`, value), template);
+function normalizeTokenKey(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function stringifyValue(value: unknown) {
+  if (Array.isArray(value)) return value.map(v => String(v ?? "")).filter(Boolean).join(", ");
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value ?? "");
+}
+
+function applyTokens(template: string, values: Record<string, string>, fieldValues: Record<string, unknown> = {}) {
+  const normalizedFields = Object.fromEntries(Object.entries(fieldValues).map(([key, value]) => [normalizeTokenKey(key), stringifyValue(value)]));
+  const withFields = template.replace(/{{\s*field:([^}]+)\s*}}/g, (_match, label: string) => normalizedFields[normalizeTokenKey(label)] || "");
+  return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{{${key}}}`, value), withFields);
+}
+
+function textToHtml(value: string) {
+  return escapeHtml(value).replace(/\n/g, "<br>");
+}
+
+function parseEmailTemplate(value: unknown): EmailTemplateBlock[] {
+  if (typeof value !== "string" || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((block, index) => ({
+        id: typeof block?.id === "string" ? block.id : `block_${index}`,
+        type: typeof block?.type === "string" ? block.type : "text",
+        title: typeof block?.title === "string" ? block.title : "",
+        content: typeof block?.content === "string" ? block.content : "",
+        enabled: block?.enabled !== false,
+      }))
+      .filter(block => block.enabled !== false && block.type);
+  } catch {
+    return [];
+  }
 }
 
 async function sendConfirmationEmail({
@@ -191,17 +235,26 @@ async function sendConfirmationEmail({
   const resend = getResend();
   const studentCount = students.length;
   const firstStudentName = `${students[0]?.firstName || ""} ${students[0]?.lastName || ""}`.trim();
+  const guardianName = splitGuardianName(guardian.name);
+  const firstStudent = students[0];
   const tokenValues = {
     campName,
     guardianName: guardian.name,
+    guardianFirstName: guardianName.firstName,
+    guardianLastName: guardianName.lastName,
     guardianEmail: guardian.email,
+    guardianPhone: guardian.phone || "",
     studentName: firstStudentName,
+    studentFirstName: firstStudent?.firstName || "",
+    studentLastName: firstStudent?.lastName || "",
     studentCount: String(studentCount),
     totalDue: money(totals.totalCents),
+    paymentStatus: paymentRequired ? `Payment required: ${money(totals.totalCents)}` : "No payment required at submission.",
+    updateStatus: updated ? "Registration updated" : "Registration received",
   };
   const subjectTemplate = settings.confirmationEmailSubject?.trim() || `${campName} registration ${updated ? "updated" : "confirmation"}`;
-  const subject = applyTokens(subjectTemplate, tokenValues);
-  const intro = applyTokens(settings.confirmationEmailIntro?.trim() || `Please review your registration details below for ${campName}.`, tokenValues);
+  const subject = applyTokens(subjectTemplate, tokenValues, firstStudent?.customData || {});
+  const intro = applyTokens(settings.confirmationEmailIntro?.trim() || `Please review your registration details below for ${campName}.`, tokenValues, firstStudent?.customData || {});
 
   const studentScheduleHtml = students.map((student, index) => {
     const studentName = `${student.firstName} ${student.lastName}`.trim();
@@ -209,9 +262,7 @@ async function sendConfirmationEmail({
       student.dateOfBirth ? `DOB: ${escapeHtml(student.dateOfBirth)}` : "",
       student.ageGroupName ? `Age group: ${escapeHtml(student.ageGroupName)}` : "",
     ].filter(Boolean).join(" • ");
-    const classesHtml = settings.confirmationIncludeClasses !== false
-      ? `<h3 style="font-size:16px;margin:16px 0 8px;color:#1e3a8a;">Class Schedule</h3>${renderClassGrid(student.classScheduleRows)}`
-      : "";
+    const classesHtml = `<h3 style="font-size:16px;margin:16px 0 8px;color:#1e3a8a;">Class Schedule</h3>${renderClassGrid(student.classScheduleRows)}`;
     return `<div style="border:1px solid #bfdbfe;border-radius:18px;padding:16px;margin:14px 0;background:#f8fbff;">
       <div style="font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#2563eb;margin-bottom:4px;">Student ${index + 1}</div>
       <h2 style="font-size:22px;margin:0;color:#0f172a;line-height:1.2;">${escapeHtml(studentName)}</h2>
@@ -220,43 +271,56 @@ async function sendConfirmationEmail({
     </div>`;
   }).join("");
 
-  const emergencyHtml = settings.confirmationIncludeEmergency !== false
-    ? students.map((student, index) => {
-        const studentName = `${student.firstName} ${student.lastName}`.trim() || `Student ${index + 1}`;
-        const guardianName = splitGuardianName(guardian.name);
-        return `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;margin:10px 0;background:#ffffff;">
-          <h3 style="font-size:15px;margin:0 0 6px;color:#0f172a;">${escapeHtml(studentName)}</h3>
-          <p style="margin:0;color:#475569;">Guardian first name: ${escapeHtml(guardianName.firstName) || "—"}<br>Guardian last name: ${escapeHtml(guardianName.lastName) || "—"}<br>Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}<br>Email address: ${escapeHtml(guardian.email) || "—"}</p>
-        </div>`;
-      }).join("")
-    : "";
+  const guardianHtml = `<h2 style="font-size:16px;margin:20px 0 8px;">Parent / Guardian</h2><p style="margin:0 0 10px;">${escapeHtml(guardian.name)}<br>${escapeHtml(guardian.email)}<br>${escapeHtml(guardian.phone || "")}</p>`;
 
-  const additionalInfoHtml = settings.confirmationIncludeStudents !== false
-    ? students.map((student, index) => {
-        const studentName = `${student.firstName} ${student.lastName}`.trim() || `Student ${index + 1}`;
-        const rows = student.customData && Object.keys(student.customData).length
-          ? Object.entries(student.customData).filter(([, v]) => String(v ?? "").trim()).map(([key, value]) => `<li><strong>${escapeHtml(key)}:</strong> ${escapeHtml(Array.isArray(value) ? value.join(", ") : value)}</li>`).join("")
-          : "";
-        return rows ? `<div style="margin:8px 0;"><h3 style="font-size:15px;margin:0 0 4px;color:#0f172a;">${escapeHtml(studentName)}</h3><ul style="margin:0;padding-left:18px;color:#475569;">${rows}</ul></div>` : "";
-      }).filter(Boolean).join("")
-    : "";
+  const emergencyHtml = students.map((student, index) => {
+    const studentName = `${student.firstName} ${student.lastName}`.trim() || `Student ${index + 1}`;
+    return `<div style="border:1px solid #e2e8f0;border-radius:14px;padding:12px 14px;margin:10px 0;background:#ffffff;">
+      <h3 style="font-size:15px;margin:0 0 6px;color:#0f172a;">${escapeHtml(studentName)}</h3>
+      <p style="margin:0;color:#475569;">Guardian first name: ${escapeHtml(guardianName.firstName) || "—"}<br>Guardian last name: ${escapeHtml(guardianName.lastName) || "—"}<br>Emergency phone: ${escapeHtml(student.emergencyPhone || "") || "—"}<br>Email address: ${escapeHtml(guardian.email) || "—"}</p>
+    </div>`;
+  }).join("");
 
-  const paymentHtml = settings.confirmationIncludePayment !== false && paymentRequired
+  const additionalInfoHtml = students.map((student, index) => {
+    const studentName = `${student.firstName} ${student.lastName}`.trim() || `Student ${index + 1}`;
+    const rows = student.customData && Object.keys(student.customData).length
+      ? Object.entries(student.customData).filter(([, v]) => String(v ?? "").trim()).map(([key, value]) => `<li><strong>${escapeHtml(key)}:</strong> ${escapeHtml(Array.isArray(value) ? value.join(", ") : value)}</li>`).join("")
+      : "";
+    return rows ? `<div style="margin:8px 0;"><h3 style="font-size:15px;margin:0 0 4px;color:#0f172a;">${escapeHtml(studentName)}</h3><ul style="margin:0;padding-left:18px;color:#475569;">${rows}</ul></div>` : "";
+  }).filter(Boolean).join("");
+
+  const paymentHtml = paymentRequired
     ? `<h2 style="font-size:16px;margin:18px 0 8px;">Payment Summary</h2><p style="margin:0;">Camp price: ${money(totals.campPriceCents)}<br>Discount: ${money(totals.discountCents)}<br>Platform fee: ${money(totals.platformFeeCents)}<br><strong>Total due: ${money(totals.totalCents)}</strong></p>`
     : "";
 
+  const defaultBlocks: EmailTemplateBlock[] = [
+    { id: "hero", type: "hero", content: intro, enabled: true },
+    { id: "students", type: "studentSchedule", enabled: settings.confirmationIncludeStudents !== false },
+    { id: "guardian", type: "guardian", enabled: settings.confirmationIncludeGuardian !== false },
+    { id: "emergency", type: "emergency", enabled: settings.confirmationIncludeEmergency !== false },
+    { id: "additional", type: "additionalInfo", enabled: settings.confirmationIncludeStudents !== false },
+    { id: "payment", type: "payment", enabled: settings.confirmationIncludePayment !== false },
+    { id: "footer", type: "footer", content: "Need to change something? Contact the camp office, or return to the registration form and submit updated information.", enabled: true },
+  ];
+  const configuredBlocks = parseEmailTemplate(settings.confirmationEmailTemplate);
+  const blocks = configuredBlocks.length ? configuredBlocks : defaultBlocks;
+  const renderBlock = (block: EmailTemplateBlock) => {
+    const title = block.title?.trim();
+    const content = applyTokens(block.content || "", tokenValues, firstStudent?.customData || {});
+    if (block.type === "hero") return `<div style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:16px;padding:20px;margin-bottom:18px;"><h1 style="margin:0 0 8px;font-size:22px;color:#166534;">${escapeHtml(title || tokenValues.updateStatus)}</h1>${content ? `<p style="margin:0;color:#475569;">${textToHtml(content)}</p>` : ""}</div>`;
+    if (block.type === "text") return `<div style="margin:18px 0;">${title ? `<h2 style="font-size:16px;margin:0 0 8px;">${escapeHtml(title)}</h2>` : ""}<p style="margin:0;color:#475569;">${textToHtml(content)}</p></div>`;
+    if (block.type === "studentSchedule") return studentScheduleHtml;
+    if (block.type === "guardian") return guardianHtml;
+    if (block.type === "emergency") return emergencyHtml ? `<h2 style="font-size:16px;margin:18px 0 8px;">${escapeHtml(title || "Emergency Information")}</h2>${emergencyHtml}` : "";
+    if (block.type === "additionalInfo") return additionalInfoHtml ? `<h2 style="font-size:16px;margin:18px 0 8px;">${escapeHtml(title || "Additional Student Information")}</h2>${additionalInfoHtml}` : "";
+    if (block.type === "payment") return paymentHtml;
+    if (block.type === "footer") return `<p style="margin-top:22px;color:#64748b;font-size:13px;">${textToHtml(content || "Need to change something? Contact the camp office.")}</p>`;
+    return "";
+  };
+
   const html = `
     <div style="font-family:Inter,Arial,sans-serif;line-height:1.5;color:#1e293b;max-width:680px;margin:0 auto;padding:24px;">
-      <div style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:16px;padding:20px;margin-bottom:18px;">
-        <h1 style="margin:0 0 8px;font-size:22px;color:#166534;">${updated ? "Registration updated" : "Registration received"}</h1>
-        <p style="margin:0;color:#475569;">${escapeHtml(intro)}</p>
-      </div>
-      ${settings.confirmationIncludeStudents !== false ? studentScheduleHtml : ""}
-      ${settings.confirmationIncludeGuardian !== false ? `<h2 style="font-size:16px;margin:20px 0 8px;">Parent / Guardian</h2><p style="margin:0 0 10px;">${escapeHtml(guardian.name)}<br>${escapeHtml(guardian.email)}<br>${escapeHtml(guardian.phone || "")}</p>` : ""}
-      ${emergencyHtml ? `<h2 style="font-size:16px;margin:18px 0 8px;">Emergency Information</h2>${emergencyHtml}` : ""}
-      ${additionalInfoHtml ? `<h2 style="font-size:16px;margin:18px 0 8px;">Additional Student Information</h2>${additionalInfoHtml}` : ""}
-      ${paymentHtml}
-      <p style="margin-top:22px;color:#64748b;font-size:13px;">Need to change something? Contact the camp office, or return to the registration form and submit updated information.</p>
+      ${blocks.filter(block => block.enabled !== false).map(renderBlock).join("")}
     </div>`;
 
   await resend.emails.send({
@@ -356,11 +420,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const selectedForm = ref
     ? await prisma.registrationForm.findFirst({
         where: { campId, OR: [{ id: ref }, { slug: ref }], status: { in: ["public", "linkOnly"] } },
-        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, adminNotificationEmails: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
+        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, confirmationEmailTemplate: true, adminNotificationEmails: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
       })
     : await prisma.registrationForm.findFirst({
         where: { campId, isDefault: true, status: "public" },
-        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, adminNotificationEmails: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
+        select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, confirmationEmailTemplate: true, adminNotificationEmails: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
       });
   const classChoicesEnabled = selectedForm?.classChoicesEnabled !== false;
   const familyRegistrationEnabled = Boolean(selectedForm?.familyRegistrationEnabled);

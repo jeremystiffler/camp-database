@@ -28,6 +28,7 @@ interface FormSummary {
   mandatoryClassRules?: MandatoryClassRule[];
   confirmationEmailSubject?: string;
   confirmationEmailIntro?: string;
+  confirmationEmailTemplate?: string;
   adminNotificationEmails?: string;
   confirmationIncludeGuardian?: boolean;
   confirmationIncludeStudents?: boolean;
@@ -44,6 +45,8 @@ interface CourseSummary {
 }
 
 type MandatoryClassRule = { ageGroupId: string; courseId: string };
+type EmailBlockType = "hero" | "text" | "studentSchedule" | "guardian" | "emergency" | "additionalInfo" | "payment" | "footer";
+type EmailTemplateBlock = { id: string; type: EmailBlockType; title?: string; content?: string; enabled?: boolean };
 
 const FIELD_ICONS: Record<string, string> = {
   text: "Aa", email: "@", tel: "📞", date: "📅", number: "#", url: "🔗", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
@@ -100,6 +103,50 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
 ];
 
 const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", "Camp", "Consent", "Layout"];
+
+const DEFAULT_EMAIL_BLOCKS: EmailTemplateBlock[] = [
+  { id: "hero", type: "hero", title: "{{updateStatus}}", content: "Thanks for registering for {{campName}}. Below is the information we received.", enabled: true },
+  { id: "students", type: "studentSchedule", title: "Student schedule", enabled: true },
+  { id: "guardian", type: "guardian", title: "Parent / Guardian", enabled: true },
+  { id: "emergency", type: "emergency", title: "Emergency Information", enabled: true },
+  { id: "additional", type: "additionalInfo", title: "Additional Student Information", enabled: true },
+  { id: "payment", type: "payment", title: "Payment Summary", enabled: true },
+  { id: "footer", type: "footer", content: "Need to change something? Contact the camp office, or return to the registration form and submit updated information.", enabled: true },
+];
+
+const EMAIL_BLOCK_LABELS: Record<EmailBlockType, string> = {
+  hero: "Header / intro",
+  text: "Custom text",
+  studentSchedule: "Student + class schedule",
+  guardian: "Guardian info",
+  emergency: "Emergency info",
+  additionalInfo: "Additional form answers",
+  payment: "Payment summary",
+  footer: "Footer note",
+};
+
+const STANDARD_EMAIL_TOKENS = ["campName", "guardianName", "guardianFirstName", "guardianLastName", "guardianEmail", "guardianPhone", "studentName", "studentFirstName", "studentLastName", "studentCount", "totalDue", "paymentStatus", "updateStatus"];
+
+function parseEmailBlocks(value?: string) {
+  if (!value) return DEFAULT_EMAIL_BLOCKS;
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_EMAIL_BLOCKS;
+    return parsed.map((block, index) => ({
+      id: typeof block.id === "string" ? block.id : `email_${index}`,
+      type: (block.type || "text") as EmailBlockType,
+      title: typeof block.title === "string" ? block.title : "",
+      content: typeof block.content === "string" ? block.content : "",
+      enabled: block.enabled !== false,
+    })).filter(block => EMAIL_BLOCK_LABELS[block.type]);
+  } catch {
+    return DEFAULT_EMAIL_BLOCKS;
+  }
+}
+
+function cloneDefaultEmailBlocks() {
+  return DEFAULT_EMAIL_BLOCKS.map(block => ({ ...block }));
+}
 
 const LAYOUT_FIELD_TYPES = new Set<FormField["type"]>(["heading", "subheading", "divider", "pageBreak"]);
 const isLayoutField = (field: FormField) => LAYOUT_FIELD_TYPES.has(field.type);
@@ -219,6 +266,7 @@ function RegistrationContent() {
   const [familyRegistrationEnabled, setFamilyRegistrationEnabled] = useState(false);
   const [confirmationEmailSubject, setConfirmationEmailSubject] = useState("{{campName}} registration confirmation");
   const [confirmationEmailIntro, setConfirmationEmailIntro] = useState("Thanks for registering for {{campName}}. Below is the information we received.");
+  const [emailTemplateBlocks, setEmailTemplateBlocks] = useState<EmailTemplateBlock[]>(cloneDefaultEmailBlocks());
   const [adminNotificationEmails, setAdminNotificationEmails] = useState("");
   const [confirmationIncludeGuardian, setConfirmationIncludeGuardian] = useState(true);
   const [confirmationIncludeStudents, setConfirmationIncludeStudents] = useState(true);
@@ -239,6 +287,8 @@ function RegistrationContent() {
   const [settingsPanel, setSettingsPanel] = useState<"publish" | "classes" | "family" | "email">("publish");
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
+  const emailDragIdx = useRef<number | null>(null);
+  const emailDragOverIdx = useRef<number | null>(null);
 
   const applyFormResponse = (d: { campName?: string; registrationOpen?: boolean; ageGroups?: { id: string; name: string }[]; courses?: CourseSummary[]; forms?: FormSummary[]; form?: FormSummary | null; fields?: unknown }) => {
     setCampName(d.campName || "");
@@ -256,6 +306,7 @@ function RegistrationContent() {
       setFamilyRegistrationEnabled(Boolean(d.form.familyRegistrationEnabled));
       setConfirmationEmailSubject(d.form.confirmationEmailSubject || "{{campName}} registration confirmation");
       setConfirmationEmailIntro(d.form.confirmationEmailIntro || "Thanks for registering for {{campName}}. Below is the information we received.");
+      setEmailTemplateBlocks(parseEmailBlocks(d.form.confirmationEmailTemplate));
       setAdminNotificationEmails(d.form.adminNotificationEmails || "");
       setConfirmationIncludeGuardian(d.form.confirmationIncludeGuardian !== false);
       setConfirmationIncludeStudents(d.form.confirmationIncludeStudents !== false);
@@ -298,7 +349,7 @@ function RegistrationContent() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
-        body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, familyRegistrationEnabled, mandatoryClassRules, confirmationEmailSubject, confirmationEmailIntro, adminNotificationEmails, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, fields: cleanedFields }),
+        body: JSON.stringify({ formId: selectedFormId, title: formTitle, slug: formSlug, status: formStatus, isDefault, classChoicesEnabled, familyRegistrationEnabled, mandatoryClassRules, confirmationEmailSubject, confirmationEmailIntro, confirmationEmailTemplate: JSON.stringify(emailTemplateBlocks), adminNotificationEmails, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, fields: cleanedFields }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -314,6 +365,7 @@ function RegistrationContent() {
         setFamilyRegistrationEnabled(Boolean(d.form.familyRegistrationEnabled));
         setConfirmationEmailSubject(d.form.confirmationEmailSubject || "{{campName}} registration confirmation");
         setConfirmationEmailIntro(d.form.confirmationEmailIntro || "Thanks for registering for {{campName}}. Below is the information we received.");
+        setEmailTemplateBlocks(parseEmailBlocks(d.form.confirmationEmailTemplate));
         setAdminNotificationEmails(d.form.adminNotificationEmails || "");
         setConfirmationIncludeGuardian(d.form.confirmationIncludeGuardian !== false);
         setConfirmationIncludeStudents(d.form.confirmationIncludeStudents !== false);
@@ -404,6 +456,25 @@ function RegistrationContent() {
     }));
   };
   const removeMandatoryRule = (index: number) => setMandatoryClassRules(prev => prev.filter((_, idx) => idx !== index));
+
+
+  const fieldTokens = fields
+    .filter(field => !isLayoutField(field))
+    .map(field => `{{field:${field.label}}}`);
+  const insertToken = (token: string) => navigator.clipboard.writeText(token);
+  const updateEmailBlock = (id: string, updates: Partial<EmailTemplateBlock>) => setEmailTemplateBlocks(prev => prev.map(block => block.id === id ? { ...block, ...updates } : block));
+  const addEmailBlock = (type: EmailBlockType = "text") => setEmailTemplateBlocks(prev => [...prev, { id: `email_${Date.now()}`, type, title: type === "text" ? "New section" : EMAIL_BLOCK_LABELS[type], content: "", enabled: true }]);
+  const removeEmailBlock = (id: string) => setEmailTemplateBlocks(prev => prev.filter(block => block.id !== id));
+  const onEmailDragStart = (i: number) => { emailDragIdx.current = i; };
+  const onEmailDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); emailDragOverIdx.current = i; };
+  const onEmailDrop = () => {
+    if (emailDragIdx.current === null || emailDragOverIdx.current === null) return;
+    const arr = [...emailTemplateBlocks];
+    const [moved] = arr.splice(emailDragIdx.current, 1);
+    arr.splice(emailDragOverIdx.current, 0, moved);
+    setEmailTemplateBlocks(arr);
+    emailDragIdx.current = null; emailDragOverIdx.current = null;
+  };
 
   const publicUrl = typeof window !== "undefined"
     ? `${window.location.origin}/register/${campId}${formSlug ? `?form=${encodeURIComponent(formSlug)}` : ""}`
@@ -605,36 +676,72 @@ function RegistrationContent() {
             {settingsPanel === "email" && (
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-black text-berry-950">Confirmation email</p>
-                  <p className="mt-1 text-sm text-berry-800">Edit the message families receive, choose which sections are sent back, and notify admins when a registration arrives.</p>
-                  <p className="mt-2 text-xs text-slate-500">Tokens: <code>{"{{campName}}"}</code>, <code>{"{{guardianName}}"}</code>, <code>{"{{studentName}}"}</code>, <code>{"{{studentCount}}"}</code>, <code>{"{{totalDue}}"}</code></p>
+                  <p className="text-sm font-black text-berry-950">Confirmation email builder</p>
+                  <p className="mt-1 text-sm text-berry-800">Drag sections into the order you want. Use tokens from camp data, guardian data, student data, and your form fields.</p>
                 </div>
                 <div className="grid gap-3">
                   <label className="block">
                     <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Subject</span>
                     <input value={confirmationEmailSubject} onChange={e => setConfirmationEmailSubject(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30" />
                   </label>
-                  <label className="block">
-                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Opening message</span>
-                    <textarea rows={3} value={confirmationEmailIntro} onChange={e => setConfirmationEmailIntro(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30 resize-none" />
-                  </label>
                   <label className="block rounded-2xl border border-amber-100 bg-amber-50/60 p-3">
                     <span className="block text-xs font-black uppercase tracking-wide text-amber-700 mb-1">Admin notification emails</span>
-                    <textarea rows={3} value={adminNotificationEmails} onChange={e => setAdminNotificationEmails(e.target.value)} placeholder={"director@example.com\nregistrar@example.com"} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400/30 resize-none" />
-                    <p className="mt-1 text-xs font-semibold text-amber-800">Optional. Enter any number of admin emails, separated by commas or new lines. Each address receives an internal notice when a family registers or updates a registration.</p>
+                    <textarea rows={2} value={adminNotificationEmails} onChange={e => setAdminNotificationEmails(e.target.value)} placeholder={"director@example.com\nregistrar@example.com"} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400/30 resize-none" />
+                    <p className="mt-1 text-xs font-semibold text-amber-800">Optional. Enter any number of admin emails, separated by commas or new lines.</p>
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      ["Guardian info", confirmationIncludeGuardian, setConfirmationIncludeGuardian],
-                      ["Student details", confirmationIncludeStudents, setConfirmationIncludeStudents],
-                      ["Class choices", confirmationIncludeClasses, setConfirmationIncludeClasses],
-                      ["Emergency/consent", confirmationIncludeEmergency, setConfirmationIncludeEmergency],
-                      ["Payment summary", confirmationIncludePayment, setConfirmationIncludePayment],
-                    ].map(([label, checked, setter]) => (
-                      <label key={label as string} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">
-                        <input type="checkbox" checked={checked as boolean} onChange={e => (setter as (v: boolean) => void)(e.target.checked)} className="h-4 w-4 accent-berry-500" /> {label as string}
-                      </label>
-                    ))}
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">Available tokens</p>
+                        <p className="text-xs text-slate-500">Click a tag to copy it, then paste it into any editable section.</p>
+                      </div>
+                      <button type="button" onClick={() => setEmailTemplateBlocks(cloneDefaultEmailBlocks())} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Reset default layout</button>
+                    </div>
+                    <div className="mt-3 flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+                      {STANDARD_EMAIL_TOKENS.map(token => <button key={token} type="button" onClick={() => insertToken(`{{${token}}}`)} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-mono font-bold text-slate-600 hover:border-berry-300 hover:text-berry-700">{`{{${token}}}`}</button>)}
+                      {fieldTokens.map(token => <button key={token} type="button" onClick={() => insertToken(token)} className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-mono font-bold text-sky-700 hover:border-sky-400">{token}</button>)}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-berry-100 bg-white p-3 shadow-sm">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-black text-slate-900">Email sections</p>
+                        <p className="text-xs text-slate-500">Drag with the handle. Toggle sections on/off. Custom text sections can use tokens.</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => addEmailBlock("text")} className="rounded-xl bg-berry-600 px-3 py-2 text-xs font-black text-white hover:bg-berry-700">+ Text block</button>
+                        <button type="button" onClick={() => addEmailBlock("footer")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">+ Footer</button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {emailTemplateBlocks.map((block, index) => {
+                        const editableText = block.type === "hero" || block.type === "text" || block.type === "footer";
+                        const editableTitle = block.type === "hero" || block.type === "text" || block.type === "emergency" || block.type === "additionalInfo";
+                        return (
+                          <div key={block.id} draggable onDragStart={() => onEmailDragStart(index)} onDragOver={e => onEmailDragOver(e, index)} onDrop={onEmailDrop} className={`rounded-2xl border p-3 ${block.enabled === false ? "border-slate-200 bg-slate-50 opacity-70" : "border-slate-200 bg-white"}`}>
+                            <div className="flex items-center gap-3">
+                              <span className="cursor-grab select-none text-slate-300">⠿</span>
+                              <select value={block.type} onChange={e => updateEmailBlock(block.id, { type: e.target.value as EmailBlockType, title: block.title || EMAIL_BLOCK_LABELS[e.target.value as EmailBlockType] })} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-700">
+                                {Object.entries(EMAIL_BLOCK_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                              </select>
+                              <span className="flex-1 text-sm font-black text-slate-800">{EMAIL_BLOCK_LABELS[block.type]}</span>
+                              <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500"><input type="checkbox" checked={block.enabled !== false} onChange={e => updateEmailBlock(block.id, { enabled: e.target.checked })} /> Show</label>
+                              <button type="button" onClick={() => removeEmailBlock(block.id)} className="text-sm text-slate-300 hover:text-red-500">✕</button>
+                            </div>
+                            {editableTitle && (
+                              <input value={block.title || ""} onChange={e => updateEmailBlock(block.id, { title: e.target.value })} placeholder="Section title" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30" />
+                            )}
+                            {editableText ? (
+                              <textarea rows={block.type === "hero" ? 3 : 2} value={block.content || ""} onChange={e => updateEmailBlock(block.id, { content: e.target.value })} placeholder="Write email text here. Tokens are supported." className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30" />
+                            ) : (
+                              <p className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">Auto-generated from registration data: {EMAIL_BLOCK_LABELS[block.type]}.</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>

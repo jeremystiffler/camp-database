@@ -311,6 +311,7 @@ model RegistrationForm {
   familyRegistrationEnabled Boolean @default(false)
   confirmationEmailSubject String?
   confirmationEmailIntro String?
+  confirmationEmailTemplate String? // JSON array of configurable family confirmation email blocks
   adminNotificationEmails String? // newline/comma separated emails notified on registration
   confirmationIncludeGuardian Boolean @default(true)
   confirmationIncludeStudents Boolean @default(true)
