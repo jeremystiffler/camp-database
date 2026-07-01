@@ -150,6 +150,22 @@ const LANYARD_THEMES = {
   greenLedger: { label: "Green ledger", headerBg: "#16a34a", headerText: "#ffffff", border: "#36523d", rowAlt: "#f0fdf4", rowBg: "#ffffff", timeBg: "#f7fee7" },
   lavenderRoster: { label: "Lavender roster", headerBg: "#8b5cf6", headerText: "#ffffff", border: "#4c1d95", rowAlt: "#f5f3ff", rowBg: "#ffffff", timeBg: "#faf5ff" },
 } as const;
+const CUSTOM_BUILTIN_NAMES = new Set(["Custom Grid Printable — Rotation Roster", "Custom Schedule Lanyard Badge — 3×5"]);
+type TemplateMeta = { eyebrow: string; description: string; visual: "grid" | "packet" | "roster" | "choices" | "list" | "badge" | "lanyard" | "card" };
+function isCustomBuilder(template: PrintTemplate) { return CUSTOM_BUILTIN_NAMES.has(template.name) || (!template.builtin && Boolean(template.id)); }
+function templateMeta(template: PrintTemplate): TemplateMeta {
+  if (template.name.includes("Schedule Lanyard")) return { eyebrow: "Custom badge builder", visual: "lanyard", description: "A child-name header with a vertical schedule table for lanyards." };
+  if (template.type === "rotation_roster") return { eyebrow: "Custom grid builder", visual: "grid", description: "Wide rotation charts with draggable blocks, time bands, and optional backs." };
+  if (template.type === "principal_schedule") return { eyebrow: "Stock schedule", visual: "grid", description: "A landscape master grid: campers down the left, schedule blocks across." };
+  if (template.type === "teacher_schedules") return { eyebrow: "Stock teacher packet", visual: "packet", description: template.name.includes("Only") ? "Deduped teacher schedules without student lists." : "Teacher schedules with optional class rosters under each assignment." };
+  if (template.type === "class_rosters") return { eyebrow: "Stock roster", visual: "roster", description: "Classroom rosters by class/time with guardian, emergency, and medical columns." };
+  if (template.type === "camper_choices") return { eyebrow: "Stock camper report", visual: "choices", description: "Every camper with their chosen classes, times, rooms, and teachers." };
+  if (template.type === "camper_roster") return { eyebrow: "Stock list", visual: "list", description: "A clean camper directory with age group and guardian contact." };
+  if (template.type === "tshirt_list") return { eyebrow: "Stock list", visual: "list", description: "Grouped t-shirt sizes for quick sorting and distribution." };
+  if (template.type === "badges" && template.paperSize === "4x6") return { eyebrow: "Stock card", visual: "card", description: "A larger camper info card with guardian and schedule options." };
+  if (template.type === "badges" && template.paperSize !== "letter") return { eyebrow: "Stock badge", visual: "badge", description: "One camper per page for lanyards and badge printers." };
+  return { eyebrow: "Stock badge sheet", visual: "badge", description: "Printable name badges laid out on a letter-size sheet." };
+}
 type LanyardThemeKey = keyof typeof LANYARD_THEMES;
 function lanyardThemeFor(value: unknown) {
   return LANYARD_THEMES[(typeof value === "string" && value in LANYARD_THEMES ? value : "aquaSheet") as LanyardThemeKey];
@@ -495,6 +511,13 @@ function PrintContent() {
     if (block.id === "footer") return selectedSettings.rotationFooterHeight || "0.45in";
     return "minmax(0, 1fr)";
   }).join(" ") || "minmax(0, 1fr)";
+  const stockTemplates = BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })).filter(template => !isCustomBuilder(template));
+  const customTemplates = [
+    ...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })).filter(template => isCustomBuilder(template)),
+    ...savedTemplates,
+  ];
+  const flexibleFieldVisible = ["teacher_schedules", "class_rosters", "rotation_roster"].includes(draftTemplate.type);
+  const hasAdvancedBasics = !draftTemplate.builtin || draftTemplate.paperSize === "custom";
 
   const chooseTemplate = (key: string) => {
     const template = allTemplates.find(t => t.id === key) || allTemplates[0];
@@ -576,6 +599,20 @@ function PrintContent() {
     }
   };
   const printDoc = (type = draftTemplate.type) => { setActiveDoc(type); setPrintQueued(true); };
+  const renderTemplateCard = (template: PrintTemplate, index: number) => {
+    const meta = templateMeta(template);
+    const key = template.id || `template-${index}`;
+    const selected = selectedTemplateKey === key || (!draftTemplate.id && draftTemplate.name === template.name);
+    return <button key={key} onClick={() => chooseTemplate(key)} className={`print-template-card tile-button ${printTileClasses[index % printTileClasses.length]} text-left transition ${selected ? "ring-2 ring-[var(--tile-accent)]" : ""}`}>
+      <div className="print-visual" data-visual={meta.visual} aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className="text-[10px] font-black uppercase tracking-wide text-slate-600">{meta.eyebrow}</span>
+        <span className="rounded-full bg-white/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[template.paperSize].split(" ")[0]}</span>
+      </div>
+      <p className="mt-2 text-sm font-black text-slate-900">{template.name}</p>
+      <p className="mt-2 text-xs leading-relaxed text-slate-600">{meta.description}</p>
+    </button>;
+  };
 
   if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Finding your active camp…</div>;
 
@@ -650,79 +687,116 @@ function PrintContent() {
         .rotation-students { min-height: 0; padding: 6px 7px; line-height: 1.28; font-weight: 800; text-align: ${rotationStudentTextAlign}; overflow: hidden; word-break: break-word; box-sizing: border-box; }
         .rotation-students div { break-inside: avoid; page-break-inside: avoid; }
         .rotation-footer { text-align: center; font-size: ${rotationFooterFont}px; font-weight: 800; line-height: 1.12; padding: 3px 4px; border-top: 1px solid #222; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; }
+        .print-template-card { border-radius: 1rem; padding: 1rem; min-height: 242px; display: flex; flex-direction: column; }
+        .print-visual { height: 116px; border-radius: 14px; border: 1px solid rgba(15, 23, 42, .12); background: rgba(255,255,255,.58); padding: 10px; display: grid; gap: 6px; box-shadow: inset 0 1px 0 rgba(255,255,255,.75); }
+        .print-visual span { display: block; border-radius: 7px; background: rgba(15,23,42,.16); }
+        .print-visual[data-visual="grid"] { grid-template-columns: repeat(4, 1fr); grid-template-rows: 22px 1fr 1fr; }
+        .print-visual[data-visual="grid"] span:first-child { grid-column: 1 / -1; background: rgba(20,184,166,.38); }
+        .print-visual[data-visual="packet"], .print-visual[data-visual="roster"], .print-visual[data-visual="choices"], .print-visual[data-visual="list"] { grid-template-columns: 1fr; grid-template-rows: 20px repeat(5, 1fr); }
+        .print-visual[data-visual="packet"] span:first-child, .print-visual[data-visual="roster"] span:first-child, .print-visual[data-visual="choices"] span:first-child, .print-visual[data-visual="list"] span:first-child { background: rgba(99,102,241,.30); }
+        .print-visual[data-visual="badge"], .print-visual[data-visual="card"] { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
+        .print-visual[data-visual="badge"] span, .print-visual[data-visual="card"] span { border: 2px solid rgba(15,23,42,.35); background: rgba(255,255,255,.75); }
+        .print-visual[data-visual="lanyard"] { grid-template-columns: .75fr 1fr; grid-template-rows: 28px repeat(5, 1fr); }
+        .print-visual[data-visual="lanyard"] span:first-child { grid-column: 1 / -1; background: rgba(20,184,166,.55); }
       `}</style>
 
       <div className="no-print space-y-6">
-        <div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Operations printing</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">Print Center</h1>
-          <p className="mt-1 max-w-3xl text-sm text-slate-500">Build reusable print templates for principal schedules, teacher packets, classroom rosters, and future badges/labels.</p>
+          <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h1 className="text-3xl font-black text-slate-900">Print Center</h1>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">Choose a clear stock printable, or jump into a custom builder when you need drag/drop fields, special badge layouts, and two-sided backs.</p>
+            </div>
+            <button onClick={() => printDoc()} className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white shadow-sm">Print preview</button>
+          </div>
         </div>
         {loading ? <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" /></div> : (
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-3">
-                {BUILTIN_TEMPLATES.map((template, index) => (
-                  <button key={`${template.type}-${template.name}`} onClick={() => { updateDraft({ ...template, id: `builtin-${index}`, builtin: true }); setSelectedTemplateKey(`builtin-${index}`); }} className={`tile-button ${printTileClasses[index % printTileClasses.length]} p-4 text-left transition ${selectedTemplateKey === `builtin-${index}` || (!draftTemplate.id && draftTemplate.name === template.name) ? "ring-2 ring-[var(--tile-accent)]" : ""}`}>
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/60 text-xs font-black text-slate-700 shadow-sm">{template.type === "principal_schedule" ? "Sc" : template.type === "teacher_schedules" ? "T" : template.type === "class_rosters" ? "R" : template.type === "rotation_roster" ? "Grid" : template.type === "camper_choices" ? "Ch" : template.type === "badges" ? "B" : template.type === "tshirt_list" ? "Ts" : "C"}</span>
-                      <span className="rounded-full bg-white/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[template.paperSize].split(" ")[0]}</span>
-                    </div>
-                    <p className="text-sm font-black text-slate-900">{template.name}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "Deduped teacher packet: each class time once, with optional student roster under it." : template.type === "class_rosters" ? "Deduped class rosters by class/time with campers listed once." : template.type === "rotation_roster" ? "Spreadsheet-style custom grid: one class roster per column, grouped by time slot." : template.type === "camper_choices" ? "Every camper with their selected class choices, times, rooms, and teachers." : template.type === "badges" ? "Badge/label layouts for lanyards, cards, and sheets." : "Reusable operating document."}</p>
-                  </button>
-                ))}
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <div className="space-y-6">
+              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 flex items-end justify-between gap-3">
                   <div>
-                    <h2 className="text-sm font-black text-slate-900">Saved templates</h2>
-                    <p className="text-xs text-slate-500">Reuse these from this camp, or copy saved templates from another camp.</p>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Ready-made</p>
+                    <h2 className="mt-1 text-lg font-black text-slate-900">Stock printables</h2>
                   </div>
-                  <button onClick={saveAsTemplate} disabled={saving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Save as template</button>
+                  <span className="text-xs font-bold text-slate-400">Pick → preview → print</span>
                 </div>
-                <select value={selectedTemplateKey} onChange={e => chooseTemplate(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
-                  {allTemplates.map(t => <option key={t.id} value={t.id}>{t.builtin ? "Preset: " : "Saved: "}{t.name}</option>)}
-                </select>
-                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
-                  <select value={sourceCampId} onChange={e => setSourceCampId(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
-                    <option value="">Copy templates from another camp…</option>
-                    {campOptions.filter(camp => camp.id !== campId).map(camp => <option key={camp.id} value={camp.id}>{camp.name}</option>)}
-                  </select>
-                  <button onClick={importTemplatesFromCamp} disabled={saving || !sourceCampId} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">Copy in</button>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {stockTemplates.map((template, index) => renderTemplateCard(template, index))}
                 </div>
-                {message && <p className="mt-2 text-xs font-semibold text-slate-600">{message}</p>}
-              </div>
+              </section>
+
+              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Build your own</p>
+                    <h2 className="mt-1 text-lg font-black text-slate-900">Custom printables</h2>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">Custom builders and saved camp templates live here, away from the stock shelf.</p>
+                  </div>
+                  <button onClick={saveAsTemplate} disabled={saving} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">Save current as custom</button>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {customTemplates.map((template, index) => renderTemplateCard(template, index + stockTemplates.length))}
+                </div>
+                {savedTemplates.length === 0 && <p className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">No saved custom templates yet. Select a builder, adjust it, then save it here for the camp.</p>}
+                <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                  <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Template library</summary>
+                  <div className="mt-3 space-y-3">
+                    <select value={selectedTemplateKey} onChange={e => chooseTemplate(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                      {allTemplates.map(t => <option key={t.id} value={t.id}>{t.builtin ? "Stock: " : "Custom: "}{t.name}</option>)}
+                    </select>
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <select value={sourceCampId} onChange={e => setSourceCampId(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                        <option value="">Copy custom templates from another camp…</option>
+                        {campOptions.filter(camp => camp.id !== campId).map(camp => <option key={camp.id} value={camp.id}>{camp.name}</option>)}
+                      </select>
+                      <button onClick={importTemplatesFromCamp} disabled={saving || !sourceCampId} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">Copy in</button>
+                    </div>
+                    {message && <p className="text-xs font-semibold text-slate-600">{message}</p>}
+                  </div>
+                </details>
+              </section>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-black text-slate-900">Template setup</h2>
-              <div className="mt-4 space-y-3">
-                <label className="block text-xs font-bold text-slate-500">Name<input value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label>
-                <label className="block text-xs font-bold text-slate-500">Document type<select value={draftTemplate.type} onChange={e => updateDraft({ type: e.target.value as PrintType })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">
-                  <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Camper class choices</option><option value="camper_roster">Camper roster</option><option value="tshirt_list">T-shirt list</option><option value="badges">Badges</option>
-                </select></label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block text-xs font-bold text-slate-500">Paper<select value={draftTemplate.paperSize} onChange={e => updateDraft({ paperSize: e.target.value as PaperSize })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">{Object.entries(PAPER_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-                  <label className="block text-xs font-bold text-slate-500">Orientation<select value={draftTemplate.orientation} onChange={e => updateDraft({ orientation: e.target.value as Orientation })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Selected printable</p>
+                  <h2 className="mt-1 text-lg font-black text-slate-900">{draftTemplate.name}</h2>
                 </div>
-                {draftTemplate.paperSize === "custom" && (
-                  <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 p-3">
-                    <label className="block text-xs font-bold text-slate-500">Page width<input value={selectedSettings.customPageWidth} onChange={e => updateSettings({ customPageWidth: e.target.value })} placeholder="36in" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label>
-                    <label className="block text-xs font-bold text-slate-500">Page height<input value={selectedSettings.customPageHeight} onChange={e => updateSettings({ customPageHeight: e.target.value })} placeholder="8.5in" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500">{PAPER_LABELS[draftTemplate.paperSize]}</span>
+              </div>
+              <div className="mt-5 space-y-4">
+                <label className="block text-xs font-bold text-slate-500">Template name<input value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label>
+                {hasAdvancedBasics && <details className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                  <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Advanced page setup</summary>
+                  <div className="mt-3 space-y-3">
+                    {!draftTemplate.builtin && <label className="block text-xs font-bold text-slate-500">Document type<select value={draftTemplate.type} onChange={e => updateDraft({ type: e.target.value as PrintType })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
+                      <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Camper class choices</option><option value="camper_roster">Camper roster</option><option value="tshirt_list">T-shirt list</option><option value="badges">Badges</option>
+                    </select></label>}
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block text-xs font-bold text-slate-500">Paper<select value={draftTemplate.paperSize} onChange={e => updateDraft({ paperSize: e.target.value as PaperSize })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">{Object.entries(PAPER_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+                      <label className="block text-xs font-bold text-slate-500">Orientation<select value={draftTemplate.orientation} onChange={e => updateDraft({ orientation: e.target.value as Orientation })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
+                    </div>
+                    {draftTemplate.paperSize === "custom" && <div className="grid grid-cols-2 gap-3">
+                      <label className="block text-xs font-bold text-slate-500">Page width<input value={selectedSettings.customPageWidth} onChange={e => updateSettings({ customPageWidth: e.target.value })} placeholder="36in" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" /></label>
+                      <label className="block text-xs font-bold text-slate-500">Page height<input value={selectedSettings.customPageHeight} onChange={e => updateSettings({ customPageHeight: e.target.value })} placeholder="8.5in" className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800" /></label>
+                    </div>}
                   </div>
-                )}
-                <label className="block text-xs font-bold text-slate-500">Density<select value={selectedSettings.density} onChange={e => updateSettings({ density: e.target.value as Density })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="compact">Compact</option><option value="normal">Normal</option><option value="large">Large print</option></select></label>
+                </details>}
+
                 {draftTemplate.type === "rotation_roster" && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
-                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Rotation grid</p>
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Custom grid settings</p>
                     <label className="block text-xs font-bold text-slate-500">Time slot<select value={selectedSettings.rotationTimeFilter} onChange={e => updateSettings({ rotationTimeFilter: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="">All time slots</option>{rotationTimes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
                     <div className="grid grid-cols-2 gap-2">
                       <label className="block text-xs font-bold text-slate-500">Columns per page<input type="number" min={1} max={20} value={rotationColumns} onChange={e => updateSettings({ rotationColumns: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
                       <label className="block text-xs font-bold text-slate-500">Band style<select value={selectedSettings.rotationBandMode} onChange={e => updateSettings({ rotationBandMode: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="color">Color by time slot</option><option value="grayscale">Grayscale by time slot</option></select></label>
                     </div>
-                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-2 text-xs font-bold text-slate-600"><input type="checkbox" checked={selectedSettings.showFooterLabel} onChange={e => updateSettings({ showFooterLabel: e.target.checked })} /> Repeat activity/location footer</label>
+                    <p className="text-[11px] font-semibold text-slate-400">Time bands color themselves. No color picker, no chaos gremlin.</p>
                     <details className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                      <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">V2 layout controls</summary>
+                      <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Fine-tune row heights</summary>
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <label className="block text-xs font-bold text-slate-500">Header height<input value={selectedSettings.rotationHeaderHeight} onChange={e => updateSettings({ rotationHeaderHeight: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs" /></label>
                         <label className="block text-xs font-bold text-slate-500">Time band height<input value={selectedSettings.rotationBandHeight} onChange={e => updateSettings({ rotationBandHeight: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs" /></label>
@@ -732,118 +806,71 @@ function PrintContent() {
                         <label className="block text-xs font-bold text-slate-500">Student align<select value={rotationStudentTextAlign} onChange={e => updateSettings({ rotationStudentAlign: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs"><option value="center">Center</option><option value="left">Left</option><option value="right">Right</option></select></label>
                       </div>
                     </details>
-                    <p className="text-[11px] font-semibold text-slate-400">V3 colors the time band automatically by time slot. Use grayscale mode for copier-friendly printing.</p>
                   </div>
                 )}
-                <div className="rounded-2xl border border-slate-200 p-3">
-                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Flexible fields</p>
+
+                {flexibleFieldVisible && <div className="rounded-2xl border border-slate-200 p-3">
+                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Common fields</p>
                   <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600">
                     <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showStudents} onChange={e => updateSettings({ showStudents: e.target.checked })} /> Student names</label>
                     <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showTeacher} onChange={e => updateSettings({ showTeacher: e.target.checked })} /> Teachers</label>
                     <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showRoom} onChange={e => updateSettings({ showRoom: e.target.checked })} /> Rooms</label>
-                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showEmergency} onChange={e => updateSettings({ showEmergency: e.target.checked })} /> Emergency</label>
-                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showMedical} onChange={e => updateSettings({ showMedical: e.target.checked })} /> Medical</label>
+                    {draftTemplate.type === "class_rosters" && <><label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showEmergency} onChange={e => updateSettings({ showEmergency: e.target.checked })} /> Emergency</label><label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showMedical} onChange={e => updateSettings({ showMedical: e.target.checked })} /> Medical</label></>}
+                    {draftTemplate.type === "rotation_roster" && <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showFooterLabel} onChange={e => updateSettings({ showFooterLabel: e.target.checked })} /> Footer label</label>}
                   </div>
-                  <p className="mt-2 text-[11px] font-semibold text-slate-400">Repeated class sessions are always combined once by default.</p>
-                </div>
+                </div>}
+
                 {customBlockOptions.length > 0 && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">Drag/drop block order</p>
-                        <p className="text-[11px] font-semibold text-slate-400">Drag rows to reorder the major printable blocks. Up/down buttons work on touch screens.</p>
+                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">Printable block order</p>
+                        <p className="text-[11px] font-semibold text-slate-400">Drag rows or use arrows to arrange the custom grid.</p>
                       </div>
                       <button type="button" onClick={resetCustomBlockOrder} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-500">Reset</button>
                     </div>
                     <div className="space-y-1">
                       {customBlockOrder.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropCustomBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing">
-                        <span className="text-slate-400">☰</span>
-                        <span className="flex-1">{index + 1}. {block.label}</span>
+                        <span className="text-slate-400">☰</span><span className="flex-1">{index + 1}. {block.label}</span>
                         <button type="button" onClick={() => moveCustomBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button>
                         <button type="button" onClick={() => moveCustomBlock(block.id, 1)} disabled={index === customBlockOrder.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button>
                       </div>)}
                     </div>
                   </div>
                 )}
+
                 {draftTemplate.type === "badges" && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
-                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge layout</p>
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge builder</p>
                     <label className="block text-xs font-bold text-slate-500">Layout<select value={selectedSettings.badgeLayout} onChange={e => updateSettings({ badgeLayout: e.target.value, badgeContentBlocks: e.target.value === "schedule_lanyard" ? ["name", "schedule"] : ["label", "firstName", "lastName"] })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="standard">Standard name badge</option><option value="schedule_lanyard">Schedule lanyard table</option></select></label>
-                    {selectedSettings.badgeLayout === "schedule_lanyard" && <label className="block text-xs font-bold text-slate-500">Lanyard style<select value={selectedSettings.lanyardTheme} onChange={e => updateSettings({ lanyardTheme: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">{Object.entries(LANYARD_THEMES).map(([key, theme]) => <option key={key} value={key}>{theme.label}</option>)}</select><span className="mt-1 block text-[11px] font-semibold text-slate-400">Spreadsheet-style name header, thinner grid lines, and mild alternating schedule rows.</span></label>}
-                    {draftTemplate.paperSize === "letter" ? <div className="grid grid-cols-2 gap-2">
+                    {selectedSettings.badgeLayout === "schedule_lanyard" && <label className="block text-xs font-bold text-slate-500">Lanyard style<select value={selectedSettings.lanyardTheme} onChange={e => updateSettings({ lanyardTheme: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">{Object.entries(LANYARD_THEMES).map(([key, theme]) => <option key={key} value={key}>{theme.label}</option>)}</select></label>}
+                    {draftTemplate.paperSize === "letter" && <div className="grid grid-cols-2 gap-2">
                       <label className="block text-xs font-bold text-slate-500">Rows on sheet<input type="number" min={1} max={8} value={badgeRows} onChange={e => updateSettings({ badgeRows: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
                       <label className="block text-xs font-bold text-slate-500">Columns on sheet<input type="number" min={1} max={5} value={badgeCols} onChange={e => updateSettings({ badgeCols: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
-                    </div> : <p className="rounded-xl bg-slate-50 p-3 text-[11px] font-semibold text-slate-500">Rows/columns only apply to Letter badge sheets. A 3×5 or 5×3 badge prints one camper per page.</p>}
+                    </div>}
                     <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge content</p>
-                          <p className="text-[11px] font-semibold text-slate-400">Add/remove fields here, then drag them into the order you want. Age group is off by default for the schedule lanyard.</p>
-                        </div>
-                        <button type="button" onClick={resetBadgeBlocks} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500">Reset</button>
-                      </div>
-                      <div className="space-y-1">
-                        {badgeContentBlocks.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropBadgeBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing">
-                          <span className="text-slate-400">☰</span>
-                          <span className="flex-1">{index + 1}. {block.label}</span>
-                          <button type="button" onClick={() => moveBadgeBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button>
-                          <button type="button" onClick={() => moveBadgeBlock(block.id, 1)} disabled={index === badgeContentBlocks.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button>
-                          <button type="button" onClick={() => removeBadgeBlock(block.id)} className="rounded-md border border-rose-100 bg-rose-50 px-2 py-1 text-[10px] text-rose-600">Remove</button>
-                        </div>)}
-                      </div>
+                      <div className="flex items-center justify-between gap-2"><div><p className="text-xs font-black uppercase tracking-wide text-slate-500">Front content</p><p className="text-[11px] font-semibold text-slate-400">Add fields, then drag into printable order.</p></div><button type="button" onClick={resetBadgeBlocks} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500">Reset</button></div>
+                      <div className="space-y-1">{badgeContentBlocks.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropBadgeBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing"><span className="text-slate-400">☰</span><span className="flex-1">{index + 1}. {block.label}</span><button type="button" onClick={() => moveBadgeBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button><button type="button" onClick={() => moveBadgeBlock(block.id, 1)} disabled={index === badgeContentBlocks.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button><button type="button" onClick={() => removeBadgeBlock(block.id)} className="rounded-md border border-rose-100 bg-rose-50 px-2 py-1 text-[10px] text-rose-600">Remove</button></div>)}</div>
                       {addableBadgeBlocks.length > 0 && <label className="block text-xs font-bold text-slate-500">Add field<select value="" onChange={e => addBadgeBlock(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="">Choose a field…</option>{addableBadgeBlocks.map(block => <option key={block.id} value={block.id}>{block.label}</option>)}</select></label>}
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
-                      <label className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-600"><input type="checkbox" checked={selectedSettings.badgeBackEnabled} onChange={e => updateSettings({ badgeBackEnabled: e.target.checked, badgeBackContentBlocks: selectedSettings.badgeBackContentBlocks.length ? selectedSettings.badgeBackContentBlocks : defaultBadgeBackBlockIds })} /> Two-sided badge / print a back side</label>
-                      <p className="text-[11px] font-semibold text-slate-400">Use this for lanyard backs: emergency contact, emergency phone, and medical/dietary notes. Print preview outputs fronts and backs as consecutive pages for duplex printing.</p>
-                      {selectedSettings.badgeBackEnabled && <>
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">Back side content</p>
-                          <button type="button" onClick={resetBadgeBackBlocks} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500">Reset back</button>
-                        </div>
-                        <div className="space-y-1">
-                          {badgeBackBlocks.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropBadgeBackBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing">
-                            <span className="text-slate-400">☰</span>
-                            <span className="flex-1">{index + 1}. {block.label}</span>
-                            <button type="button" onClick={() => moveBadgeBackBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button>
-                            <button type="button" onClick={() => moveBadgeBackBlock(block.id, 1)} disabled={index === badgeBackBlocks.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button>
-                            <button type="button" onClick={() => removeBadgeBackBlock(block.id)} className="rounded-md border border-rose-100 bg-rose-50 px-2 py-1 text-[10px] text-rose-600">Remove</button>
-                          </div>)}
-                        </div>
-                        {addableBadgeBackBlocks.length > 0 && <label className="block text-xs font-bold text-slate-500">Add back field<select value="" onChange={e => addBadgeBackBlock(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="">Choose a back field…</option>{addableBadgeBackBlocks.map(block => <option key={block.id} value={block.id}>{block.label}</option>)}</select></label>}
-                      </>}
-                    </div>
                   </div>
                 )}
-                {supportsTwoSidedCustom && draftTemplate.type !== "badges" && (
-                  <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
-                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Two-sided custom printable</p>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
-                      <label className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-600"><input type="checkbox" checked={selectedSettings.badgeBackEnabled} onChange={e => updateSettings({ badgeBackEnabled: e.target.checked, badgeBackContentBlocks: selectedSettings.badgeBackContentBlocks.length ? selectedSettings.badgeBackContentBlocks : defaultBadgeBackBlockIds })} /> Print a back side</label>
-                      <p className="text-[11px] font-semibold text-slate-400">Use the same subtle business-card back for custom printables. For the custom grid, fronts print first, then matching camper info back pages.</p>
-                      {selectedSettings.badgeBackEnabled && <>
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">Back side content</p>
-                          <button type="button" onClick={resetBadgeBackBlocks} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500">Reset back</button>
-                        </div>
-                        <div className="space-y-1">
-                          {badgeBackBlocks.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropBadgeBackBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing">
-                            <span className="text-slate-400">☰</span>
-                            <span className="flex-1">{index + 1}. {block.label}</span>
-                            <button type="button" onClick={() => moveBadgeBackBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button>
-                            <button type="button" onClick={() => moveBadgeBackBlock(block.id, 1)} disabled={index === badgeBackBlocks.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button>
-                            <button type="button" onClick={() => removeBadgeBackBlock(block.id)} className="rounded-md border border-rose-100 bg-rose-50 px-2 py-1 text-[10px] text-rose-600">Remove</button>
-                          </div>)}
-                        </div>
-                        {addableBadgeBackBlocks.length > 0 && <label className="block text-xs font-bold text-slate-500">Add back field<select value="" onChange={e => addBadgeBackBlock(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="">Choose a back field…</option>{addableBadgeBackBlocks.map(block => <option key={block.id} value={block.id}>{block.label}</option>)}</select></label>}
-                      </>}
-                    </div>
-                  </div>
-                )}
+
+                {supportsTwoSidedCustom && <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
+                  <label className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-600"><input type="checkbox" checked={selectedSettings.badgeBackEnabled} onChange={e => updateSettings({ badgeBackEnabled: e.target.checked, badgeBackContentBlocks: selectedSettings.badgeBackContentBlocks.length ? selectedSettings.badgeBackContentBlocks : defaultBadgeBackBlockIds })} /> Print a back side</label>
+                  <p className="text-[11px] font-semibold text-slate-400">Backs use the subtle business-card style for guardian, emergency, medical, and schedule info.</p>
+                  {selectedSettings.badgeBackEnabled && <>
+                    <div className="flex items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-wide text-slate-500">Back content</p><button type="button" onClick={resetBadgeBackBlocks} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500">Reset back</button></div>
+                    <div className="space-y-1">{badgeBackBlocks.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropBadgeBackBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing"><span className="text-slate-400">☰</span><span className="flex-1">{index + 1}. {block.label}</span><button type="button" onClick={() => moveBadgeBackBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button><button type="button" onClick={() => moveBadgeBackBlock(block.id, 1)} disabled={index === badgeBackBlocks.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button><button type="button" onClick={() => removeBadgeBackBlock(block.id)} className="rounded-md border border-rose-100 bg-rose-50 px-2 py-1 text-[10px] text-rose-600">Remove</button></div>)}</div>
+                    {addableBadgeBackBlocks.length > 0 && <label className="block text-xs font-bold text-slate-500">Add back field<select value="" onChange={e => addBadgeBackBlock(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="">Choose a back field…</option>{addableBadgeBackBlocks.map(block => <option key={block.id} value={block.id}>{block.label}</option>)}</select></label>}
+                  </>}
+                </div>}
+
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-bold text-white">Print preview</button>
-                  <button onClick={updateSavedTemplate} disabled={saving} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50">{draftTemplate.builtin ? "Save copy" : "Update"}</button>
+                  <button onClick={updateSavedTemplate} disabled={saving} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50">{draftTemplate.builtin ? "Save custom copy" : "Update custom"}</button>
                 </div>
+                {message && <p className="text-xs font-semibold text-slate-600">{message}</p>}
               </div>
             </div>
           </div>
