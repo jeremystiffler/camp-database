@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "camper_roster" | "tshirt_list" | "badges";
+type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges";
 type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3";
 type Orientation = "portrait" | "landscape";
 type Density = "compact" | "normal" | "large";
@@ -88,11 +88,13 @@ const PAPER_CSS: Record<PaperSize, string> = {
   "4x6": "6in 4in",
   "5x3": "5in 3in",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, groupByPage: true, badgeRows: 4, badgeCols: 3, showSchedule: false, showGuardian: false, showAgeGroup: true };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
-  { builtin: true, name: "Teacher Schedules — Operation Packet", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true }) },
-  { builtin: true, name: "Classroom Rosters — Teacher Packet", type: "class_rosters", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showEmergency: true, showMedical: true }) },
+  { builtin: true, name: "Teacher Packets — Classes + Students", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true, showStudents: true }) },
+  { builtin: true, name: "Teacher Schedule Only — Deduped", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", groupByPage: true, showStudents: false }) },
+  { builtin: true, name: "Classroom Rosters — Deduped", type: "class_rosters", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showEmergency: true, showMedical: true, showTeacher: true }) },
+  { builtin: true, name: "Camper Class Choices", type: "camper_choices", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showRoom: true, showTeacher: true }) },
   { builtin: true, name: "Camper Roster", type: "camper_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "T-Shirt List", type: "tshirt_list", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "Camper Badges — Sheet", type: "badges", category: "badges", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 4, badgeCols: 3, showAgeGroup: true }) },
@@ -165,17 +167,34 @@ function courseAgeLabel(course: Course) { return course.courseAgeGroups?.map(cag
 function sortedCampersList(campers: Camper[]) { return [...campers].sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName)); }
 
 function rosterGroups(campers: Camper[]) {
-  const groups = new Map<string, { key: string; title: string; time: string; room: string; campers: Camper[]; sortValue: string }>();
+  const groups = new Map<string, { key: string; courseId: string; title: string; time: string; room: string; campers: Camper[]; sortValue: string }>();
   for (const camper of campers) for (const enrollment of camper.enrollments || []) {
     const session = enrollment.session;
     if (!session?.course?.id) continue;
-    const key = `${session.course.id}|${sessionSlotKey(session)}`;
+    // Option A: combine repeated sessions. Same class at the same class time prints once,
+    // even when it exists across multiple repeated day/session records.
+    const key = `${session.course.id}|${sessionSlotKey(session)}|${session.room?.id || session.room?.name || ""}`;
     const sortValue = `${sessionStart(session) || "99:99"}|${session.course.name}`;
-    const existing = groups.get(key) || { key, title: session.course.name, time: formatRange(sessionStart(session), sessionEnd(session)), room: session.room?.name || "—", campers: [], sortValue };
+    const existing = groups.get(key) || { key, courseId: session.course.id, title: session.course.name, time: formatRange(sessionStart(session), sessionEnd(session)), room: session.room?.name || "—", campers: [], sortValue };
     if (!existing.campers.some(c => c.id === camper.id)) existing.campers.push(camper);
     groups.set(key, existing);
   }
   return [...groups.values()].map(group => ({ ...group, campers: sortedCampersList(group.campers) })).sort((a, b) => a.sortValue.localeCompare(b.sortValue));
+}
+function courseTeacherNames(course?: Course) {
+  return course?.courseTeachers?.map(ct => fullName(ct.person)).filter(Boolean).join(", ") || "—";
+}
+function courseById(courses: Course[], courseId: string) { return courses.find(course => course.id === courseId); }
+function campersForCourseSlot(campers: Camper[], courseId: string, start: string, end: string, roomName?: string | null) {
+  const matches = new Map<string, Camper>();
+  for (const camper of campers) for (const enrollment of camper.enrollments || []) {
+    const session = enrollment.session;
+    if (!session?.course?.id || session.course.id !== courseId) continue;
+    if (sessionStart(session) !== start || sessionEnd(session) !== end) continue;
+    if (roomName && session.room?.name && session.room.name !== roomName) continue;
+    matches.set(camper.id, camper);
+  }
+  return sortedCampersList([...matches.values()]);
 }
 function badgeScheduleSummary(camper: Camper) {
   return scheduleCellsForCamper(camper)
@@ -183,18 +202,46 @@ function badgeScheduleSummary(camper: Camper) {
     .map(cell => cell.label.replace(/\n/g, " "))
     .join(" • ");
 }
+function classChoicesForCamper(camper: Camper, courses: Course[]) {
+  const choices = new Map<string, { label: string; sortValue: string }>();
+  for (const enrollment of camper.enrollments || []) {
+    const session = enrollment.session;
+    if (!session?.course?.id) continue;
+    const start = sessionStart(session);
+    const end = sessionEnd(session);
+    const course = courseById(courses, session.course.id);
+    const teachers = courseTeacherNames(course);
+    const pieces = [
+      formatRange(start, end),
+      session.course.name,
+      session.room?.name ? `Room: ${session.room.name}` : "",
+      teachers !== "—" ? `Teacher: ${teachers}` : "",
+    ].filter(Boolean);
+    const key = `${session.course.id}|${start}|${end}|${session.room?.id || session.room?.name || ""}`;
+    if (!choices.has(key)) choices.set(key, { label: pieces.join(" — "), sortValue: `${start || "99:99"}|${session.course.name}` });
+  }
+  return [...choices.values()].sort((a, b) => a.sortValue.localeCompare(b.sortValue));
+}
 
-function teacherRows(person: Person, courses: Course[], mandatorySessions: MandatorySession[]) {
-  const rows: { time: string; title: string; room: string; age: string; sortValue: string }[] = [];
+function teacherRows(person: Person, courses: Course[], mandatorySessions: MandatorySession[], campers: Camper[]) {
+  const rows = new Map<string, { time: string; title: string; room: string; age: string; sortValue: string; students: Camper[] }>();
   for (const course of courses.filter(course => course.courseTeachers?.some(ct => ct.person.id === person.id))) {
     for (const cst of course.courseSessionTemplates || []) {
-      rows.push({ time: formatRange(templateStart(cst.sessionTemplate), templateEnd(cst.sessionTemplate)), title: course.name, room: course.room?.name || "—", age: courseAgeLabel(course), sortValue: `${templateStart(cst.sessionTemplate) || "99:99"}|${course.name}` });
+      const start = templateStart(cst.sessionTemplate);
+      const end = templateEnd(cst.sessionTemplate);
+      const room = course.room?.name || "—";
+      const key = `${course.id}|${start}|${end}|${room}`;
+      if (!rows.has(key)) rows.set(key, { time: formatRange(start, end), title: course.name, room, age: courseAgeLabel(course), sortValue: `${start || "99:99"}|${course.name}`, students: campersForCourseSlot(campers, course.id, start, end, course.room?.name) });
     }
   }
   for (const assignment of mandatorySessions.filter(ms => ms.leader?.id === person.id)) {
-    rows.push({ time: formatRange(templateStart(assignment.sessionTemplate), templateEnd(assignment.sessionTemplate)), title: assignment.title, room: assignment.room?.name || "—", age: assignment.ageGroup?.name || "Required", sortValue: `${templateStart(assignment.sessionTemplate) || "99:99"}|${assignment.title}` });
+    const start = templateStart(assignment.sessionTemplate);
+    const end = templateEnd(assignment.sessionTemplate);
+    const room = assignment.room?.name || "—";
+    const key = `mandatory|${assignment.title}|${start}|${end}|${room}`;
+    if (!rows.has(key)) rows.set(key, { time: formatRange(start, end), title: assignment.title, room, age: assignment.ageGroup?.name || "Required", sortValue: `${start || "99:99"}|${assignment.title}`, students: [] });
   }
-  return rows.sort((a, b) => a.sortValue.localeCompare(b.sortValue));
+  return [...rows.values()].sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 }
 
 function PrintContent() {
@@ -277,7 +324,7 @@ function PrintContent() {
   const cellPadding = selectedSettings.density === "compact" ? "4px 3px" : selectedSettings.density === "large" ? "8px 6px" : "6px 4px";
   const badgeCols = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeCols || 3)) : 1;
   const badgeRows = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeRows || 4)) : 1;
-  const printTileClasses = ["tile-aqua", "tile-sage", "tile-clay", "tile-denim", "tile-butter", "tile-lavender", "tile-berry", "tile-aqua"];
+  const printTileClasses = ["tile-aqua", "tile-sage", "tile-clay", "tile-denim", "tile-butter", "tile-lavender", "tile-berry", "tile-aqua", "tile-sage"];
 
   const chooseTemplate = (key: string) => {
     const template = allTemplates.find(t => t.id === key) || allTemplates[0];
@@ -392,11 +439,11 @@ function PrintContent() {
                 {BUILTIN_TEMPLATES.map((template, index) => (
                   <button key={`${template.type}-${template.name}`} onClick={() => { updateDraft({ ...template, id: `builtin-${index}`, builtin: true }); setSelectedTemplateKey(`builtin-${index}`); }} className={`tile-button ${printTileClasses[index % printTileClasses.length]} p-4 text-left transition ${selectedTemplateKey === `builtin-${index}` || (!draftTemplate.id && draftTemplate.name === template.name) ? "ring-2 ring-[var(--tile-accent)]" : ""}`}>
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/60 text-xs font-black text-slate-700 shadow-sm">{template.type === "principal_schedule" ? "Sc" : template.type === "teacher_schedules" ? "T" : template.type === "class_rosters" ? "R" : template.type === "badges" ? "B" : template.type === "tshirt_list" ? "Ts" : "C"}</span>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/60 text-xs font-black text-slate-700 shadow-sm">{template.type === "principal_schedule" ? "Sc" : template.type === "teacher_schedules" ? "T" : template.type === "class_rosters" ? "R" : template.type === "camper_choices" ? "Ch" : template.type === "badges" ? "B" : template.type === "tshirt_list" ? "Ts" : "C"}</span>
                       <span className="rounded-full bg-white/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[template.paperSize].split(" ")[0]}</span>
                     </div>
                     <p className="text-sm font-black text-slate-900">{template.name}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "One operational schedule page per teacher/staff member." : template.type === "class_rosters" ? "Classroom rosters by activity/time with guardian and emergency columns." : template.type === "badges" ? "Badge/label layouts for lanyards, cards, and sheets." : "Reusable operating document."}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "Deduped teacher packet: each class time once, with optional student roster under it." : template.type === "class_rosters" ? "Deduped class rosters by class/time with campers listed once." : template.type === "camper_choices" ? "Every camper with their selected class choices, times, rooms, and teachers." : template.type === "badges" ? "Badge/label layouts for lanyards, cards, and sheets." : "Reusable operating document."}</p>
                   </button>
                 ))}
               </div>
@@ -426,16 +473,23 @@ function PrintContent() {
               <div className="mt-4 space-y-3">
                 <label className="block text-xs font-bold text-slate-500">Name<input value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label>
                 <label className="block text-xs font-bold text-slate-500">Document type<select value={draftTemplate.type} onChange={e => updateDraft({ type: e.target.value as PrintType })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">
-                  <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher schedules</option><option value="class_rosters">Classroom rosters</option><option value="camper_roster">Camper roster</option><option value="tshirt_list">T-shirt list</option><option value="badges">Badges</option>
+                  <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="camper_choices">Camper class choices</option><option value="camper_roster">Camper roster</option><option value="tshirt_list">T-shirt list</option><option value="badges">Badges</option>
                 </select></label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block text-xs font-bold text-slate-500">Paper<select value={draftTemplate.paperSize} onChange={e => updateDraft({ paperSize: e.target.value as PaperSize })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">{Object.entries(PAPER_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
                   <label className="block text-xs font-bold text-slate-500">Orientation<select value={draftTemplate.orientation} onChange={e => updateDraft({ orientation: e.target.value as Orientation })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
                 </div>
                 <label className="block text-xs font-bold text-slate-500">Density<select value={selectedSettings.density} onChange={e => updateSettings({ density: e.target.value as Density })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="compact">Compact</option><option value="normal">Normal</option><option value="large">Large print</option></select></label>
-                <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600">
-                  <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showEmergency} onChange={e => updateSettings({ showEmergency: e.target.checked })} /> Emergency</label>
-                  <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showMedical} onChange={e => updateSettings({ showMedical: e.target.checked })} /> Medical</label>
+                <div className="rounded-2xl border border-slate-200 p-3">
+                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Flexible fields</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600">
+                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showStudents} onChange={e => updateSettings({ showStudents: e.target.checked })} /> Student names</label>
+                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showTeacher} onChange={e => updateSettings({ showTeacher: e.target.checked })} /> Teachers</label>
+                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showRoom} onChange={e => updateSettings({ showRoom: e.target.checked })} /> Rooms</label>
+                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showEmergency} onChange={e => updateSettings({ showEmergency: e.target.checked })} /> Emergency</label>
+                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3"><input type="checkbox" checked={selectedSettings.showMedical} onChange={e => updateSettings({ showMedical: e.target.checked })} /> Medical</label>
+                  </div>
+                  <p className="mt-2 text-[11px] font-semibold text-slate-400">Repeated class sessions are always combined once by default.</p>
                 </div>
                 {draftTemplate.type === "badges" && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
@@ -463,9 +517,11 @@ function PrintContent() {
 
       {activeDoc === "principal_schedule" && <div className="print-doc ops-print"><table className={`center ${selectedSettings.stripedRows ? "striped" : ""}`}><thead><tr><th className="student-col">Student</th>{principalScheduleSlots.map(slot => <th key={slot.key} className="time-col">{slot.label}</th>)}</tr></thead><tbody>{sortedCampers.map(camper => <tr key={camper.id}><td className="student-col">{fullName(camper)}</td>{principalScheduleSlots.map(slot => <td key={slot.key} className="time-col">{cellForSlot(camper, slot)}</td>)}</tr>)}</tbody></table></div>}
 
-      {activeDoc === "teacher_schedules" && <div className="print-doc ops-print">{operationalPeople.map(person => { const rows = teacherRows(person, courses, mandatorySessions); return <section key={person.id} className="page-break"><h1 className="ops-title">{fullName(person)} Schedule</h1><p className="ops-subtitle">{person.role} {person.email ? `• ${person.email}` : ""} {person.phone ? `• ${person.phone}` : ""}</p><table><thead><tr><th style={{width:"100px"}}>Time</th><th>Assignment</th><th style={{width:"150px"}}>Room</th><th style={{width:"120px"}}>Group</th></tr></thead><tbody>{rows.length ? rows.map((row, idx) => <tr key={`${row.sortValue}-${idx}`}><td>{row.time}</td><td>{row.title}</td><td>{row.room}</td><td>{row.age}</td></tr>) : <tr><td colSpan={4}>No scheduled assignments.</td></tr>}</tbody></table></section>; })}</div>}
+      {activeDoc === "teacher_schedules" && <div className="print-doc ops-print">{operationalPeople.map(person => { const rows = teacherRows(person, courses, mandatorySessions, campers); const columns = 3 + (selectedSettings.showRoom ? 1 : 0) + (selectedSettings.showStudents ? 1 : 0); return <section key={person.id} className="page-break"><h1 className="ops-title">{fullName(person)} Teacher Packet</h1><p className="ops-subtitle">{person.role} {person.email ? `• ${person.email}` : ""} {person.phone ? `• ${person.phone}` : ""}</p><table><thead><tr><th style={{width:"100px"}}>Time</th><th>Assignment</th>{selectedSettings.showRoom && <th style={{width:"120px"}}>Room</th>}<th style={{width:"110px"}}>Group</th>{selectedSettings.showStudents && <th>Registered Students</th>}</tr></thead><tbody>{rows.length ? rows.map((row, idx) => <tr key={`${row.sortValue}-${idx}`}><td>{row.time}</td><td>{row.title}</td>{selectedSettings.showRoom && <td>{row.room}</td>}<td>{row.age}</td>{selectedSettings.showStudents && <td>{row.students.length ? row.students.map(student => fullName(student)).join("\n") : "—"}</td>}</tr>) : <tr><td colSpan={columns}>No scheduled assignments.</td></tr>}</tbody></table></section>; })}</div>}
 
-      {activeDoc === "class_rosters" && <div className="print-doc ops-print">{rosterPackets.map(group => <section key={group.key} className="page-break"><h1 className="ops-title">{group.title}</h1><p className="ops-subtitle">{group.time} • {group.room} • {group.campers.length} camper{group.campers.length === 1 ? "" : "s"}</p><table><thead><tr><th style={{width:"150px"}}>Camper</th><th style={{width:"100px"}}>Age Group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}{selectedSettings.showMedical && <th>Medical / Dietary</th>}</tr></thead><tbody>{group.campers.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || ""}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}{selectedSettings.showMedical && <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>}</tr>)}</tbody></table></section>)}</div>}
+      {activeDoc === "class_rosters" && <div className="print-doc ops-print">{rosterPackets.map(group => { const course = courseById(courses, group.courseId); return <section key={group.key} className="page-break"><h1 className="ops-title">{group.title}</h1><p className="ops-subtitle">{group.time}{selectedSettings.showRoom ? ` • ${group.room}` : ""}{selectedSettings.showTeacher ? ` • Teacher: ${courseTeacherNames(course)}` : ""} • {group.campers.length} camper{group.campers.length === 1 ? "" : "s"}</p><table><thead><tr><th style={{width:"150px"}}>Camper</th><th style={{width:"100px"}}>Age Group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}{selectedSettings.showMedical && <th>Medical / Dietary</th>}</tr></thead><tbody>{group.campers.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || ""}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}{selectedSettings.showMedical && <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>}</tr>)}</tbody></table></section>; })}</div>}
+
+      {activeDoc === "camper_choices" && <div className="print-doc ops-print"><h1 className="ops-title">Camper Class Choices</h1><p className="ops-subtitle">Repeated sessions are combined; each selected class time appears once per camper.</p><table><thead><tr><th style={{width:"145px"}}>Camper</th><th style={{width:"95px"}}>Age Group</th><th>Class Choices</th></tr></thead><tbody>{sortedCampers.map(camper => { const choices = classChoicesForCamper(camper, courses); return <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{choices.length ? choices.map(choice => choice.label).join("\n") : "—"}</td></tr>; })}</tbody></table></div>}
 
       {activeDoc === "camper_roster" && <div className="print-doc ops-print"><h1 className="ops-title">Camper Roster</h1><table><thead><tr><th>Last</th><th>First</th><th>Age Group</th><th>Guardian</th><th>Email</th></tr></thead><tbody>{sortedCampers.map(c => <tr key={c.id}><td>{c.lastName}</td><td>{c.firstName}</td><td>{c.ageGroup?.name || "—"}</td><td>{c.guardianName || "—"}</td><td>{c.guardianEmail || "—"}</td></tr>)}</tbody></table></div>}
 
