@@ -92,6 +92,9 @@ function formatTime(value?: string | null) {
 function teacherNames(course?: Course | null) {
   return course?.courseTeachers?.map((ct) => fullName(ct.person)).filter(Boolean).join(", ") || "No teacher";
 }
+function sessionTitle(session: Session) {
+  return session.course?.name || session.mandatorySession?.title || session.sessionTemplate?.label || "Unassigned";
+}
 function ageGroupNames(course?: Course | null) {
   return course?.courseAgeGroups?.map((cag) => cag.ageGroup.name).join(", ") || course?.ageGroup?.name || "All groups";
 }
@@ -112,7 +115,7 @@ function uniqueBy<T>(items: T[], keyFn: (item: T) => string) {
   return [...map.values()];
 }
 function sessionDisplayKey(session: Session, includeDay = false) {
-  const courseKey = session.course?.id || session.course?.name || session.mandatorySession?.id || session.mandatorySession?.title || "unassigned";
+  const courseKey = session.course?.id || session.course?.name || session.mandatorySession?.title || session.sessionTemplate?.label || "unassigned";
   const roomKey = session.room?.id || session.room?.name || "no-room";
   const dayKey = includeDay ? `${sessionDay(session)}|` : "";
   return `${dayKey}${courseKey}|${session.startTime}|${session.endTime}|${roomKey}`;
@@ -121,7 +124,7 @@ function dedupeSessions(sessions: Session[], includeDay = false) {
   return uniqueBy(sessions, (session) => sessionDisplayKey(session, includeDay));
 }
 function sessionSort(a: Session, b: Session) {
-  return sessionDay(a) - sessionDay(b) || a.startTime.localeCompare(b.startTime) || (a.room?.name || "").localeCompare(b.room?.name || "") || (a.course?.name || "").localeCompare(b.course?.name || "");
+  return sessionDay(a) - sessionDay(b) || a.startTime.localeCompare(b.startTime) || (a.room?.name || "").localeCompare(b.room?.name || "") || sessionTitle(a).localeCompare(sessionTitle(b));
 }
 function sessionCell(session: Session, compact = false) {
   const percent = capacityPercent(session);
@@ -129,12 +132,12 @@ function sessionCell(session: Session, compact = false) {
     <div key={session.id} className={`rounded-xl border p-2 ${capacityTone(percent)}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-xs font-black text-slate-900">{session.course?.name || "Unassigned"}</p>
+          <p className="truncate text-xs font-black text-slate-900">{sessionTitle(session)}</p>
           {!compact && <p className="mt-0.5 text-[11px] font-semibold opacity-80">{session.room?.name || "No room"}</p>}
         </div>
         <span className="rounded-full bg-white/65 px-1.5 py-0.5 text-[10px] font-black">{session.enrolledCount}/{session.course?.cap || "?"}</span>
       </div>
-      {!compact && <p className="mt-1 text-[10px] leading-tight opacity-75">{teacherNames(session.course)}</p>}
+      {!compact && session.course && <p className="mt-1 text-[10px] leading-tight opacity-75">{teacherNames(session.course)}</p>}
     </div>
   );
 }
@@ -244,7 +247,7 @@ function ScheduleContent() {
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-wide text-slate-400">Highest load</p>
-                  <p className="text-sm font-bold text-slate-800">{busiest.course?.name || "Unassigned"} · {DAYS[sessionDay(busiest)]} {timeRange(busiest)} · {busiest.room?.name || "No room"}</p>
+                  <p className="text-sm font-bold text-slate-800">{sessionTitle(busiest)} · {DAYS[sessionDay(busiest)]} {timeRange(busiest)} · {busiest.room?.name || "No room"}</p>
                 </div>
                 <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{busiest.course?.cap || "?"}</span>
               </div>
@@ -345,7 +348,7 @@ function CapacityHeatmap({ sessions }: { sessions: Session[] }) {
       <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
         {[...sessions].sort((a, b) => capacityPercent(b) - capacityPercent(a)).map((session) => {
           const percent = capacityPercent(session);
-          return <div key={session.id} className={`rounded-2xl border p-4 ${capacityTone(percent)}`}><div className="flex items-start justify-between gap-3"><div><p className="font-black text-slate-900">{session.course?.name || "Unassigned"}</p><p className="mt-1 text-xs font-semibold opacity-80">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}</p></div><span className="rounded-full bg-white/65 px-2 py-1 text-xs font-black">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70"><div className="h-full rounded-full bg-slate-900/60" style={{ width: `${Math.min(percent, 100)}%` }} /></div><p className="mt-2 text-xs font-bold opacity-80">{session.enrolledCount}/{session.course?.cap || "?"} enrolled · {teacherNames(session.course)}</p></div>;
+          return <div key={session.id} className={`rounded-2xl border p-4 ${capacityTone(percent)}`}><div className="flex items-start justify-between gap-3"><div><p className="font-black text-slate-900">{sessionTitle(session)}</p><p className="mt-1 text-xs font-semibold opacity-80">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}</p></div><span className="rounded-full bg-white/65 px-2 py-1 text-xs font-black">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70"><div className="h-full rounded-full bg-slate-900/60" style={{ width: `${Math.min(percent, 100)}%` }} /></div><p className="mt-2 text-xs font-bold opacity-80">{session.enrolledCount}/{session.course?.cap || "?"} enrolled{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>;
         })}
       </div>
     </PivotShell>
@@ -358,7 +361,7 @@ function ListView({ sessions }: { sessions: Session[] }) {
       {sessions.map((session) => (
         <div key={session.id} className="camp-card flex items-center gap-4 p-4">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: session.course?.color || "#94a3b8" }}>{session.course?.icon || "Sc"}</div>
-          <div className="min-w-0 flex-1"><p className="truncate font-semibold text-slate-800">{session.course?.name || "Unassigned"}</p><p className="text-xs text-slate-500">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"} · {teacherNames(session.course)}</p></div>
+          <div className="min-w-0 flex-1"><p className="truncate font-semibold text-slate-800">{sessionTitle(session)}</p><p className="text-xs text-slate-500">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>
           <div className="flex-shrink-0 text-right"><div className="text-sm font-semibold text-slate-700">{session.enrolledCount}/{session.course?.cap || "?"}</div><div className="text-xs text-slate-400">enrolled</div></div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[session.status] || "bg-slate-100 text-slate-600"}`}>{session.status}</span>
         </div>
