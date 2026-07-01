@@ -906,6 +906,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
     const parts = rawName.trim().split(/\s+/);
     const firstName = parts.shift() || rawName.trim();
     const lastName = parts.join(" ") || "TBD";
+    setInlineErrors(prev => { const next = { ...prev }; delete next[course.id]; return next; });
     const res = await fetch(`/api/camps/${campId}/persons`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

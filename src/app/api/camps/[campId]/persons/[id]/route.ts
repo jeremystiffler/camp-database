@@ -58,11 +58,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
 
     if (rawAgeGroupIds !== undefined) {
       await prisma.personAgeGroup.deleteMany({ where: { personId: id } });
-      if (validAgeGroups.length > 0) {
-        await prisma.personAgeGroup.createMany({
-          data: validAgeGroups.map((ageGroup) => ({ personId: id, ageGroupId: ageGroup.id })),
-          skipDuplicates: true,
-        });
+      for (const ageGroup of validAgeGroups) {
+        try {
+          await prisma.personAgeGroup.create({ data: { personId: id, ageGroupId: ageGroup.id } });
+        } catch (linkError) {
+          // Duplicate links are harmless; avoid createMany because some Prisma HTTP
+          // adapters treat bulk writes as transaction-like operations.
+          if (!(linkError instanceof Error && linkError.message.includes("Unique constraint"))) throw linkError;
+        }
       }
     }
 

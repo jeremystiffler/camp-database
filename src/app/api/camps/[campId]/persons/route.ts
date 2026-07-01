@@ -68,11 +68,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       },
     });
 
-    if (validAgeGroups.length > 0) {
-      await prisma.personAgeGroup.createMany({
-        data: validAgeGroups.map((ageGroup) => ({ personId: created.id, ageGroupId: ageGroup.id })),
-        skipDuplicates: true,
-      });
+    for (const ageGroup of validAgeGroups) {
+      try {
+        await prisma.personAgeGroup.create({ data: { personId: created.id, ageGroupId: ageGroup.id } });
+      } catch (linkError) {
+        // Duplicate links are harmless; avoid createMany because some Prisma HTTP
+        // adapters treat bulk writes as transaction-like operations.
+        if (!(linkError instanceof Error && linkError.message.includes("Unique constraint"))) throw linkError;
+      }
     }
 
     const item = await prisma.person.findUnique({

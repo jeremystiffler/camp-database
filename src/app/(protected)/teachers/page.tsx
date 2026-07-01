@@ -82,7 +82,7 @@ function TeacherModal({ person, campId, ageGroups, defaultRole = "teacher", onCl
         body: JSON.stringify({ firstName: cleanFirstName, lastName: cleanLastName, email: email.trim() || undefined, phone: phone.trim() || undefined, role, bio: bio.trim() || undefined, ageGroupIds: selectedAgeGroups }),
       });
       const d = await res.json().catch(() => ({}));
-      if (res.ok) { onSaved(); onClose(); }
+      if (res.ok) { setError(""); onSaved(); onClose(); }
       else { setError(d.detail ? `${d.error || "Failed to save"}: ${d.detail}` : d.error || "Failed to save teacher. Check required fields and try again."); }
     } catch (err) { setError(`Network error while saving teacher: ${err instanceof Error ? err.message : String(err)}`); }
     finally { setLoading(false); }
