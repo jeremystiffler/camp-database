@@ -415,6 +415,8 @@ function PrintContent() {
   const badgeRows = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeRows || 4)) : 1;
   const printTileClasses = ["tile-aqua", "tile-sage", "tile-clay", "tile-denim", "tile-butter", "tile-lavender", "tile-berry", "tile-aqua", "tile-sage", "tile-clay"];
   const pageSizeCss = draftTemplate.paperSize === "custom" ? `${selectedSettings.customPageWidth || "36in"} ${selectedSettings.customPageHeight || "8.5in"}` : PAPER_CSS[draftTemplate.paperSize];
+  const explicitDimensionPaper = draftTemplate.paperSize === "custom" || draftTemplate.paperSize === "4x6" || draftTemplate.paperSize === "5x3" || draftTemplate.paperSize === "3x5";
+  const printPageSizeCss = explicitDimensionPaper ? pageSizeCss : `${pageSizeCss} ${draftTemplate.orientation}`;
   const rotationTimes = Array.from(new Map(rosterPackets.map(group => [group.start || group.time, group.timeLabel || group.time])).entries()).sort((a, b) => a[0].localeCompare(b[0]));
   const rotationRosterPackets = rosterPackets.filter(group => !selectedSettings.rotationTimeFilter || group.start === selectedSettings.rotationTimeFilter);
   const rotationColumns = Math.max(1, Number(selectedSettings.rotationColumns || 5));
@@ -515,15 +517,15 @@ function PrintContent() {
     <>
       <style>{`
         @media print {
-          @page { size: ${pageSizeCss} ${draftTemplate.paperSize === "custom" ? "" : draftTemplate.orientation}; margin: 0.25in; }
+          @page { size: ${printPageSizeCss}; margin: 0.25in; }
           aside, nav, .no-print { display: none !important; }
           main { margin-left: 0 !important; padding: 0 !important; }
-          .print-doc { display: block !important; }
+          .print-doc { display: block !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; }
           body { background: white !important; }
           .page-break { page-break-after: always; }
           .page-break:last-child { page-break-after: auto; }
         }
-        .print-doc { display: none; }
+        .print-doc { display: ${activeDoc ? "block" : "none"}; margin-top: ${activeDoc ? "24px" : "0"}; background: white; padding: ${activeDoc ? "16px" : "0"}; border: ${activeDoc ? "1px solid #e2e8f0" : "0"}; border-radius: ${activeDoc ? "16px" : "0"}; }
         .ops-print { font-family: Arial, Helvetica, sans-serif; color: #000; }
         .ops-print table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .ops-print th, .ops-print td { border: 1px solid #111; vertical-align: middle; white-space: pre-line; line-height: 1.12; }
