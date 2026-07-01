@@ -3,8 +3,8 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges";
-type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3";
+type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "rotation_roster" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges";
+type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3" | "custom";
 type Orientation = "portrait" | "landscape";
 type Density = "compact" | "normal" | "large";
 
@@ -79,6 +79,7 @@ const PAPER_LABELS: Record<PaperSize, string> = {
   a4: "A4",
   "4x6": "4×6 Card",
   "5x3": "5×3 Badge",
+  custom: "Custom size",
 };
 const PAPER_CSS: Record<PaperSize, string> = {
   letter: "letter",
@@ -87,13 +88,15 @@ const PAPER_CSS: Record<PaperSize, string> = {
   a4: "A4",
   "4x6": "6in 4in",
   "5x3": "5in 3in",
+  custom: "var(--custom-print-size)",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", showFooterLabel: true };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
   { builtin: true, name: "Teacher Packets — Classes + Students", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true, showStudents: true }) },
   { builtin: true, name: "Teacher Schedule Only — Deduped", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", groupByPage: true, showStudents: false }) },
   { builtin: true, name: "Classroom Rosters — Deduped", type: "class_rosters", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showEmergency: true, showMedical: true, showTeacher: true }) },
+  { builtin: true, name: "Custom Grid Printable — Rotation Roster", type: "rotation_roster", category: "operations", paperSize: "custom", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", customPageWidth: "36in", customPageHeight: "8.5in", rotationColumns: 5, rotationBandColor: "#f8dfe6", showTeacher: true, showRoom: true, showFooterLabel: true }) },
   { builtin: true, name: "Camper Class Choices", type: "camper_choices", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showRoom: true, showTeacher: true }) },
   { builtin: true, name: "Camper Roster", type: "camper_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "T-Shirt List", type: "tshirt_list", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
@@ -167,7 +170,7 @@ function courseAgeLabel(course: Course) { return course.courseAgeGroups?.map(cag
 function sortedCampersList(campers: Camper[]) { return [...campers].sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName)); }
 
 function rosterGroups(campers: Camper[]) {
-  const groups = new Map<string, { key: string; courseId: string; title: string; time: string; room: string; campers: Camper[]; sortValue: string }>();
+  const groups = new Map<string, { key: string; courseId: string; title: string; time: string; timeLabel: string; start: string; end: string; room: string; campers: Camper[]; sortValue: string }>();
   for (const camper of campers) for (const enrollment of camper.enrollments || []) {
     const session = enrollment.session;
     if (!session?.course?.id) continue;
@@ -175,14 +178,21 @@ function rosterGroups(campers: Camper[]) {
     // even when it exists across multiple repeated day/session records.
     const key = `${session.course.id}|${sessionSlotKey(session)}|${session.room?.id || session.room?.name || ""}`;
     const sortValue = `${sessionStart(session) || "99:99"}|${session.course.name}`;
-    const existing = groups.get(key) || { key, courseId: session.course.id, title: session.course.name, time: formatRange(sessionStart(session), sessionEnd(session)), room: session.room?.name || "—", campers: [], sortValue };
+    const start = sessionStart(session);
+    const end = sessionEnd(session);
+    const existing = groups.get(key) || { key, courseId: session.course.id, title: session.course.name, time: formatRange(start, end), timeLabel: formatTime(start) || "Time", start, end, room: session.room?.name || "—", campers: [], sortValue };
     if (!existing.campers.some(c => c.id === camper.id)) existing.campers.push(camper);
     groups.set(key, existing);
   }
   return [...groups.values()].map(group => ({ ...group, campers: sortedCampersList(group.campers) })).sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 }
 function courseTeacherNames(course?: Course) {
-  return course?.courseTeachers?.map(ct => fullName(ct.person)).filter(Boolean).join(", ") || "—";
+  return course?.courseTeachers?.map(ct => fullName(ct.person)).filter(Boolean).join(" / ") || "—";
+}
+function chunkItems<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += Math.max(size, 1)) chunks.push(items.slice(i, i + Math.max(size, 1)));
+  return chunks.length ? chunks : [[]];
 }
 function courseById(courses: Course[], courseId: string) { return courses.find(course => course.id === courseId); }
 function campersForCourseSlot(campers: Camper[], courseId: string, start: string, end: string, roomName?: string | null) {
@@ -324,7 +334,11 @@ function PrintContent() {
   const cellPadding = selectedSettings.density === "compact" ? "4px 3px" : selectedSettings.density === "large" ? "8px 6px" : "6px 4px";
   const badgeCols = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeCols || 3)) : 1;
   const badgeRows = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeRows || 4)) : 1;
-  const printTileClasses = ["tile-aqua", "tile-sage", "tile-clay", "tile-denim", "tile-butter", "tile-lavender", "tile-berry", "tile-aqua", "tile-sage"];
+  const printTileClasses = ["tile-aqua", "tile-sage", "tile-clay", "tile-denim", "tile-butter", "tile-lavender", "tile-berry", "tile-aqua", "tile-sage", "tile-clay"];
+  const pageSizeCss = draftTemplate.paperSize === "custom" ? `${selectedSettings.customPageWidth || "36in"} ${selectedSettings.customPageHeight || "8.5in"}` : PAPER_CSS[draftTemplate.paperSize];
+  const rotationTimes = Array.from(new Map(rosterPackets.map(group => [group.start || group.time, group.timeLabel || group.time])).entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  const rotationRosterPackets = rosterPackets.filter(group => !selectedSettings.rotationTimeFilter || group.start === selectedSettings.rotationTimeFilter);
+  const rotationColumns = Math.max(1, Number(selectedSettings.rotationColumns || 5));
 
   const chooseTemplate = (key: string) => {
     const template = allTemplates.find(t => t.id === key) || allTemplates[0];
@@ -397,7 +411,7 @@ function PrintContent() {
     <>
       <style>{`
         @media print {
-          @page { size: ${PAPER_CSS[draftTemplate.paperSize]} ${draftTemplate.orientation}; margin: 0.25in; }
+          @page { size: ${pageSizeCss} ${draftTemplate.paperSize === "custom" ? "" : draftTemplate.orientation}; margin: 0.25in; }
           aside, nav, .no-print { display: none !important; }
           main { margin-left: 0 !important; padding: 0 !important; }
           .print-doc { display: block !important; }
@@ -424,6 +438,16 @@ function PrintContent() {
         .badge-last { font-size: ${draftTemplate.paperSize === "letter" ? "14px" : "20px"}; margin-top: 4px; }
         .single-badge-page { page-break-after: always; }
         .single-badge-page:last-child { page-break-after: auto; }
+        .rotation-page { page-break-after: always; width: 100%; }
+        .rotation-page:last-child { page-break-after: auto; }
+        .rotation-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .rotation-grid td { border: 1px solid #222; padding: 0; vertical-align: top; }
+        .rotation-card { min-height: calc(${selectedSettings.customPageHeight || "8.5in"} - 0.5in); display: grid; grid-template-rows: auto auto auto 1fr auto; }
+        .rotation-top { background: #f8fafc; text-align: center; font-weight: 800; font-size: 10px; line-height: 1.18; padding: 6px 4px; min-height: 0.55in; }
+        .rotation-band { background: ${selectedSettings.rotationBandColor || "#f8dfe6"}; text-align: center; font-size: 18px; font-weight: 900; padding: 7px 4px; border-top: 1px solid #222; border-bottom: 1px solid #222; }
+        .rotation-teacher { text-align: center; font-size: 10px; font-weight: 700; padding: 5px 4px; border-bottom: 1px solid #222; min-height: 0.3in; }
+        .rotation-students { padding: 7px 8px; font-size: 11px; line-height: 1.45; font-weight: 800; text-align: center; }
+        .rotation-footer { text-align: center; font-size: 9px; font-weight: 800; line-height: 1.2; padding: 5px 4px; border-top: 1px solid #222; min-height: 0.42in; }
       `}</style>
 
       <div className="no-print space-y-6">
@@ -439,11 +463,11 @@ function PrintContent() {
                 {BUILTIN_TEMPLATES.map((template, index) => (
                   <button key={`${template.type}-${template.name}`} onClick={() => { updateDraft({ ...template, id: `builtin-${index}`, builtin: true }); setSelectedTemplateKey(`builtin-${index}`); }} className={`tile-button ${printTileClasses[index % printTileClasses.length]} p-4 text-left transition ${selectedTemplateKey === `builtin-${index}` || (!draftTemplate.id && draftTemplate.name === template.name) ? "ring-2 ring-[var(--tile-accent)]" : ""}`}>
                     <div className="mb-3 flex items-center justify-between gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/60 text-xs font-black text-slate-700 shadow-sm">{template.type === "principal_schedule" ? "Sc" : template.type === "teacher_schedules" ? "T" : template.type === "class_rosters" ? "R" : template.type === "camper_choices" ? "Ch" : template.type === "badges" ? "B" : template.type === "tshirt_list" ? "Ts" : "C"}</span>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/60 text-xs font-black text-slate-700 shadow-sm">{template.type === "principal_schedule" ? "Sc" : template.type === "teacher_schedules" ? "T" : template.type === "class_rosters" ? "R" : template.type === "rotation_roster" ? "Grid" : template.type === "camper_choices" ? "Ch" : template.type === "badges" ? "B" : template.type === "tshirt_list" ? "Ts" : "C"}</span>
                       <span className="rounded-full bg-white/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[template.paperSize].split(" ")[0]}</span>
                     </div>
                     <p className="text-sm font-black text-slate-900">{template.name}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "Deduped teacher packet: each class time once, with optional student roster under it." : template.type === "class_rosters" ? "Deduped class rosters by class/time with campers listed once." : template.type === "camper_choices" ? "Every camper with their selected class choices, times, rooms, and teachers." : template.type === "badges" ? "Badge/label layouts for lanyards, cards, and sheets." : "Reusable operating document."}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "Deduped teacher packet: each class time once, with optional student roster under it." : template.type === "class_rosters" ? "Deduped class rosters by class/time with campers listed once." : template.type === "rotation_roster" ? "Spreadsheet-style custom grid: one class roster per column, grouped by time slot." : template.type === "camper_choices" ? "Every camper with their selected class choices, times, rooms, and teachers." : template.type === "badges" ? "Badge/label layouts for lanyards, cards, and sheets." : "Reusable operating document."}</p>
                   </button>
                 ))}
               </div>
@@ -473,13 +497,31 @@ function PrintContent() {
               <div className="mt-4 space-y-3">
                 <label className="block text-xs font-bold text-slate-500">Name<input value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label>
                 <label className="block text-xs font-bold text-slate-500">Document type<select value={draftTemplate.type} onChange={e => updateDraft({ type: e.target.value as PrintType })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">
-                  <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="camper_choices">Camper class choices</option><option value="camper_roster">Camper roster</option><option value="tshirt_list">T-shirt list</option><option value="badges">Badges</option>
+                  <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Camper class choices</option><option value="camper_roster">Camper roster</option><option value="tshirt_list">T-shirt list</option><option value="badges">Badges</option>
                 </select></label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block text-xs font-bold text-slate-500">Paper<select value={draftTemplate.paperSize} onChange={e => updateDraft({ paperSize: e.target.value as PaperSize })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">{Object.entries(PAPER_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
                   <label className="block text-xs font-bold text-slate-500">Orientation<select value={draftTemplate.orientation} onChange={e => updateDraft({ orientation: e.target.value as Orientation })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
                 </div>
+                {draftTemplate.paperSize === "custom" && (
+                  <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 p-3">
+                    <label className="block text-xs font-bold text-slate-500">Page width<input value={selectedSettings.customPageWidth} onChange={e => updateSettings({ customPageWidth: e.target.value })} placeholder="36in" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label>
+                    <label className="block text-xs font-bold text-slate-500">Page height<input value={selectedSettings.customPageHeight} onChange={e => updateSettings({ customPageHeight: e.target.value })} placeholder="8.5in" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label>
+                  </div>
+                )}
                 <label className="block text-xs font-bold text-slate-500">Density<select value={selectedSettings.density} onChange={e => updateSettings({ density: e.target.value as Density })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="compact">Compact</option><option value="normal">Normal</option><option value="large">Large print</option></select></label>
+                {draftTemplate.type === "rotation_roster" && (
+                  <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Rotation grid</p>
+                    <label className="block text-xs font-bold text-slate-500">Time slot<select value={selectedSettings.rotationTimeFilter} onChange={e => updateSettings({ rotationTimeFilter: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="">All time slots</option>{rotationTimes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block text-xs font-bold text-slate-500">Columns per page<input type="number" min={1} max={20} value={rotationColumns} onChange={e => updateSettings({ rotationColumns: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
+                      <label className="block text-xs font-bold text-slate-500">Time band color<input type="color" value={selectedSettings.rotationBandColor} onChange={e => updateSettings({ rotationBandColor: e.target.value })} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-2 py-1" /></label>
+                    </div>
+                    <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-2 text-xs font-bold text-slate-600"><input type="checkbox" checked={selectedSettings.showFooterLabel} onChange={e => updateSettings({ showFooterLabel: e.target.checked })} /> Repeat activity/location footer</label>
+                    <p className="text-[11px] font-semibold text-slate-400">V1 repeats one class roster per grid column using actual enrollments, grouped by class/time/room.</p>
+                  </div>
+                )}
                 <div className="rounded-2xl border border-slate-200 p-3">
                   <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">Flexible fields</p>
                   <div className="grid grid-cols-2 gap-2 text-xs font-bold text-slate-600">
@@ -520,6 +562,8 @@ function PrintContent() {
       {activeDoc === "teacher_schedules" && <div className="print-doc ops-print">{operationalPeople.map(person => { const rows = teacherRows(person, courses, mandatorySessions, campers); const columns = 3 + (selectedSettings.showRoom ? 1 : 0) + (selectedSettings.showStudents ? 1 : 0); return <section key={person.id} className="page-break"><h1 className="ops-title">{fullName(person)} Teacher Packet</h1><p className="ops-subtitle">{person.role} {person.email ? `• ${person.email}` : ""} {person.phone ? `• ${person.phone}` : ""}</p><table><thead><tr><th style={{width:"100px"}}>Time</th><th>Assignment</th>{selectedSettings.showRoom && <th style={{width:"120px"}}>Room</th>}<th style={{width:"110px"}}>Group</th>{selectedSettings.showStudents && <th>Registered Students</th>}</tr></thead><tbody>{rows.length ? rows.map((row, idx) => <tr key={`${row.sortValue}-${idx}`}><td>{row.time}</td><td>{row.title}</td>{selectedSettings.showRoom && <td>{row.room}</td>}<td>{row.age}</td>{selectedSettings.showStudents && <td>{row.students.length ? row.students.map(student => fullName(student)).join("\n") : "—"}</td>}</tr>) : <tr><td colSpan={columns}>No scheduled assignments.</td></tr>}</tbody></table></section>; })}</div>}
 
       {activeDoc === "class_rosters" && <div className="print-doc ops-print">{rosterPackets.map(group => { const course = courseById(courses, group.courseId); return <section key={group.key} className="page-break"><h1 className="ops-title">{group.title}</h1><p className="ops-subtitle">{group.time}{selectedSettings.showRoom ? ` • ${group.room}` : ""}{selectedSettings.showTeacher ? ` • Teacher: ${courseTeacherNames(course)}` : ""} • {group.campers.length} camper{group.campers.length === 1 ? "" : "s"}</p><table><thead><tr><th style={{width:"150px"}}>Camper</th><th style={{width:"100px"}}>Age Group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}{selectedSettings.showMedical && <th>Medical / Dietary</th>}</tr></thead><tbody>{group.campers.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || ""}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}{selectedSettings.showMedical && <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>}</tr>)}</tbody></table></section>; })}</div>}
+
+      {activeDoc === "rotation_roster" && <div className="print-doc ops-print">{chunkItems(rotationRosterPackets, rotationColumns).map((pageGroups, pageIndex) => <section key={`rotation-${pageIndex}`} className="rotation-page"><table className="rotation-grid"><tbody><tr>{Array.from({ length: rotationColumns }).map((_, idx) => { const group = pageGroups[idx]; if (!group) return <td key={`empty-${idx}`} />; const course = courseById(courses, group.courseId); const teacherNames = courseTeacherNames(course); const age = course ? courseAgeLabel(course) : ""; const headerTitle = `${group.title}${age ? ` (${age})` : ""}`; return <td key={group.key}><div className="rotation-card"><div className="rotation-top"><div>{group.timeLabel}</div><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div><div className="rotation-band">{group.timeLabel}</div>{selectedSettings.showTeacher && <div className="rotation-teacher">{teacherNames}</div>}<div className="rotation-students">{selectedSettings.showStudents ? (group.campers.length ? group.campers.map(camper => <div key={camper.id}>{fullName(camper)}</div>) : <div>—</div>) : <div>{group.campers.length} registered</div>}</div>{selectedSettings.showFooterLabel && <div className="rotation-footer"><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div>}</div></td>; })}</tr></tbody></table></section>)}</div>}
 
       {activeDoc === "camper_choices" && <div className="print-doc ops-print"><h1 className="ops-title">Camper Class Choices</h1><p className="ops-subtitle">Repeated sessions are combined; each selected class time appears once per camper.</p><table><thead><tr><th style={{width:"145px"}}>Camper</th><th style={{width:"95px"}}>Age Group</th><th>Class Choices</th></tr></thead><tbody>{sortedCampers.map(camper => { const choices = classChoicesForCamper(camper, courses); return <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{choices.length ? choices.map(choice => choice.label).join("\n") : "—"}</td></tr>; })}</tbody></table></div>}
 
