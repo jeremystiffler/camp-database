@@ -39,6 +39,11 @@ interface Room {
   name: string;
 }
 
+interface MandatorySession {
+  id: string;
+  title: string;
+}
+
 interface Session {
   id: string;
   date: string;
@@ -47,6 +52,7 @@ interface Session {
   status: string;
   enrolledCount: number;
   course?: Course | null;
+  mandatorySession?: MandatorySession | null;
   room?: Room | null;
   sessionTemplate?: SessionTemplate | null;
 }
@@ -104,6 +110,15 @@ function uniqueBy<T>(items: T[], keyFn: (item: T) => string) {
   const map = new Map<string, T>();
   for (const item of items) if (!map.has(keyFn(item))) map.set(keyFn(item), item);
   return [...map.values()];
+}
+function sessionDisplayKey(session: Session, includeDay = false) {
+  const courseKey = session.course?.id || session.course?.name || session.mandatorySession?.id || session.mandatorySession?.title || "unassigned";
+  const roomKey = session.room?.id || session.room?.name || "no-room";
+  const dayKey = includeDay ? `${sessionDay(session)}|` : "";
+  return `${dayKey}${courseKey}|${session.startTime}|${session.endTime}|${roomKey}`;
+}
+function dedupeSessions(sessions: Session[], includeDay = false) {
+  return uniqueBy(sessions, (session) => sessionDisplayKey(session, includeDay));
 }
 function sessionSort(a: Session, b: Session) {
   return sessionDay(a) - sessionDay(b) || a.startTime.localeCompare(b.startTime) || (a.room?.name || "").localeCompare(b.room?.name || "") || (a.course?.name || "").localeCompare(b.course?.name || "");
@@ -165,21 +180,24 @@ function ScheduleContent() {
   }
 
   const sortedSessions = [...sessions].sort(sessionSort);
-  const activeDays = uniqueBy(sortedSessions, (s) => String(sessionDay(s))).map(sessionDay).sort((a, b) => a - b);
+  const displaySessions = dedupeSessions(sortedSessions);
+  const dayDisplaySessions = dedupeSessions(sortedSessions, true);
+  const activeDays = uniqueBy(dayDisplaySessions, (s) => String(sessionDay(s))).map(sessionDay).sort((a, b) => a - b);
   const displayDays = filterDay === "" ? activeDays : [Number(filterDay)];
-  const filteredSessions = sortedSessions.filter((session) => filterDay === "" || sessionDay(session) === Number(filterDay));
-  const timeSlots = uniqueBy(sortedSessions, (s) => `${s.startTime}|${s.endTime}`)
+  const filteredDaySessions = dayDisplaySessions.filter((session) => filterDay === "" || sessionDay(session) === Number(filterDay));
+  const filteredSessions = filterDay === "" ? displaySessions : filteredDaySessions;
+  const timeSlots = uniqueBy(dayDisplaySessions, (s) => `${s.startTime}|${s.endTime}`)
     .map((s) => ({ key: `${s.startTime}|${s.endTime}`, start: s.startTime, end: s.endTime, label: timeRange(s) }))
     .sort((a, b) => a.start.localeCompare(b.start));
   const roomRows = uniqueBy([...rooms, ...filteredSessions.map((s) => s.room).filter((room): room is Room => Boolean(room))], (room) => room.id).sort((a, b) => a.name.localeCompare(b.name));
   const teacherRows = uniqueBy(filteredSessions.flatMap((s) => s.course?.courseTeachers?.map((ct) => ct.person) || []), (p) => p.id).sort((a, b) => fullName(a).localeCompare(fullName(b)));
-  const totalCapacity = sessions.reduce((sum, session) => sum + (session.course?.cap || 0), 0);
-  const totalEnrolled = sessions.reduce((sum, session) => sum + session.enrolledCount, 0);
-  const averageFill = sessions.length ? Math.round(sessions.reduce((sum, session) => sum + capacityPercent(session), 0) / sessions.length) : 0;
-  const overloaded = sessions.filter((session) => capacityPercent(session) >= 100).length;
-  const unassignedRooms = sessions.filter((session) => !session.room).length;
-  const unassignedTeachers = sessions.filter((session) => !session.course?.courseTeachers?.length).length;
-  const busiest = [...sessions].sort((a, b) => capacityPercent(b) - capacityPercent(a))[0];
+  const totalCapacity = displaySessions.reduce((sum, session) => sum + (session.course?.cap || 0), 0);
+  const totalEnrolled = displaySessions.reduce((sum, session) => sum + session.enrolledCount, 0);
+  const averageFill = displaySessions.length ? Math.round(displaySessions.reduce((sum, session) => sum + capacityPercent(session), 0) / displaySessions.length) : 0;
+  const overloaded = displaySessions.filter((session) => capacityPercent(session) >= 100).length;
+  const unassignedRooms = displaySessions.filter((session) => !session.room).length;
+  const unassignedTeachers = displaySessions.filter((session) => !session.course?.courseTeachers?.length).length;
+  const busiest = [...displaySessions].sort((a, b) => capacityPercent(b) - capacityPercent(a))[0];
 
   return (
     <div className="space-y-6">
@@ -213,7 +231,7 @@ function ScheduleContent() {
       ) : (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <MetricCard label="Sessions" value={sessions.length} sub={`${activeDays.length} active day${activeDays.length === 1 ? "" : "s"}`} tone="tile-aqua" />
+            <MetricCard label="Sessions" value={displaySessions.length} sub={`${activeDays.length} active day${activeDays.length === 1 ? "" : "s"}`} tone="tile-aqua" />
             <MetricCard label="Classes" value={courses.length} sub={`${templates.length} time templates`} tone="tile-sage" />
             <MetricCard label="Enrollment" value={`${totalEnrolled}/${totalCapacity || "?"}`} sub={`${averageFill}% avg fill`} tone="tile-butter" />
             <MetricCard label="Full / over" value={overloaded} sub="sessions at capacity" tone="tile-clay" />
@@ -242,7 +260,7 @@ function ScheduleContent() {
             ))}
           </div>
 
-          {view === "dayGrid" && <DayTimeGrid sessions={filteredSessions} displayDays={displayDays} timeSlots={timeSlots} />}
+          {view === "dayGrid" && <DayTimeGrid sessions={filteredDaySessions} displayDays={displayDays} timeSlots={timeSlots} />}
           {view === "roomPivot" && <RoomPivot sessions={filteredSessions} rooms={roomRows} timeSlots={timeSlots} />}
           {view === "teacherPivot" && <TeacherPivot sessions={filteredSessions} teachers={teacherRows} timeSlots={timeSlots} />}
           {view === "coursePivot" && <CoursePivot sessions={filteredSessions} courses={courses} />}
