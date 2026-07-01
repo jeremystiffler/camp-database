@@ -11,12 +11,27 @@ interface SessionTemplate {
   endTime: string;
 }
 
+interface Person {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface AgeGroup {
+  id?: string;
+  name: string;
+  color?: string;
+}
+
 interface Course {
   id: string;
   name: string;
   color: string;
   icon?: string;
   cap: number;
+  ageGroup?: AgeGroup | null;
+  courseAgeGroups?: { ageGroup: AgeGroup }[];
+  courseTeachers?: { person: Person }[];
 }
 
 interface Room {
@@ -36,6 +51,8 @@ interface Session {
   sessionTemplate?: SessionTemplate | null;
 }
 
+type ScheduleView = "dayGrid" | "roomPivot" | "teacherPivot" | "coursePivot" | "capacity" | "list";
+
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -44,6 +61,68 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-slate-100 text-slate-500",
   cancelled: "bg-red-100 text-red-600",
 };
+
+const VIEW_OPTIONS: { id: ScheduleView; label: string; description: string }[] = [
+  { id: "dayGrid", label: "Day × Time", description: "Pivot grid of each day by time slot." },
+  { id: "roomPivot", label: "Room × Time", description: "See room usage and collisions by time." },
+  { id: "teacherPivot", label: "Teacher × Time", description: "Teacher assignments across the schedule." },
+  { id: "coursePivot", label: "Course Matrix", description: "Courses with times, rooms, teachers, and counts." },
+  { id: "capacity", label: "Capacity Heatmap", description: "Enrollment load by room, class, and time." },
+  { id: "list", label: "List", description: "Clean operational list of sessions." },
+];
+
+function fullName(person: Person) { return `${person.firstName} ${person.lastName}`.trim(); }
+function sessionDay(session: Session) { return session.sessionTemplate?.dayOfWeek ?? new Date(session.date).getDay(); }
+function timeRange(session: Session) { return `${formatTime(session.startTime)}–${formatTime(session.endTime)}`; }
+function formatTime(value?: string | null) {
+  if (!value) return "";
+  const [rawHour, rawMinute = "00"] = value.split(":");
+  const hour = Number(rawHour);
+  if (!Number.isFinite(hour)) return value;
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${rawMinute.padStart(2, "0").slice(0, 2)} ${suffix}`;
+}
+function teacherNames(course?: Course | null) {
+  return course?.courseTeachers?.map((ct) => fullName(ct.person)).filter(Boolean).join(", ") || "No teacher";
+}
+function ageGroupNames(course?: Course | null) {
+  return course?.courseAgeGroups?.map((cag) => cag.ageGroup.name).join(", ") || course?.ageGroup?.name || "All groups";
+}
+function capacityPercent(session: Session) {
+  const cap = session.course?.cap || 0;
+  return cap > 0 ? Math.round((session.enrolledCount / cap) * 100) : 0;
+}
+function capacityTone(percent: number) {
+  if (percent >= 100) return "bg-rose-100 text-rose-800 border-rose-200";
+  if (percent >= 85) return "bg-clay-100 text-clay-800 border-clay-200";
+  if (percent >= 60) return "bg-butter-100 text-amber-800 border-amber-200";
+  if (percent > 0) return "bg-sage-100 text-sage-800 border-sage-200";
+  return "bg-slate-50 text-slate-400 border-slate-200";
+}
+function uniqueBy<T>(items: T[], keyFn: (item: T) => string) {
+  const map = new Map<string, T>();
+  for (const item of items) if (!map.has(keyFn(item))) map.set(keyFn(item), item);
+  return [...map.values()];
+}
+function sessionSort(a: Session, b: Session) {
+  return sessionDay(a) - sessionDay(b) || a.startTime.localeCompare(b.startTime) || (a.room?.name || "").localeCompare(b.room?.name || "") || (a.course?.name || "").localeCompare(b.course?.name || "");
+}
+function sessionCell(session: Session, compact = false) {
+  const percent = capacityPercent(session);
+  return (
+    <div key={session.id} className={`rounded-xl border p-2 ${capacityTone(percent)}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-black text-slate-900">{session.course?.name || "Unassigned"}</p>
+          {!compact && <p className="mt-0.5 text-[11px] font-semibold opacity-80">{session.room?.name || "No room"}</p>}
+        </div>
+        <span className="rounded-full bg-white/65 px-1.5 py-0.5 text-[10px] font-black">{session.enrolledCount}/{session.course?.cap || "?"}</span>
+      </div>
+      {!compact && <p className="mt-1 text-[10px] leading-tight opacity-75">{teacherNames(session.course)}</p>}
+    </div>
+  );
+}
 
 function ScheduleContent() {
   const searchParams = useSearchParams();
@@ -54,7 +133,7 @@ function ScheduleContent() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const [view, setView] = useState<ScheduleView>("dayGrid");
   const [filterDay, setFilterDay] = useState<number | "">("");
 
   useEffect(() => {
@@ -76,159 +155,203 @@ function ScheduleContent() {
 
   if (!campId) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-400">
+      <div className="flex h-64 items-center justify-center text-slate-400">
         <div className="text-center">
-          <span className="text-4xl mb-3 block">Date</span>
+          <span className="mb-3 block text-4xl">Date</span>
           <p>Select a camp to view its schedule.</p>
         </div>
       </div>
     );
   }
 
-  // Group sessions by day of week
-  const byDay: Record<number, Session[]> = {};
-  for (const s of sessions) {
-    const day = s.sessionTemplate?.dayOfWeek ?? new Date(s.date).getDay();
-    if (!byDay[day]) byDay[day] = [];
-    byDay[day].push(s);
-  }
-
-  const activeDays = Object.keys(byDay).map(Number).sort();
+  const sortedSessions = [...sessions].sort(sessionSort);
+  const activeDays = uniqueBy(sortedSessions, (s) => String(sessionDay(s))).map(sessionDay).sort((a, b) => a - b);
   const displayDays = filterDay === "" ? activeDays : [Number(filterDay)];
-
-  // Unique time slots across all sessions
-  const timeSlots = [...new Set(sessions.map((s) => s.startTime))].sort();
+  const filteredSessions = sortedSessions.filter((session) => filterDay === "" || sessionDay(session) === Number(filterDay));
+  const timeSlots = uniqueBy(sortedSessions, (s) => `${s.startTime}|${s.endTime}`)
+    .map((s) => ({ key: `${s.startTime}|${s.endTime}`, start: s.startTime, end: s.endTime, label: timeRange(s) }))
+    .sort((a, b) => a.start.localeCompare(b.start));
+  const roomRows = uniqueBy([...rooms, ...filteredSessions.map((s) => s.room).filter((room): room is Room => Boolean(room))], (room) => room.id).sort((a, b) => a.name.localeCompare(b.name));
+  const teacherRows = uniqueBy(filteredSessions.flatMap((s) => s.course?.courseTeachers?.map((ct) => ct.person) || []), (p) => p.id).sort((a, b) => fullName(a).localeCompare(fullName(b)));
+  const totalCapacity = sessions.reduce((sum, session) => sum + (session.course?.cap || 0), 0);
+  const totalEnrolled = sessions.reduce((sum, session) => sum + session.enrolledCount, 0);
+  const averageFill = sessions.length ? Math.round(sessions.reduce((sum, session) => sum + capacityPercent(session), 0) / sessions.length) : 0;
+  const overloaded = sessions.filter((session) => capacityPercent(session) >= 100).length;
+  const unassignedRooms = sessions.filter((session) => !session.room).length;
+  const unassignedTeachers = sessions.filter((session) => !session.course?.courseTeachers?.length).length;
+  const busiest = [...sessions].sort((a, b) => capacityPercent(b) - capacityPercent(a))[0];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Schedule</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{sessions.length} sessions across {activeDays.length} days</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Schedule intelligence</p>
+          <h1 className="mt-1 text-2xl font-bold text-slate-900">Schedule</h1>
+          <p className="mt-1 text-sm text-slate-500">Pivot-table style views plus metrics for rooms, teachers, courses, capacity, and time slots.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setView("grid")}
-            className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${view === "grid" ? "bg-slate-800 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-          >
-            Grid
-          </button>
-          <button
-            onClick={() => setView("list")}
-            className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${view === "list" ? "bg-slate-800 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-          >
-            List
-          </button>
-        </div>
+        {activeDays.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setFilterDay("")} className={`rounded-xl px-3 py-2 text-xs font-black transition ${filterDay === "" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>All Days</button>
+            {activeDays.map((day) => (
+              <button key={day} onClick={() => setFilterDay(day)} className={`rounded-xl px-3 py-2 text-xs font-black transition ${filterDay === day ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{DAYS[day]}</button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Filter by day */}
-      {activeDays.length > 1 && (
-        <div className="flex gap-2 mb-5 flex-wrap">
-          <button
-            onClick={() => setFilterDay("")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filterDay === "" ? "bg-slate-800 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-          >
-            All Days
-          </button>
-          {activeDays.map((d) => (
-            <button
-              key={d}
-              onClick={() => setFilterDay(d)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filterDay === d ? "bg-slate-800 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
-            >
-              {DAYS[d]}
-            </button>
-          ))}
-        </div>
-      )}
-
       {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <div className="w-8 h-8 border-2 border-sunset-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex h-48 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-sunset-500 border-t-transparent" />
         </div>
       ) : sessions.length === 0 ? (
         <div className="camp-card p-12 text-center">
-          <span className="text-5xl mb-4 block">Date</span>
-          <h3 className="font-bold text-slate-700 mb-2">No sessions scheduled yet</h3>
-          <p className="text-slate-400 text-sm mb-2">Sessions are created from session templates + activities.</p>
-          <p className="text-slate-400 text-sm">
-            First, set up <strong>session templates</strong> (time slots) in Settings, then assign activities to them.
-          </p>
-        </div>
-      ) : view === "list" ? (
-        // List view
-        <div className="space-y-3">
-          {sessions.map((session) => (
-            <div key={session.id} className="camp-card p-4 flex items-center gap-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                style={{ backgroundColor: session.course?.color || "#94a3b8" }}
-              >
-                {session.course?.icon || "Date"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-800 truncate">{session.course?.name || "Unassigned"}</p>
-                <p className="text-xs text-slate-500">
-                  {session.sessionTemplate ? `${DAYS[session.sessionTemplate.dayOfWeek]} · ` : ""}
-                  {session.startTime}–{session.endTime}
-                  {session.room ? ` · ${session.room.name}` : ""}
-                </p>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <div className="text-sm font-semibold text-slate-700">{session.enrolledCount}/{session.course?.cap || "?"}</div>
-                <div className="text-xs text-slate-400">enrolled</div>
-              </div>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[session.status] || "bg-slate-100 text-slate-600"}`}>
-                {session.status}
-              </span>
-            </div>
-          ))}
+          <span className="mb-4 block text-5xl">Date</span>
+          <h3 className="mb-2 font-bold text-slate-700">No sessions scheduled yet</h3>
+          <p className="mb-2 text-sm text-slate-400">Sessions are created from session templates + classes.</p>
+          <p className="text-sm text-slate-400">First, set up <strong>session templates</strong> in Settings, then assign classes to them.</p>
         </div>
       ) : (
-        // Grid view
-        <div className="space-y-6">
-          {displayDays.map((day) => (
-            <div key={day}>
-              <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3">{DAYS[day]}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {(byDay[day] || [])
-                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                  .map((session) => (
-                    <div key={session.id} className="camp-card p-4">
-                      <div className="flex items-start gap-3 mb-2">
-                        <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm flex-shrink-0"
-                          style={{ backgroundColor: session.course?.color || "#94a3b8" }}
-                        >
-                          {session.course?.icon || "Date"}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-slate-800 text-sm truncate">{session.course?.name || "Unassigned"}</p>
-                          <p className="text-xs text-slate-500">{session.startTime}–{session.endTime}</p>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${STATUS_COLORS[session.status] || "bg-slate-100 text-slate-600"}`}>
-                          {session.status}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
-                        <span>{session.room?.name || "No room"}</span>
-                        <span className="font-semibold text-slate-700">{session.enrolledCount}/{session.course?.cap || "?"} enrolled</span>
-                      </div>
-                    </div>
-                  ))}
+        <>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <MetricCard label="Sessions" value={sessions.length} sub={`${activeDays.length} active day${activeDays.length === 1 ? "" : "s"}`} tone="tile-aqua" />
+            <MetricCard label="Classes" value={courses.length} sub={`${templates.length} time templates`} tone="tile-sage" />
+            <MetricCard label="Enrollment" value={`${totalEnrolled}/${totalCapacity || "?"}`} sub={`${averageFill}% avg fill`} tone="tile-butter" />
+            <MetricCard label="Full / over" value={overloaded} sub="sessions at capacity" tone="tile-clay" />
+            <MetricCard label="No room" value={unassignedRooms} sub="needs placement" tone="tile-lavender" />
+            <MetricCard label="No teacher" value={unassignedTeachers} sub="needs staffing" tone="tile-berry" />
+          </div>
+
+          {busiest && (
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide text-slate-400">Highest load</p>
+                  <p className="text-sm font-bold text-slate-800">{busiest.course?.name || "Unassigned"} · {DAYS[sessionDay(busiest)]} {timeRange(busiest)} · {busiest.room?.name || "No room"}</p>
+                </div>
+                <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{busiest.course?.cap || "?"}</span>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+
+          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+            {VIEW_OPTIONS.map((option) => (
+              <button key={option.id} onClick={() => setView(option.id)} className={`rounded-2xl border p-4 text-left transition ${view === option.id ? "border-slate-900 bg-slate-900 text-white shadow-lg" : "border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-0.5 hover:shadow-md"}`}>
+                <p className="text-sm font-black">{option.label}</p>
+                <p className={`mt-1 text-[11px] leading-relaxed ${view === option.id ? "text-white/70" : "text-slate-400"}`}>{option.description}</p>
+              </button>
+            ))}
+          </div>
+
+          {view === "dayGrid" && <DayTimeGrid sessions={filteredSessions} displayDays={displayDays} timeSlots={timeSlots} />}
+          {view === "roomPivot" && <RoomPivot sessions={filteredSessions} rooms={roomRows} timeSlots={timeSlots} />}
+          {view === "teacherPivot" && <TeacherPivot sessions={filteredSessions} teachers={teacherRows} timeSlots={timeSlots} />}
+          {view === "coursePivot" && <CoursePivot sessions={filteredSessions} courses={courses} />}
+          {view === "capacity" && <CapacityHeatmap sessions={filteredSessions} />}
+          {view === "list" && <ListView sessions={filteredSessions} />}
+        </>
       )}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, sub, tone }: { label: string; value: string | number; sub: string; tone: string }) {
+  return (
+    <div className={`tile-button ${tone} p-4`}>
+      <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
+      <p className="mt-1 text-xs font-semibold text-slate-500">{sub}</p>
+    </div>
+  );
+}
+
+function PivotShell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 p-4">
+        <h2 className="text-sm font-black text-slate-900">{title}</h2>
+        <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+      </div>
+      <div className="overflow-x-auto">{children}</div>
+    </div>
+  );
+}
+
+function DayTimeGrid({ sessions, displayDays, timeSlots }: { sessions: Session[]; displayDays: number[]; timeSlots: { key: string; start: string; end: string; label: string }[] }) {
+  return (
+    <PivotShell title="Day × Time grid" subtitle="Each cell shows the classes happening during that day and time block.">
+      <table className="min-w-full border-collapse text-left text-sm">
+        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-28 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Day</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-56 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
+        <tbody>{displayDays.map((day) => <tr key={day}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{DAYS[day]}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => sessionDay(s) === day && s.startTime === slot.start && s.endTime === slot.end).map((s) => sessionCell(s))}</div></td>)}</tr>)}</tbody>
+      </table>
+    </PivotShell>
+  );
+}
+
+function RoomPivot({ sessions, rooms, timeSlots }: { sessions: Session[]; rooms: Room[]; timeSlots: { key: string; start: string; end: string; label: string }[] }) {
+  return (
+    <PivotShell title="Room × Time pivot" subtitle="A facilities view: scan room usage, empty rooms, and possible overlaps.">
+      <table className="min-w-full border-collapse text-left text-sm">
+        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-40 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Room</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-52 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
+        <tbody>{rooms.map((room) => <tr key={room.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{room.name}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.room?.id === room.id && s.startTime === slot.start && s.endTime === slot.end).map((s) => sessionCell(s, true))}</div></td>)}</tr>)}</tbody>
+      </table>
+    </PivotShell>
+  );
+}
+
+function TeacherPivot({ sessions, teachers, timeSlots }: { sessions: Session[]; teachers: Person[]; timeSlots: { key: string; start: string; end: string; label: string }[] }) {
+  return (
+    <PivotShell title="Teacher × Time pivot" subtitle="Staffing view: every teacher's assigned classes across the day.">
+      <table className="min-w-full border-collapse text-left text-sm">
+        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-44 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Teacher</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-52 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
+        <tbody>{teachers.map((teacher) => <tr key={teacher.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{fullName(teacher)}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.startTime === slot.start && s.endTime === slot.end && s.course?.courseTeachers?.some((ct) => ct.person.id === teacher.id)).map((s) => sessionCell(s, true))}</div></td>)}</tr>)}</tbody>
+      </table>
+    </PivotShell>
+  );
+}
+
+function CoursePivot({ sessions, courses }: { sessions: Session[]; courses: Course[] }) {
+  const rows = courses.map((course) => ({ course, sessions: sessions.filter((s) => s.course?.id === course.id).sort(sessionSort) })).filter((row) => row.sessions.length > 0);
+  return (
+    <PivotShell title="Course matrix" subtitle="One row per course with its schedule footprint and operational metadata.">
+      <table className="min-w-full border-collapse text-left text-sm">
+        <thead><tr className="bg-slate-50"><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Course</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Times</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Rooms</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Teachers</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Groups</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Load</th></tr></thead>
+        <tbody>{rows.map(({ course, sessions: courseSessions }) => { const uniqueTimes = uniqueBy(courseSessions, (s) => `${sessionDay(s)}|${s.startTime}|${s.endTime}`); const rooms = uniqueBy(courseSessions.map((s) => s.room).filter((room): room is Room => Boolean(room)), (room) => room.id); const enrolled = courseSessions.reduce((sum, s) => sum + s.enrolledCount, 0); const cap = courseSessions.reduce((sum, s) => sum + (s.course?.cap || 0), 0); return <tr key={course.id} className="border-b border-slate-100"><td className="p-3 font-black text-slate-900">{course.name}</td><td className="p-3 text-xs text-slate-600">{uniqueTimes.map((s) => `${DAYS[sessionDay(s)]} ${timeRange(s)}`).join("\n")}</td><td className="p-3 text-xs text-slate-600">{rooms.map((room) => room.name).join("\n") || "—"}</td><td className="p-3 text-xs text-slate-600">{teacherNames(course)}</td><td className="p-3 text-xs text-slate-600">{ageGroupNames(course)}</td><td className="p-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${capacityTone(cap ? Math.round((enrolled / cap) * 100) : 0)}`}>{enrolled}/{cap || "?"}</span></td></tr>; })}</tbody>
+      </table>
+    </PivotShell>
+  );
+}
+
+function CapacityHeatmap({ sessions }: { sessions: Session[] }) {
+  return (
+    <PivotShell title="Capacity heatmap" subtitle="Sorted by fullness so the pressure points float to the top.">
+      <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+        {[...sessions].sort((a, b) => capacityPercent(b) - capacityPercent(a)).map((session) => {
+          const percent = capacityPercent(session);
+          return <div key={session.id} className={`rounded-2xl border p-4 ${capacityTone(percent)}`}><div className="flex items-start justify-between gap-3"><div><p className="font-black text-slate-900">{session.course?.name || "Unassigned"}</p><p className="mt-1 text-xs font-semibold opacity-80">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}</p></div><span className="rounded-full bg-white/65 px-2 py-1 text-xs font-black">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70"><div className="h-full rounded-full bg-slate-900/60" style={{ width: `${Math.min(percent, 100)}%` }} /></div><p className="mt-2 text-xs font-bold opacity-80">{session.enrolledCount}/{session.course?.cap || "?"} enrolled · {teacherNames(session.course)}</p></div>;
+        })}
+      </div>
+    </PivotShell>
+  );
+}
+
+function ListView({ sessions }: { sessions: Session[] }) {
+  return (
+    <div className="space-y-3">
+      {sessions.map((session) => (
+        <div key={session.id} className="camp-card flex items-center gap-4 p-4">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: session.course?.color || "#94a3b8" }}>{session.course?.icon || "Sc"}</div>
+          <div className="min-w-0 flex-1"><p className="truncate font-semibold text-slate-800">{session.course?.name || "Unassigned"}</p><p className="text-xs text-slate-500">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"} · {teacherNames(session.course)}</p></div>
+          <div className="flex-shrink-0 text-right"><div className="text-sm font-semibold text-slate-700">{session.enrolledCount}/{session.course?.cap || "?"}</div><div className="text-xs text-slate-400">enrolled</div></div>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[session.status] || "bg-slate-100 text-slate-600"}`}>{session.status}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
 export default function SchedulePage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-sunset-500 border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-sunset-500 border-t-transparent" /></div>}>
       <ScheduleContent />
     </Suspense>
   );
