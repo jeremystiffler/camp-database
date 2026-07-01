@@ -24,14 +24,14 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon, gradient, sub }: StatCardProps) {
   return (
-    <div className={`${gradient} rounded-2xl p-5`}>
+    <div className={`${gradient} tile-button p-5`}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-3xl font-black tracking-tight text-slate-900 mb-1">{value}</div>
-          <div className="text-sm font-semibold text-slate-600">{label}</div>
-          {sub && <div className="text-xs text-slate-400 mt-1">{sub}</div>}
+          <div className="text-sm font-semibold text-slate-700">{label}</div>
+          {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
         </div>
-        <span className="w-9 h-9 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-xs font-black text-slate-500">{icon}</span>
+        <span className="w-10 h-10 rounded-2xl border border-white/70 bg-white/55 flex items-center justify-center text-xs font-black text-slate-700 shadow-sm">{icon}</span>
       </div>
     </div>
   );
@@ -46,14 +46,15 @@ interface QuickActionProps {
 }
 
 function QuickAction({ href, icon, title, desc, iconClass }: QuickActionProps) {
+  const tileClass = iconClass.includes("forest") ? "tile-sage" : iconClass.includes("sky") ? "tile-denim" : iconClass.includes("sunset") ? "tile-clay" : iconClass.includes("berry") ? "tile-lavender" : "tile-aqua";
   return (
-    <Link href={href} className="camp-card p-4 flex items-start gap-3 group block">
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 ${iconClass}`}>
+    <Link href={href} className={`tile-button ${tileClass} p-4 flex items-start gap-3 group block`}>
+      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black flex-shrink-0 ${iconClass}`}>
         {icon}
       </div>
       <div>
-        <h3 className="font-bold text-slate-900 group-hover:text-slate-700 transition-colors text-sm">{title}</h3>
-        <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">{desc}</p>
+        <h3 className="font-black text-slate-900 group-hover:text-slate-700 transition-colors text-sm">{title}</h3>
+        <p className="text-slate-600 text-xs mt-1 leading-relaxed">{desc}</p>
       </div>
     </Link>
   );

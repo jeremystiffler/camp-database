@@ -128,7 +128,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#f7f7f5] flex text-slate-900">
+    <div className="min-h-screen flex text-slate-900" style={{ background: "var(--ui-bg)" }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div

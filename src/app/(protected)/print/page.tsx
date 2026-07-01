@@ -277,6 +277,7 @@ function PrintContent() {
   const cellPadding = selectedSettings.density === "compact" ? "4px 3px" : selectedSettings.density === "large" ? "8px 6px" : "6px 4px";
   const badgeCols = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeCols || 3)) : 1;
   const badgeRows = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeRows || 4)) : 1;
+  const printTileClasses = ["tile-aqua", "tile-sage", "tile-clay", "tile-denim", "tile-butter", "tile-lavender", "tile-berry", "tile-aqua"];
 
   const chooseTemplate = (key: string) => {
     const template = allTemplates.find(t => t.id === key) || allTemplates[0];
@@ -389,9 +390,13 @@ function PrintContent() {
             <div className="space-y-4">
               <div className="grid gap-3 md:grid-cols-3">
                 {BUILTIN_TEMPLATES.map((template, index) => (
-                  <button key={`${template.type}-${template.name}`} onClick={() => { updateDraft({ ...template, id: `builtin-${index}`, builtin: true }); setSelectedTemplateKey(`builtin-${index}`); }} className={`rounded-2xl border p-4 text-left transition ${selectedTemplateKey === `builtin-${index}` || (!draftTemplate.id && draftTemplate.name === template.name) ? "border-slate-900 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-400"}`}>
+                  <button key={`${template.type}-${template.name}`} onClick={() => { updateDraft({ ...template, id: `builtin-${index}`, builtin: true }); setSelectedTemplateKey(`builtin-${index}`); }} className={`tile-button ${printTileClasses[index % printTileClasses.length]} p-4 text-left transition ${selectedTemplateKey === `builtin-${index}` || (!draftTemplate.id && draftTemplate.name === template.name) ? "ring-2 ring-[var(--tile-accent)]" : ""}`}>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/60 text-xs font-black text-slate-700 shadow-sm">{template.type === "principal_schedule" ? "Sc" : template.type === "teacher_schedules" ? "T" : template.type === "class_rosters" ? "R" : template.type === "badges" ? "B" : template.type === "tshirt_list" ? "Ts" : "C"}</span>
+                      <span className="rounded-full bg-white/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[template.paperSize].split(" ")[0]}</span>
+                    </div>
                     <p className="text-sm font-black text-slate-900">{template.name}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "One operational schedule page per teacher/staff member." : template.type === "class_rosters" ? "Classroom rosters by activity/time with guardian and emergency columns." : template.type === "badges" ? "Badge/label layouts for lanyards, cards, and sheets." : "Reusable operating document."}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-600">{template.type === "principal_schedule" ? "Camper names down the left; full chosen schedule across the page." : template.type === "teacher_schedules" ? "One operational schedule page per teacher/staff member." : template.type === "class_rosters" ? "Classroom rosters by activity/time with guardian and emergency columns." : template.type === "badges" ? "Badge/label layouts for lanyards, cards, and sheets." : "Reusable operating document."}</p>
                   </button>
                 ))}
               </div>
