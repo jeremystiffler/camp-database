@@ -121,6 +121,41 @@ function sessionLabel(session: WeeklyRegistrationSession) {
   return `${session.label || "Session"} · ${session.startTime}–${session.endTime}`;
 }
 
+function optionFillRate(option: SessionOption): number | null {
+  if (!option.cap || option.cap <= 0 || option.seatsLeft === null) return null;
+  return Math.min(Math.max((option.cap - option.seatsLeft) / option.cap, 0), 1);
+}
+
+function optionCapacityClass(option: SessionOption, checked: boolean, unavailable: boolean): string {
+  if (unavailable) return "border-slate-200 bg-slate-50 opacity-55 cursor-not-allowed";
+  if (checked) return "border-forest-300 bg-forest-50 ring-2 ring-forest-200 cursor-pointer";
+  const rate = optionFillRate(option);
+  if (rate === null) return "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer";
+  if (rate >= 0.9) return "border-orange-300 bg-orange-50 hover:bg-orange-100 cursor-pointer";
+  if (rate >= 0.75) return "border-amber-300 bg-amber-50 hover:bg-amber-100 cursor-pointer";
+  if (rate >= 0.5) return "border-sky-200 bg-sky-50 hover:bg-sky-100 cursor-pointer";
+  return "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer";
+}
+
+function optionSeatBadgeClass(option: SessionOption, unavailable: boolean): string {
+  if (unavailable) return "text-slate-600 bg-slate-200 border border-slate-300";
+  const rate = optionFillRate(option);
+  if (rate === null) return "text-emerald-800 bg-emerald-100 border border-emerald-200";
+  if (rate >= 0.9) return "text-orange-900 bg-orange-100 border border-orange-300";
+  if (rate >= 0.75) return "text-amber-900 bg-amber-100 border border-amber-300";
+  if (rate >= 0.5) return "text-sky-900 bg-sky-100 border border-sky-200";
+  return "text-emerald-800 bg-emerald-100 border border-emerald-200";
+}
+
+function optionCapacityLabel(option: SessionOption): string {
+  const rate = optionFillRate(option);
+  if (rate === null) return "Open seats";
+  if (rate >= 0.9) return "Nearly full";
+  if (rate >= 0.75) return "Filling fast";
+  if (rate >= 0.5) return "Half full";
+  return "Roomy";
+}
+
 function PublicRegistrationContent({ params }: { params: Promise<{ campId: string }> }) {
   const searchParams = useSearchParams();
   const [campId, setCampId]         = useState("");
@@ -643,19 +678,32 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                               const checked = session.sessionIds.every(sessionId => activeSelectedBySession[sessionId] === option.courseId);
                               const selectedInAnotherSession = Object.entries(activeSelectedBySession).some(([sessionId, courseId]) => !session.sessionIds.includes(sessionId) && courseId === option.courseId);
                               const unavailableBecauseChosen = selectedInAnotherSession && !checked;
-                              return <label key={option.courseId} className={`block p-4 transition-all ${unavailableBecauseChosen ? "bg-slate-50 opacity-50 cursor-not-allowed" : checked ? "bg-forest-50 cursor-pointer" : "hover:bg-slate-50 cursor-pointer"}`}>
+                              return <label key={option.courseId} className={`block border-l-4 p-4 transition-all ${optionCapacityClass(option, checked, unavailableBecauseChosen)}`}>
                                 <div className="flex items-start gap-3">
                                   <input type="radio" name={`session-${session.id}`} checked={checked} disabled={unavailableBecauseChosen} onChange={() => selectCourseForSession(session.sessionIds, option.courseId)} className="mt-1 w-4 h-4 accent-forest-500 disabled:accent-slate-300" />
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-3">
                                       <p className="font-semibold text-slate-800">{option.name}</p>
                                       <div className="flex flex-wrap justify-end gap-2">
-                                        <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${unavailableBecauseChosen ? "text-slate-500 bg-slate-200" : "text-forest-700 bg-forest-100"}`}>
+                                        {!unavailableBecauseChosen && option.seatsLeft !== null && (
+                                          <span className={`text-xs font-black px-2 py-1 rounded-full whitespace-nowrap ${optionSeatBadgeClass(option, false)}`}>
+                                            {optionCapacityLabel(option)}
+                                          </span>
+                                        )}
+                                        <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${optionSeatBadgeClass(option, unavailableBecauseChosen)}`}>
                                           {unavailableBecauseChosen ? "Already chosen" : option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} seats left`}
                                         </span>
                                       </div>
                                     </div>
                                     {option.description && <p className="text-sm text-slate-500 mt-0.5">{option.description}</p>}
+                                    {!unavailableBecauseChosen && option.seatsLeft !== null && option.cap && option.cap > 0 && (
+                                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80 ring-1 ring-black/5">
+                                        <div
+                                          className={`h-full rounded-full ${optionFillRate(option)! >= 0.9 ? "bg-orange-500" : optionFillRate(option)! >= 0.75 ? "bg-amber-500" : optionFillRate(option)! >= 0.5 ? "bg-sky-500" : "bg-emerald-500"}`}
+                                          style={{ width: `${Math.max(optionFillRate(option)! * 100, 6)}%` }}
+                                        />
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </label>;

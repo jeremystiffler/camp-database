@@ -219,33 +219,33 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   }, [columnPage, totalColumnPages]);
 
   const heatClass = (rate: number): string => {
-    if (rate >= 1) return "bg-stone-300 border-stone-400 text-stone-900";
-    if (rate >= 0.9) return "bg-stone-200 border-stone-400 text-stone-900";
-    if (rate >= 0.75) return "bg-stone-200 border-stone-300 text-stone-800";
-    if (rate >= 0.5) return "bg-stone-100 border-stone-300 text-stone-800";
-    return "bg-zinc-100 border-zinc-300 text-zinc-800";
+    if (rate >= 1) return "bg-rose-200 border-rose-500 text-rose-950";
+    if (rate >= 0.9) return "bg-orange-200 border-orange-500 text-orange-950";
+    if (rate >= 0.75) return "bg-amber-200 border-amber-500 text-amber-950";
+    if (rate >= 0.5) return "bg-sky-100 border-sky-300 text-sky-900";
+    return "bg-emerald-100 border-emerald-300 text-emerald-900";
   };
 
   const columnHeatClass = (stats: ReturnType<typeof sessionGroupStats>): string => {
     if (stats.totalCap === 0) return "bg-slate-50 border-slate-200 text-slate-500";
     if (hasRegistrations) return heatClass(stats.fillRate);
-    if (averageAssignedCapacity <= 0) return "bg-zinc-100 border-zinc-300 text-zinc-800";
+    if (averageAssignedCapacity <= 0) return "bg-emerald-100 border-emerald-300 text-emerald-900";
     const capacityRatio = stats.totalCap / averageAssignedCapacity;
-    if (capacityRatio < 0.55) return "bg-stone-300 border-stone-400 text-stone-900";
-    if (capacityRatio < 0.75) return "bg-stone-200 border-stone-300 text-stone-800";
-    if (capacityRatio < 0.9) return "bg-stone-100 border-stone-300 text-stone-800";
-    return "bg-zinc-100 border-zinc-300 text-zinc-800";
+    if (capacityRatio < 0.55) return "bg-rose-200 border-rose-500 text-rose-950";
+    if (capacityRatio < 0.75) return "bg-orange-200 border-orange-500 text-orange-950";
+    if (capacityRatio < 0.9) return "bg-amber-200 border-amber-500 text-amber-950";
+    return "bg-emerald-100 border-emerald-300 text-emerald-900";
   };
 
   const activeCellClass = (course: Course, sg: SessionGroup): string => {
     const cap = course.cap || 0;
     if (cap <= 0) return "border-slate-300 bg-slate-100 text-slate-700";
     const rate = courseEnrollmentForGroup(course, sg) / cap;
-    if (rate >= 1) return "border-stone-400 bg-stone-300 text-stone-900";
-    if (rate >= 0.9) return "border-stone-400 bg-stone-200 text-stone-900";
-    if (rate >= 0.75) return "border-stone-300 bg-stone-200 text-stone-800";
-    if (rate >= 0.5) return "border-stone-300 bg-stone-100 text-stone-800";
-    return "border-zinc-300 bg-zinc-100 text-zinc-800";
+    if (rate >= 1) return "border-rose-500 bg-rose-200 text-rose-950";
+    if (rate >= 0.9) return "border-orange-500 bg-orange-200 text-orange-950";
+    if (rate >= 0.75) return "border-amber-500 bg-amber-200 text-amber-950";
+    if (rate >= 0.5) return "border-sky-300 bg-sky-100 text-sky-900";
+    return "border-emerald-300 bg-emerald-100 text-emerald-900";
   };
 
   const teacherOptions = persons.filter(p => p.role === "teacher" || p.role === "director");
@@ -687,13 +687,14 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
           <div className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
             <span>Rows are the default view: edit room, teacher, assistant, capacity, and schedule cells in one dense sheet</span>
             <span className="basis-full h-0" />
-            <span className="font-semibold text-slate-500">Capacity shading:</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-zinc-100 border border-zinc-300 align-middle" /> healthy</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-stone-100 border border-stone-300 align-middle" /> watch</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-stone-200 border border-stone-300 align-middle" /> tight</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-stone-300 border border-stone-400 align-middle" /> full/short</span>
+            <span className="font-semibold text-slate-500">Capacity colors:</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300 align-middle" /> 0–49% full · roomy</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-sky-100 border border-sky-300 align-middle" /> 50–74% · filling</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-amber-200 border border-amber-500 align-middle" /> 75–89% · tight</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-orange-200 border border-orange-500 align-middle" /> 90–99% · nearly full</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-rose-200 border border-rose-500 align-middle" /> full / over capacity</span>
             <span><span className="inline-block w-4 h-3 rounded bg-slate-100 border border-slate-200 align-middle opacity-70" /> unavailable — hover for reason</span>
-            <span><span className="inline-block w-4 h-3 rounded bg-stone-100 border border-stone-300 align-middle" /> open + safe to schedule</span>
+            <span><span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300 align-middle" /> open + safe to schedule</span>
           </div>
         </>
       )}
