@@ -16,7 +16,46 @@ function intValue(value: unknown) {
 function parseSessionIds(value: unknown) {
   return Array.isArray(value) ? [...new Set(value.filter((id): id is string => typeof id === "string" && id.trim().length > 0).map((id) => id.trim()))] : [];
 }
-async function replaceEnrollments(campId: string, camperId: string, nextSessionIds: string[]) {
+type SessionChoiceInput = { courseId: string; sessionTemplateId: string };
+function parseSessionChoices(value: unknown): SessionChoiceInput[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  return value
+    .map(choice => ({
+      courseId: typeof choice?.courseId === "string" ? choice.courseId.trim() : "",
+      sessionTemplateId: typeof choice?.sessionTemplateId === "string" ? choice.sessionTemplateId.trim() : "",
+    }))
+    .filter(choice => choice.courseId && choice.sessionTemplateId)
+    .filter(choice => {
+      const key = `${choice.courseId}:${choice.sessionTemplateId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+async function resolveSessionChoices(campId: string, choices: SessionChoiceInput[]) {
+  const sessionIds: string[] = [];
+  for (const choice of choices) {
+    const course = await prisma.course.findFirst({
+      where: { id: choice.courseId, campId, courseSessionTemplates: { some: { sessionTemplateId: choice.sessionTemplateId } } },
+      include: { sessions: { where: { campId, sessionTemplateId: choice.sessionTemplateId }, select: { id: true, enrolledCount: true } } },
+    }).catch(() => null);
+    if (!course) throw new Error("One or more selected classes are not available for this camp");
+    let session = course.sessions[0] || null;
+    if (!session) {
+      const template = await prisma.sessionTemplate.findFirst({ where: { id: choice.sessionTemplateId, campId }, select: { id: true, startTime: true, endTime: true } });
+      if (!template) throw new Error("One or more selected time slots are not available for this camp");
+      const created = await prisma.session.create({ data: { campId, courseId: course.id, sessionTemplateId: template.id, roomId: course.roomId, startTime: template.startTime, endTime: template.endTime }, select: { id: true, enrolledCount: true } });
+      session = created;
+    }
+    if (course.cap !== null && session.enrolledCount >= (course.cap ?? 0)) throw new Error(`${course.name} is full. Choose a different class.`);
+    sessionIds.push(session.id);
+  }
+  return sessionIds;
+}
+async function replaceEnrollments(campId: string, camperId: string, nextSessionIds: string[], sessionChoices: SessionChoiceInput[] = []) {
+  const resolvedChoiceSessionIds = await resolveSessionChoices(campId, sessionChoices);
+  nextSessionIds = [...new Set([...nextSessionIds, ...resolvedChoiceSessionIds])];
   const existing = await prisma.enrollment.findMany({ where: { campId, camperId }, select: { id: true, sessionId: true } });
   const existingIds = new Set(existing.map((e) => e.sessionId));
   const nextIds = new Set(nextSessionIds);
@@ -24,10 +63,13 @@ async function replaceEnrollments(campId: string, camperId: string, nextSessionI
   const toRemove = existing.filter((e) => !nextIds.has(e.sessionId));
 
   if (toAdd.length) {
-    const validSessions = await prisma.session.findMany({ where: { campId, id: { in: toAdd } }, select: { id: true } });
+    const validSessions = await prisma.session.findMany({ where: { campId, id: { in: toAdd } }, select: { id: true, enrolledCount: true, course: { select: { name: true, cap: true } } } });
     const validIds = new Set(validSessions.map((s) => s.id));
     const invalid = toAdd.filter((id) => !validIds.has(id));
     if (invalid.length) throw new Error("One or more selected sessions do not belong to this camp");
+    for (const session of validSessions) {
+      if (session.course?.cap !== null && session.course?.cap !== undefined && session.enrolledCount >= session.course.cap) throw new Error(`${session.course.name} is full. Choose a different class.`);
+    }
     for (const sessionId of toAdd) {
       await prisma.enrollment.create({ data: { campId, camperId, sessionId, status: "enrolled" } });
       await prisma.session.update({ where: { id: sessionId }, data: { enrolledCount: { increment: 1 } } });
@@ -100,7 +142,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       },
       include: camperInclude,
     });
-    await replaceEnrollments(campId, item.id, parseSessionIds(data.sessionIds));
+    await replaceEnrollments(campId, item.id, parseSessionIds(data.sessionIds), parseSessionChoices(data.sessionChoices));
     const reloaded = await prisma.camper.findFirst({ where: { id: item.id, campId }, include: camperInclude });
     return NextResponse.json(reloaded, { status: 201 });
   } catch (err) {
