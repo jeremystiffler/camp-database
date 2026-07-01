@@ -50,6 +50,16 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const urlCampId = searchParams.get("campId");
+    if (!urlCampId || camps.length === 0 || activeCamp?.id === urlCampId) return;
+    const campFromUrl = camps.find((camp) => camp.id === urlCampId);
+    if (!campFromUrl) return;
+    setActiveCamp(campFromUrl);
+    setLastKnownCampId(campFromUrl.id);
+    localStorage.setItem("activeCampId", campFromUrl.id);
+  }, [searchParams, camps, activeCamp?.id]);
+
+  useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((data) => {

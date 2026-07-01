@@ -349,6 +349,7 @@ function PrintContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeDoc, setActiveDoc] = useState<PrintType | null>(null);
+  const [printQueued, setPrintQueued] = useState(false);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("builtin-0");
   const [draftTemplate, setDraftTemplate] = useState<PrintTemplate>(BUILTIN_TEMPLATES[0]);
   const [message, setMessage] = useState("");
@@ -400,6 +401,15 @@ function PrintContent() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [campId]);
+
+  useEffect(() => {
+    if (!printQueued || !activeDoc) return;
+    const id = window.setTimeout(() => {
+      window.print();
+      setPrintQueued(false);
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [printQueued, activeDoc]);
 
   const allTemplates = [...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })), ...savedTemplates];
   const selectedSettings = parseSettings(draftTemplate);
@@ -509,7 +519,7 @@ function PrintContent() {
       setSaving(false);
     }
   };
-  const printDoc = (type = draftTemplate.type) => { setActiveDoc(type); setTimeout(() => window.print(), 300); };
+  const printDoc = (type = draftTemplate.type) => { setActiveDoc(type); setPrintQueued(true); };
 
   if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Finding your active camp…</div>;
 
@@ -518,10 +528,13 @@ function PrintContent() {
       <style>{`
         @media print {
           @page { size: ${printPageSizeCss}; margin: 0.25in; }
-          aside, nav, .no-print { display: none !important; }
-          main { margin-left: 0 !important; padding: 0 !important; }
-          .print-doc { display: block !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; }
           body { background: white !important; }
+          body * { visibility: hidden !important; }
+          aside, nav, .no-print { display: none !important; }
+          main { margin: 0 !important; padding: 0 !important; display: block !important; min-height: 0 !important; }
+          main > div { margin: 0 !important; padding: 0 !important; max-width: none !important; width: 100% !important; }
+          .print-doc { display: block !important; visibility: visible !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; }
+          .print-doc * { visibility: visible !important; }
           .page-break { page-break-after: always; }
           .page-break:last-child { page-break-after: auto; }
         }
