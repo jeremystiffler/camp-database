@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "rotation_roster" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges";
-type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3" | "custom";
+type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3" | "3x5" | "custom";
 type Orientation = "portrait" | "landscape";
 type Density = "compact" | "normal" | "large";
 
@@ -79,6 +79,7 @@ const PAPER_LABELS: Record<PaperSize, string> = {
   a4: "A4",
   "4x6": "4×6 Card",
   "5x3": "5×3 Badge",
+  "3x5": "3×5 Lanyard",
   custom: "Custom size",
 };
 const PAPER_CSS: Record<PaperSize, string> = {
@@ -88,9 +89,10 @@ const PAPER_CSS: Record<PaperSize, string> = {
   a4: "A4",
   "4x6": "6in 4in",
   "5x3": "5in 3in",
+  "3x5": "3in 5in",
   custom: "var(--custom-print-size)",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
   { builtin: true, name: "Teacher Packets — Classes + Students", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true, showStudents: true }) },
@@ -101,6 +103,7 @@ const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Camper Roster", type: "camper_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "T-Shirt List", type: "tshirt_list", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "Camper Badges — Sheet", type: "badges", category: "badges", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 4, badgeCols: 3, showAgeGroup: true }) },
+  { builtin: true, name: "Custom Schedule Lanyard Badge — 3×5", type: "badges", category: "badges", paperSize: "3x5", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, badgeLayout: "schedule_lanyard", showSchedule: true, showAgeGroup: false }) },
   { builtin: true, name: "Camper Lanyard Badge — 5×3", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showSchedule: true }) },
   { builtin: true, name: "Camper Card — 4×6", type: "badges", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showGuardian: true, showSchedule: true }) },
 ];
@@ -231,6 +234,21 @@ function badgeScheduleSummary(camper: Camper) {
     .slice(0, 5)
     .map(cell => cell.label.replace(/\n/g, " "))
     .join(" • ");
+}
+function lanyardScheduleRows(camper: Camper) {
+  const rows = new Map<string, { time: string; activity: string; sortValue: string }>();
+  for (const enrollment of camper.enrollments || []) {
+    const session = enrollment.session;
+    if (!session) continue;
+    const start = sessionStart(session);
+    const end = sessionEnd(session);
+    const room = session.room?.name ? `\n[${session.room.name}]` : "";
+    const age = !session.mandatorySession && camper.ageGroup?.name ? ` (${camper.ageGroup.name})` : "";
+    const title = `${scheduleTitle(session)}${age}${room}`;
+    const key = `${start}|${end}|${scheduleTitle(session)}|${session.room?.id || session.room?.name || ""}`;
+    if (!rows.has(key)) rows.set(key, { time: formatTime(start) || session.sessionTemplate?.label || "Time", activity: title, sortValue: `${start || "99:99"}|${end || "99:99"}|${title.toLowerCase()}` });
+  }
+  return [...rows.values()].sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 }
 function classChoicesForCamper(camper: Camper, courses: Course[]) {
   const choices = new Map<string, { label: string; sortValue: string }>();
@@ -463,6 +481,13 @@ function PrintContent() {
         .badge-last { font-size: ${draftTemplate.paperSize === "letter" ? "14px" : "20px"}; margin-top: 4px; }
         .single-badge-page { page-break-after: always; }
         .single-badge-page:last-child { page-break-after: auto; }
+        .lanyard-schedule-card { border: 2px solid #111; border-radius: 0; padding: 0; text-align: left; page-break-inside: avoid; display: flex; flex-direction: column; min-height: ${draftTemplate.paperSize === "letter" ? "auto" : "calc(100vh - 0.5in)"}; background: #fff; overflow: hidden; }
+        .lanyard-name { background: ${selectedSettings.headerColor}; border-bottom: 2px solid #111; color: #000; font-size: 19px; font-weight: 900; line-height: 1.05; padding: 0.10in 0.06in; text-align: center; }
+        .lanyard-table { width: 100%; flex: 1; display: flex; flex-direction: column; }
+        .lanyard-row { display: grid; grid-template-columns: 0.72in minmax(0, 1fr); flex: 1; min-height: 0.36in; border-bottom: 1.5px solid #111; }
+        .lanyard-row:last-child { border-bottom: 0; }
+        .lanyard-time { border-right: 1.5px solid #111; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; font-weight: 900; line-height: 1.05; padding: 0.04in; }
+        .lanyard-activity { display: flex; align-items: center; white-space: pre-line; font-size: 9.2px; font-weight: 800; line-height: 1.12; padding: 0.035in 0.055in; overflow: hidden; word-break: break-word; }
         .rotation-page { page-break-after: always; width: 100%; height: calc(${selectedSettings.customPageHeight || "8.5in"} - 0.5in); overflow: hidden; }
         .rotation-page:last-child { page-break-after: auto; }
         .rotation-grid { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -573,6 +598,7 @@ function PrintContent() {
                 {draftTemplate.type === "badges" && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
                     <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge layout</p>
+                    <label className="block text-xs font-bold text-slate-500">Layout<select value={selectedSettings.badgeLayout} onChange={e => updateSettings({ badgeLayout: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="standard">Standard name badge</option><option value="schedule_lanyard">Schedule lanyard table</option></select></label>
                     <div className="grid grid-cols-2 gap-2">
                       <label className="block text-xs font-bold text-slate-500">Rows<input type="number" min={1} max={8} value={badgeRows} onChange={e => updateSettings({ badgeRows: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
                       <label className="block text-xs font-bold text-slate-500">Columns<input type="number" min={1} max={5} value={badgeCols} onChange={e => updateSettings({ badgeCols: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
@@ -610,14 +636,28 @@ function PrintContent() {
 
       {activeDoc === "badges" && <div className="print-doc ops-print">
         <div className={draftTemplate.paperSize === "letter" ? "badge-sheet" : ""}>
-          {sortedCampers.map(c => <div key={c.id} className={`badge-card ${draftTemplate.paperSize === "letter" ? "" : "single-badge-page"}`}>
-            <div style={{fontSize:11, textTransform:"uppercase", letterSpacing:".12em", marginBottom:8}}>Camper</div>
-            <div className="badge-name">{c.firstName}</div>
-            <div className="badge-last">{c.lastName}</div>
-            {selectedSettings.showAgeGroup && <div style={{fontSize:13, fontWeight:800, marginTop:8, borderTop:"1px solid #ddd", paddingTop:8}}>{c.ageGroup?.name || ""}</div>}
-            {selectedSettings.showGuardian && <div style={{fontSize:10, marginTop:6}}>{c.guardianName || ""}{c.guardianPhone ? ` • ${c.guardianPhone}` : ""}</div>}
-            {selectedSettings.showSchedule && <div style={{fontSize:9, marginTop:8, lineHeight:1.25}}>{badgeScheduleSummary(c)}</div>}
-          </div>)}
+          {sortedCampers.map(c => {
+            if (selectedSettings.badgeLayout === "schedule_lanyard") {
+              const rows = lanyardScheduleRows(c);
+              return <div key={c.id} className={`lanyard-schedule-card ${draftTemplate.paperSize === "letter" ? "" : "single-badge-page"}`}>
+                <div className="lanyard-name">{fullName(c)}</div>
+                <div className="lanyard-table">
+                  {rows.length ? rows.map((row, idx) => <div key={`${row.sortValue}-${idx}`} className="lanyard-row">
+                    <div className="lanyard-time">{row.time}</div>
+                    <div className="lanyard-activity">{row.activity}</div>
+                  </div>) : <div className="lanyard-row"><div className="lanyard-time">—</div><div className="lanyard-activity">No schedule assigned</div></div>}
+                </div>
+              </div>;
+            }
+            return <div key={c.id} className={`badge-card ${draftTemplate.paperSize === "letter" ? "" : "single-badge-page"}`}>
+              <div style={{fontSize:11, textTransform:"uppercase", letterSpacing:".12em", marginBottom:8}}>Camper</div>
+              <div className="badge-name">{c.firstName}</div>
+              <div className="badge-last">{c.lastName}</div>
+              {selectedSettings.showAgeGroup && <div style={{fontSize:13, fontWeight:800, marginTop:8, borderTop:"1px solid #ddd", paddingTop:8}}>{c.ageGroup?.name || ""}</div>}
+              {selectedSettings.showGuardian && <div style={{fontSize:10, marginTop:6}}>{c.guardianName || ""}{c.guardianPhone ? ` • ${c.guardianPhone}` : ""}</div>}
+              {selectedSettings.showSchedule && <div style={{fontSize:9, marginTop:8, lineHeight:1.25}}>{badgeScheduleSummary(c)}</div>}
+            </div>;
+          })}
         </div>
       </div>}
     </>
