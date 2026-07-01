@@ -35,10 +35,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     }
   }
 
-  const item = await prisma.$transaction(async (tx) => {
-    const enrollment = await tx.enrollment.create({ data: { campId, camperId, sessionId, status: status || "enrolled" } });
-    await tx.session.update({ where: { id: sessionId }, data: { enrolledCount: { increment: 1 } } });
-    return enrollment;
-  });
+  // Prisma HTTP mode does not support transactions. Keep this as two
+  // single-statement writes instead of prisma.$transaction().
+  const item = await prisma.enrollment.create({ data: { campId, camperId, sessionId, status: status || "enrolled" } });
+  await prisma.session.update({ where: { id: sessionId }, data: { enrolledCount: { increment: 1 } } });
   return NextResponse.json(item, { status: 201 });
 }

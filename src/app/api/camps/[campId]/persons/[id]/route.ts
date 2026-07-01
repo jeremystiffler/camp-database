@@ -49,17 +49,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
       ? await prisma.ageGroup.findMany({ where: { campId, id: { in: ageGroupIds } }, select: { id: true } })
       : [];
 
-    const item = await prisma.person.update({
+    // Avoid nested writes because they require transactions, which are unsupported
+    // by the Prisma HTTP adapter used in production.
+    await prisma.person.update({
       where: { id },
-      data: {
-        ...normalized.person,
-        ...(rawAgeGroupIds !== undefined ? {
-          personAgeGroups: {
-            deleteMany: {},
-            create: validAgeGroups.map((ageGroup) => ({ ageGroupId: ageGroup.id })),
-          },
-        } : {}),
-      },
+      data: normalized.person,
+    });
+
+    if (rawAgeGroupIds !== undefined) {
+      await prisma.personAgeGroup.deleteMany({ where: { personId: id } });
+      if (validAgeGroups.length > 0) {
+        await prisma.personAgeGroup.createMany({
+          data: validAgeGroups.map((ageGroup) => ({ personId: id, ageGroupId: ageGroup.id })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    const item = await prisma.person.findUnique({
+      where: { id },
       include: { personAgeGroups: { include: { ageGroup: true } } },
     });
     return NextResponse.json(item);

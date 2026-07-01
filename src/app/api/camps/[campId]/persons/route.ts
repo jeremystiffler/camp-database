@@ -58,14 +58,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       ? await prisma.ageGroup.findMany({ where: { campId, id: { in: ageGroupIds } }, select: { id: true } })
       : [];
 
-    const item = await prisma.person.create({
+    // Prisma nested writes use an implicit transaction. The production database runs
+    // through Prisma's HTTP adapter, where transactions are not supported, so keep
+    // these as separate single-statement writes.
+    const created = await prisma.person.create({
       data: {
         ...normalized.person,
         campId,
-        personAgeGroups: {
-          create: validAgeGroups.map((ageGroup) => ({ ageGroupId: ageGroup.id })),
-        },
       },
+    });
+
+    if (validAgeGroups.length > 0) {
+      await prisma.personAgeGroup.createMany({
+        data: validAgeGroups.map((ageGroup) => ({ personId: created.id, ageGroupId: ageGroup.id })),
+        skipDuplicates: true,
+      });
+    }
+
+    const item = await prisma.person.findUnique({
+      where: { id: created.id },
       include: { personAgeGroups: { include: { ageGroup: true } } },
     });
     return NextResponse.json(item, { status: 201 });
