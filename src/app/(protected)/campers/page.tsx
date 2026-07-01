@@ -24,6 +24,7 @@ interface CampSession {
 interface Course {
   id: string;
   name: string;
+  description?: string | null;
   cap?: number | null;
   ageGroup?: { id: string; name: string } | null;
   courseAgeGroups?: { ageGroup: { id: string; name: string } }[];
@@ -35,15 +36,29 @@ interface Course {
 interface SessionChoice {
   key: string;
   sessionId?: string;
+  sessionIds?: string[];
   courseId: string;
   sessionTemplateId: string;
+  sessionTemplateIds?: string[];
   title: string;
+  description?: string | null;
   time: string;
   room?: string;
   enrolledCount: number;
   cap?: number | null;
   seatsLeft: number | null;
   full: boolean;
+}
+
+interface SessionChoiceGroup {
+  key: string;
+  id: string;
+  label: string;
+  startTime: string;
+  endTime: string;
+  time: string;
+  sessionTemplateIds: string[];
+  options: SessionChoice[];
 }
 
 interface Enrollment {
@@ -117,26 +132,49 @@ function courseMatchesAgeGroup(course: Course, ageGroupId: string) {
   return course.ageGroup?.id === ageGroupId || Boolean(course.courseAgeGroups?.some(cag => cag.ageGroup.id === ageGroupId));
 }
 function buildSessionChoices(courses: Course[], ageGroupId: string, selectedKeys: Set<string>): SessionChoice[] {
+  return buildSessionChoiceGroups(courses, ageGroupId, selectedKeys).flatMap(group => group.options);
+}
+function sessionTemplateGroupKey(template: { label?: string | null; startTime: string; endTime: string }) {
+  return `${template.label || "Session"}|${template.startTime}|${template.endTime}`;
+}
+function buildSessionChoiceGroups(courses: Course[], ageGroupId: string, selectedKeys: Set<string>): SessionChoiceGroup[] {
   if (!ageGroupId) return [];
-  const choices: SessionChoice[] = [];
-  for (const course of courses.filter(course => courseMatchesAgeGroup(course, ageGroupId))) {
+  const eligibleCourses = courses.filter(course => courseMatchesAgeGroup(course, ageGroupId));
+  const templateGroups = new Map<string, { label: string; startTime: string; endTime: string; sessionTemplateIds: string[] }>();
+  for (const course of eligibleCourses) {
     for (const cst of course.courseSessionTemplates || []) {
       const template = cst.sessionTemplate;
       if (!template?.id) continue;
-      const existingSession = (course.sessions || []).find(session => session.sessionTemplateId === template.id);
-      const enrolledCount = existingSession?.enrolledCount || 0;
+      const key = sessionTemplateGroupKey(template);
+      const existing = templateGroups.get(key) || { label: template.label || "Session", startTime: template.startTime, endTime: template.endTime, sessionTemplateIds: [] };
+      if (!existing.sessionTemplateIds.includes(template.id)) existing.sessionTemplateIds.push(template.id);
+      templateGroups.set(key, existing);
+    }
+  }
+  return [...templateGroups.entries()].map(([key, group]) => {
+    const options: SessionChoice[] = [];
+    for (const course of eligibleCourses) {
+      const courseTemplateIds = new Set((course.courseSessionTemplates || []).map(cst => cst.sessionTemplate?.id).filter(Boolean));
+      if (!group.sessionTemplateIds.every(templateId => courseTemplateIds.has(templateId))) continue;
+      const matchingSessions = group.sessionTemplateIds
+        .map(templateId => (course.sessions || []).find(session => session.sessionTemplateId === templateId))
+        .filter((session): session is { id: string; sessionTemplateId: string | null; enrolledCount: number } => Boolean(session));
+      const enrolledCount = matchingSessions.length ? Math.max(...matchingSessions.map(session => session.enrolledCount || 0)) : 0;
       const cap = course.cap;
       const seatsLeft = cap === null || cap === undefined ? null : Math.max(cap - enrolledCount, 0);
       const full = seatsLeft !== null && seatsLeft <= 0;
-      const key = `${course.id}|${template.id}`;
-      if (full && !selectedKeys.has(key)) continue;
-      choices.push({
-        key,
-        sessionId: existingSession?.id,
+      const selectedInGroup = group.sessionTemplateIds.some(templateId => selectedKeys.has(`${course.id}|${templateId}`));
+      if (full && !selectedInGroup) continue;
+      options.push({
+        key: `${course.id}|${group.sessionTemplateIds.join("|")}`,
+        sessionId: matchingSessions[0]?.id,
+        sessionIds: matchingSessions.map(session => session.id),
         courseId: course.id,
-        sessionTemplateId: template.id,
+        sessionTemplateId: group.sessionTemplateIds[0],
+        sessionTemplateIds: group.sessionTemplateIds,
         title: course.name,
-        time: `${template.label || "Session"} · ${template.startTime}${template.endTime ? `–${template.endTime}` : ""}`,
+        description: course.description,
+        time: `${group.label} · ${group.startTime}${group.endTime ? `–${group.endTime}` : ""}`,
         room: course.room?.name,
         enrolledCount,
         cap,
@@ -144,8 +182,17 @@ function buildSessionChoices(courses: Course[], ageGroupId: string, selectedKeys
         full,
       });
     }
-  }
-  return choices.sort((a, b) => a.time.localeCompare(b.time) || a.title.localeCompare(b.title));
+    return {
+      key,
+      id: group.sessionTemplateIds.join("|"),
+      label: group.label,
+      startTime: group.startTime,
+      endTime: group.endTime,
+      time: `${group.label} · ${group.startTime}${group.endTime ? `–${group.endTime}` : ""}`,
+      sessionTemplateIds: group.sessionTemplateIds,
+      options: options.sort((a, b) => a.title.localeCompare(b.title)),
+    };
+  }).filter(group => group.options.length > 0).sort((a, b) => `${a.startTime}|${a.label}`.localeCompare(`${b.startTime}|${b.label}`));
 }
 function sessionSortValue(session?: CampSession | null) {
   const day = session?.date ? new Date(session.date).getDay() : session?.sessionTemplate?.dayOfWeek ?? 99;
@@ -231,9 +278,14 @@ function CamperDrawer({
   const [showSessionCatalog, setShowSessionCatalog] = useState(isNew);
   const selectedSessions = sessions.filter(session => selectedSessionIds.includes(session.id));
   const selectedKeySet = new Set(selectedChoiceKeys);
-  const availableSessionChoices = buildSessionChoices(courses, form.ageGroupId, selectedKeySet);
-  const selectedChoiceObjects = availableSessionChoices.filter(choice => selectedKeySet.has(choice.key));
-  const sessionChoicesToRender = showSessionCatalog ? availableSessionChoices : selectedChoiceObjects;
+  const availableSessionGroups = buildSessionChoiceGroups(courses, form.ageGroupId, selectedKeySet);
+  const availableSessionChoices = availableSessionGroups.flatMap(group => group.options);
+  const selectedChoiceObjects = availableSessionChoices.filter(choice => (choice.sessionTemplateIds || [choice.sessionTemplateId]).some(templateId => selectedKeySet.has(`${choice.courseId}|${templateId}`)));
+  const sessionGroupsToRender = showSessionCatalog
+    ? availableSessionGroups
+    : availableSessionGroups
+        .map(group => ({ ...group, options: group.options.filter(choice => (choice.sessionTemplateIds || [choice.sessionTemplateId]).some(templateId => selectedKeySet.has(`${choice.courseId}|${templateId}`))) }))
+        .filter(group => group.options.length > 0);
   const selectedChoiceCount = summarizedEnrollmentChoices(camper.enrollments || []).length || new Set(selectedSessions.map(sessionChoiceKey)).size;
 
   const update = (key: keyof typeof form, value: string | boolean) => {
@@ -245,8 +297,15 @@ function CamperDrawer({
     }
   };
   const toggleSessionChoice = (choice: SessionChoice) => {
-    setSelectedChoiceKeys(prev => prev.includes(choice.key) ? prev.filter(key => key !== choice.key) : [...prev, choice.key]);
-    if (choice.sessionId) setSelectedSessionIds(prev => prev.includes(choice.sessionId!) ? prev.filter(id => id !== choice.sessionId) : [...prev, choice.sessionId!]);
+    const templateIds = choice.sessionTemplateIds || [choice.sessionTemplateId];
+    const sessionIds = choice.sessionIds || (choice.sessionId ? [choice.sessionId] : []);
+    const selected = templateIds.every(templateId => selectedKeySet.has(`${choice.courseId}|${templateId}`));
+    setSelectedChoiceKeys(prev => selected
+      ? prev.filter(key => !templateIds.some(templateId => key === `${choice.courseId}|${templateId}`))
+      : [...prev.filter(key => !templateIds.some(templateId => key.endsWith(`|${templateId}`))), ...templateIds.map(templateId => `${choice.courseId}|${templateId}`)]);
+    if (sessionIds.length) setSelectedSessionIds(prev => selected
+      ? prev.filter(id => !sessionIds.includes(id))
+      : [...prev.filter(id => !availableSessionChoices.some(option => (option.sessionIds || []).includes(id) && templateIds.some(templateId => (option.sessionTemplateIds || []).includes(templateId)))), ...sessionIds]);
   };
 
   const save = async () => {
@@ -415,16 +474,36 @@ function CamperDrawer({
             {editing ? (
               <div>
                 {showSessionCatalog && <p className="mb-2 rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold text-sky-800">{form.ageGroupId ? `${availableSessionChoices.length} open class option${availableSessionChoices.length === 1 ? "" : "s"} available for this age group. Full classes are hidden.` : "Choose an age group above to show all eligible open class options."}</p>}
-                <div className="max-h-[32rem] overflow-y-auto rounded-xl border border-slate-100 divide-y divide-slate-100">
-                {sessionChoicesToRender.length === 0 ? <p className="text-sm text-slate-400 p-3">{form.ageGroupId ? "No open class options are available for this age group." : "Choose an age group to see registration choices."}</p> : sessionChoicesToRender.map((choice) => (
-                  <label key={choice.key} className={`flex items-start gap-3 p-3 ${choice.full ? "bg-slate-50 opacity-70" : "hover:bg-slate-50 cursor-pointer"}`}>
-                    <input type="checkbox" className="mt-1" checked={selectedChoiceKeys.includes(choice.key)} disabled={choice.full && !selectedChoiceKeys.includes(choice.key)} onChange={() => toggleSessionChoice(choice)} />
-                    <div>
-                      <div className="text-sm font-semibold text-slate-800">{choice.title}</div>
-                      <div className="text-xs text-slate-500">{choice.time}{choice.room ? ` · ${choice.room}` : ""}</div>
-                      <div className={`mt-1 text-[11px] font-bold ${choice.full ? "text-slate-500" : "text-emerald-700"}`}>{choice.seatsLeft === null ? "Open seats" : choice.full ? "Full — already selected" : `${choice.seatsLeft} seat${choice.seatsLeft === 1 ? "" : "s"} left`}</div>
+                <div className="max-h-[32rem] overflow-y-auto rounded-xl border border-slate-100">
+                {sessionGroupsToRender.length === 0 ? <p className="text-sm text-slate-400 p-3">{form.ageGroupId ? "No open class options are available for this age group." : "Choose an age group to see registration choices."}</p> : sessionGroupsToRender.map((group) => (
+                  <div key={group.key} className="border-b border-slate-100 last:border-b-0">
+                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-100">
+                      <p className="font-bold text-slate-800 text-sm">{group.time}</p>
+                      <p className="text-xs text-slate-500">Choose one class for this session.</p>
                     </div>
-                  </label>
+                    <div className="divide-y divide-slate-100">
+                      {group.options.map((choice) => {
+                        const checked = group.sessionTemplateIds.every(templateId => selectedChoiceKeys.includes(`${choice.courseId}|${templateId}`));
+                        return (
+                          <label key={choice.key} className={`block border-l-4 p-4 transition-all ${choice.full ? "border-slate-200 bg-slate-50 opacity-70" : checked ? "border-forest-300 bg-forest-50 ring-2 ring-forest-200" : "border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer"}`}>
+                            <div className="flex items-start gap-3">
+                              <input type="radio" name={`session-${group.id}`} className="mt-1 w-4 h-4 accent-forest-500" checked={checked} disabled={choice.full && !checked} onChange={() => toggleSessionChoice(choice)} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-3">
+                                  <p className="font-semibold text-slate-800">{choice.title}</p>
+                                  <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${choice.full ? "text-slate-600 bg-slate-200 border border-slate-300" : "text-emerald-800 bg-emerald-100 border border-emerald-200"}`}>
+                                    {choice.seatsLeft === null ? "Open seats" : choice.full ? "Full" : `${choice.seatsLeft} seats left`}
+                                  </span>
+                                </div>
+                                {choice.description && <p className="text-sm text-slate-500 mt-0.5">{choice.description}</p>}
+                                {choice.room && <p className="text-xs text-slate-500 mt-1">Room: {choice.room}</p>}
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ))}
                 </div>
               </div>
