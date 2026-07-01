@@ -92,7 +92,7 @@ const PAPER_CSS: Record<PaperSize, string> = {
   "3x5": "3in 5in",
   custom: "var(--custom-print-size)",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], badgeContentBlocks: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
   { builtin: true, name: "Teacher Packets — Classes + Students", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true, showStudents: true }) },
@@ -127,6 +127,10 @@ const BADGE_STANDARD_BLOCK_OPTIONS: CustomBlockOption[] = [
 const BADGE_LANYARD_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "name", label: "Name header" },
   { id: "schedule", label: "Schedule table" },
+  { id: "ageGroup", label: "Age group" },
+  { id: "guardian", label: "Guardian contact" },
+  { id: "emergency", label: "Emergency phone" },
+  { id: "medical", label: "Medical / dietary notes" },
 ];
 const LANYARD_THEMES = {
   aquaSheet: { label: "Aqua spreadsheet", headerBg: "#63d2d2", headerText: "#071827", border: "#334155", rowAlt: "#edfafa", rowBg: "#ffffff", timeBg: "#f8fafc" },
@@ -142,6 +146,12 @@ function orderedCustomBlocks(savedOrder: unknown, options: CustomBlockOption[]) 
   const ids = Array.isArray(savedOrder) ? savedOrder.filter((id): id is string => typeof id === "string") : [];
   const optionById = new Map(options.map(option => [option.id, option]));
   return [...ids.map(id => optionById.get(id)).filter((option): option is CustomBlockOption => Boolean(option)), ...options.filter(option => !ids.includes(option.id))];
+}
+function selectedBlocks(savedOrder: unknown, defaultIds: string[], options: CustomBlockOption[]) {
+  const optionById = new Map(options.map(option => [option.id, option]));
+  const savedIds = Array.isArray(savedOrder) ? savedOrder.filter((id): id is string => typeof id === "string" && optionById.has(id)) : [];
+  const ids = savedIds.length ? savedIds : defaultIds.filter(id => optionById.has(id));
+  return ids.map(id => optionById.get(id)).filter((option): option is CustomBlockOption => Boolean(option));
 }
 function reorderIds(ids: string[], draggedId: string, targetId: string) {
   if (draggedId === targetId) return ids;
@@ -286,7 +296,7 @@ function badgeScheduleSummary(camper: Camper) {
     .map(cell => cell.label.replace(/\n/g, " "))
     .join(" • ");
 }
-function lanyardScheduleRows(camper: Camper) {
+function lanyardScheduleRows(camper: Camper, showAgeGroup: boolean) {
   const rows = new Map<string, { time: string; activity: string; sortValue: string }>();
   for (const enrollment of camper.enrollments || []) {
     const session = enrollment.session;
@@ -294,7 +304,7 @@ function lanyardScheduleRows(camper: Camper) {
     const start = sessionStart(session);
     const end = sessionEnd(session);
     const room = session.room?.name ? `\n[${session.room.name}]` : "";
-    const age = !session.mandatorySession && camper.ageGroup?.name ? ` (${camper.ageGroup.name})` : "";
+    const age = showAgeGroup && !session.mandatorySession && camper.ageGroup?.name ? ` (${camper.ageGroup.name})` : "";
     const title = `${scheduleTitle(session)}${age}${room}`;
     const key = `${start}|${end}|${scheduleTitle(session)}|${session.room?.id || session.room?.name || ""}`;
     if (!rows.has(key)) rows.set(key, { time: formatTime(start) || session.sessionTemplate?.label || "Time", activity: title, sortValue: `${start || "99:99"}|${end || "99:99"}|${title.toLowerCase()}` });
@@ -448,13 +458,18 @@ function PrintContent() {
   const rotationStudentTextAlign = selectedSettings.rotationStudentAlign === "left" ? "left" : selectedSettings.rotationStudentAlign === "right" ? "right" : "center";
   const customBlockOptions = draftTemplate.type === "rotation_roster"
     ? ROTATION_BLOCK_OPTIONS.filter(block => (block.id !== "teacher" || selectedSettings.showTeacher) && (block.id !== "footer" || selectedSettings.showFooterLabel))
-    : draftTemplate.type === "badges" && selectedSettings.badgeLayout === "schedule_lanyard"
-      ? BADGE_LANYARD_BLOCK_OPTIONS
-      : draftTemplate.type === "badges"
-        ? BADGE_STANDARD_BLOCK_OPTIONS.filter(block => (block.id !== "ageGroup" || selectedSettings.showAgeGroup) && (block.id !== "guardian" || selectedSettings.showGuardian) && (block.id !== "schedule" || selectedSettings.showSchedule))
-        : [];
+    : [];
   const customBlockOrder = orderedCustomBlocks(selectedSettings.customBlockOrder, customBlockOptions);
   const customBlockOrderIds = customBlockOrder.map(block => block.id);
+  const badgeBlockOptions = draftTemplate.type === "badges" && selectedSettings.badgeLayout === "schedule_lanyard"
+    ? BADGE_LANYARD_BLOCK_OPTIONS
+    : draftTemplate.type === "badges"
+      ? BADGE_STANDARD_BLOCK_OPTIONS
+      : [];
+  const defaultBadgeBlockIds = selectedSettings.badgeLayout === "schedule_lanyard" ? ["name", "schedule"] : ["label", "firstName", "lastName"];
+  const badgeContentBlocks = selectedBlocks(selectedSettings.badgeContentBlocks, defaultBadgeBlockIds, badgeBlockOptions);
+  const badgeContentBlockIds = badgeContentBlocks.map(block => block.id);
+  const addableBadgeBlocks = badgeBlockOptions.filter(block => !badgeContentBlockIds.includes(block.id));
   const rotationCardRows = customBlockOrder.map(block => {
     if (block.id === "header") return selectedSettings.rotationHeaderHeight || "0.70in";
     if (block.id === "timeBand") return selectedSettings.rotationBandHeight || "0.36in";
@@ -475,6 +490,12 @@ function PrintContent() {
   const moveCustomBlock = (id: string, direction: -1 | 1) => setCustomBlockOrder(moveId(customBlockOrderIds, id, direction));
   const dropCustomBlock = (draggedId: string, targetId: string) => setCustomBlockOrder(reorderIds(customBlockOrderIds, draggedId, targetId));
   const resetCustomBlockOrder = () => updateSettings({ customBlockOrder: [] });
+  const setBadgeContentBlocks = (ids: string[]) => updateSettings({ badgeContentBlocks: ids });
+  const moveBadgeBlock = (id: string, direction: -1 | 1) => setBadgeContentBlocks(moveId(badgeContentBlockIds, id, direction));
+  const dropBadgeBlock = (draggedId: string, targetId: string) => setBadgeContentBlocks(reorderIds(badgeContentBlockIds, draggedId, targetId));
+  const removeBadgeBlock = (id: string) => setBadgeContentBlocks(badgeContentBlockIds.filter(blockId => blockId !== id));
+  const addBadgeBlock = (id: string) => { if (id) setBadgeContentBlocks([...badgeContentBlockIds, id]); };
+  const resetBadgeBlocks = () => setBadgeContentBlocks(defaultBadgeBlockIds);
   const saveAsTemplate = async () => {
     const name = window.prompt("Template name", draftTemplate.name.replace(/^Copy of /, ""));
     if (!name) return;
@@ -576,6 +597,7 @@ function PrintContent() {
         .lanyard-row:last-child { border-bottom: 0; }
         .lanyard-time { border-right: 0.6px solid ${lanyardTheme.border}; background: ${lanyardTheme.timeBg}; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; font-weight: 900; line-height: 1.05; padding: 0.04in; }
         .lanyard-activity { display: flex; align-items: center; white-space: pre-line; font-size: 9.2px; font-weight: 800; line-height: 1.12; padding: 0.035in 0.055in; overflow: hidden; word-break: break-word; }
+        .lanyard-meta { border-bottom: 0.6px solid ${lanyardTheme.border}; background: ${lanyardTheme.rowAlt}; color: #0f172a; font-size: 9px; font-weight: 800; line-height: 1.15; padding: 0.045in 0.06in; text-align: center; white-space: pre-line; }
         .rotation-page { page-break-after: always; width: 100%; height: calc(${selectedSettings.customPageHeight || "8.5in"} - 0.5in); overflow: hidden; }
         .rotation-page:last-child { page-break-after: auto; }
         .rotation-grid { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -705,16 +727,30 @@ function PrintContent() {
                 {draftTemplate.type === "badges" && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
                     <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge layout</p>
-                    <label className="block text-xs font-bold text-slate-500">Layout<select value={selectedSettings.badgeLayout} onChange={e => updateSettings({ badgeLayout: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="standard">Standard name badge</option><option value="schedule_lanyard">Schedule lanyard table</option></select></label>
+                    <label className="block text-xs font-bold text-slate-500">Layout<select value={selectedSettings.badgeLayout} onChange={e => updateSettings({ badgeLayout: e.target.value, badgeContentBlocks: e.target.value === "schedule_lanyard" ? ["name", "schedule"] : ["label", "firstName", "lastName"] })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="standard">Standard name badge</option><option value="schedule_lanyard">Schedule lanyard table</option></select></label>
                     {selectedSettings.badgeLayout === "schedule_lanyard" && <label className="block text-xs font-bold text-slate-500">Lanyard style<select value={selectedSettings.lanyardTheme} onChange={e => updateSettings({ lanyardTheme: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">{Object.entries(LANYARD_THEMES).map(([key, theme]) => <option key={key} value={key}>{theme.label}</option>)}</select><span className="mt-1 block text-[11px] font-semibold text-slate-400">Spreadsheet-style name header, thinner grid lines, and mild alternating schedule rows.</span></label>}
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="block text-xs font-bold text-slate-500">Rows<input type="number" min={1} max={8} value={badgeRows} onChange={e => updateSettings({ badgeRows: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
-                      <label className="block text-xs font-bold text-slate-500">Columns<input type="number" min={1} max={5} value={badgeCols} onChange={e => updateSettings({ badgeCols: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 text-xs font-bold text-slate-600">
-                      <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-2"><input type="checkbox" checked={selectedSettings.showAgeGroup} onChange={e => updateSettings({ showAgeGroup: e.target.checked })} /> Show age group</label>
-                      <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-2"><input type="checkbox" checked={selectedSettings.showGuardian} onChange={e => updateSettings({ showGuardian: e.target.checked })} /> Show guardian contact</label>
-                      <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-2"><input type="checkbox" checked={selectedSettings.showSchedule} onChange={e => updateSettings({ showSchedule: e.target.checked })} /> Show compact schedule</label>
+                    {draftTemplate.paperSize === "letter" ? <div className="grid grid-cols-2 gap-2">
+                      <label className="block text-xs font-bold text-slate-500">Rows on sheet<input type="number" min={1} max={8} value={badgeRows} onChange={e => updateSettings({ badgeRows: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
+                      <label className="block text-xs font-bold text-slate-500">Columns on sheet<input type="number" min={1} max={5} value={badgeCols} onChange={e => updateSettings({ badgeCols: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
+                    </div> : <p className="rounded-xl bg-slate-50 p-3 text-[11px] font-semibold text-slate-500">Rows/columns only apply to Letter badge sheets. A 3×5 or 5×3 badge prints one camper per page.</p>}
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge content</p>
+                          <p className="text-[11px] font-semibold text-slate-400">Add/remove fields here, then drag them into the order you want. Age group is off by default for the schedule lanyard.</p>
+                        </div>
+                        <button type="button" onClick={resetBadgeBlocks} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500">Reset</button>
+                      </div>
+                      <div className="space-y-1">
+                        {badgeContentBlocks.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropBadgeBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing">
+                          <span className="text-slate-400">☰</span>
+                          <span className="flex-1">{index + 1}. {block.label}</span>
+                          <button type="button" onClick={() => moveBadgeBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button>
+                          <button type="button" onClick={() => moveBadgeBlock(block.id, 1)} disabled={index === badgeContentBlocks.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button>
+                          <button type="button" onClick={() => removeBadgeBlock(block.id)} className="rounded-md border border-rose-100 bg-rose-50 px-2 py-1 text-[10px] text-rose-600">Remove</button>
+                        </div>)}
+                      </div>
+                      {addableBadgeBlocks.length > 0 && <label className="block text-xs font-bold text-slate-500">Add field<select value="" onChange={e => addBadgeBlock(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="">Choose a field…</option>{addableBadgeBlocks.map(block => <option key={block.id} value={block.id}>{block.label}</option>)}</select></label>}
                     </div>
                   </div>
                 )}
@@ -752,29 +788,37 @@ function PrintContent() {
         <div className={draftTemplate.paperSize === "letter" ? "badge-sheet" : ""}>
           {sortedCampers.map(c => {
             if (selectedSettings.badgeLayout === "schedule_lanyard") {
-              const rows = lanyardScheduleRows(c);
-              const renderLanyardBlock = (blockId: string) => blockId === "schedule"
-                ? <div key="schedule" className="lanyard-table">
+              const showAgeInSchedule = badgeContentBlockIds.includes("ageGroup");
+              const rows = lanyardScheduleRows(c, showAgeInSchedule);
+              const renderLanyardBlock = (blockId: string) => {
+                if (blockId === "schedule") return <div key="schedule" className="lanyard-table">
                   {rows.length ? rows.map((row, idx) => <div key={`${row.sortValue}-${idx}`} className="lanyard-row">
                     <div className="lanyard-time">{row.time}</div>
                     <div className="lanyard-activity">{row.activity}</div>
                   </div>) : <div className="lanyard-row"><div className="lanyard-time">—</div><div className="lanyard-activity">No schedule assigned</div></div>}
-                </div>
-                : <div key="name" className="lanyard-name">{fullName(c)}</div>;
+                </div>;
+                if (blockId === "name") return <div key="name" className="lanyard-name">{fullName(c)}</div>;
+                if (blockId === "ageGroup") return <div key="ageGroup" className="lanyard-meta">{c.ageGroup?.name || "Age group not set"}</div>;
+                if (blockId === "guardian") return <div key="guardian" className="lanyard-meta">{[c.guardianName, c.guardianPhone || c.guardianEmail].filter(Boolean).join("\n") || "Guardian contact not set"}</div>;
+                if (blockId === "emergency") return <div key="emergency" className="lanyard-meta">Emergency: {c.emergencyPhone || "—"}</div>;
+                if (blockId === "medical") return <div key="medical" className="lanyard-meta">{[c.medicalNotes, c.dietaryNotes].filter(Boolean).join("\n") || "No medical/dietary notes"}</div>;
+                return null;
+              };
               return <div key={c.id} className={`lanyard-schedule-card ${draftTemplate.paperSize === "letter" ? "" : "single-badge-page"}`}>
-                {customBlockOrder.map(block => renderLanyardBlock(block.id))}
+                {badgeContentBlocks.map(block => renderLanyardBlock(block.id))}
               </div>;
             }
             const renderBadgeBlock = (blockId: string) => {
               if (blockId === "label") return <div key="label" style={{fontSize:11, textTransform:"uppercase", letterSpacing:".12em", marginBottom:8}}>Camper</div>;
               if (blockId === "firstName") return <div key="firstName" className="badge-name">{c.firstName}</div>;
               if (blockId === "lastName") return <div key="lastName" className="badge-last">{c.lastName}</div>;
-              if (blockId === "ageGroup") return selectedSettings.showAgeGroup ? <div key="ageGroup" style={{fontSize:13, fontWeight:800, marginTop:8, borderTop:"1px solid #ddd", paddingTop:8}}>{c.ageGroup?.name || ""}</div> : null;
-              if (blockId === "guardian") return selectedSettings.showGuardian ? <div key="guardian" style={{fontSize:10, marginTop:6}}>{c.guardianName || ""}{c.guardianPhone ? ` • ${c.guardianPhone}` : ""}</div> : null;
-              return selectedSettings.showSchedule ? <div key="schedule" style={{fontSize:9, marginTop:8, lineHeight:1.25}}>{badgeScheduleSummary(c)}</div> : null;
+              if (blockId === "ageGroup") return <div key="ageGroup" style={{fontSize:13, fontWeight:800, marginTop:8, borderTop:"1px solid #ddd", paddingTop:8}}>{c.ageGroup?.name || ""}</div>;
+              if (blockId === "guardian") return <div key="guardian" style={{fontSize:10, marginTop:6}}>{c.guardianName || ""}{c.guardianPhone ? ` • ${c.guardianPhone}` : c.guardianEmail ? ` • ${c.guardianEmail}` : ""}</div>;
+              if (blockId === "schedule") return <div key="schedule" style={{fontSize:9, marginTop:8, lineHeight:1.25}}>{badgeScheduleSummary(c)}</div>;
+              return null;
             };
             return <div key={c.id} className={`badge-card ${draftTemplate.paperSize === "letter" ? "" : "single-badge-page"}`}>
-              {customBlockOrder.map(block => renderBadgeBlock(block.id))}
+              {badgeContentBlocks.map(block => renderBadgeBlock(block.id))}
             </div>;
           })}
         </div>
