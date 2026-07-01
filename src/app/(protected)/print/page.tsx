@@ -92,7 +92,7 @@ const PAPER_CSS: Record<PaperSize, string> = {
   "3x5": "3in 5in",
   custom: "var(--custom-print-size)",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", customBlockOrder: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
   { builtin: true, name: "Teacher Packets — Classes + Students", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true, showStudents: true }) },
@@ -108,6 +108,47 @@ const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Camper Card — 4×6", type: "badges", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showGuardian: true, showSchedule: true }) },
 ];
 
+type CustomBlockOption = { id: string; label: string };
+const ROTATION_BLOCK_OPTIONS: CustomBlockOption[] = [
+  { id: "header", label: "Class header" },
+  { id: "timeBand", label: "Time band" },
+  { id: "teacher", label: "Teacher row" },
+  { id: "students", label: "Student roster" },
+  { id: "footer", label: "Footer label" },
+];
+const BADGE_STANDARD_BLOCK_OPTIONS: CustomBlockOption[] = [
+  { id: "label", label: "Camper label" },
+  { id: "firstName", label: "First name" },
+  { id: "lastName", label: "Last name" },
+  { id: "ageGroup", label: "Age group" },
+  { id: "guardian", label: "Guardian contact" },
+  { id: "schedule", label: "Compact schedule" },
+];
+const BADGE_LANYARD_BLOCK_OPTIONS: CustomBlockOption[] = [
+  { id: "name", label: "Name header" },
+  { id: "schedule", label: "Schedule table" },
+];
+function orderedCustomBlocks(savedOrder: unknown, options: CustomBlockOption[]) {
+  const ids = Array.isArray(savedOrder) ? savedOrder.filter((id): id is string => typeof id === "string") : [];
+  const optionById = new Map(options.map(option => [option.id, option]));
+  return [...ids.map(id => optionById.get(id)).filter((option): option is CustomBlockOption => Boolean(option)), ...options.filter(option => !ids.includes(option.id))];
+}
+function reorderIds(ids: string[], draggedId: string, targetId: string) {
+  if (draggedId === targetId) return ids;
+  const next = ids.filter(id => id !== draggedId);
+  const targetIndex = next.indexOf(targetId);
+  if (targetIndex < 0) return ids;
+  next.splice(targetIndex, 0, draggedId);
+  return next;
+}
+function moveId(ids: string[], id: string, direction: -1 | 1) {
+  const index = ids.indexOf(id);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= ids.length) return ids;
+  const next = [...ids];
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
 function parseSettings(template?: PrintTemplate) {
   try { return { ...DEFAULT_SETTINGS, ...(template?.settings ? JSON.parse(template.settings) : {}) }; } catch { return DEFAULT_SETTINGS; }
 }
@@ -382,6 +423,22 @@ function PrintContent() {
   const rotationTeacherFont = numericSetting(selectedSettings.rotationTeacherFont, 10, 6, 18);
   const rotationFooterFont = numericSetting(selectedSettings.rotationFooterFont, 9, 6, 16);
   const rotationStudentTextAlign = selectedSettings.rotationStudentAlign === "left" ? "left" : selectedSettings.rotationStudentAlign === "right" ? "right" : "center";
+  const customBlockOptions = draftTemplate.type === "rotation_roster"
+    ? ROTATION_BLOCK_OPTIONS.filter(block => (block.id !== "teacher" || selectedSettings.showTeacher) && (block.id !== "footer" || selectedSettings.showFooterLabel))
+    : draftTemplate.type === "badges" && selectedSettings.badgeLayout === "schedule_lanyard"
+      ? BADGE_LANYARD_BLOCK_OPTIONS
+      : draftTemplate.type === "badges"
+        ? BADGE_STANDARD_BLOCK_OPTIONS.filter(block => (block.id !== "ageGroup" || selectedSettings.showAgeGroup) && (block.id !== "guardian" || selectedSettings.showGuardian) && (block.id !== "schedule" || selectedSettings.showSchedule))
+        : [];
+  const customBlockOrder = orderedCustomBlocks(selectedSettings.customBlockOrder, customBlockOptions);
+  const customBlockOrderIds = customBlockOrder.map(block => block.id);
+  const rotationCardRows = customBlockOrder.map(block => {
+    if (block.id === "header") return selectedSettings.rotationHeaderHeight || "0.70in";
+    if (block.id === "timeBand") return selectedSettings.rotationBandHeight || "0.36in";
+    if (block.id === "teacher") return selectedSettings.rotationTeacherHeight || "0.32in";
+    if (block.id === "footer") return selectedSettings.rotationFooterHeight || "0.45in";
+    return "minmax(0, 1fr)";
+  }).join(" ") || "minmax(0, 1fr)";
 
   const chooseTemplate = (key: string) => {
     const template = allTemplates.find(t => t.id === key) || allTemplates[0];
@@ -391,6 +448,10 @@ function PrintContent() {
   };
   const updateDraft = (patch: Partial<PrintTemplate>) => setDraftTemplate(prev => ({ ...prev, ...patch }));
   const updateSettings = (patch: Partial<typeof DEFAULT_SETTINGS>) => updateDraft({ settings: encodeSettings({ ...selectedSettings, ...patch }) });
+  const setCustomBlockOrder = (ids: string[]) => updateSettings({ customBlockOrder: ids });
+  const moveCustomBlock = (id: string, direction: -1 | 1) => setCustomBlockOrder(moveId(customBlockOrderIds, id, direction));
+  const dropCustomBlock = (draggedId: string, targetId: string) => setCustomBlockOrder(reorderIds(customBlockOrderIds, draggedId, targetId));
+  const resetCustomBlockOrder = () => updateSettings({ customBlockOrder: [] });
   const saveAsTemplate = async () => {
     const name = window.prompt("Template name", draftTemplate.name.replace(/^Copy of /, ""));
     if (!name) return;
@@ -492,7 +553,7 @@ function PrintContent() {
         .rotation-page:last-child { page-break-after: auto; }
         .rotation-grid { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
         .rotation-grid td { border: 1px solid #222; padding: 0; vertical-align: top; height: 100%; overflow: hidden; }
-        .rotation-card { height: 100%; min-height: 0; display: grid; grid-template-rows: ${selectedSettings.rotationHeaderHeight || "0.70in"} ${selectedSettings.rotationBandHeight || "0.36in"} ${selectedSettings.showTeacher ? (selectedSettings.rotationTeacherHeight || "0.32in") : "0in"} minmax(0, 1fr) ${selectedSettings.showFooterLabel ? (selectedSettings.rotationFooterHeight || "0.45in") : "0in"}; overflow: hidden; }
+        .rotation-card { height: 100%; min-height: 0; display: grid; grid-template-rows: ${rotationCardRows}; overflow: hidden; }
         .rotation-top { background: #f8fafc; text-align: center; font-weight: 800; font-size: ${rotationHeaderFont}px; line-height: 1.12; padding: 4px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; }
         .rotation-band { text-align: center; font-size: 18px; font-weight: 900; padding: 0 4px; border-top: 1px solid #222; border-bottom: 1px solid #222; overflow: hidden; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
         .rotation-teacher { text-align: center; font-size: ${rotationTeacherFont}px; font-weight: 700; padding: 0 4px; border-bottom: 1px solid #222; overflow: hidden; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
@@ -595,6 +656,25 @@ function PrintContent() {
                   </div>
                   <p className="mt-2 text-[11px] font-semibold text-slate-400">Repeated class sessions are always combined once by default.</p>
                 </div>
+                {customBlockOptions.length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">Drag/drop block order</p>
+                        <p className="text-[11px] font-semibold text-slate-400">Drag rows to reorder the major printable blocks. Up/down buttons work on touch screens.</p>
+                      </div>
+                      <button type="button" onClick={resetCustomBlockOrder} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-500">Reset</button>
+                    </div>
+                    <div className="space-y-1">
+                      {customBlockOrder.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropCustomBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing">
+                        <span className="text-slate-400">☰</span>
+                        <span className="flex-1">{index + 1}. {block.label}</span>
+                        <button type="button" onClick={() => moveCustomBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button>
+                        <button type="button" onClick={() => moveCustomBlock(block.id, 1)} disabled={index === customBlockOrder.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button>
+                      </div>)}
+                    </div>
+                  </div>
+                )}
                 {draftTemplate.type === "badges" && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
                     <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge layout</p>
@@ -626,7 +706,13 @@ function PrintContent() {
 
       {activeDoc === "class_rosters" && <div className="print-doc ops-print">{rosterPackets.map(group => { const course = courseById(courses, group.courseId); return <section key={group.key} className="page-break"><h1 className="ops-title">{group.title}</h1><p className="ops-subtitle">{group.time}{selectedSettings.showRoom ? ` • ${group.room}` : ""}{selectedSettings.showTeacher ? ` • Teacher: ${courseTeacherNames(course)}` : ""} • {group.campers.length} camper{group.campers.length === 1 ? "" : "s"}</p><table><thead><tr><th style={{width:"150px"}}>Camper</th><th style={{width:"100px"}}>Age Group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}{selectedSettings.showMedical && <th>Medical / Dietary</th>}</tr></thead><tbody>{group.campers.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || ""}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}{selectedSettings.showMedical && <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>}</tr>)}</tbody></table></section>; })}</div>}
 
-      {activeDoc === "rotation_roster" && <div className="print-doc ops-print">{chunkItems(rotationRosterPackets, rotationColumns).map((pageGroups, pageIndex) => <section key={`rotation-${pageIndex}`} className="rotation-page"><table className="rotation-grid"><tbody><tr>{Array.from({ length: rotationColumns }).map((_, idx) => { const group = pageGroups[idx]; if (!group) return <td key={`empty-${idx}`} />; const course = courseById(courses, group.courseId); const teacherNames = courseTeacherNames(course); const age = course ? courseAgeLabel(course) : ""; const headerTitle = `${group.title}${age ? ` (${age})` : ""}`; return <td key={group.key}><div className="rotation-card"><div className="rotation-top"><div>{group.timeLabel}</div><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div><div className="rotation-band" style={{ background: rotationBandColorForTime(group.start || group.time, selectedSettings.rotationBandMode, rotationTimes) }}>{group.timeLabel}</div>{selectedSettings.showTeacher && <div className="rotation-teacher">{teacherNames}</div>}<div className="rotation-students" style={{ fontSize: `${rotationStudentFontSize(group.campers.length, rotationStudentBaseFont)}px` }}>{selectedSettings.showStudents ? (group.campers.length ? group.campers.map(camper => <div key={camper.id}>{fullName(camper)}</div>) : <div>—</div>) : <div>{group.campers.length} registered</div>}</div>{selectedSettings.showFooterLabel && <div className="rotation-footer"><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div>}</div></td>; })}</tr></tbody></table></section>)}</div>}
+      {activeDoc === "rotation_roster" && <div className="print-doc ops-print">{chunkItems(rotationRosterPackets, rotationColumns).map((pageGroups, pageIndex) => <section key={`rotation-${pageIndex}`} className="rotation-page"><table className="rotation-grid"><tbody><tr>{Array.from({ length: rotationColumns }).map((_, idx) => { const group = pageGroups[idx]; if (!group) return <td key={`empty-${idx}`} />; const course = courseById(courses, group.courseId); const teacherNames = courseTeacherNames(course); const age = course ? courseAgeLabel(course) : ""; const headerTitle = `${group.title}${age ? ` (${age})` : ""}`; const renderRotationBlock = (blockId: string) => {
+        if (blockId === "header") return <div key="header" className="rotation-top"><div>{group.timeLabel}</div><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div>;
+        if (blockId === "timeBand") return <div key="timeBand" className="rotation-band" style={{ background: rotationBandColorForTime(group.start || group.time, selectedSettings.rotationBandMode, rotationTimes) }}>{group.timeLabel}</div>;
+        if (blockId === "teacher") return selectedSettings.showTeacher ? <div key="teacher" className="rotation-teacher">{teacherNames}</div> : null;
+        if (blockId === "footer") return selectedSettings.showFooterLabel ? <div key="footer" className="rotation-footer"><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div> : null;
+        return <div key="students" className="rotation-students" style={{ fontSize: `${rotationStudentFontSize(group.campers.length, rotationStudentBaseFont)}px` }}>{selectedSettings.showStudents ? (group.campers.length ? group.campers.map(camper => <div key={camper.id}>{fullName(camper)}</div>) : <div>—</div>) : <div>{group.campers.length} registered</div>}</div>;
+      }; return <td key={group.key}><div className="rotation-card">{customBlockOrder.map(block => renderRotationBlock(block.id))}</div></td>; })}</tr></tbody></table></section>)}</div>}
 
       {activeDoc === "camper_choices" && <div className="print-doc ops-print"><h1 className="ops-title">Camper Class Choices</h1><p className="ops-subtitle">Repeated sessions are combined; each selected class time appears once per camper.</p><table><thead><tr><th style={{width:"145px"}}>Camper</th><th style={{width:"95px"}}>Age Group</th><th>Class Choices</th></tr></thead><tbody>{sortedCampers.map(camper => { const choices = classChoicesForCamper(camper, courses); return <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{choices.length ? choices.map(choice => choice.label).join("\n") : "—"}</td></tr>; })}</tbody></table></div>}
 
@@ -639,23 +725,28 @@ function PrintContent() {
           {sortedCampers.map(c => {
             if (selectedSettings.badgeLayout === "schedule_lanyard") {
               const rows = lanyardScheduleRows(c);
-              return <div key={c.id} className={`lanyard-schedule-card ${draftTemplate.paperSize === "letter" ? "" : "single-badge-page"}`}>
-                <div className="lanyard-name">{fullName(c)}</div>
-                <div className="lanyard-table">
+              const renderLanyardBlock = (blockId: string) => blockId === "schedule"
+                ? <div key="schedule" className="lanyard-table">
                   {rows.length ? rows.map((row, idx) => <div key={`${row.sortValue}-${idx}`} className="lanyard-row">
                     <div className="lanyard-time">{row.time}</div>
                     <div className="lanyard-activity">{row.activity}</div>
                   </div>) : <div className="lanyard-row"><div className="lanyard-time">—</div><div className="lanyard-activity">No schedule assigned</div></div>}
                 </div>
+                : <div key="name" className="lanyard-name">{fullName(c)}</div>;
+              return <div key={c.id} className={`lanyard-schedule-card ${draftTemplate.paperSize === "letter" ? "" : "single-badge-page"}`}>
+                {customBlockOrder.map(block => renderLanyardBlock(block.id))}
               </div>;
             }
+            const renderBadgeBlock = (blockId: string) => {
+              if (blockId === "label") return <div key="label" style={{fontSize:11, textTransform:"uppercase", letterSpacing:".12em", marginBottom:8}}>Camper</div>;
+              if (blockId === "firstName") return <div key="firstName" className="badge-name">{c.firstName}</div>;
+              if (blockId === "lastName") return <div key="lastName" className="badge-last">{c.lastName}</div>;
+              if (blockId === "ageGroup") return selectedSettings.showAgeGroup ? <div key="ageGroup" style={{fontSize:13, fontWeight:800, marginTop:8, borderTop:"1px solid #ddd", paddingTop:8}}>{c.ageGroup?.name || ""}</div> : null;
+              if (blockId === "guardian") return selectedSettings.showGuardian ? <div key="guardian" style={{fontSize:10, marginTop:6}}>{c.guardianName || ""}{c.guardianPhone ? ` • ${c.guardianPhone}` : ""}</div> : null;
+              return selectedSettings.showSchedule ? <div key="schedule" style={{fontSize:9, marginTop:8, lineHeight:1.25}}>{badgeScheduleSummary(c)}</div> : null;
+            };
             return <div key={c.id} className={`badge-card ${draftTemplate.paperSize === "letter" ? "" : "single-badge-page"}`}>
-              <div style={{fontSize:11, textTransform:"uppercase", letterSpacing:".12em", marginBottom:8}}>Camper</div>
-              <div className="badge-name">{c.firstName}</div>
-              <div className="badge-last">{c.lastName}</div>
-              {selectedSettings.showAgeGroup && <div style={{fontSize:13, fontWeight:800, marginTop:8, borderTop:"1px solid #ddd", paddingTop:8}}>{c.ageGroup?.name || ""}</div>}
-              {selectedSettings.showGuardian && <div style={{fontSize:10, marginTop:6}}>{c.guardianName || ""}{c.guardianPhone ? ` • ${c.guardianPhone}` : ""}</div>}
-              {selectedSettings.showSchedule && <div style={{fontSize:9, marginTop:8, lineHeight:1.25}}>{badgeScheduleSummary(c)}</div>}
+              {customBlockOrder.map(block => renderBadgeBlock(block.id))}
             </div>;
           })}
         </div>
