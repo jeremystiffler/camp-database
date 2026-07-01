@@ -90,7 +90,7 @@ const PAPER_CSS: Record<PaperSize, string> = {
   "5x3": "5in 3in",
   custom: "var(--custom-print-size)",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", showFooterLabel: true };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
   { builtin: true, name: "Teacher Packets — Classes + Students", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true, showStudents: true }) },
@@ -193,6 +193,19 @@ function chunkItems<T>(items: T[], size: number) {
   const chunks: T[][] = [];
   for (let i = 0; i < items.length; i += Math.max(size, 1)) chunks.push(items.slice(i, i + Math.max(size, 1)));
   return chunks.length ? chunks : [[]];
+}
+function numericSetting(value: unknown, fallback: number, min: number, max: number) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return fallback;
+  return Math.min(Math.max(next, min), max);
+}
+function rotationStudentFontSize(count: number, base: number) {
+  if (count > 28) return Math.max(5.2, base - 5.2);
+  if (count > 22) return Math.max(5.8, base - 4.2);
+  if (count > 17) return Math.max(6.5, base - 3.2);
+  if (count > 13) return Math.max(7.4, base - 2.2);
+  if (count > 10) return Math.max(8.2, base - 1.2);
+  return base;
 }
 function courseById(courses: Course[], courseId: string) { return courses.find(course => course.id === courseId); }
 function campersForCourseSlot(campers: Camper[], courseId: string, start: string, end: string, roomName?: string | null) {
@@ -339,6 +352,11 @@ function PrintContent() {
   const rotationTimes = Array.from(new Map(rosterPackets.map(group => [group.start || group.time, group.timeLabel || group.time])).entries()).sort((a, b) => a[0].localeCompare(b[0]));
   const rotationRosterPackets = rosterPackets.filter(group => !selectedSettings.rotationTimeFilter || group.start === selectedSettings.rotationTimeFilter);
   const rotationColumns = Math.max(1, Number(selectedSettings.rotationColumns || 5));
+  const rotationStudentBaseFont = numericSetting(selectedSettings.rotationStudentFont, 11, 5, 20);
+  const rotationHeaderFont = numericSetting(selectedSettings.rotationHeaderFont, 10, 6, 20);
+  const rotationTeacherFont = numericSetting(selectedSettings.rotationTeacherFont, 10, 6, 18);
+  const rotationFooterFont = numericSetting(selectedSettings.rotationFooterFont, 9, 6, 16);
+  const rotationStudentTextAlign = selectedSettings.rotationStudentAlign === "left" ? "left" : selectedSettings.rotationStudentAlign === "right" ? "right" : "center";
 
   const chooseTemplate = (key: string) => {
     const template = allTemplates.find(t => t.id === key) || allTemplates[0];
@@ -438,16 +456,17 @@ function PrintContent() {
         .badge-last { font-size: ${draftTemplate.paperSize === "letter" ? "14px" : "20px"}; margin-top: 4px; }
         .single-badge-page { page-break-after: always; }
         .single-badge-page:last-child { page-break-after: auto; }
-        .rotation-page { page-break-after: always; width: 100%; }
+        .rotation-page { page-break-after: always; width: 100%; height: calc(${selectedSettings.customPageHeight || "8.5in"} - 0.5in); overflow: hidden; }
         .rotation-page:last-child { page-break-after: auto; }
-        .rotation-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .rotation-grid td { border: 1px solid #222; padding: 0; vertical-align: top; }
-        .rotation-card { min-height: calc(${selectedSettings.customPageHeight || "8.5in"} - 0.5in); display: grid; grid-template-rows: auto auto auto 1fr auto; }
-        .rotation-top { background: #f8fafc; text-align: center; font-weight: 800; font-size: 10px; line-height: 1.18; padding: 6px 4px; min-height: 0.55in; }
-        .rotation-band { background: ${selectedSettings.rotationBandColor || "#f8dfe6"}; text-align: center; font-size: 18px; font-weight: 900; padding: 7px 4px; border-top: 1px solid #222; border-bottom: 1px solid #222; }
-        .rotation-teacher { text-align: center; font-size: 10px; font-weight: 700; padding: 5px 4px; border-bottom: 1px solid #222; min-height: 0.3in; }
-        .rotation-students { padding: 7px 8px; font-size: 11px; line-height: 1.45; font-weight: 800; text-align: center; }
-        .rotation-footer { text-align: center; font-size: 9px; font-weight: 800; line-height: 1.2; padding: 5px 4px; border-top: 1px solid #222; min-height: 0.42in; }
+        .rotation-grid { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+        .rotation-grid td { border: 1px solid #222; padding: 0; vertical-align: top; height: 100%; overflow: hidden; }
+        .rotation-card { height: 100%; min-height: 0; display: grid; grid-template-rows: ${selectedSettings.rotationHeaderHeight || "0.70in"} ${selectedSettings.rotationBandHeight || "0.36in"} ${selectedSettings.showTeacher ? (selectedSettings.rotationTeacherHeight || "0.32in") : "0in"} minmax(0, 1fr) ${selectedSettings.showFooterLabel ? (selectedSettings.rotationFooterHeight || "0.45in") : "0in"}; overflow: hidden; }
+        .rotation-top { background: #f8fafc; text-align: center; font-weight: 800; font-size: ${rotationHeaderFont}px; line-height: 1.12; padding: 4px; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; }
+        .rotation-band { background: ${selectedSettings.rotationBandColor || "#f8dfe6"}; text-align: center; font-size: 18px; font-weight: 900; padding: 0 4px; border-top: 1px solid #222; border-bottom: 1px solid #222; overflow: hidden; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+        .rotation-teacher { text-align: center; font-size: ${rotationTeacherFont}px; font-weight: 700; padding: 0 4px; border-bottom: 1px solid #222; overflow: hidden; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+        .rotation-students { min-height: 0; padding: 6px 7px; line-height: 1.28; font-weight: 800; text-align: ${rotationStudentTextAlign}; overflow: hidden; word-break: break-word; box-sizing: border-box; }
+        .rotation-students div { break-inside: avoid; page-break-inside: avoid; }
+        .rotation-footer { text-align: center; font-size: ${rotationFooterFont}px; font-weight: 800; line-height: 1.12; padding: 3px 4px; border-top: 1px solid #222; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; }
       `}</style>
 
       <div className="no-print space-y-6">
@@ -519,7 +538,18 @@ function PrintContent() {
                       <label className="block text-xs font-bold text-slate-500">Time band color<input type="color" value={selectedSettings.rotationBandColor} onChange={e => updateSettings({ rotationBandColor: e.target.value })} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-2 py-1" /></label>
                     </div>
                     <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-2 text-xs font-bold text-slate-600"><input type="checkbox" checked={selectedSettings.showFooterLabel} onChange={e => updateSettings({ showFooterLabel: e.target.checked })} /> Repeat activity/location footer</label>
-                    <p className="text-[11px] font-semibold text-slate-400">V1 repeats one class roster per grid column using actual enrollments, grouped by class/time/room.</p>
+                    <details className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                      <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">V2 layout controls</summary>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <label className="block text-xs font-bold text-slate-500">Header height<input value={selectedSettings.rotationHeaderHeight} onChange={e => updateSettings({ rotationHeaderHeight: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs" /></label>
+                        <label className="block text-xs font-bold text-slate-500">Time band height<input value={selectedSettings.rotationBandHeight} onChange={e => updateSettings({ rotationBandHeight: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs" /></label>
+                        <label className="block text-xs font-bold text-slate-500">Teacher height<input value={selectedSettings.rotationTeacherHeight} onChange={e => updateSettings({ rotationTeacherHeight: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs" /></label>
+                        <label className="block text-xs font-bold text-slate-500">Footer height<input value={selectedSettings.rotationFooterHeight} onChange={e => updateSettings({ rotationFooterHeight: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs" /></label>
+                        <label className="block text-xs font-bold text-slate-500">Student font<input type="number" min={5} max={20} value={rotationStudentBaseFont} onChange={e => updateSettings({ rotationStudentFont: Number(e.target.value) })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs" /></label>
+                        <label className="block text-xs font-bold text-slate-500">Student align<select value={rotationStudentTextAlign} onChange={e => updateSettings({ rotationStudentAlign: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs"><option value="center">Center</option><option value="left">Left</option><option value="right">Right</option></select></label>
+                      </div>
+                    </details>
+                    <p className="text-[11px] font-semibold text-slate-400">V1 now uses fixed row heights and shrink-to-fit student text so rosters cannot stretch the page. V2 starts here with editable layout controls.</p>
                   </div>
                 )}
                 <div className="rounded-2xl border border-slate-200 p-3">
@@ -563,7 +593,7 @@ function PrintContent() {
 
       {activeDoc === "class_rosters" && <div className="print-doc ops-print">{rosterPackets.map(group => { const course = courseById(courses, group.courseId); return <section key={group.key} className="page-break"><h1 className="ops-title">{group.title}</h1><p className="ops-subtitle">{group.time}{selectedSettings.showRoom ? ` • ${group.room}` : ""}{selectedSettings.showTeacher ? ` • Teacher: ${courseTeacherNames(course)}` : ""} • {group.campers.length} camper{group.campers.length === 1 ? "" : "s"}</p><table><thead><tr><th style={{width:"150px"}}>Camper</th><th style={{width:"100px"}}>Age Group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}{selectedSettings.showMedical && <th>Medical / Dietary</th>}</tr></thead><tbody>{group.campers.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || ""}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}{selectedSettings.showMedical && <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>}</tr>)}</tbody></table></section>; })}</div>}
 
-      {activeDoc === "rotation_roster" && <div className="print-doc ops-print">{chunkItems(rotationRosterPackets, rotationColumns).map((pageGroups, pageIndex) => <section key={`rotation-${pageIndex}`} className="rotation-page"><table className="rotation-grid"><tbody><tr>{Array.from({ length: rotationColumns }).map((_, idx) => { const group = pageGroups[idx]; if (!group) return <td key={`empty-${idx}`} />; const course = courseById(courses, group.courseId); const teacherNames = courseTeacherNames(course); const age = course ? courseAgeLabel(course) : ""; const headerTitle = `${group.title}${age ? ` (${age})` : ""}`; return <td key={group.key}><div className="rotation-card"><div className="rotation-top"><div>{group.timeLabel}</div><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div><div className="rotation-band">{group.timeLabel}</div>{selectedSettings.showTeacher && <div className="rotation-teacher">{teacherNames}</div>}<div className="rotation-students">{selectedSettings.showStudents ? (group.campers.length ? group.campers.map(camper => <div key={camper.id}>{fullName(camper)}</div>) : <div>—</div>) : <div>{group.campers.length} registered</div>}</div>{selectedSettings.showFooterLabel && <div className="rotation-footer"><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div>}</div></td>; })}</tr></tbody></table></section>)}</div>}
+      {activeDoc === "rotation_roster" && <div className="print-doc ops-print">{chunkItems(rotationRosterPackets, rotationColumns).map((pageGroups, pageIndex) => <section key={`rotation-${pageIndex}`} className="rotation-page"><table className="rotation-grid"><tbody><tr>{Array.from({ length: rotationColumns }).map((_, idx) => { const group = pageGroups[idx]; if (!group) return <td key={`empty-${idx}`} />; const course = courseById(courses, group.courseId); const teacherNames = courseTeacherNames(course); const age = course ? courseAgeLabel(course) : ""; const headerTitle = `${group.title}${age ? ` (${age})` : ""}`; return <td key={group.key}><div className="rotation-card"><div className="rotation-top"><div>{group.timeLabel}</div><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div><div className="rotation-band">{group.timeLabel}</div>{selectedSettings.showTeacher && <div className="rotation-teacher">{teacherNames}</div>}<div className="rotation-students" style={{ fontSize: `${rotationStudentFontSize(group.campers.length, rotationStudentBaseFont)}px` }}>{selectedSettings.showStudents ? (group.campers.length ? group.campers.map(camper => <div key={camper.id}>{fullName(camper)}</div>) : <div>—</div>) : <div>{group.campers.length} registered</div>}</div>{selectedSettings.showFooterLabel && <div className="rotation-footer"><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div>}</div></td>; })}</tr></tbody></table></section>)}</div>}
 
       {activeDoc === "camper_choices" && <div className="print-doc ops-print"><h1 className="ops-title">Camper Class Choices</h1><p className="ops-subtitle">Repeated sessions are combined; each selected class time appears once per camper.</p><table><thead><tr><th style={{width:"145px"}}>Camper</th><th style={{width:"95px"}}>Age Group</th><th>Class Choices</th></tr></thead><tbody>{sortedCampers.map(camper => { const choices = classChoicesForCamper(camper, courses); return <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{choices.length ? choices.map(choice => choice.label).join("\n") : "—"}</td></tr>; })}</tbody></table></div>}
 
