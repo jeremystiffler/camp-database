@@ -136,6 +136,14 @@ const BADGE_LANYARD_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "emergency", label: "Emergency phone" },
   { id: "medical", label: "Medical / dietary notes" },
 ];
+const CUSTOM_PRINTABLE_BACK_BLOCK_OPTIONS: CustomBlockOption[] = [
+  { id: "fullName", label: "Full name" },
+  { id: "ageGroup", label: "Age group" },
+  { id: "guardian", label: "Guardian contact" },
+  { id: "emergency", label: "Emergency phone" },
+  { id: "medical", label: "Medical / dietary notes" },
+  { id: "schedule", label: "Compact schedule" },
+];
 const LANYARD_THEMES = {
   aquaSheet: { label: "Aqua spreadsheet", headerBg: "#63d2d2", headerText: "#071827", border: "#334155", rowAlt: "#edfafa", rowBg: "#ffffff", timeBg: "#f8fafc" },
   blueSheet: { label: "Blue office sheet", headerBg: "#2563eb", headerText: "#ffffff", border: "#334155", rowAlt: "#eff6ff", rowBg: "#ffffff", timeBg: "#f8fafc" },
@@ -470,14 +478,16 @@ function PrintContent() {
     : draftTemplate.type === "badges"
       ? BADGE_STANDARD_BLOCK_OPTIONS
       : [];
+  const supportsTwoSidedCustom = draftTemplate.type === "badges" || customBlockOptions.length > 0;
+  const printableBackBlockOptions = draftTemplate.type === "badges" ? badgeBlockOptions : supportsTwoSidedCustom ? CUSTOM_PRINTABLE_BACK_BLOCK_OPTIONS : [];
   const defaultBadgeBlockIds = selectedSettings.badgeLayout === "schedule_lanyard" ? ["name", "schedule"] : ["label", "firstName", "lastName"];
-  const defaultBadgeBackBlockIds = ["fullName", "guardian", "emergency", "medical"].filter(id => badgeBlockOptions.some(block => block.id === id));
+  const defaultBadgeBackBlockIds = ["fullName", "guardian", "emergency", "medical"].filter(id => printableBackBlockOptions.some(block => block.id === id));
   const badgeContentBlocks = selectedBlocks(selectedSettings.badgeContentBlocks, defaultBadgeBlockIds, badgeBlockOptions);
   const badgeContentBlockIds = badgeContentBlocks.map(block => block.id);
   const addableBadgeBlocks = badgeBlockOptions.filter(block => !badgeContentBlockIds.includes(block.id));
-  const badgeBackBlocks = selectedBlocks(selectedSettings.badgeBackContentBlocks, defaultBadgeBackBlockIds, badgeBlockOptions);
+  const badgeBackBlocks = selectedBlocks(selectedSettings.badgeBackContentBlocks, defaultBadgeBackBlockIds, printableBackBlockOptions);
   const badgeBackBlockIds = badgeBackBlocks.map(block => block.id);
-  const addableBadgeBackBlocks = badgeBlockOptions.filter(block => !badgeBackBlockIds.includes(block.id));
+  const addableBadgeBackBlocks = printableBackBlockOptions.filter(block => !badgeBackBlockIds.includes(block.id));
   const rotationCardRows = customBlockOrder.map(block => {
     if (block.id === "header") return selectedSettings.rotationHeaderHeight || "0.70in";
     if (block.id === "timeBand") return selectedSettings.rotationBandHeight || "0.36in";
@@ -604,6 +614,13 @@ function PrintContent() {
         .badge-back-field { border-bottom: 0.5px solid #999; padding: 0.055in 0; font-size: 9.5px; font-weight: 500; line-height: 1.25; white-space: pre-line; }
         .badge-back-field:last-child { border-bottom: 0; }
         .badge-back-field-label { display: block; margin-bottom: 2px; font-size: 7px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #333; }
+        .custom-back-page { page-break-before: always; page-break-after: always; width: 100%; min-height: calc(${selectedSettings.customPageHeight || "8.5in"} - 0.5in); display: grid; grid-template-columns: repeat(auto-fit, minmax(2.25in, 1fr)); gap: 0.12in; align-content: start; }
+        .custom-back-page:last-child { page-break-after: auto; }
+        .custom-back-card { border: 1px solid #111; border-radius: 4px; padding: 0.12in; min-height: 1.2in; page-break-inside: avoid; }
+        .custom-back-title { border-bottom: 1px solid #111; padding-bottom: 0.04in; margin-bottom: 0.04in; text-align: center; font-size: 11px; font-weight: 800; line-height: 1.12; }
+        .custom-back-field { border-bottom: 0.5px solid #999; padding: 0.035in 0; font-size: 8.5px; font-weight: 500; line-height: 1.18; white-space: pre-line; }
+        .custom-back-field:last-child { border-bottom: 0; }
+        .custom-back-label { display: block; margin-bottom: 1px; font-size: 6.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #333; }
         .badge-name { font-size: ${draftTemplate.paperSize === "letter" ? "24px" : "34px"}; font-weight: 900; line-height: 1; }
         .badge-last { font-size: ${draftTemplate.paperSize === "letter" ? "14px" : "20px"}; margin-top: 4px; }
         .single-badge-page { page-break-after: always; }
@@ -798,6 +815,31 @@ function PrintContent() {
                     </div>
                   </div>
                 )}
+                {supportsTwoSidedCustom && draftTemplate.type !== "badges" && (
+                  <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
+                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Two-sided custom printable</p>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
+                      <label className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-600"><input type="checkbox" checked={selectedSettings.badgeBackEnabled} onChange={e => updateSettings({ badgeBackEnabled: e.target.checked, badgeBackContentBlocks: selectedSettings.badgeBackContentBlocks.length ? selectedSettings.badgeBackContentBlocks : defaultBadgeBackBlockIds })} /> Print a back side</label>
+                      <p className="text-[11px] font-semibold text-slate-400">Use the same subtle business-card back for custom printables. For the custom grid, fronts print first, then matching camper info back pages.</p>
+                      {selectedSettings.badgeBackEnabled && <>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">Back side content</p>
+                          <button type="button" onClick={resetBadgeBackBlocks} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500">Reset back</button>
+                        </div>
+                        <div className="space-y-1">
+                          {badgeBackBlocks.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropBadgeBackBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing">
+                            <span className="text-slate-400">☰</span>
+                            <span className="flex-1">{index + 1}. {block.label}</span>
+                            <button type="button" onClick={() => moveBadgeBackBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button>
+                            <button type="button" onClick={() => moveBadgeBackBlock(block.id, 1)} disabled={index === badgeBackBlocks.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button>
+                            <button type="button" onClick={() => removeBadgeBackBlock(block.id)} className="rounded-md border border-rose-100 bg-rose-50 px-2 py-1 text-[10px] text-rose-600">Remove</button>
+                          </div>)}
+                        </div>
+                        {addableBadgeBackBlocks.length > 0 && <label className="block text-xs font-bold text-slate-500">Add back field<select value="" onChange={e => addBadgeBackBlock(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="">Choose a back field…</option>{addableBadgeBackBlocks.map(block => <option key={block.id} value={block.id}>{block.label}</option>)}</select></label>}
+                      </>}
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-bold text-white">Print preview</button>
                   <button onClick={updateSavedTemplate} disabled={saving} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50">{draftTemplate.builtin ? "Save copy" : "Update"}</button>
@@ -814,13 +856,26 @@ function PrintContent() {
 
       {activeDoc === "class_rosters" && <div className="print-doc ops-print">{rosterPackets.map(group => { const course = courseById(courses, group.courseId); return <section key={group.key} className="page-break"><h1 className="ops-title">{group.title}</h1><p className="ops-subtitle">{group.time}{selectedSettings.showRoom ? ` • ${group.room}` : ""}{selectedSettings.showTeacher ? ` • Teacher: ${courseTeacherNames(course)}` : ""} • {group.campers.length} camper{group.campers.length === 1 ? "" : "s"}</p><table><thead><tr><th style={{width:"150px"}}>Camper</th><th style={{width:"100px"}}>Age Group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}{selectedSettings.showMedical && <th>Medical / Dietary</th>}</tr></thead><tbody>{group.campers.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || ""}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}{selectedSettings.showMedical && <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>}</tr>)}</tbody></table></section>; })}</div>}
 
-      {activeDoc === "rotation_roster" && <div className="print-doc ops-print">{chunkItems(rotationRosterPackets, rotationColumns).map((pageGroups, pageIndex) => <section key={`rotation-${pageIndex}`} className="rotation-page"><table className="rotation-grid"><tbody><tr>{Array.from({ length: rotationColumns }).map((_, idx) => { const group = pageGroups[idx]; if (!group) return <td key={`empty-${idx}`} />; const course = courseById(courses, group.courseId); const teacherNames = courseTeacherNames(course); const age = course ? courseAgeLabel(course) : ""; const headerTitle = `${group.title}${age ? ` (${age})` : ""}`; const renderRotationBlock = (blockId: string) => {
-        if (blockId === "header") return <div key="header" className="rotation-top"><div>{group.timeLabel}</div><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div>;
-        if (blockId === "timeBand") return <div key="timeBand" className="rotation-band" style={{ background: rotationBandColorForTime(group.start || group.time, selectedSettings.rotationBandMode, rotationTimes) }}>{group.timeLabel}</div>;
-        if (blockId === "teacher") return selectedSettings.showTeacher ? <div key="teacher" className="rotation-teacher">{teacherNames}</div> : null;
-        if (blockId === "footer") return selectedSettings.showFooterLabel ? <div key="footer" className="rotation-footer"><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div> : null;
-        return <div key="students" className="rotation-students" style={{ fontSize: `${rotationStudentFontSize(group.campers.length, rotationStudentBaseFont)}px` }}>{selectedSettings.showStudents ? (group.campers.length ? group.campers.map(camper => <div key={camper.id}>{fullName(camper)}</div>) : <div>—</div>) : <div>{group.campers.length} registered</div>}</div>;
-      }; return <td key={group.key}><div className="rotation-card">{customBlockOrder.map(block => renderRotationBlock(block.id))}</div></td>; })}</tr></tbody></table></section>)}</div>}
+      {activeDoc === "rotation_roster" && <div className="print-doc ops-print">{(() => {
+        const renderCustomBackField = (camper: Camper, blockId: string) => {
+          const field = (label: string, value: string) => <div key={blockId} className="custom-back-field"><span className="custom-back-label">{label}</span>{value || "—"}</div>;
+          if (blockId === "fullName" || blockId === "name") return field("Camper", fullName(camper));
+          if (blockId === "ageGroup") return field("Age group", camper.ageGroup?.name || "—");
+          if (blockId === "guardian") return field("Emergency contact", [camper.guardianName, camper.guardianPhone || camper.guardianEmail].filter(Boolean).join("\n") || "—");
+          if (blockId === "emergency") return field("Emergency phone", camper.emergencyPhone || camper.guardianPhone || "—");
+          if (blockId === "medical") return field("Medical / dietary", [camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join("\n") || "None listed");
+          if (blockId === "schedule") return field("Schedule", badgeScheduleSummary(camper) || "—");
+          return null;
+        };
+        return <>{chunkItems(rotationRosterPackets, rotationColumns).map((pageGroups, pageIndex) => <section key={`rotation-${pageIndex}`} className="rotation-page"><table className="rotation-grid"><tbody><tr>{Array.from({ length: rotationColumns }).map((_, idx) => { const group = pageGroups[idx]; if (!group) return <td key={`empty-${idx}`} />; const course = courseById(courses, group.courseId); const teacherNames = courseTeacherNames(course); const age = course ? courseAgeLabel(course) : ""; const headerTitle = `${group.title}${age ? ` (${age})` : ""}`; const renderRotationBlock = (blockId: string) => {
+          if (blockId === "header") return <div key="header" className="rotation-top"><div>{group.timeLabel}</div><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div>;
+          if (blockId === "timeBand") return <div key="timeBand" className="rotation-band" style={{ background: rotationBandColorForTime(group.start || group.time, selectedSettings.rotationBandMode, rotationTimes) }}>{group.timeLabel}</div>;
+          if (blockId === "teacher") return selectedSettings.showTeacher ? <div key="teacher" className="rotation-teacher">{teacherNames}</div> : null;
+          if (blockId === "footer") return selectedSettings.showFooterLabel ? <div key="footer" className="rotation-footer"><div>{headerTitle}</div>{selectedSettings.showRoom && <div>[{group.room}]</div>}</div> : null;
+          return <div key="students" className="rotation-students" style={{ fontSize: `${rotationStudentFontSize(group.campers.length, rotationStudentBaseFont)}px` }}>{selectedSettings.showStudents ? (group.campers.length ? group.campers.map(camper => <div key={camper.id}>{fullName(camper)}</div>) : <div>—</div>) : <div>{group.campers.length} registered</div>}</div>;
+        }; return <td key={group.key}><div className="rotation-card">{customBlockOrder.map(block => renderRotationBlock(block.id))}</div></td>; })}</tr></tbody></table></section>)}
+        {selectedSettings.badgeBackEnabled && chunkItems(sortedCampers, draftTemplate.paperSize === "custom" ? 40 : 12).map((pageCampers, pageIndex) => <section key={`custom-back-${pageIndex}`} className="custom-back-page">{pageCampers.map(camper => <div key={camper.id} className="custom-back-card"><div className="custom-back-title">{fullName(camper)}</div>{badgeBackBlocks.map(block => renderCustomBackField(camper, block.id))}</div>)}</section>)}</>;
+      })()}</div>}
 
       {activeDoc === "camper_choices" && <div className="print-doc ops-print"><h1 className="ops-title">Camper Class Choices</h1><p className="ops-subtitle">Repeated sessions are combined; each selected class time appears once per camper.</p><table><thead><tr><th style={{width:"145px"}}>Camper</th><th style={{width:"95px"}}>Age Group</th><th>Class Choices</th></tr></thead><tbody>{sortedCampers.map(camper => { const choices = classChoicesForCamper(camper, courses); return <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{choices.length ? choices.map(choice => choice.label).join("\n") : "—"}</td></tr>; })}</tbody></table></div>}
 
