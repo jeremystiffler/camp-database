@@ -599,10 +599,11 @@ function PrintContent() {
         .ops-subtitle { font-size: 12px; margin: 0 0 14px; color: #444; }
         .badge-sheet { display: grid; grid-template-columns: repeat(${badgeCols}, minmax(0, 1fr)); grid-auto-rows: ${draftTemplate.paperSize === "letter" ? `calc((10.5in - 0.18in * ${Math.max(badgeRows - 1, 0)}) / ${badgeRows})` : "auto"}; gap: 0.18in; }
         .badge-card { border: 2px solid #111; border-radius: 10px; padding: 0.16in; text-align: center; page-break-inside: avoid; display: flex; flex-direction: column; justify-content: center; min-height: ${draftTemplate.paperSize === "letter" ? "auto" : "calc(100vh - 0.5in)"}; }
-        .badge-card-back { justify-content: flex-start; gap: 0.08in; text-align: left; }
-        .badge-back-title { background: #0f172a; color: #fff; border-radius: 8px; padding: 0.07in 0.08in; text-align: center; font-size: 15px; font-weight: 900; }
-        .badge-back-field { border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.07in 0.08in; font-size: 11px; font-weight: 800; line-height: 1.22; white-space: pre-line; }
-        .badge-back-field-label { display: block; margin-bottom: 2px; font-size: 8px; font-weight: 900; letter-spacing: .10em; text-transform: uppercase; color: #64748b; }
+        .badge-card-back { justify-content: flex-start; gap: 0; text-align: left; border: 1px solid #111; border-radius: 4px; padding: 0.18in; }
+        .badge-back-title { border-bottom: 1px solid #111; padding: 0 0 0.07in; margin-bottom: 0.07in; text-align: center; font-size: 12px; font-weight: 800; line-height: 1.15; }
+        .badge-back-field { border-bottom: 0.5px solid #999; padding: 0.055in 0; font-size: 9.5px; font-weight: 500; line-height: 1.25; white-space: pre-line; }
+        .badge-back-field:last-child { border-bottom: 0; }
+        .badge-back-field-label { display: block; margin-bottom: 2px; font-size: 7px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #333; }
         .badge-name { font-size: ${draftTemplate.paperSize === "letter" ? "24px" : "34px"}; font-weight: 900; line-height: 1; }
         .badge-last { font-size: ${draftTemplate.paperSize === "letter" ? "14px" : "20px"}; margin-top: 4px; }
         .single-badge-page { page-break-after: always; }
@@ -616,11 +617,11 @@ function PrintContent() {
         .lanyard-time { border-right: 0.6px solid ${lanyardTheme.border}; background: ${lanyardTheme.timeBg}; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; font-weight: 900; line-height: 1.05; padding: 0.04in; }
         .lanyard-activity { display: flex; align-items: center; white-space: pre-line; font-size: 9.2px; font-weight: 800; line-height: 1.12; padding: 0.035in 0.055in; overflow: hidden; word-break: break-word; }
         .lanyard-meta { border-bottom: 0.6px solid ${lanyardTheme.border}; background: ${lanyardTheme.rowAlt}; color: #0f172a; font-size: 9px; font-weight: 800; line-height: 1.15; padding: 0.045in 0.06in; text-align: center; white-space: pre-line; }
-        .lanyard-back-card { border: 0.75px solid ${lanyardTheme.border}; page-break-inside: avoid; display: flex; flex-direction: column; min-height: ${draftTemplate.paperSize === "letter" ? "auto" : "calc(100vh - 0.5in)"}; background: #fff; overflow: hidden; }
-        .lanyard-back-title { background: ${lanyardTheme.headerBg}; color: ${lanyardTheme.headerText}; border-bottom: 0.75px solid ${lanyardTheme.border}; font-size: 17px; font-weight: 900; line-height: 1.05; padding: 0.10in 0.06in; text-align: center; }
-        .lanyard-back-field { border-bottom: 0.6px solid ${lanyardTheme.border}; padding: 0.08in; font-size: 10px; font-weight: 800; line-height: 1.18; white-space: pre-line; }
-        .lanyard-back-field:nth-child(odd) { background: ${lanyardTheme.rowAlt}; }
-        .lanyard-back-label { display: block; margin-bottom: 3px; font-size: 8px; font-weight: 900; letter-spacing: .10em; text-transform: uppercase; color: #475569; }
+        .lanyard-back-card { border: 1px solid #111; page-break-inside: avoid; display: flex; flex-direction: column; min-height: ${draftTemplate.paperSize === "letter" ? "auto" : "calc(100vh - 0.5in)"}; background: #fff; overflow: hidden; padding: 0.18in; }
+        .lanyard-back-title { border-bottom: 1px solid #111; font-size: 12px; font-weight: 800; line-height: 1.15; padding: 0 0 0.07in; margin-bottom: 0.07in; text-align: center; }
+        .lanyard-back-field { border-bottom: 0.5px solid #999; padding: 0.055in 0; font-size: 9.5px; font-weight: 500; line-height: 1.25; white-space: pre-line; }
+        .lanyard-back-field:last-child { border-bottom: 0; }
+        .lanyard-back-label { display: block; margin-bottom: 2px; font-size: 7px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #333; }
         .rotation-page { page-break-after: always; width: 100%; height: calc(${selectedSettings.customPageHeight || "8.5in"} - 0.5in); overflow: hidden; }
         .rotation-page:last-child { page-break-after: auto; }
         .rotation-grid { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
