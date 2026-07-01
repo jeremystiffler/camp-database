@@ -40,6 +40,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const [activeCamp, setActiveCamp] = useState<Camp | null>(null);
   const [lastKnownCampId, setLastKnownCampId] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [campSwitcherOpen, setCampSwitcherOpen] = useState(false);
 
   const campId = searchParams.get("campId") || activeCamp?.id || lastKnownCampId || "";
 
@@ -100,6 +101,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const handleCampChange = (camp: Camp) => {
     setActiveCamp(camp);
     setLastKnownCampId(camp.id);
+    setCampSwitcherOpen(false);
     localStorage.setItem("activeCampId", camp.id);
     // Update URL with new campId on camp-scoped pages, then force server/client data to refetch.
     const url = new URL(window.location.href);
@@ -153,25 +155,46 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        {/* Camp selector */}
+        {/* Camp switcher */}
         {camps.length > 0 && (
           <div className="px-3 py-4 border-b border-slate-100">
-            <p className="minimal-section-title px-2 mb-2">Active Camp</p>
-            <div className="relative">
-              <select
-                value={activeCamp?.id || ""}
-                onChange={(e) => {
-                  const camp = camps.find((c) => c.id === e.target.value);
-                  if (camp) handleCampChange(camp);
-                }}
-                className="w-full text-sm font-semibold text-slate-800 bg-white border border-slate-200 rounded-xl px-3 py-2.5 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-slate-300/50 cursor-pointer"
+            <p className="minimal-section-title px-2 mb-2">Current camp</p>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm">
+              <p className="text-sm font-black text-slate-900 leading-snug break-words">
+                {activeCamp?.name || "Select a camp"}
+              </p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 mt-1">
+                {activeCamp?.status || "No active camp"}
+              </p>
+              <button
+                type="button"
+                onClick={() => setCampSwitcherOpen((open) => !open)}
+                className="mt-3 w-full rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 transition-colors"
               >
-                {camps.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">▼</span>
+                Switch camps
+              </button>
             </div>
+
+            {campSwitcherOpen && (
+              <div className="mt-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg space-y-1 max-h-72 overflow-y-auto">
+                {camps.map((camp) => {
+                  const selected = camp.id === activeCamp?.id;
+                  return (
+                    <button
+                      key={camp.id}
+                      type="button"
+                      onClick={() => handleCampChange(camp)}
+                      className={`w-full text-left rounded-xl px-3 py-2.5 transition-colors ${selected ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-50"}`}
+                    >
+                      <span className="block text-sm font-black leading-tight">{camp.name}</span>
+                      <span className={`block text-[11px] mt-0.5 ${selected ? "text-white/70" : "text-slate-400"}`}>
+                        {selected ? "Active now" : `Switch to ${camp.status}`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

@@ -216,14 +216,14 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 
 // ─── Camp Card ────────────────────────────────────────────────────────────────
 
-function CampCard({ camp, onCopy }: { camp: Camp; onCopy: (camp: Camp) => void }) {
+function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCopy: (camp: Camp) => void }) {
   const statusColors: Record<string, string> = {
     draft:    "bg-slate-100 text-slate-600",
     published:"bg-forest-100 text-forest-700",
     archived: "bg-slate-100 text-slate-400",
   };
   return (
-    <div className="camp-card p-5 relative group">
+    <div className={`camp-card p-5 relative group ${active ? "ring-2 ring-slate-900" : ""}`}>
       {/* Copy button */}
       <button
         onClick={e => { e.preventDefault(); onCopy(camp); }}
@@ -232,7 +232,11 @@ function CampCard({ camp, onCopy }: { camp: Camp; onCopy: (camp: Camp) => void }
         
       </button>
 
-      <Link href={`/activities?campId=${camp.id}`} className="block">
+      <Link
+        href={`/activities?campId=${camp.id}`}
+        onClick={() => localStorage.setItem("activeCampId", camp.id)}
+        className="block"
+      >
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 text-xs font-black">
             CC
@@ -242,6 +246,7 @@ function CampCard({ camp, onCopy }: { camp: Camp; onCopy: (camp: Camp) => void }
           </span>
         </div>
         <h3 className="font-bold text-slate-800 mb-1">{camp.name}</h3>
+        {active && <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-900 mb-1">Active now</p>}
         <p className="text-slate-500 text-xs">
           {camp.startDate
             ? new Date(camp.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
@@ -258,6 +263,15 @@ function CampCard({ camp, onCopy }: { camp: Camp; onCopy: (camp: Camp) => void }
           </div>
         </div>
       </Link>
+      {!active && (
+        <Link
+          href={`/dashboard?campId=${camp.id}`}
+          onClick={() => localStorage.setItem("activeCampId", camp.id)}
+          className="mt-4 block w-full rounded-xl bg-slate-900 px-3 py-2 text-center text-xs font-black text-white hover:bg-slate-700 transition-colors"
+        >
+          Switch to this camp
+        </Link>
+      )}
     </div>
   );
 }
@@ -274,9 +288,15 @@ function DashboardContent() {
   const [renameValue,  setRenameValue]  = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameMsg,    setRenameMsg]    = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [savedCampId,  setSavedCampId]  = useState("");
 
-  const campId     = searchParams.get("campId") || "";
+  const campId     = searchParams.get("campId") || savedCampId || "";
   const activeCamp = camps.find((c) => c.id === campId) || camps[0];
+
+  useEffect(() => {
+    const saved = localStorage.getItem("activeCampId") || "";
+    setSavedCampId(saved);
+  }, []);
 
   useEffect(() => {
     fetch("/api/camps")
@@ -288,6 +308,7 @@ function DashboardContent() {
   useEffect(() => {
     setRenameValue(activeCamp?.name || "");
     setRenameMsg(null);
+    if (activeCamp?.id) localStorage.setItem("activeCampId", activeCamp.id);
   }, [activeCamp?.id, activeCamp?.name]);
 
   const reloadCamps = () => {
@@ -346,6 +367,7 @@ function DashboardContent() {
           <div className="flex flex-col lg:flex-row lg:items-end gap-5 justify-between">
             <div className="flex-1 min-w-0">
               <p className="minimal-section-title mb-2">Active camp</p>
+              <p className="text-sm font-black text-slate-900 mb-3">{activeCamp.name}</p>
               <label className="block text-sm font-bold text-slate-700 mb-1.5">Rename camp</label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input flex-1" />
@@ -385,7 +407,7 @@ function DashboardContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {camps.map((camp) => (
-              <CampCard key={camp.id} camp={camp} onCopy={setCopyingCamp} />
+              <CampCard key={camp.id} camp={camp} active={camp.id === activeCamp?.id} onCopy={setCopyingCamp} />
             ))}
             <button onClick={() => setShowNewCamp(true)}
               className="camp-card p-5 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-forest-600 hover:border-forest-200 transition-colors min-h-[160px] border-dashed">
