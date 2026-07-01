@@ -92,7 +92,7 @@ const PAPER_CSS: Record<PaperSize, string> = {
   "3x5": "3in 5in",
   custom: "var(--custom-print-size)",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", customBlockOrder: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
   { builtin: true, name: "Teacher Packets — Classes + Students", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true, showStudents: true }) },
@@ -103,7 +103,7 @@ const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Camper Roster", type: "camper_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "T-Shirt List", type: "tshirt_list", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "Camper Badges — Sheet", type: "badges", category: "badges", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 4, badgeCols: 3, showAgeGroup: true }) },
-  { builtin: true, name: "Custom Schedule Lanyard Badge — 3×5", type: "badges", category: "badges", paperSize: "3x5", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, badgeLayout: "schedule_lanyard", showSchedule: true, showAgeGroup: false }) },
+  { builtin: true, name: "Custom Schedule Lanyard Badge — 3×5", type: "badges", category: "badges", paperSize: "3x5", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, badgeLayout: "schedule_lanyard", lanyardTheme: "aquaSheet", showSchedule: true, showAgeGroup: false }) },
   { builtin: true, name: "Camper Lanyard Badge — 5×3", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showSchedule: true }) },
   { builtin: true, name: "Camper Card — 4×6", type: "badges", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showGuardian: true, showSchedule: true }) },
 ];
@@ -128,6 +128,16 @@ const BADGE_LANYARD_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "name", label: "Name header" },
   { id: "schedule", label: "Schedule table" },
 ];
+const LANYARD_THEMES = {
+  aquaSheet: { label: "Aqua spreadsheet", headerBg: "#63d2d2", headerText: "#071827", border: "#334155", rowAlt: "#edfafa", rowBg: "#ffffff", timeBg: "#f8fafc" },
+  blueSheet: { label: "Blue office sheet", headerBg: "#2563eb", headerText: "#ffffff", border: "#334155", rowAlt: "#eff6ff", rowBg: "#ffffff", timeBg: "#f8fafc" },
+  greenLedger: { label: "Green ledger", headerBg: "#16a34a", headerText: "#ffffff", border: "#36523d", rowAlt: "#f0fdf4", rowBg: "#ffffff", timeBg: "#f7fee7" },
+  lavenderRoster: { label: "Lavender roster", headerBg: "#8b5cf6", headerText: "#ffffff", border: "#4c1d95", rowAlt: "#f5f3ff", rowBg: "#ffffff", timeBg: "#faf5ff" },
+} as const;
+type LanyardThemeKey = keyof typeof LANYARD_THEMES;
+function lanyardThemeFor(value: unknown) {
+  return LANYARD_THEMES[(typeof value === "string" && value in LANYARD_THEMES ? value : "aquaSheet") as LanyardThemeKey];
+}
 function orderedCustomBlocks(savedOrder: unknown, options: CustomBlockOption[]) {
   const ids = Array.isArray(savedOrder) ? savedOrder.filter((id): id is string => typeof id === "string") : [];
   const optionById = new Map(options.map(option => [option.id, option]));
@@ -427,6 +437,7 @@ function PrintContent() {
   const pageSizeCss = draftTemplate.paperSize === "custom" ? `${selectedSettings.customPageWidth || "36in"} ${selectedSettings.customPageHeight || "8.5in"}` : PAPER_CSS[draftTemplate.paperSize];
   const explicitDimensionPaper = draftTemplate.paperSize === "custom" || draftTemplate.paperSize === "4x6" || draftTemplate.paperSize === "5x3" || draftTemplate.paperSize === "3x5";
   const printPageSizeCss = explicitDimensionPaper ? pageSizeCss : `${pageSizeCss} ${draftTemplate.orientation}`;
+  const lanyardTheme = lanyardThemeFor(selectedSettings.lanyardTheme);
   const rotationTimes = Array.from(new Map(rosterPackets.map(group => [group.start || group.time, group.timeLabel || group.time])).entries()).sort((a, b) => a[0].localeCompare(b[0]));
   const rotationRosterPackets = rosterPackets.filter(group => !selectedSettings.rotationTimeFilter || group.start === selectedSettings.rotationTimeFilter);
   const rotationColumns = Math.max(1, Number(selectedSettings.rotationColumns || 5));
@@ -557,12 +568,13 @@ function PrintContent() {
         .badge-last { font-size: ${draftTemplate.paperSize === "letter" ? "14px" : "20px"}; margin-top: 4px; }
         .single-badge-page { page-break-after: always; }
         .single-badge-page:last-child { page-break-after: auto; }
-        .lanyard-schedule-card { border: 2px solid #111; border-radius: 0; padding: 0; text-align: left; page-break-inside: avoid; display: flex; flex-direction: column; min-height: ${draftTemplate.paperSize === "letter" ? "auto" : "calc(100vh - 0.5in)"}; background: #fff; overflow: hidden; }
-        .lanyard-name { background: ${selectedSettings.headerColor}; border-bottom: 2px solid #111; color: #000; font-size: 19px; font-weight: 900; line-height: 1.05; padding: 0.10in 0.06in; text-align: center; }
+        .lanyard-schedule-card { border: 0.75px solid ${lanyardTheme.border}; border-radius: 0; padding: 0; text-align: left; page-break-inside: avoid; display: flex; flex-direction: column; min-height: ${draftTemplate.paperSize === "letter" ? "auto" : "calc(100vh - 0.5in)"}; background: #fff; overflow: hidden; }
+        .lanyard-name { background: ${lanyardTheme.headerBg}; border-bottom: 0.75px solid ${lanyardTheme.border}; color: ${lanyardTheme.headerText}; font-size: 19px; font-weight: 900; line-height: 1.05; padding: 0.10in 0.06in; text-align: center; }
         .lanyard-table { width: 100%; flex: 1; display: flex; flex-direction: column; }
-        .lanyard-row { display: grid; grid-template-columns: 0.72in minmax(0, 1fr); flex: 1; min-height: 0.36in; border-bottom: 1.5px solid #111; }
+        .lanyard-row { display: grid; grid-template-columns: 0.72in minmax(0, 1fr); flex: 1; min-height: 0.36in; border-bottom: 0.6px solid ${lanyardTheme.border}; background: ${lanyardTheme.rowBg}; }
+        .lanyard-row:nth-child(even) { background: ${lanyardTheme.rowAlt}; }
         .lanyard-row:last-child { border-bottom: 0; }
-        .lanyard-time { border-right: 1.5px solid #111; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; font-weight: 900; line-height: 1.05; padding: 0.04in; }
+        .lanyard-time { border-right: 0.6px solid ${lanyardTheme.border}; background: ${lanyardTheme.timeBg}; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; font-weight: 900; line-height: 1.05; padding: 0.04in; }
         .lanyard-activity { display: flex; align-items: center; white-space: pre-line; font-size: 9.2px; font-weight: 800; line-height: 1.12; padding: 0.035in 0.055in; overflow: hidden; word-break: break-word; }
         .rotation-page { page-break-after: always; width: 100%; height: calc(${selectedSettings.customPageHeight || "8.5in"} - 0.5in); overflow: hidden; }
         .rotation-page:last-child { page-break-after: auto; }
@@ -694,6 +706,7 @@ function PrintContent() {
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
                     <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge layout</p>
                     <label className="block text-xs font-bold text-slate-500">Layout<select value={selectedSettings.badgeLayout} onChange={e => updateSettings({ badgeLayout: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="standard">Standard name badge</option><option value="schedule_lanyard">Schedule lanyard table</option></select></label>
+                    {selectedSettings.badgeLayout === "schedule_lanyard" && <label className="block text-xs font-bold text-slate-500">Lanyard style<select value={selectedSettings.lanyardTheme} onChange={e => updateSettings({ lanyardTheme: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">{Object.entries(LANYARD_THEMES).map(([key, theme]) => <option key={key} value={key}>{theme.label}</option>)}</select><span className="mt-1 block text-[11px] font-semibold text-slate-400">Spreadsheet-style name header, thinner grid lines, and mild alternating schedule rows.</span></label>}
                     <div className="grid grid-cols-2 gap-2">
                       <label className="block text-xs font-bold text-slate-500">Rows<input type="number" min={1} max={8} value={badgeRows} onChange={e => updateSettings({ badgeRows: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
                       <label className="block text-xs font-bold text-slate-500">Columns<input type="number" min={1} max={5} value={badgeCols} onChange={e => updateSettings({ badgeCols: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
