@@ -483,6 +483,16 @@ function CheckInContent() {
     updateAttendance(camper, "check_out", { pickupPersonName: chosen, pickupRelationship: "Reviewed approved pickup list", pickupCodeVerified: true });
   };
 
+  const checkInAndShowCheckout = async (camper: Camper) => {
+    const ok = await updateAttendance(camper, "check_in");
+    if (ok) {
+      setQuery("");
+      setActiveLetter("");
+      setView("checked_in");
+      setScanMessage(`${fullName(camper)} is checked in and ready in the Check Out tab.`);
+    }
+  };
+
   const manualScanSubmit = () => {
     if (!query.trim()) return;
     void autoHandleScan(query.trim());
@@ -555,7 +565,7 @@ function CheckInContent() {
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Day-of-camp operations</p>
           <h1 className="mt-1 text-3xl font-black text-slate-900">Fast Check-In / Check-Out</h1>
-          <p className="mt-1 text-sm text-slate-500">Search by name, tap a letter, or scan a QR. Scans immediately check a child in; if already in, they check out.</p>
+          <p className="mt-1 text-sm text-slate-500">Use Check In for arrivals. Once a child is checked in, they immediately move to Check Out so staff can release them from the still-on-campus list.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" />
@@ -564,15 +574,15 @@ function CheckInContent() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
-        <button onClick={() => setView("walk_up")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "walk_up" ? "bg-emerald-600 text-white" : "border border-emerald-200 bg-emerald-50 text-emerald-900"}`}><p className="text-3xl font-black">{counts.walk_up}</p><p className="text-sm font-black">Walk-up list</p><p className="text-xs font-semibold opacity-75">Not arrived</p></button>
-        <button onClick={() => setView("checked_in")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "checked_in" ? "bg-slate-900 text-white" : "border border-sky-200 bg-sky-50 text-sky-900"}`}><p className="text-3xl font-black">{counts.checked_in}</p><p className="text-sm font-black">Checked-in tab</p><p className="text-xs font-semibold opacity-75">Still on campus</p></button>
-        <button onClick={() => setView("attention")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "attention" ? "bg-amber-500 text-white" : "border border-amber-200 bg-amber-50 text-amber-900"}`}><p className="text-3xl font-black">{counts.attention}</p><p className="text-sm font-black">Needs attention</p><p className="text-xs font-semibold opacity-75">Payment/contact gaps</p></button>
-        <button onClick={() => setView("checked_out")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "checked_out" ? "bg-sky-600 text-white" : "border border-slate-200 bg-white text-slate-900"}`}><p className="text-3xl font-black">{counts.checked_out}</p><p className="text-sm font-black">Checked out</p><p className="text-xs font-semibold opacity-75">Done for the day</p></button>
+        <button onClick={() => setView("walk_up")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "walk_up" ? "bg-emerald-600 text-white" : "border border-emerald-200 bg-emerald-50 text-emerald-900"}`}><p className="text-3xl font-black">{counts.walk_up}</p><p className="text-sm font-black">Check In</p><p className="text-xs font-semibold opacity-75">Not arrived</p></button>
+        <button onClick={() => setView("checked_in")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "checked_in" ? "bg-slate-900 text-white" : "border border-sky-200 bg-sky-50 text-sky-900"}`}><p className="text-3xl font-black">{counts.checked_in}</p><p className="text-sm font-black">Check Out</p><p className="text-xs font-semibold opacity-75">Still on campus</p></button>
+        <button onClick={() => setView("attention")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "attention" ? "bg-amber-500 text-white" : "border border-amber-200 bg-amber-50 text-amber-900"}`}><p className="text-3xl font-black">{counts.attention}</p><p className="text-sm font-black">Needs Attention</p><p className="text-xs font-semibold opacity-75">Payment/contact gaps</p></button>
+        <button onClick={() => setView("checked_out")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "checked_out" ? "bg-sky-600 text-white" : "border border-slate-200 bg-white text-slate-900"}`}><p className="text-3xl font-black">{counts.checked_out}</p><p className="text-sm font-black">Checked Out</p><p className="text-xs font-semibold opacity-75">Done for the day</p></button>
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row">
-          <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder="Quick search: camper, guardian, phone, email, or paste/scan QR text..." className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100" autoFocus />
+          <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder={view === "checked_in" ? "Search who is still on campus, guardian phone, or paste/scan QR text..." : "Quick search: camper, guardian, phone, email, or paste/scan QR text..."} className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100" autoFocus />
           <button onClick={manualScanSubmit} className="min-h-14 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 text-base font-black text-emerald-800 hover:bg-emerald-100">Use as Scan</button>
           <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-14 rounded-2xl bg-slate-900 px-6 text-base font-black text-white hover:bg-slate-700">Open Camera</button>
           <Link href={`/campers?campId=${campId}`} className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-6 text-base font-black text-slate-700 hover:bg-slate-100">+ Walk-Up</Link>
@@ -603,7 +613,10 @@ function CheckInContent() {
       {loading ? (
         <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-forest-500 border-t-transparent" /></div>
       ) : visibleCampers.length === 0 ? (
-        <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-400">No campers match this view.</div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <p className="text-lg font-black text-slate-800">{view === "walk_up" ? "Everyone is either checked in or checked out." : view === "checked_in" ? "No one is currently waiting for checkout." : view === "attention" ? "No campers need attention right now." : "No campers match this view."}</p>
+          <p className="mt-1 text-sm font-semibold text-slate-400">{query ? "Try clearing the search or switching tabs." : "Nice and tidy — like a clipboard after a miracle."}</p>
+        </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="grid grid-cols-[1.1fr_1fr_1.35fr_0.9fr] gap-4 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400 max-lg:hidden">
@@ -644,7 +657,7 @@ function CheckInContent() {
                     <p className="text-[11px] font-black uppercase tracking-wide text-emerald-700">Including guardian</p>
                   </div>
                   <div className="flex flex-wrap gap-2 lg:flex-col lg:items-stretch">
-                    {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => updateAttendance(camper, "check_in")} className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
+                    {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => checkInAndShowCheckout(camper)} className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
                     {status === "checked_in" && <button disabled={saving} onClick={() => checkout(camper)} className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check Out"}</button>}
                     {status === "checked_out" && <button disabled className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-black text-slate-400">Checked Out</button>}
                     {!paymentCleared(camper) && <button disabled={saving} onClick={() => updateAttendance(camper, "mark_paid", { note: "Marked paid during check-in" })} className="rounded-2xl bg-amber-500 px-3 py-2.5 text-sm font-black text-white disabled:opacity-50">Mark Paid</button>}
