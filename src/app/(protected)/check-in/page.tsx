@@ -606,8 +606,8 @@ function CheckInContent() {
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-400">No campers match this view.</div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="grid grid-cols-[1.25fr_0.7fr_1fr_1fr_1.7fr_1fr_auto] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400 max-xl:hidden">
-            <div>Student</div><div>Payment needed</div><div>Guardian</div><div>Phone</div><div>Approved pickup</div><div>In / Out</div><div>Action</div>
+          <div className="grid grid-cols-[1.1fr_1fr_1.35fr_0.9fr] gap-4 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400 max-lg:hidden">
+            <div>Camper</div><div>Guardian</div><div>Approved pickup</div><div>Check-in</div>
           </div>
           <div className="divide-y divide-slate-100">
             {visibleCampers.map(camper => {
@@ -616,38 +616,37 @@ function CheckInContent() {
               const saving = savingId === camper.id;
               const contacts = contactInfo(camper);
               const pickupList = compactApprovedPickup(contacts.approved) || "—";
+              const inOut = `${timestamp(camper.attendance?.checkedInAt)} / ${timestamp(camper.attendance?.checkedOutAt)}`;
               return (
-                <div key={camper.id} className="grid gap-3 px-4 py-3 text-sm xl:grid-cols-[1.25fr_0.7fr_1fr_1fr_1.7fr_1fr_auto] xl:items-center">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Student</p>
+                <div key={camper.id} className="grid gap-4 px-4 py-4 text-sm lg:grid-cols-[1.1fr_1fr_1.35fr_0.9fr] lg:items-start">
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 lg:hidden">Camper</p>
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <h2 className="truncate text-base font-black text-slate-900">{fullName(camper)}</h2>
                       <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${statusMeta.cls}`}>{statusMeta.label}</span>
                     </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
+                      <span>Payment needed?</span>
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${paymentNeededClass(camper)}`}>{paymentNeededLabel(camper)}</span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-500">Checked in/out: <span className="font-black text-slate-800">{inOut}</span></p>
                   </div>
-                  <div>
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Payment needed</p>
-                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${paymentNeededClass(camper)}`}>{paymentNeededLabel(camper)}</span>
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 lg:hidden">Guardian</p>
+                    <p className="truncate text-base font-black text-slate-900">{camper.guardianName || "—"}</p>
+                    <p className="text-xs font-bold text-slate-500">Guardian phone</p>
+                    {camper.guardianPhone ? <a className="block truncate font-black text-sky-700 hover:underline" href={`tel:${camper.guardianPhone}`}>{camper.guardianPhone}</a> : <span className="font-bold text-slate-400">—</span>}
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Guardian</p>
-                    <p className="truncate font-bold text-slate-800">{camper.guardianName || "—"}</p>
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 lg:hidden">Approved pickup</p>
+                    <p className="text-xs font-bold text-slate-500">Approved pickup names</p>
+                    <p className="font-semibold leading-6 text-slate-700" title={pickupList}>{pickupList}</p>
+                    <p className="text-[11px] font-black uppercase tracking-wide text-emerald-700">Including guardian</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Phone</p>
-                    {camper.guardianPhone ? <a className="truncate font-black text-sky-700 hover:underline" href={`tel:${camper.guardianPhone}`}>{camper.guardianPhone}</a> : <span className="font-bold text-slate-400">—</span>}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Approved pickup</p>
-                    <p className="truncate font-semibold text-slate-700" title={pickupList}>{pickupList}</p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">In / Out</p>
-                    <p className="font-black text-slate-800">{timestamp(camper.attendance?.checkedInAt)} <span className="text-slate-300">/</span> {timestamp(camper.attendance?.checkedOutAt)}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 xl:justify-end">
+                  <div className="flex flex-wrap gap-2 lg:flex-col lg:items-stretch">
                     {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => updateAttendance(camper, "check_in")} className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
                     {status === "checked_in" && <button disabled={saving} onClick={() => checkout(camper)} className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check Out"}</button>}
+                    {status === "checked_out" && <button disabled className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-black text-slate-400">Checked Out</button>}
                     {!paymentCleared(camper) && <button disabled={saving} onClick={() => updateAttendance(camper, "mark_paid", { note: "Marked paid during check-in" })} className="rounded-2xl bg-amber-500 px-3 py-2.5 text-sm font-black text-white disabled:opacity-50">Mark Paid</button>}
                     {status !== "not_arrived" && <button disabled={saving} onClick={() => updateAttendance(camper, "reset")} className="rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-black text-slate-500 disabled:opacity-50">Reset</button>}
                   </div>
