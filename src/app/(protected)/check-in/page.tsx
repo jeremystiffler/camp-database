@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import jsQR from "jsqr";
 
 interface AgeGroup { id: string; name: string; }
@@ -63,7 +63,6 @@ const STATUS_COPY: Record<string, { label: string; cls: string }> = {
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function fullName(camper: Camper) { return `${camper.firstName} ${camper.lastName}`.trim(); }
-function money(cents = 0) { return `$${(cents / 100).toFixed(2)}`; }
 function todayValue() {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -72,6 +71,12 @@ function todayValue() {
 function attendanceStatus(camper: Camper) { return camper.attendance?.status || "not_arrived"; }
 function paymentCleared(camper: Camper) {
   return ["paid", "not_required", "comped"].includes(camper.paymentStatus || "not_required");
+}
+function paymentNeededLabel(camper: Camper) {
+  return paymentCleared(camper) ? "No" : "Yes";
+}
+function paymentNeededClass(camper: Camper) {
+  return paymentCleared(camper) ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-900 border-amber-200";
 }
 function missingInfo(camper: Camper) {
   const missing = [];
@@ -85,15 +90,6 @@ function readiness(camper: Camper) {
   if (!paymentCleared(camper)) return { label: "Needs payment", cls: "bg-amber-100 text-amber-900 border-amber-200", missing };
   if (missing.length) return { label: "Missing info", cls: "bg-orange-100 text-orange-900 border-orange-200", missing };
   return { label: "Ready", cls: "bg-emerald-100 text-emerald-800 border-emerald-200", missing };
-}
-function sessionSummary(camper: Camper) {
-  const names = new Set<string>();
-  for (const enrollment of camper.enrollments || []) {
-    const session = enrollment.session;
-    const title = session?.course?.name || session?.mandatorySession?.title;
-    if (title) names.add(title);
-  }
-  return [...names].slice(0, 4).join(" · ") || "No classes selected";
 }
 function timestamp(value?: string | null) {
   if (!value) return "—";
@@ -153,19 +149,8 @@ function contactInfo(camper: Camper) {
   }
   return { approved, emergency };
 }
-function scheduleRows(camper: Camper) {
-  const rows = new Map<string, { title: string; time: string; room: string }>();
-  for (const enrollment of camper.enrollments || []) {
-    const session = enrollment.session;
-    const title = session?.course?.name || session?.mandatorySession?.title || "Untitled session";
-    const start = session?.sessionTemplate?.startTime || "";
-    const end = session?.sessionTemplate?.endTime || "";
-    const label = session?.sessionTemplate?.label || "";
-    const time = [label, start && end ? `${start}–${end}` : start || end].filter(Boolean).join(" · ") || "Time TBD";
-    const room = session?.room?.name || "Room TBD";
-    rows.set(`${title}|${time}|${room}`, { title, time, room });
-  }
-  return [...rows.values()].sort((a, b) => a.time.localeCompare(b.time) || a.title.localeCompare(b.title));
+function compactApprovedPickup(contacts: Contact[]) {
+  return contacts.map(contact => [contact.name, contact.relationship ? `(${contact.relationship})` : ""].filter(Boolean).join(" ")).join(", ");
 }
 function normalize(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -214,21 +199,6 @@ function nextScanAction(camper: Camper) {
   return attendanceStatus(camper) === "checked_in" ? "check_out" : "check_in";
 }
 
-function ContactList({ title, contacts, empty }: { title: string; contacts: Contact[]; empty: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white px-3 py-2 shadow-[0_1px_0_rgba(15,23,42,0.03)]">
-      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">{title}</p>
-      {contacts.length ? <ul className="mt-1.5 space-y-1.5">{contacts.slice(0, 5).map((contact, index) => (
-        <li key={`${contact.name}-${index}`} className="text-xs text-slate-700">
-          <span className="font-black text-slate-900">{contact.name}</span>
-          {contact.relationship && <span className="text-slate-400"> · {contact.relationship}</span>}
-          {contact.phone && <a className="ml-1 font-black text-sky-700 hover:underline" href={`tel:${contact.phone}`}>{contact.phone}</a>}
-        </li>
-      ))}</ul> : <p className="mt-1 text-xs font-semibold text-rose-600">{empty}</p>}
-    </div>
-  );
-}
-
 function CheckInContent() {
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
@@ -244,7 +214,6 @@ function CheckInContent() {
   const [scanError, setScanError] = useState("");
   const [scanMessage, setScanMessage] = useState("");
   const [lastScanned, setLastScanned] = useState("");
-  const [scheduleOpenId, setScheduleOpenId] = useState("");
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -401,7 +370,16 @@ function CheckInContent() {
   }, [campers]);
 
   const normalizedQuery = query.trim().toLowerCase();
-  const availableLetters = useMemo(() => new Set(campers.filter(c => attendanceStatus(c) === "not_arrived").map(c => (c.lastName || c.firstName || "").slice(0, 1).toUpperCase()).filter(Boolean)), [campers]);
+  const availableLetters = useMemo(() => {
+    const letters = new Set<string>();
+    campers.filter(c => attendanceStatus(c) === "not_arrived").forEach(c => {
+      const firstInitial = (c.firstName || "").slice(0, 1).toUpperCase();
+      const lastInitial = (c.lastName || "").slice(0, 1).toUpperCase();
+      if (firstInitial) letters.add(firstInitial);
+      if (lastInitial) letters.add(lastInitial);
+    });
+    return letters;
+  }, [campers]);
   const visibleCampers = campers.filter(camper => {
     const status = attendanceStatus(camper);
     const isAttention = status !== "checked_out" && (!paymentCleared(camper) || missingInfo(camper).length > 0);
@@ -409,8 +387,17 @@ function CheckInContent() {
     if (view === "checked_in" && status !== "checked_in") return false;
     if (view === "checked_out" && status !== "checked_out") return false;
     if (view === "attention" && !isAttention) return false;
-    if (activeLetter && status === "not_arrived" && !(camper.lastName || camper.firstName || "").toUpperCase().startsWith(activeLetter)) return false;
+    if (activeLetter && status === "not_arrived") {
+      const firstInitial = (camper.firstName || "").slice(0, 1).toUpperCase();
+      const lastInitial = (camper.lastName || "").slice(0, 1).toUpperCase();
+      if (firstInitial !== activeLetter && lastInitial !== activeLetter) return false;
+    }
     if (!normalizedQuery) return true;
+    if (normalizedQuery.length === 1 && /^[a-z0-9]$/.test(normalizedQuery)) {
+      const firstInitial = (camper.firstName || "").slice(0, 1).toLowerCase();
+      const lastInitial = (camper.lastName || "").slice(0, 1).toLowerCase();
+      if (firstInitial === normalizedQuery || lastInitial === normalizedQuery) return true;
+    }
     const haystack = [camper.id, fullName(camper), `${camper.lastName} ${camper.firstName}`, camper.guardianName, camper.guardianEmail, camper.guardianPhone, camper.emergencyPhone, camper.ageGroup?.name, customValueText(parseCustomData(camper.customData))].filter(Boolean).join(" ").toLowerCase();
     return haystack.includes(normalizedQuery);
   }).sort((a, b) => `${a.lastName}|${a.firstName}`.localeCompare(`${b.lastName}|${b.firstName}`));
@@ -487,57 +474,50 @@ function CheckInContent() {
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-400">No campers match this view.</div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="grid grid-cols-[1.35fr_1.25fr_1fr_auto] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400 max-lg:hidden">
-            <div>Camper info</div><div>Contacts</div><div>{view === "checked_in" ? "Checkout info" : "Day status"}</div><div>Action</div>
+          <div className="grid grid-cols-[1.25fr_0.7fr_1fr_1fr_1.7fr_1fr_auto] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400 max-xl:hidden">
+            <div>Student</div><div>Payment needed</div><div>Guardian</div><div>Phone</div><div>Approved pickup</div><div>In / Out</div><div>Action</div>
           </div>
           <div className="divide-y divide-slate-100">
             {visibleCampers.map(camper => {
               const status = attendanceStatus(camper);
               const statusMeta = STATUS_COPY[status] || STATUS_COPY.not_arrived;
-              const ready = readiness(camper);
               const saving = savingId === camper.id;
               const contacts = contactInfo(camper);
+              const pickupList = compactApprovedPickup(contacts.approved) || "—";
               return (
-                <div key={camper.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[1.35fr_1.25fr_1fr_auto] lg:items-start">
+                <div key={camper.id} className="grid gap-3 px-4 py-3 text-sm xl:grid-cols-[1.25fr_0.7fr_1fr_1fr_1.7fr_1fr_auto] xl:items-center">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="truncate text-xl font-black text-slate-900">{fullName(camper)}</h2>
-                      <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${statusMeta.cls}`}>{statusMeta.label}</span>
-                      <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${ready.cls}`}>{ready.label}</span>
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Student</p>
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <h2 className="truncate text-base font-black text-slate-900">{fullName(camper)}</h2>
+                      <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${statusMeta.cls}`}>{statusMeta.label}</span>
                     </div>
-                    <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                      <div className="rounded-2xl bg-slate-50 px-3 py-2"><p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Age group</p><p className="font-black text-slate-800">{camper.ageGroup?.name || "No age group"}</p></div>
-                      <div className="rounded-2xl bg-slate-50 px-3 py-2"><p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Guardian</p><p className="truncate font-black text-slate-800">{camper.guardianName || "—"}</p></div>
-                    </div>
-                    {(camper.medicalNotes || camper.dietaryNotes) && <p className="mt-2 rounded-2xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-800">Medical/dietary note on file</p>}
-                    <button onClick={() => setScheduleOpenId(scheduleOpenId === camper.id ? "" : camper.id)} className="mt-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50">
-                      {scheduleOpenId === camper.id ? "Hide schedule" : `Show schedule (${scheduleRows(camper).length || 0})`}
-                    </button>
-                    {scheduleOpenId === camper.id && <div className="mt-2 rounded-2xl border border-slate-200 bg-white p-3">
-                      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Schedule</p>
-                      {scheduleRows(camper).length ? <div className="mt-2 divide-y divide-slate-100">{scheduleRows(camper).map((row, index) => (
-                        <div key={`${row.title}-${index}`} className="grid gap-1 py-2 text-xs sm:grid-cols-[0.9fr_1.2fr_0.8fr]">
-                          <span className="font-black text-slate-500">{row.time}</span><span className="font-black text-slate-900">{row.title}</span><span className="text-slate-500">{row.room}</span>
-                        </div>
-                      ))}</div> : <p className="mt-1 text-xs font-semibold text-slate-500">No classes selected</p>}
-                    </div>}
                   </div>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                    <ContactList title="Emergency contact" contacts={contacts.emergency} empty="No emergency contact on file" />
-                    <ContactList title="Approved pickup" contacts={contacts.approved} empty="No approved pickup listed" />
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Payment needed</p>
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${paymentNeededClass(camper)}`}>{paymentNeededLabel(camper)}</span>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-600 lg:bg-slate-50">
-                    <p><span className="text-slate-400">Phone</span> <a className="font-black text-sky-700 hover:underline" href={camper.guardianPhone ? `tel:${camper.guardianPhone}` : undefined}>{camper.guardianPhone || "—"}</a></p>
-                    <p className="mt-1 truncate"><span className="text-slate-400">Email</span> {camper.guardianEmail || "—"}</p>
-                    <p className="mt-2 text-xs text-slate-400">In: {timestamp(camper.attendance?.checkedInAt)} · Out: {timestamp(camper.attendance?.checkedOutAt)}</p>
-                    <p className="text-xs text-slate-400">Payment: {camper.paymentStatus || "not_required"} · {money(camper.totalPaidCents || 0)}</p>
-                    {ready.missing.length > 0 && <p className="mt-2 rounded-xl bg-orange-50 px-2 py-1 text-xs font-bold text-orange-700">Missing: {ready.missing.join(", ")}</p>}
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Guardian</p>
+                    <p className="truncate font-bold text-slate-800">{camper.guardianName || "—"}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2 lg:justify-end">
-                    {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => updateAttendance(camper, "check_in")} className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
-                    {status === "checked_in" && <button disabled={saving} onClick={() => checkout(camper)} className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check Out"}</button>}
-                    {!paymentCleared(camper) && <button disabled={saving} onClick={() => updateAttendance(camper, "mark_paid", { note: "Marked paid during check-in" })} className="rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white disabled:opacity-50">Mark Paid</button>}
-                    {status !== "not_arrived" && <button disabled={saving} onClick={() => updateAttendance(camper, "reset")} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-500 disabled:opacity-50">Reset</button>}
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Phone</p>
+                    {camper.guardianPhone ? <a className="truncate font-black text-sky-700 hover:underline" href={`tel:${camper.guardianPhone}`}>{camper.guardianPhone}</a> : <span className="font-bold text-slate-400">—</span>}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">Approved pickup</p>
+                    <p className="truncate font-semibold text-slate-700" title={pickupList}>{pickupList}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 xl:hidden">In / Out</p>
+                    <p className="font-black text-slate-800">{timestamp(camper.attendance?.checkedInAt)} <span className="text-slate-300">/</span> {timestamp(camper.attendance?.checkedOutAt)}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 xl:justify-end">
+                    {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => updateAttendance(camper, "check_in")} className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
+                    {status === "checked_in" && <button disabled={saving} onClick={() => checkout(camper)} className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check Out"}</button>}
+                    {!paymentCleared(camper) && <button disabled={saving} onClick={() => updateAttendance(camper, "mark_paid", { note: "Marked paid during check-in" })} className="rounded-2xl bg-amber-500 px-3 py-2.5 text-sm font-black text-white disabled:opacity-50">Mark Paid</button>}
+                    {status !== "not_arrived" && <button disabled={saving} onClick={() => updateAttendance(camper, "reset")} className="rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-black text-slate-500 disabled:opacity-50">Reset</button>}
                   </div>
                 </div>
               );
