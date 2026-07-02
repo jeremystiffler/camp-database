@@ -216,7 +216,7 @@ function CheckInContent() {
   const [scanError, setScanError] = useState("");
   const [scanMessage, setScanMessage] = useState("");
   const [lastScanned, setLastScanned] = useState("");
-  const [kioskMode, setKioskMode] = useState(kioskParam);
+  const [kioskMode, setKioskMode] = useState(false);
   const [kioskExitPassword, setKioskExitPassword] = useState("");
   const [kioskExitError, setKioskExitError] = useState("");
   const [settingKioskPassword, setSettingKioskPassword] = useState(false);
@@ -239,10 +239,13 @@ function CheckInContent() {
   useEffect(() => { load(); }, [campId, campDate]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (kioskParam || sessionStorage.getItem(`camp-kiosk-active:${campId}`) === "1") {
+    if (typeof window === "undefined" || !campId) return;
+    const savedPassword = sessionStorage.getItem(`camp-kiosk-password:${campId}`);
+    if (sessionStorage.getItem(`camp-kiosk-active:${campId}`) === "1" || (kioskParam && savedPassword)) {
       setKioskMode(true);
+      return;
     }
+    if (kioskParam && !savedPassword) setSettingKioskPassword(true);
   }, [campId, kioskParam]);
 
   const withKioskUrl = (enabled: boolean) => {

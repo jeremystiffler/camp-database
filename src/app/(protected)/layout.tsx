@@ -9,7 +9,7 @@ const navItems = [
   { href: "/dashboard",    label: "Dashboard",      icon: "D" },
   { href: "/setup",        label: "Camp Setup",     icon: "S" },
   { href: "/campers",      label: "Campers",        icon: "C" },
-  { href: "/check-in",     label: "Check-In",       icon: "✓" },
+  { href: "/check-in",     label: "Kiosk",         icon: "K" },
   { href: "/schedule",     label: "Schedule",       icon: "Sc" },
   { href: "/registration", label: "Registration",   icon: "R" },
   { href: "/print",        label: "Print Center",   icon: "P" },
@@ -127,6 +127,8 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     return href;
   };
 
+  const isKioskShell = pathname.startsWith("/check-in") && searchParams.get("kiosk") === "1";
+
   if (checking) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -143,7 +145,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex text-slate-900" style={{ background: "var(--ui-bg)" }}>
       {/* Mobile overlay */}
-      {sidebarOpen && (
+      {sidebarOpen && !isKioskShell && (
         <div
           className="fixed inset-0 bg-black/30 z-20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
@@ -151,7 +153,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Sidebar */}
-      <aside
+      {!isKioskShell && <aside
         className={`fixed top-0 left-0 h-full w-64 bg-white/95 backdrop-blur border-r border-slate-200 flex flex-col z-30 transition-transform duration-200 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
@@ -251,19 +253,17 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </div>
-      </aside>
+      </aside>}
 
       {/* Mobile top bar */}
-      <div className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center px-4 z-20 lg:hidden">
+      {!isKioskShell && <div className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center px-4 z-20 lg:hidden">
         <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg text-slate-600 hover:bg-slate-100">
           ☰
         </button>
         <span className="ml-3 font-bold text-slate-800">Camp Creator</span>
-      </div>
-
-      {/* Main content */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 min-h-screen flex justify-center">
-        <div className="w-full max-w-7xl px-5 sm:px-8 py-8">
+      </div>}
+      <main className={`flex-1 min-h-screen flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`}>
+        <div className={`w-full px-5 sm:px-8 py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>
           {children}
         </div>
       </main>
