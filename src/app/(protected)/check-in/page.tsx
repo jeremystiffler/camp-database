@@ -121,6 +121,16 @@ function customMatches(data: Record<string, unknown>, words: string[]) {
     return words.some(word => label.includes(word)) && customValueText(value);
   });
 }
+function valueForCustomLabel(data: Record<string, unknown>, words: string[]) {
+  const match = customMatches(data, words).find(([, value]) => customValueText(value));
+  return match ? customValueText(match[1]) : "";
+}
+function splitContactText(text: string): Contact {
+  const phoneMatch = text.match(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/);
+  const phone = phoneMatch?.[0]?.trim();
+  const name = text.replace(phoneMatch?.[0] || "", "").replace(/\b(phone|number|tel|cell|mobile|name|contact|emergency|alternate|relationship)\b/gi, "").replace(/[;:,|]+/g, " ").replace(/\s+/g, " ").trim();
+  return { name: name || "Emergency contact", phone, source: "Custom form" };
+}
 function contactInfo(camper: Camper) {
   const data = parseCustomData(camper.customData);
   const approved: Contact[] = [];
@@ -130,12 +140,32 @@ function contactInfo(camper: Camper) {
     if (text && !approved.some(contact => contact.name.toLowerCase() === text.toLowerCase())) approved.push({ name: text, relationship: "Approved pickup", source: "Custom form" });
   }
   const emergency: Contact[] = [];
-  if (camper.emergencyPhone) emergency.push({ name: "Emergency contact", phone: camper.emergencyPhone, source: "Registration" });
+  const emergencyName = valueForCustomLabel(data, ["emergency contact name", "emergency name", "alternate contact name", "backup contact name"]);
+  const emergencyRelationship = valueForCustomLabel(data, ["emergency relationship", "alternate relationship", "backup relationship"]);
+  const emergencyPhone = camper.emergencyPhone || valueForCustomLabel(data, ["emergency phone", "emergency number", "alternate phone", "backup phone"]);
+  if (emergencyName || emergencyPhone) emergency.push({ name: emergencyName || camper.guardianName || "Emergency contact", phone: emergencyPhone || undefined, relationship: emergencyRelationship || undefined, source: "Registration" });
   for (const [, value] of customMatches(data, ["emergency", "alternate", "doctor", "contact phone"])) {
     const text = customValueText(value);
-    if (text && !emergency.some(contact => `${contact.name} ${contact.phone || ""}`.toLowerCase().includes(text.toLowerCase()))) emergency.push({ name: text, source: "Custom form" });
+    if (!text) continue;
+    const parsed = splitContactText(text);
+    const combined = `${parsed.name} ${parsed.phone || ""}`.toLowerCase();
+    if (!emergency.some(contact => `${contact.name} ${contact.phone || ""}`.toLowerCase().includes(combined) || combined.includes(`${contact.name} ${contact.phone || ""}`.toLowerCase()))) emergency.push(parsed);
   }
   return { approved, emergency };
+}
+function scheduleRows(camper: Camper) {
+  const rows = new Map<string, { title: string; time: string; room: string }>();
+  for (const enrollment of camper.enrollments || []) {
+    const session = enrollment.session;
+    const title = session?.course?.name || session?.mandatorySession?.title || "Untitled session";
+    const start = session?.sessionTemplate?.startTime || "";
+    const end = session?.sessionTemplate?.endTime || "";
+    const label = session?.sessionTemplate?.label || "";
+    const time = [label, start && end ? `${start}–${end}` : start || end].filter(Boolean).join(" · ") || "Time TBD";
+    const room = session?.room?.name || "Room TBD";
+    rows.set(`${title}|${time}|${room}`, { title, time, room });
+  }
+  return [...rows.values()].sort((a, b) => a.time.localeCompare(b.time) || a.title.localeCompare(b.title));
 }
 function normalize(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -186,11 +216,13 @@ function nextScanAction(camper: Camper) {
 
 function ContactList({ title, contacts, empty }: { title: string; contacts: Contact[]; empty: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 px-3 py-2">
+    <div className="rounded-2xl border border-slate-100 bg-white px-3 py-2 shadow-[0_1px_0_rgba(15,23,42,0.03)]">
       <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">{title}</p>
-      {contacts.length ? <ul className="mt-1 space-y-1">{contacts.slice(0, 5).map((contact, index) => (
-        <li key={`${contact.name}-${index}`} className="text-xs font-bold text-slate-700">
-          {contact.name}{contact.relationship ? ` · ${contact.relationship}` : ""}{contact.phone ? ` · ${contact.phone}` : ""}
+      {contacts.length ? <ul className="mt-1.5 space-y-1.5">{contacts.slice(0, 5).map((contact, index) => (
+        <li key={`${contact.name}-${index}`} className="text-xs text-slate-700">
+          <span className="font-black text-slate-900">{contact.name}</span>
+          {contact.relationship && <span className="text-slate-400"> · {contact.relationship}</span>}
+          {contact.phone && <a className="ml-1 font-black text-sky-700 hover:underline" href={`tel:${contact.phone}`}>{contact.phone}</a>}
         </li>
       ))}</ul> : <p className="mt-1 text-xs font-semibold text-rose-600">{empty}</p>}
     </div>
@@ -212,6 +244,7 @@ function CheckInContent() {
   const [scanError, setScanError] = useState("");
   const [scanMessage, setScanMessage] = useState("");
   const [lastScanned, setLastScanned] = useState("");
+  const [scheduleOpenId, setScheduleOpenId] = useState("");
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -454,8 +487,8 @@ function CheckInContent() {
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center text-slate-400">No campers match this view.</div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="grid grid-cols-[1.5fr_1.2fr_1.2fr_auto] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400 max-lg:hidden">
-            <div>Camper</div><div>Review with parent</div><div>{view === "checked_in" ? "Checkout info" : "Status"}</div><div>Action</div>
+          <div className="grid grid-cols-[1.35fr_1.25fr_1fr_auto] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400 max-lg:hidden">
+            <div>Camper info</div><div>Contacts</div><div>{view === "checked_in" ? "Checkout info" : "Day status"}</div><div>Action</div>
           </div>
           <div className="divide-y divide-slate-100">
             {visibleCampers.map(camper => {
@@ -465,27 +498,40 @@ function CheckInContent() {
               const saving = savingId === camper.id;
               const contacts = contactInfo(camper);
               return (
-                <div key={camper.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[1.5fr_1.2fr_1.2fr_auto] lg:items-center">
+                <div key={camper.id} className="grid gap-3 px-4 py-4 lg:grid-cols-[1.35fr_1.25fr_1fr_auto] lg:items-start">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="truncate text-xl font-black text-slate-900">{fullName(camper)}</h2>
                       <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${statusMeta.cls}`}>{statusMeta.label}</span>
                       <span className={`rounded-full border px-2.5 py-1 text-xs font-black ${ready.cls}`}>{ready.label}</span>
                     </div>
-                    <p className="mt-1 text-sm font-semibold text-slate-500">{camper.ageGroup?.name || "No age group"} · Guardian: {camper.guardianName || "—"}</p>
-                    <p className="mt-1 text-xs font-semibold text-slate-400">Classes: {sessionSummary(camper)}</p>
+                    <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                      <div className="rounded-2xl bg-slate-50 px-3 py-2"><p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Age group</p><p className="font-black text-slate-800">{camper.ageGroup?.name || "No age group"}</p></div>
+                      <div className="rounded-2xl bg-slate-50 px-3 py-2"><p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Guardian</p><p className="truncate font-black text-slate-800">{camper.guardianName || "—"}</p></div>
+                    </div>
                     {(camper.medicalNotes || camper.dietaryNotes) && <p className="mt-2 rounded-2xl bg-rose-50 px-3 py-2 text-xs font-black text-rose-800">Medical/dietary note on file</p>}
+                    <button onClick={() => setScheduleOpenId(scheduleOpenId === camper.id ? "" : camper.id)} className="mt-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50">
+                      {scheduleOpenId === camper.id ? "Hide schedule" : `Show schedule (${scheduleRows(camper).length || 0})`}
+                    </button>
+                    {scheduleOpenId === camper.id && <div className="mt-2 rounded-2xl border border-slate-200 bg-white p-3">
+                      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">Schedule</p>
+                      {scheduleRows(camper).length ? <div className="mt-2 divide-y divide-slate-100">{scheduleRows(camper).map((row, index) => (
+                        <div key={`${row.title}-${index}`} className="grid gap-1 py-2 text-xs sm:grid-cols-[0.9fr_1.2fr_0.8fr]">
+                          <span className="font-black text-slate-500">{row.time}</span><span className="font-black text-slate-900">{row.title}</span><span className="text-slate-500">{row.room}</span>
+                        </div>
+                      ))}</div> : <p className="mt-1 text-xs font-semibold text-slate-500">No classes selected</p>}
+                    </div>}
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-                    <ContactList title="Emergency" contacts={contacts.emergency} empty="No emergency contact on file" />
+                    <ContactList title="Emergency contact" contacts={contacts.emergency} empty="No emergency contact on file" />
                     <ContactList title="Approved pickup" contacts={contacts.approved} empty="No approved pickup listed" />
                   </div>
-                  <div className="rounded-2xl bg-white text-sm font-semibold text-slate-600 lg:bg-transparent">
-                    <p>Parent phone: <a className="font-black text-sky-700 hover:underline" href={camper.guardianPhone ? `tel:${camper.guardianPhone}` : undefined}>{camper.guardianPhone || "—"}</a></p>
-                    <p className="text-xs text-slate-400">Email: {camper.guardianEmail || "—"}</p>
-                    <p className="text-xs text-slate-400">In: {timestamp(camper.attendance?.checkedInAt)} · Out: {timestamp(camper.attendance?.checkedOutAt)}</p>
+                  <div className="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-600 lg:bg-slate-50">
+                    <p><span className="text-slate-400">Phone</span> <a className="font-black text-sky-700 hover:underline" href={camper.guardianPhone ? `tel:${camper.guardianPhone}` : undefined}>{camper.guardianPhone || "—"}</a></p>
+                    <p className="mt-1 truncate"><span className="text-slate-400">Email</span> {camper.guardianEmail || "—"}</p>
+                    <p className="mt-2 text-xs text-slate-400">In: {timestamp(camper.attendance?.checkedInAt)} · Out: {timestamp(camper.attendance?.checkedOutAt)}</p>
                     <p className="text-xs text-slate-400">Payment: {camper.paymentStatus || "not_required"} · {money(camper.totalPaidCents || 0)}</p>
-                    {ready.missing.length > 0 && <p className="mt-1 text-xs font-bold text-orange-700">Missing: {ready.missing.join(", ")}</p>}
+                    {ready.missing.length > 0 && <p className="mt-2 rounded-xl bg-orange-50 px-2 py-1 text-xs font-bold text-orange-700">Missing: {ready.missing.join(", ")}</p>}
                   </div>
                   <div className="flex flex-wrap gap-2 lg:justify-end">
                     {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => updateAttendance(camper, "check_in")} className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
