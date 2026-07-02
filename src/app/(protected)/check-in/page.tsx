@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import jsQR from "jsqr";
+import CamperScannableCode from "@/components/CamperScannableCode";
 
 interface AgeGroup { id: string; name: string; }
 interface Attendance {
@@ -38,6 +39,11 @@ interface Camper {
   guardianPhone?: string | null;
   emergencyPhone?: string | null;
   paymentStatus?: string | null;
+  pickupNumber?: string | null;
+  scanCode?: string | null;
+  scanCodeGeneratedAt?: string | null;
+  pickupCardPrintedAt?: string | null;
+  badgePrintedAt?: string | null;
   totalPaidCents?: number;
   medicalNotes?: string | null;
   dietaryNotes?: string | null;
@@ -184,6 +190,8 @@ function scanMatches(camper: Camper, raw: string) {
   const scanTokens = tokensFromScan(raw);
   if (!scanTokens.length) return false;
   const haystacks = [
+    camper.scanCode || "",
+    camper.pickupNumber || "",
     camper.id,
     fullName(camper),
     `${camper.lastName} ${camper.firstName}`,
@@ -216,6 +224,7 @@ function CheckInContent() {
   const [scanError, setScanError] = useState("");
   const [scanMessage, setScanMessage] = useState("");
   const [lastScanned, setLastScanned] = useState("");
+  const [codeCamper, setCodeCamper] = useState<Camper | null>(null);
   const [kioskMode, setKioskMode] = useState(false);
   const [kioskExitPassword, setKioskExitPassword] = useState("");
   const [kioskExitError, setKioskExitError] = useState("");
@@ -471,7 +480,7 @@ function CheckInContent() {
       const lastInitial = (camper.lastName || "").slice(0, 1).toLowerCase();
       if (firstInitial === normalizedQuery || lastInitial === normalizedQuery) return true;
     }
-    const haystack = [camper.id, fullName(camper), `${camper.lastName} ${camper.firstName}`, camper.guardianName, camper.guardianEmail, camper.guardianPhone, camper.emergencyPhone, camper.ageGroup?.name, customValueText(parseCustomData(camper.customData))].filter(Boolean).join(" ").toLowerCase();
+    const haystack = [camper.scanCode, camper.pickupNumber, camper.id, fullName(camper), `${camper.lastName} ${camper.firstName}`, camper.guardianName, camper.guardianEmail, camper.guardianPhone, camper.emergencyPhone, camper.ageGroup?.name, customValueText(parseCustomData(camper.customData))].filter(Boolean).join(" ").toLowerCase();
     return haystack.includes(normalizedQuery);
   }).sort((a, b) => `${a.lastName}|${a.firstName}`.localeCompare(`${b.lastName}|${b.firstName}`));
 
@@ -642,6 +651,7 @@ function CheckInContent() {
                       <span>Payment needed?</span>
                       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${paymentNeededClass(camper)}`}>{paymentNeededLabel(camper)}</span>
                     </div>
+                    <p className="text-xs font-bold text-slate-500">Pickup #: <span className="font-black text-slate-800">{camper.pickupNumber || "—"}</span></p>
                     <p className="text-xs font-bold text-slate-500">Checked in/out: <span className="font-black text-slate-800">{inOut}</span></p>
                   </div>
                   <div className="min-w-0 space-y-2">
@@ -661,11 +671,31 @@ function CheckInContent() {
                     {status === "checked_in" && <button disabled={saving} onClick={() => checkout(camper)} className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check Out"}</button>}
                     {status === "checked_out" && <button disabled className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-black text-slate-400">Checked Out</button>}
                     {!paymentCleared(camper) && <button disabled={saving} onClick={() => updateAttendance(camper, "mark_paid", { note: "Marked paid during check-in" })} className="rounded-2xl bg-amber-500 px-3 py-2.5 text-sm font-black text-white disabled:opacity-50">Mark Paid</button>}
+                    <button type="button" onClick={() => setCodeCamper(camper)} className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-black text-indigo-800 hover:bg-indigo-100">QR / Pickup</button>
                     {status !== "not_arrived" && <button disabled={saving} onClick={() => updateAttendance(camper, "reset")} className="rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-black text-slate-500 disabled:opacity-50">Reset</button>}
                   </div>
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+      {codeCamper && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Scannable codes</p>
+                <h2 className="mt-1 text-xl font-black text-slate-900">{fullName(codeCamper)}</h2>
+                <p className="mt-1 text-sm font-bold text-slate-500">Pickup #{codeCamper.pickupNumber || "—"} · {codeCamper.lastName.toUpperCase()} FAMILY</p>
+              </div>
+              <button onClick={() => setCodeCamper(null)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
+            </div>
+            <div className="mt-5 flex justify-center"><CamperScannableCode value={codeCamper.scanCode} label="Camper QR" size={180} /></div>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-black">
+              <Link href={`/print?campId=${campId}`} className="rounded-xl border border-slate-200 px-3 py-2 text-center text-slate-700 hover:bg-slate-50">Open Print Center</Link>
+              <button onClick={() => navigator.clipboard?.writeText(codeCamper.scanCode || "")} className="rounded-xl bg-slate-900 px-3 py-2 text-white">Copy scan code</button>
+            </div>
           </div>
         </div>
       )}

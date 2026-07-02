@@ -2,8 +2,9 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import CamperScannableCode from "@/components/CamperScannableCode";
 
-type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "rotation_roster" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges";
+type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "rotation_roster" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges" | "pickup_cards" | "pickup_roster";
 type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3" | "3x5" | "custom";
 type Orientation = "portrait" | "landscape";
 type Density = "compact" | "normal" | "large";
@@ -30,6 +31,10 @@ interface Camper {
   guardianEmail?: string | null;
   guardianPhone?: string | null;
   emergencyPhone?: string | null;
+  pickupNumber?: string | null;
+  scanCode?: string | null;
+  pickupCardPrintedAt?: string | null;
+  badgePrintedAt?: string | null;
   medicalNotes?: string | null;
   dietaryNotes?: string | null;
   enrollments?: Enrollment[];
@@ -102,6 +107,8 @@ const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Camper Class Choices", type: "camper_choices", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showRoom: true, showTeacher: true }) },
   { builtin: true, name: "Camper Roster", type: "camper_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "T-Shirt List", type: "tshirt_list", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
+  { builtin: true, name: "Pickup Window Cards — Number + Family", type: "pickup_cards", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large" }) },
+  { builtin: true, name: "Pickup Number Roster", type: "pickup_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "Camper Badges — Sheet", type: "badges", category: "badges", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 4, badgeCols: 3, showAgeGroup: true }) },
   { builtin: true, name: "Custom Schedule Lanyard Badge — 3×5", type: "badges", category: "badges", paperSize: "3x5", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, badgeLayout: "schedule_lanyard", lanyardTheme: "aquaSheet", showSchedule: true, showAgeGroup: false }) },
   { builtin: true, name: "Camper Lanyard Badge — 5×3", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showSchedule: true }) },
@@ -162,6 +169,8 @@ function templateMeta(template: PrintTemplate): TemplateMeta {
   if (template.type === "camper_choices") return { eyebrow: "Stock camper report", visual: "choices", description: "Every camper with their chosen classes, times, rooms, and teachers." };
   if (template.type === "camper_roster") return { eyebrow: "Stock list", visual: "list", description: "A clean camper directory with age group and guardian contact." };
   if (template.type === "tshirt_list") return { eyebrow: "Stock list", visual: "list", description: "Grouped t-shirt sizes for quick sorting and distribution." };
+  if (template.type === "pickup_cards") return { eyebrow: "Pickup & scanner", visual: "card", description: "4×6 window cards with large pickup number, family last name, and camper QR." };
+  if (template.type === "pickup_roster") return { eyebrow: "Pickup & scanner", visual: "list", description: "Backup roster sorted by pickup number for car-line lookup." };
   if (template.type === "badges" && template.paperSize === "4x6") return { eyebrow: "Stock card", visual: "card", description: "A larger camper info card with guardian and schedule options." };
   if (template.type === "badges" && template.paperSize !== "letter") return { eyebrow: "Stock badge", visual: "badge", description: "One camper per page for lanyards and badge printers." };
   return { eyebrow: "Stock badge sheet", visual: "badge", description: "Printable name badges laid out on a letter-size sheet." };
@@ -773,7 +782,7 @@ function PrintContent() {
                   <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Advanced page setup</summary>
                   <div className="mt-3 space-y-3">
                     {!draftTemplate.builtin && <label className="block text-xs font-bold text-slate-500">Document type<select value={draftTemplate.type} onChange={e => updateDraft({ type: e.target.value as PrintType })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
-                      <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Camper class choices</option><option value="camper_roster">Camper roster</option><option value="tshirt_list">T-shirt list</option><option value="badges">Badges</option>
+                      <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Camper class choices</option><option value="camper_roster">Camper roster</option><option value="tshirt_list">T-shirt list</option><option value="pickup_cards">Pickup window cards</option><option value="pickup_roster">Pickup number roster</option><option value="badges">Badges</option>
                     </select></label>}
                     <div className="grid grid-cols-2 gap-3">
                       <label className="block text-xs font-bold text-slate-500">Paper<select value={draftTemplate.paperSize} onChange={e => updateDraft({ paperSize: e.target.value as PaperSize })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">{Object.entries(PAPER_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
@@ -909,6 +918,10 @@ function PrintContent() {
       {activeDoc === "camper_roster" && <div className="print-doc ops-print"><h1 className="ops-title">Camper Roster</h1><table><thead><tr><th>Last</th><th>First</th><th>Age Group</th><th>Guardian</th><th>Email</th></tr></thead><tbody>{sortedCampers.map(c => <tr key={c.id}><td>{c.lastName}</td><td>{c.firstName}</td><td>{c.ageGroup?.name || "—"}</td><td>{c.guardianName || "—"}</td><td>{c.guardianEmail || "—"}</td></tr>)}</tbody></table></div>}
 
       {activeDoc === "tshirt_list" && <div className="print-doc ops-print"><h1 className="ops-title">T-Shirt Sizes</h1>{tshirtOrder.filter(s => sizeGroups[s]?.length).map(size => <section key={size} style={{marginBottom:18}}><h2 style={{fontSize:16, margin:"0 0 6px"}}>{size} ({sizeGroups[size].length})</h2><table><tbody>{sortedCampersList(sizeGroups[size]).map(c => <tr key={c.id}><td>{c.lastName}, {c.firstName}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></section>)}</div>}
+
+      {activeDoc === "pickup_cards" && <div className="print-doc ops-print">{sortedCampers.map(c => <section key={c.id} className="page-break" style={{minHeight:"calc(100vh - 0.5in)", display:"flex", alignItems:"center", justifyContent:"center"}}><div style={{width:"100%", maxWidth:"5.4in", border:"4px solid #111", borderRadius:"18px", padding:"0.28in", textAlign:"center"}}><div style={{fontSize:18, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase"}}>Creator&apos;s Camp Pickup</div><div style={{fontSize:96, lineHeight:1, fontWeight:900, margin:"0.18in 0 0.08in"}}>{c.pickupNumber || "—"}</div><div style={{fontSize:24, fontWeight:900, letterSpacing:"0.08em", textTransform:"uppercase"}}>{c.lastName} Family</div><div style={{marginTop:"0.18in", display:"flex", justifyContent:"center"}}><CamperScannableCode value={c.scanCode} label="Scan for check-in" size={132} /></div><div style={{marginTop:"0.12in", fontSize:12, fontWeight:700, color:"#444"}}>Staff: scan QR or search pickup #{c.pickupNumber || "—"}</div></div></section>)}</div>}
+
+      {activeDoc === "pickup_roster" && <div className="print-doc ops-print"><h1 className="ops-title">Pickup Number Roster</h1><p className="ops-subtitle">Backup car-line lookup. Pickup numbers can be shared by siblings/family groups.</p><table><thead><tr><th style={{width:"80px"}}>Pickup #</th><th>Family / Camper</th><th>Guardian</th><th>Phone</th><th>Age Group</th></tr></thead><tbody>{[...sortedCampers].sort((a,b) => String(a.pickupNumber || "999999").localeCompare(String(b.pickupNumber || "999999"), undefined, { numeric: true })).map(c => <tr key={c.id}><td style={{fontSize:16, fontWeight:900, textAlign:"center"}}>{c.pickupNumber || "—"}</td><td>{c.lastName.toUpperCase()} FAMILY<br />{fullName(c)}</td><td>{c.guardianName || "—"}</td><td>{c.guardianPhone || c.guardianEmail || "—"}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></div>}
 
       {activeDoc === "badges" && <div className="print-doc ops-print">
         {(() => {

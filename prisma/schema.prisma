@@ -284,10 +284,17 @@ model Camper {
   platformFeeCents Int        @default(0)
   totalPaidCents Int          @default(0)
   paymentStatus  String       @default("not_required")
+  pickupNumber   String?
+  scanCode       String?      @unique
+  scanCodeGeneratedAt DateTime?
+  pickupCardPrintedAt DateTime?
+  badgePrintedAt DateTime?
   createdAt      DateTime     @default(now())
   enrollments    Enrollment[]
   attendances    CamperAttendance[]
   checkInEvents  CheckInEvent[]
+
+  @@index([campId, pickupNumber])
 }
 
 model Enrollment {

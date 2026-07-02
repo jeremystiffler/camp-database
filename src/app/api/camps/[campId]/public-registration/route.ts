@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { getBaseUrl, getStripe } from "@/lib/billing";
 import { calculateRegistrationTotal, couponAllowsEmail, normalizeCouponCode, type PricingCoupon } from "@/lib/registration-pricing";
+import { generateCamperScanCode } from "@/lib/camper-identity";
 
 interface StudentPayload {
   firstName: string;
@@ -621,7 +622,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       paymentStatus: familyTotals.totalCents > 0 && !updating ? "pending" : "not_required",
     };
 
-    const camper = updating ? await prisma.camper.update({ where: { id: existing!.id }, data: camperData }) : await prisma.camper.create({ data: { ...camperData, campId } });
+    const camper = updating ? await prisma.camper.update({ where: { id: existing!.id }, data: camperData }) : await prisma.camper.create({ data: { ...camperData, campId, scanCode: generateCamperScanCode(), scanCodeGeneratedAt: new Date() } });
     createdCamperIds.push(camper.id);
 
     if (updating) {

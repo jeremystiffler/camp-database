@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { generateCamperScanCode, normalizePickupNumber } from "@/lib/camper-identity";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -132,6 +133,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
         platformFeeCents: intValue(data.platformFeeCents),
         totalPaidCents: intValue(data.totalPaidCents),
         paymentStatus: nullableString(data.paymentStatus) || "not_required",
+        pickupNumber: normalizePickupNumber(data.pickupNumber),
+        scanCode: nullableString(data.scanCode) || generateCamperScanCode(),
+        scanCodeGeneratedAt: nullableString(data.scanCode) ? undefined : new Date(),
       },
     });
     const sessionIds = parseSessionIds(data.sessionIds);

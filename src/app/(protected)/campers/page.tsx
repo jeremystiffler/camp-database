@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import CamperScannableCode from "@/components/CamperScannableCode";
 
 interface AgeGroup {
   id: string;
@@ -88,6 +89,11 @@ interface Camper {
   platformFeeCents?: number;
   totalPaidCents?: number;
   paymentStatus?: string;
+  pickupNumber?: string | null;
+  scanCode?: string | null;
+  scanCodeGeneratedAt?: string | null;
+  pickupCardPrintedAt?: string | null;
+  badgePrintedAt?: string | null;
   dateOfBirth?: string | null;
   ageGroup?: AgeGroup | null;
   enrollments?: Enrollment[];
@@ -272,6 +278,7 @@ function CamperDrawer({
     platformFeeCents: String(camper.platformFeeCents || 0),
     totalPaidCents: String(camper.totalPaidCents || 0),
     paymentStatus: camper.paymentStatus || "not_required",
+    pickupNumber: camper.pickupNumber || "",
   });
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>((camper.enrollments || []).map(e => e.sessionId));
   const [selectedChoiceKeys, setSelectedChoiceKeys] = useState<string[]>((camper.enrollments || []).map(e => sessionChoiceKey(e.session)).filter(key => key && key !== "missing" && !key.startsWith("mandatory|")));
@@ -336,6 +343,8 @@ function CamperDrawer({
         platformFeeCents: Number(form.platformFeeCents) || 0,
         totalPaidCents: Number(form.totalPaidCents) || 0,
         paymentStatus: form.paymentStatus,
+        pickupNumber: form.pickupNumber.trim() || null,
+        scanCode: camper.scanCode || null,
         sessionIds: selectedSessionIds,
         sessionChoices: selectedChoiceKeys.map(key => {
           const [courseId, sessionTemplateId] = key.split("|");
@@ -357,6 +366,23 @@ function CamperDrawer({
     setDeleting(false);
     if (res.ok) onDeleted(camper.id);
     else setError(data.detail || data.error || "Could not delete this camper.");
+  };
+
+  const manageIdentity = async (action: string, extra: Record<string, unknown> = {}) => {
+    setSaving(true); setError("");
+    const res = await fetch(`/api/camps/${campId}/campers/identity`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ camperId: camper.id, action, ...extra }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (res.ok && data.camper) {
+      onSaved(data.camper);
+      setForm(prev => ({ ...prev, pickupNumber: data.camper.pickupNumber || "" }));
+    } else {
+      setError(data.detail || data.error || "Could not update scannable code settings.");
+    }
   };
 
   const inputCls = "w-full px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30";
@@ -427,6 +453,34 @@ function CamperDrawer({
                 <Info label="T-Shirt Size" value={camper.tshirtSize || "—"} />
                 <Info label="Photo Consent" value={camper.photoConsent ? "✓ Granted" : "✗ Not granted"} tone={camper.photoConsent ? "forest" : "red"} />
                 <Info label="Registered" value={new Date(camper.createdAt).toLocaleDateString()} />
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Pickup / Scannable Codes</h3>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Unique camper QR plus shared family pickup number for car-line cards.</p>
+              </div>
+              {!isNew && <button type="button" onClick={() => manageIdentity("ensure_identity")} disabled={saving} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-60">Ensure codes</button>}
+            </div>
+            {editing ? (
+              <label className="mt-3 block text-xs font-bold text-slate-500">Pickup number
+                <input className={inputCls + " mt-1"} placeholder="e.g. 104" value={form.pickupNumber} onChange={e => update("pickupNumber", e.target.value)} />
+              </label>
+            ) : (
+              <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                <div className="space-y-2 text-sm">
+                  <Info label="Pickup #" value={camper.pickupNumber || "—"} tone="sky" />
+                  <Info label="Pickup card" value={`${camper.lastName.toUpperCase()} FAMILY`} />
+                  <Info label="Scan code" value={camper.scanCode ? "Generated" : "Missing"} tone={camper.scanCode ? "forest" : "red"} />
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(camper.scanCode || "")} disabled={!camper.scanCode} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600 disabled:opacity-40">Copy scan code</button>
+                    <button type="button" onClick={() => manageIdentity("regenerate_scan_code")} disabled={saving || isNew} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800 disabled:opacity-40">Regenerate QR</button>
+                  </div>
+                </div>
+                <CamperScannableCode value={camper.scanCode} label="Camper QR" size={132} />
               </div>
             )}
           </section>
@@ -603,6 +657,24 @@ function CampersContent() {
 
   useEffect(() => { load(); }, [campId]);
 
+  const assignMissingPickupNumbers = async () => {
+    if (!campId) return;
+    const startAt = window.prompt("Start pickup numbers at", "101");
+    if (startAt === null) return;
+    const res = await fetch(`/api/camps/${campId}/campers/identity`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "assign_missing_pickup_numbers", startAt: Number(startAt) || 101 }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && Array.isArray(data.campers)) {
+      setCampers(data.campers);
+      alert(`Assigned/generated ${data.updated || 0} camper code record${data.updated === 1 ? "" : "s"}.`);
+    } else {
+      alert(data.detail || data.error || "Could not assign pickup numbers.");
+    }
+  };
+
   const filtered = campers
     .filter((c) => {
       const q = search.toLowerCase();
@@ -611,7 +683,9 @@ function CampersContent() {
         !q ||
         fullName.toLowerCase().includes(q) ||
         (c.guardianName || "").toLowerCase().includes(q) ||
-        (c.guardianEmail || "").toLowerCase().includes(q);
+        (c.guardianEmail || "").toLowerCase().includes(q) ||
+        (c.pickupNumber || "").toLowerCase().includes(q) ||
+        (c.scanCode || "").toLowerCase().includes(q);
       const matchAge = !filterAge || c.ageGroup?.id === filterAge;
       const matchSize = !filterSize || c.tshirtSize === filterSize;
       return matchSearch && matchAge && matchSize;
@@ -640,6 +714,7 @@ function CampersContent() {
           <p className="text-slate-500 text-sm mt-0.5">{campers.length} registered</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-100">Assign Pickup #s</button>
           <button onClick={() => setAddingCamper(true)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800">+ Add Camper</button>
           <button
             onClick={() => {
@@ -736,6 +811,7 @@ function CampersContent() {
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Choices</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Payment</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">T-Shirt</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Pickup #</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Photo</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -774,6 +850,9 @@ function CampersContent() {
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <span className="text-slate-600">{camper.tshirtSize || "—"}</span>
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700">{camper.pickupNumber || "—"}</span>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span className={camper.photoConsent ? "text-forest-600" : "text-red-400"}>
