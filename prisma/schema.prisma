@@ -75,6 +75,8 @@ model Camp {
   registrationPayments     RegistrationPayment[]
   coupons                  CampCoupon[]
   printTemplates           PrintTemplate[]
+  camperAttendances        CamperAttendance[]
+  checkInEvents            CheckInEvent[]
 }
 
 model CampMember {
@@ -284,6 +286,8 @@ model Camper {
   paymentStatus  String       @default("not_required")
   createdAt      DateTime     @default(now())
   enrollments    Enrollment[]
+  attendances    CamperAttendance[]
+  checkInEvents  CheckInEvent[]
 }
 
 model Enrollment {
@@ -298,6 +302,48 @@ model Enrollment {
   createdAt DateTime @default(now())
 
   @@unique([camperId, sessionId])
+}
+
+model CamperAttendance {
+  id                 String   @id @default(cuid())
+  campId             String
+  camp               Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  camperId           String
+  camper             Camper   @relation(fields: [camperId], references: [id], onDelete: Cascade)
+  campDate           DateTime
+  status             String   @default("not_arrived") // not_arrived | checked_in | checked_out | no_show | blocked
+  checkedInAt        DateTime?
+  checkedInByUserId  String?
+  checkedOutAt       DateTime?
+  checkedOutByUserId String?
+  pickupPersonName   String?
+  pickupRelationship String?
+  pickupCodeVerified Boolean  @default(false)
+  walkUp             Boolean  @default(false)
+  badgePrintedAt     DateTime?
+  shirtPickedUpAt    DateTime?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([campId, camperId, campDate])
+  @@index([campId, campDate, status])
+}
+
+model CheckInEvent {
+  id               String   @id @default(cuid())
+  campId           String
+  camp             Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
+  camperId         String
+  camper           Camper   @relation(fields: [camperId], references: [id], onDelete: Cascade)
+  type             String   // check_in | check_out | no_show | reset | payment_collected | badge_printed | shirt_picked_up | note
+  note             String?
+  pickupPersonName String?
+  createdByUserId  String?
+  createdAt        DateTime @default(now())
+
+  @@index([campId, camperId, createdAt])
+  @@index([campId, createdAt])
 }
 
 model RegistrationForm {
