@@ -90,4 +90,13 @@
 
 ## Deployment Verification
 
-_To be completed after production deploy._
+**Status:** Complete
+
+- Local TypeScript check passed: `node node_modules/typescript/lib/tsc.js --noEmit`.
+- Local production build passed: `npm run build`.
+- Production Neon schema verified columns and indexes:
+  - Columns: `pickupNumber`, `scanCode`, `scanCodeGeneratedAt`, `pickupCardPrintedAt`, `badgePrintedAt`
+  - Indexes: `Camper_scanCode_key`, `Camper_campId_pickupNumber_idx`
+- Vercel production deploy succeeded and aliased to `https://camp-database.vercel.app`.
+- Live protected identity API route verified present and permissioned: `POST /api/camps/test/campers/identity` returned `401 Unauthorized` with matched route `/api/camps/[campId]/campers/identity`.
+- Live app routes checked after deployment: `/print` and `/check-in` responded from production.
