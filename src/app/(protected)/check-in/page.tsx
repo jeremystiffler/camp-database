@@ -201,7 +201,9 @@ function nextScanAction(camper: Camper) {
 
 function CheckInContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const campId = searchParams.get("campId") || "";
+  const kioskParam = searchParams.get("kiosk") === "1";
   const [campDate, setCampDate] = useState(todayValue());
   const [campers, setCampers] = useState<Camper[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,6 +216,12 @@ function CheckInContent() {
   const [scanError, setScanError] = useState("");
   const [scanMessage, setScanMessage] = useState("");
   const [lastScanned, setLastScanned] = useState("");
+  const [kioskMode, setKioskMode] = useState(kioskParam);
+  const [kioskExitPassword, setKioskExitPassword] = useState("");
+  const [kioskExitError, setKioskExitError] = useState("");
+  const [settingKioskPassword, setSettingKioskPassword] = useState(false);
+  const [newKioskPassword, setNewKioskPassword] = useState("");
+  const [kioskSetupError, setKioskSetupError] = useState("");
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -229,6 +237,59 @@ function CheckInContent() {
   };
 
   useEffect(() => { load(); }, [campId, campDate]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (kioskParam || sessionStorage.getItem(`camp-kiosk-active:${campId}`) === "1") {
+      setKioskMode(true);
+    }
+  }, [campId, kioskParam]);
+
+  const withKioskUrl = (enabled: boolean) => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (enabled) url.searchParams.set("kiosk", "1");
+    else url.searchParams.delete("kiosk");
+    router.replace(url.pathname + "?" + url.searchParams.toString());
+  };
+
+  const startKioskSetup = () => {
+    setKioskSetupError("");
+    setNewKioskPassword("");
+    setSettingKioskPassword(true);
+  };
+
+  const enterKioskMode = () => {
+    const password = newKioskPassword.trim();
+    if (password.length < 4) {
+      setKioskSetupError("Use at least 4 characters so this isn't defeated by a curious toddler with a snack cup.");
+      return;
+    }
+    sessionStorage.setItem(`camp-kiosk-password:${campId}`, password);
+    sessionStorage.setItem(`camp-kiosk-active:${campId}`, "1");
+    setKioskMode(true);
+    setSettingKioskPassword(false);
+    setNewKioskPassword("");
+    setKioskExitPassword("");
+    setScanMessage("");
+    setQuery("");
+    withKioskUrl(true);
+  };
+
+  const exitKioskMode = () => {
+    const saved = sessionStorage.getItem(`camp-kiosk-password:${campId}`) || "";
+    if (!saved || kioskExitPassword !== saved) {
+      setKioskExitError("That password did not match.");
+      return;
+    }
+    sessionStorage.removeItem(`camp-kiosk-active:${campId}`);
+    setKioskMode(false);
+    setKioskExitPassword("");
+    setKioskExitError("");
+    withKioskUrl(false);
+  };
+
+  const publicRegistrationHref = `/register/${campId}?source=kiosk`;
 
   const updateAttendance = async (camper: Camper, action: string, extra: Record<string, unknown> = {}) => {
     setSavingId(camper.id);
@@ -251,14 +312,23 @@ function CheckInContent() {
     if (scanLockRef.current) return;
     const matches = campers.filter(camper => scanMatches(camper, raw));
     if (matches.length !== 1) {
-      setQuery(raw);
-      setView("all");
-      setScanMessage(matches.length ? `${matches.length} possible matches — choose the child below.` : "No exact match. I put the scanned text in search.");
+      if (kioskMode) {
+        setScanMessage("We couldn't match that code. Please ask a staff member for help.");
+      } else {
+        setQuery(raw);
+        setView("all");
+        setScanMessage(matches.length ? `${matches.length} possible matches — choose the child below.` : "No exact match. I put the scanned text in search.");
+      }
       setScannerOpen(false);
       return;
     }
     const camper = matches[0];
-    const action = nextScanAction(camper);
+    const action = kioskMode ? "check_in" : nextScanAction(camper);
+    if (kioskMode && attendanceStatus(camper) === "checked_in") {
+      setScanMessage("This child is already checked in. Please ask a staff member if you need help.");
+      setScannerOpen(false);
+      return;
+    }
     const contacts = contactInfo(camper);
     scanLockRef.current = true;
     setLastScanned(raw);
@@ -266,14 +336,14 @@ function CheckInContent() {
       pickupPersonName: action === "check_out" ? (camper.guardianName || contacts.approved[0]?.name || "QR self checkout") : undefined,
       pickupRelationship: action === "check_out" ? "QR scan" : undefined,
       pickupCodeVerified: true,
-      note: action === "check_in" ? "Auto checked in by QR scan" : "Auto checked out by QR scan",
+      note: kioskMode ? "Self-serve kiosk QR check-in" : (action === "check_in" ? "Auto checked in by QR scan" : "Auto checked out by QR scan"),
     });
     scanLockRef.current = false;
     if (ok) {
       setQuery("");
       setActiveLetter("");
       setView(action === "check_in" ? "checked_in" : "checked_out");
-      setScanMessage(`${fullName(camper)} ${action === "check_in" ? "checked in" : "checked out"} by QR scan.`);
+      setScanMessage(kioskMode ? "You're checked in. You're all set!" : `${fullName(camper)} ${action === "check_in" ? "checked in" : "checked out"} by QR scan.`);
       setScannerOpen(false);
     }
   };
@@ -356,7 +426,7 @@ function CheckInContent() {
     };
     void start();
     return stopCamera;
-  }, [scannerOpen, campers, campDate, campId, lastScanned]);
+  }, [scannerOpen, campers, campDate, campId, lastScanned, kioskMode]);
 
   const counts = useMemo(() => {
     const checkedIn = campers.filter(c => attendanceStatus(c) === "checked_in").length;
@@ -415,7 +485,66 @@ function CheckInContent() {
     void autoHandleScan(query.trim());
   };
 
-  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a camp to open check-in mode.</div>;
+  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a camp to open kiosk / check-in mode.</div>;
+
+  if (kioskMode) {
+    return (
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col justify-center space-y-6 py-8">
+        <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Self-serve mode</p>
+          <h1 className="mt-2 text-4xl font-black text-slate-950 sm:text-5xl">Camp Kiosk</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-base font-semibold text-slate-600">Scan your child&apos;s QR code to check in. Walk-up families can register below. No camper lists or private registration details are visible in this mode.</p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-48 rounded-[2rem] bg-slate-950 p-8 text-left text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800">
+            <span className="text-5xl">▣</span>
+            <span className="mt-5 block text-2xl font-black">Scan QR to Check In</span>
+            <span className="mt-2 block text-sm font-semibold text-white/70">Opens the camera scanner.</span>
+          </button>
+          <Link href={publicRegistrationHref} className="min-h-48 rounded-[2rem] border border-sky-200 bg-sky-50 p-8 text-left text-sky-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-sky-100">
+            <span className="text-5xl">+</span>
+            <span className="mt-5 block text-2xl font-black">Walk-Up Registration</span>
+            <span className="mt-2 block text-sm font-semibold text-sky-800/70">Register a new child without opening admin data.</span>
+          </Link>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+          <label className="text-xs font-black uppercase tracking-wide text-slate-400">Scanner fallback</label>
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder="Paste or scan QR text here..." className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" autoFocus />
+            <button onClick={manualScanSubmit} className="min-h-14 rounded-2xl bg-emerald-600 px-6 text-base font-black text-white hover:bg-emerald-700">Check In</button>
+          </div>
+          {scanMessage && <p className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900">{scanMessage}</p>}
+          {scanError && <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scanError}</p>}
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-wide text-slate-400">Staff only</p>
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+            <input type="password" value={kioskExitPassword} onChange={e => { setKioskExitPassword(e.target.value); setKioskExitError(""); }} onKeyDown={e => { if (e.key === "Enter") exitKioskMode(); }} placeholder="Password to exit kiosk" className="min-h-12 flex-1 rounded-2xl border border-slate-200 px-4 text-base font-bold text-slate-800 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100" />
+            <button onClick={exitKioskMode} className="min-h-12 rounded-2xl border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50">Exit Kiosk</button>
+          </div>
+          {kioskExitError && <p className="mt-2 text-sm font-bold text-rose-600">{kioskExitError}</p>}
+        </div>
+
+        {scannerOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="w-full max-w-2xl rounded-3xl bg-white p-4 shadow-2xl">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div><h2 className="text-lg font-black text-slate-900">Scan child QR</h2><p className="text-xs font-semibold text-slate-500">Point the camera at the QR code. No child information will be displayed.</p></div>
+                <button onClick={() => setScannerOpen(false)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
+              </div>
+              <video ref={videoRef} className="aspect-video w-full rounded-2xl bg-slate-900 object-cover" playsInline muted autoPlay />
+              <canvas ref={canvasRef} className="hidden" />
+              <p className="mt-3 text-sm font-semibold text-slate-500">{scanMode === "camera" ? "Camera is live." : "Opening camera…"}</p>
+              {scanError && <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scanError}</p>}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
