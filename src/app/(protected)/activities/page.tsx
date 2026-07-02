@@ -712,6 +712,7 @@ function MandatorySessionModal({
 export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: boolean } = {}) {
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
+  const activityId = searchParams.get("activityId") || "";
 
   const [courses, setCourses]                   = useState<Course[]>([]);
   const [mandatorySessions, setMandatorySessions] = useState<MandatorySession[]>([]);
@@ -767,6 +768,18 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
   };
 
   useEffect(() => { load(); }, [campId]);
+
+  useEffect(() => {
+    if (!activityId || loading || courses.length === 0) return;
+    const match = courses.find(course => course.id === activityId);
+    if (!match) return;
+    setSearch(match.name);
+    setEditingCourse(match);
+    setShowModal(true);
+    window.setTimeout(() => {
+      document.getElementById(`activity-row-${activityId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+  }, [activityId, loading, courses]);
 
   const toggleCourseSelected = (id: string) => {
     setSelectedCourseIds(prev => {
@@ -1107,7 +1120,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                     const teacher = leadTeacher(course);
                     const helper = assistant(course);
                     return (
-                      <tr key={course.id} className="align-top hover:bg-sky-50/30">
+                      <tr id={`activity-row-${course.id}`} key={course.id} className={`align-top hover:bg-sky-50/30 ${activityId === course.id ? "bg-sky-50 ring-2 ring-sky-200" : ""}`}>
                         <td className="px-4 py-3">
                           <div className="flex items-start gap-2">
                             <input

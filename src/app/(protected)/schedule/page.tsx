@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 interface SessionTemplate {
   id: string;
@@ -126,13 +127,28 @@ function dedupeSessions(sessions: Session[], includeDay = false) {
 function sessionSort(a: Session, b: Session) {
   return sessionDay(a) - sessionDay(b) || a.startTime.localeCompare(b.startTime) || (a.room?.name || "").localeCompare(b.room?.name || "") || sessionTitle(a).localeCompare(sessionTitle(b));
 }
-function sessionCell(session: Session, compact = false) {
+function activityHref(campId: string, courseId: string) {
+  return `/activities?campId=${campId}&activityId=${courseId}`;
+}
+function sessionCell(session: Session, campId: string, compact = false) {
   const percent = capacityPercent(session);
+  const title = sessionTitle(session);
+  const titleNode = session.course ? (
+    <Link
+      href={activityHref(campId, session.course.id)}
+      className="truncate text-xs font-black text-slate-900 underline-offset-2 hover:underline"
+      title={`Edit ${session.course.name}`}
+    >
+      {title}
+    </Link>
+  ) : (
+    <p className="truncate text-xs font-black text-slate-900">{title}</p>
+  );
   return (
     <div key={session.id} className={`rounded-xl border p-2 ${capacityTone(percent)}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-xs font-black text-slate-900">{sessionTitle(session)}</p>
+          {titleNode}
           {!compact && <p className="mt-0.5 text-[11px] font-semibold opacity-80">{session.room?.name || "No room"}</p>}
         </div>
         <span className="rounded-full bg-white/65 px-1.5 py-0.5 text-[10px] font-black">{session.enrolledCount}/{session.course?.cap || "?"}</span>
@@ -263,12 +279,12 @@ function ScheduleContent() {
             ))}
           </div>
 
-          {view === "dayGrid" && <DayTimeGrid sessions={filteredDaySessions} displayDays={displayDays} timeSlots={timeSlots} />}
-          {view === "roomPivot" && <RoomPivot sessions={filteredSessions} rooms={roomRows} timeSlots={timeSlots} />}
-          {view === "teacherPivot" && <TeacherPivot sessions={filteredSessions} teachers={teacherRows} timeSlots={timeSlots} />}
-          {view === "coursePivot" && <CoursePivot sessions={filteredSessions} courses={courses} />}
-          {view === "capacity" && <CapacityHeatmap sessions={filteredSessions} />}
-          {view === "list" && <ListView sessions={filteredSessions} />}
+          {view === "dayGrid" && <DayTimeGrid sessions={filteredDaySessions} displayDays={displayDays} timeSlots={timeSlots} campId={campId} />}
+          {view === "roomPivot" && <RoomPivot sessions={filteredSessions} rooms={roomRows} timeSlots={timeSlots} campId={campId} />}
+          {view === "teacherPivot" && <TeacherPivot sessions={filteredSessions} teachers={teacherRows} timeSlots={timeSlots} campId={campId} />}
+          {view === "coursePivot" && <CoursePivot sessions={filteredSessions} courses={courses} campId={campId} />}
+          {view === "capacity" && <CapacityHeatmap sessions={filteredSessions} campId={campId} />}
+          {view === "list" && <ListView sessions={filteredSessions} campId={campId} />}
         </>
       )}
     </div>
@@ -297,71 +313,71 @@ function PivotShell({ title, subtitle, children }: { title: string; subtitle: st
   );
 }
 
-function DayTimeGrid({ sessions, displayDays, timeSlots }: { sessions: Session[]; displayDays: number[]; timeSlots: { key: string; start: string; end: string; label: string }[] }) {
+function DayTimeGrid({ sessions, displayDays, timeSlots, campId }: { sessions: Session[]; displayDays: number[]; timeSlots: { key: string; start: string; end: string; label: string }[]; campId: string }) {
   return (
     <PivotShell title="Day × Time grid" subtitle="Each cell shows the classes happening during that day and time block.">
       <table className="min-w-full border-collapse text-left text-sm">
         <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-28 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Day</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-56 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
-        <tbody>{displayDays.map((day) => <tr key={day}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{DAYS[day]}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => sessionDay(s) === day && s.startTime === slot.start && s.endTime === slot.end).map((s) => sessionCell(s))}</div></td>)}</tr>)}</tbody>
+        <tbody>{displayDays.map((day) => <tr key={day}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{DAYS[day]}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => sessionDay(s) === day && s.startTime === slot.start && s.endTime === slot.end).map((s) => sessionCell(s, campId))}</div></td>)}</tr>)}</tbody>
       </table>
     </PivotShell>
   );
 }
 
-function RoomPivot({ sessions, rooms, timeSlots }: { sessions: Session[]; rooms: Room[]; timeSlots: { key: string; start: string; end: string; label: string }[] }) {
+function RoomPivot({ sessions, rooms, timeSlots, campId }: { sessions: Session[]; rooms: Room[]; timeSlots: { key: string; start: string; end: string; label: string }[]; campId: string }) {
   return (
     <PivotShell title="Room × Time pivot" subtitle="A facilities view: scan room usage, empty rooms, and possible overlaps.">
       <table className="min-w-full border-collapse text-left text-sm">
         <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-40 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Room</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-52 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
-        <tbody>{rooms.map((room) => <tr key={room.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{room.name}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.room?.id === room.id && s.startTime === slot.start && s.endTime === slot.end).map((s) => sessionCell(s, true))}</div></td>)}</tr>)}</tbody>
+        <tbody>{rooms.map((room) => <tr key={room.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{room.name}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.room?.id === room.id && s.startTime === slot.start && s.endTime === slot.end).map((s) => sessionCell(s, campId, true))}</div></td>)}</tr>)}</tbody>
       </table>
     </PivotShell>
   );
 }
 
-function TeacherPivot({ sessions, teachers, timeSlots }: { sessions: Session[]; teachers: Person[]; timeSlots: { key: string; start: string; end: string; label: string }[] }) {
+function TeacherPivot({ sessions, teachers, timeSlots, campId }: { sessions: Session[]; teachers: Person[]; timeSlots: { key: string; start: string; end: string; label: string }[]; campId: string }) {
   return (
     <PivotShell title="Teacher × Time pivot" subtitle="Staffing view: every teacher's assigned classes across the day.">
       <table className="min-w-full border-collapse text-left text-sm">
         <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-44 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Teacher</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-52 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
-        <tbody>{teachers.map((teacher) => <tr key={teacher.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{fullName(teacher)}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.startTime === slot.start && s.endTime === slot.end && s.course?.courseTeachers?.some((ct) => ct.person.id === teacher.id)).map((s) => sessionCell(s, true))}</div></td>)}</tr>)}</tbody>
+        <tbody>{teachers.map((teacher) => <tr key={teacher.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{fullName(teacher)}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.startTime === slot.start && s.endTime === slot.end && s.course?.courseTeachers?.some((ct) => ct.person.id === teacher.id)).map((s) => sessionCell(s, campId, true))}</div></td>)}</tr>)}</tbody>
       </table>
     </PivotShell>
   );
 }
 
-function CoursePivot({ sessions, courses }: { sessions: Session[]; courses: Course[] }) {
+function CoursePivot({ sessions, courses, campId }: { sessions: Session[]; courses: Course[]; campId: string }) {
   const rows = courses.map((course) => ({ course, sessions: sessions.filter((s) => s.course?.id === course.id).sort(sessionSort) })).filter((row) => row.sessions.length > 0);
   return (
     <PivotShell title="Course matrix" subtitle="One row per course with its schedule footprint and operational metadata.">
       <table className="min-w-full border-collapse text-left text-sm">
         <thead><tr className="bg-slate-50"><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Course</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Times</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Rooms</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Teachers</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Groups</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Load</th></tr></thead>
-        <tbody>{rows.map(({ course, sessions: courseSessions }) => { const uniqueTimes = uniqueBy(courseSessions, (s) => `${sessionDay(s)}|${s.startTime}|${s.endTime}`); const rooms = uniqueBy(courseSessions.map((s) => s.room).filter((room): room is Room => Boolean(room)), (room) => room.id); const enrolled = courseSessions.reduce((sum, s) => sum + s.enrolledCount, 0); const cap = courseSessions.reduce((sum, s) => sum + (s.course?.cap || 0), 0); return <tr key={course.id} className="border-b border-slate-100"><td className="p-3 font-black text-slate-900">{course.name}</td><td className="p-3 text-xs text-slate-600">{uniqueTimes.map((s) => `${DAYS[sessionDay(s)]} ${timeRange(s)}`).join("\n")}</td><td className="p-3 text-xs text-slate-600">{rooms.map((room) => room.name).join("\n") || "—"}</td><td className="p-3 text-xs text-slate-600">{teacherNames(course)}</td><td className="p-3 text-xs text-slate-600">{ageGroupNames(course)}</td><td className="p-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${capacityTone(cap ? Math.round((enrolled / cap) * 100) : 0)}`}>{enrolled}/{cap || "?"}</span></td></tr>; })}</tbody>
+        <tbody>{rows.map(({ course, sessions: courseSessions }) => { const uniqueTimes = uniqueBy(courseSessions, (s) => `${sessionDay(s)}|${s.startTime}|${s.endTime}`); const rooms = uniqueBy(courseSessions.map((s) => s.room).filter((room): room is Room => Boolean(room)), (room) => room.id); const enrolled = courseSessions.reduce((sum, s) => sum + s.enrolledCount, 0); const cap = courseSessions.reduce((sum, s) => sum + (s.course?.cap || 0), 0); return <tr key={course.id} className="border-b border-slate-100"><td className="p-3 font-black text-slate-900"><Link href={activityHref(campId, course.id)} className="underline-offset-2 hover:underline">{course.name}</Link></td><td className="p-3 text-xs text-slate-600">{uniqueTimes.map((s) => `${DAYS[sessionDay(s)]} ${timeRange(s)}`).join("\n")}</td><td className="p-3 text-xs text-slate-600">{rooms.map((room) => room.name).join("\n") || "—"}</td><td className="p-3 text-xs text-slate-600">{teacherNames(course)}</td><td className="p-3 text-xs text-slate-600">{ageGroupNames(course)}</td><td className="p-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${capacityTone(cap ? Math.round((enrolled / cap) * 100) : 0)}`}>{enrolled}/{cap || "?"}</span></td></tr>; })}</tbody>
       </table>
     </PivotShell>
   );
 }
 
-function CapacityHeatmap({ sessions }: { sessions: Session[] }) {
+function CapacityHeatmap({ sessions, campId }: { sessions: Session[]; campId: string }) {
   return (
     <PivotShell title="Capacity heatmap" subtitle="Sorted by fullness so the pressure points float to the top.">
       <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
         {[...sessions].sort((a, b) => capacityPercent(b) - capacityPercent(a)).map((session) => {
           const percent = capacityPercent(session);
-          return <div key={session.id} className={`rounded-2xl border p-4 ${capacityTone(percent)}`}><div className="flex items-start justify-between gap-3"><div><p className="font-black text-slate-900">{sessionTitle(session)}</p><p className="mt-1 text-xs font-semibold opacity-80">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}</p></div><span className="rounded-full bg-white/65 px-2 py-1 text-xs font-black">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70"><div className="h-full rounded-full bg-slate-900/60" style={{ width: `${Math.min(percent, 100)}%` }} /></div><p className="mt-2 text-xs font-bold opacity-80">{session.enrolledCount}/{session.course?.cap || "?"} enrolled{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>;
+          return <div key={session.id} className={`rounded-2xl border p-4 ${capacityTone(percent)}`}><div className="flex items-start justify-between gap-3"><div>{session.course ? <Link href={activityHref(campId, session.course.id)} className="font-black text-slate-900 underline-offset-2 hover:underline">{sessionTitle(session)}</Link> : <p className="font-black text-slate-900">{sessionTitle(session)}</p>}<p className="mt-1 text-xs font-semibold opacity-80">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}</p></div><span className="rounded-full bg-white/65 px-2 py-1 text-xs font-black">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70"><div className="h-full rounded-full bg-slate-900/60" style={{ width: `${Math.min(percent, 100)}%` }} /></div><p className="mt-2 text-xs font-bold opacity-80">{session.enrolledCount}/{session.course?.cap || "?"} enrolled{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>;
         })}
       </div>
     </PivotShell>
   );
 }
 
-function ListView({ sessions }: { sessions: Session[] }) {
+function ListView({ sessions, campId }: { sessions: Session[]; campId: string }) {
   return (
     <div className="space-y-3">
       {sessions.map((session) => (
         <div key={session.id} className="camp-card flex items-center gap-4 p-4">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: session.course?.color || "#94a3b8" }}>{session.course?.icon || "Sc"}</div>
-          <div className="min-w-0 flex-1"><p className="truncate font-semibold text-slate-800">{sessionTitle(session)}</p><p className="text-xs text-slate-500">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>
+          <div className="min-w-0 flex-1">{session.course ? <Link href={activityHref(campId, session.course.id)} className="truncate font-semibold text-slate-800 underline-offset-2 hover:underline">{sessionTitle(session)}</Link> : <p className="truncate font-semibold text-slate-800">{sessionTitle(session)}</p>}<p className="text-xs text-slate-500">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>
           <div className="flex-shrink-0 text-right"><div className="text-sm font-semibold text-slate-700">{session.enrolledCount}/{session.course?.cap || "?"}</div><div className="text-xs text-slate-400">enrolled</div></div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[session.status] || "bg-slate-100 text-slate-600"}`}>{session.status}</span>
         </div>

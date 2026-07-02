@@ -37,6 +37,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const { campId } = await params;
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const data = await req.json();
+  if (data?.courseId && data?.sessionTemplateId) {
+    const lockedTemplate = await prisma.sessionTemplate.findFirst({
+      where: { id: data.sessionTemplateId, campId, mandatory: true },
+      select: { label: true },
+    });
+    if (lockedTemplate) {
+      return NextResponse.json({ error: `${lockedTemplate.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.` }, { status: 409 });
+    }
+  }
   const item = await prisma.session.create({ data: { ...data, campId } });
   return NextResponse.json(item, { status: 201 });
 }

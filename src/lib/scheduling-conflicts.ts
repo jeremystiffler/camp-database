@@ -83,6 +83,24 @@ export async function checkSchedulingConflicts({
   // Deduplicate: one conflict entry per (type, courseId, slotId)
   const seen = new Set<string>();
 
+  // Locked/default schedule blocks (Opening Assembly, Closing Assembly, etc.)
+  // are owned by MandatorySession rows. Activities should never be linked to
+  // these templates, even if they have no room/teacher/age-group conflict.
+  // Otherwise stale Session rows can make an activity appear during assembly.
+  for (const tmpl of templates) {
+    if (!tmpl.mandatory) continue;
+    const key = `locked-template|${tmpl.id}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      conflicts.push({
+        type: "ageGroup",
+        slotLabel: formatSlot(tmpl.dayOfWeek ?? null, tmpl.startTime, tmpl.endTime, tmpl.label),
+        activityName: tmpl.label || "Locked schedule block",
+        detail: "Locked schedule blocks are reserved for everyone and cannot be assigned to activities.",
+      });
+    }
+  }
+
   for (const link of conflictingLinks) {
     const tmpl = templateMap.get(link.sessionTemplateId);
     if (!tmpl) continue;

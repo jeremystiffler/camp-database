@@ -81,9 +81,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       return NextResponse.json({ error: "Choose a valid location before locking this time block to every schedule." }, { status: 400 });
     }
 
+    stage = "check existing activity sessions";
+    const activitySessionsWithEnrollments = await prisma.session.findMany({
+      where: { campId, sessionTemplateId: { in: slotIds }, courseId: { not: null }, enrollments: { some: {} } },
+      select: { id: true, course: { select: { name: true } }, sessionTemplate: { select: { label: true, startTime: true, endTime: true } }, _count: { select: { enrollments: true } } },
+    });
+    if (activitySessionsWithEnrollments.length > 0) {
+      const details = activitySessionsWithEnrollments
+        .map(s => `${s.course?.name || "Activity"} (${s._count.enrollments} enrollment${s._count.enrollments === 1 ? "" : "s"})`)
+        .join(", ");
+      return NextResponse.json({ error: `Move/remove existing class enrollments before locking this block: ${details}` }, { status: 409 });
+    }
+
     stage = "remove activity links";
     for (const sessionTemplateId of slotIds) {
       await prisma.courseSessionTemplate.deleteMany({ where: { sessionTemplateId } });
+      await prisma.session.deleteMany({ where: { campId, sessionTemplateId, courseId: { not: null }, enrollments: { none: {} } } });
     }
     stage = "mark templates locked";
     for (const id of slotIds) {
