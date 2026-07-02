@@ -12,6 +12,11 @@ function clean(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function familyKey(camper: { lastName: string; guardianEmail?: string | null; guardianPhone?: string | null; guardianName?: string | null }) {
+  const contact = (camper.guardianEmail || camper.guardianPhone || camper.guardianName || "").trim().toLowerCase().replace(/\D/g, "") || (camper.guardianEmail || camper.guardianName || "").trim().toLowerCase();
+  return `${camper.lastName.trim().toLowerCase()}|${contact}`;
+}
+
 async function nextPickupNumber(campId: string) {
   const campers = await prisma.camper.findMany({ where: { campId, pickupNumber: { not: null } }, select: { pickupNumber: true } });
   const used = new Set(
@@ -41,14 +46,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       const campers = await prisma.camper.findMany({ where: { campId }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] });
       let next = Number(body.startAt) || 101;
       const used = new Set(campers.map(c => c.pickupNumber).filter(Boolean) as string[]);
+      const familyNumbers = new Map<string, string>();
+      for (const c of campers) {
+        if (c.pickupNumber) familyNumbers.set(familyKey(c), c.pickupNumber);
+      }
       let updated = 0;
       for (const camper of campers) {
         const patch: { pickupNumber?: string; scanCode?: string; scanCodeGeneratedAt?: Date } = {};
+        const key = familyKey(camper);
         if (!camper.pickupNumber) {
-          while (used.has(String(next))) next += 1;
-          patch.pickupNumber = String(next);
-          used.add(String(next));
-          next += 1;
+          let pickupNumber = familyNumbers.get(key);
+          if (!pickupNumber) {
+            while (used.has(String(next))) next += 1;
+            pickupNumber = String(next);
+            used.add(pickupNumber);
+            familyNumbers.set(key, pickupNumber);
+            next += 1;
+          }
+          patch.pickupNumber = pickupNumber;
         }
         if (!camper.scanCode) {
           patch.scanCode = generateCamperScanCode();

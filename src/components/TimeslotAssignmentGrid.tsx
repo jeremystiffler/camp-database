@@ -18,7 +18,7 @@ interface Course {
   courseSessionTemplates: { sessionTemplateId?: string; sessionTemplate?: SessionTemplate }[];
   courseAgeGroups: { ageGroup: { id: string; name: string } }[];
   courseTeachers: { person: { id: string; firstName: string; lastName: string; role: string } }[];
-  sessions?: { id: string; sessionTemplateId: string | null; enrolledCount: number }[];
+  sessions?: { id: string; sessionTemplateId: string | null; enrolledCount: number; enrollments?: { camperId: string }[] }[];
 }
 interface SchedulingConflict { type: string; detail: string; activityName: string; slotLabel: string; locationNote?: string; }
 type CellAvailability = { status: "scheduled" | "available" | "blocked"; label: string; title: string; className: string; conflicts: string[] };
@@ -99,10 +99,16 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
     return checked;
   };
 
+  const camperIdsForCourseGroup = (course: Course, sg: SessionGroup): Set<string> => {
+    const matchingSessions = (course.sessions || []).filter(s => s.sessionTemplateId && sg.ids.includes(s.sessionTemplateId));
+    return new Set(matchingSessions.flatMap(s => (s.enrollments || []).map(e => e.camperId).filter(Boolean)));
+  };
+
   const courseEnrollmentForGroup = (course: Course, sg: SessionGroup): number => {
-    const counts = (course.sessions || [])
-      .filter(s => s.sessionTemplateId && sg.ids.includes(s.sessionTemplateId))
-      .map(s => s.enrolledCount || 0);
+    const camperIds = camperIdsForCourseGroup(course, sg);
+    if (camperIds.size > 0) return camperIds.size;
+    const matchingSessions = (course.sessions || []).filter(s => s.sessionTemplateId && sg.ids.includes(s.sessionTemplateId));
+    const counts = matchingSessions.map(s => s.enrolledCount || 0);
     return counts.length ? Math.max(...counts) : 0;
   };
 
@@ -111,7 +117,8 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const sessionGroupStats = (sg: SessionGroup, courseList: Course[] = courses) => {
     const assignedCourses = courseList.filter(c => courseCheckedGroups(c).has(sg.key));
     const totalCap = assignedCourses.reduce((sum, c) => sum + (c.cap || 0), 0);
-    const registered = assignedCourses.reduce((sum, c) => sum + courseEnrollmentForGroup(c, sg), 0);
+    const distinctCampers = new Set(assignedCourses.flatMap(c => Array.from(camperIdsForCourseGroup(c, sg))));
+    const registered = distinctCampers.size > 0 ? distinctCampers.size : assignedCourses.reduce((sum, c) => sum + courseEnrollmentForGroup(c, sg), 0);
     return { assignedCount: assignedCourses.length, totalCap, registered, remaining: Math.max(totalCap - registered, 0), fillRate: totalCap > 0 ? registered / totalCap : 0 };
   };
 

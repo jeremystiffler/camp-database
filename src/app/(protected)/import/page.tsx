@@ -45,7 +45,7 @@ interface Course {
   courseSessionTemplates: { sessionTemplateId: string }[];
   courseAgeGroups: { ageGroup: { id: string; name: string } }[];
   courseTeachers: { person: { id: string; firstName: string; lastName: string; role: string } }[];
-  sessions?: { id: string; sessionTemplateId: string | null; enrolledCount: number }[];
+  sessions?: { id: string; sessionTemplateId: string | null; enrolledCount: number; enrollments?: { camperId: string }[] }[];
 }
 interface ImportResult {
   coursesCreated: number; coursesUpdated: number; teachersCreated: number;
@@ -234,9 +234,10 @@ function ImportContent() {
   };
 
   const courseEnrollmentForGroup = (course: Course, sg: SessionGroup): number => {
-    const counts = (course.sessions || [])
-      .filter(s => s.sessionTemplateId && sg.ids.includes(s.sessionTemplateId))
-      .map(s => s.enrolledCount || 0);
+    const matchingSessions = (course.sessions || []).filter(s => s.sessionTemplateId && sg.ids.includes(s.sessionTemplateId));
+    const camperIds = new Set(matchingSessions.flatMap(s => (s.enrollments || []).map(e => e.camperId).filter(Boolean)));
+    if (camperIds.size > 0) return camperIds.size;
+    const counts = matchingSessions.map(s => s.enrolledCount || 0);
     return counts.length ? Math.max(...counts) : 0;
   };
 

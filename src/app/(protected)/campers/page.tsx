@@ -860,12 +860,20 @@ function CampersContent() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => setSelectedCamper(camper)}
-                      className="px-3 py-1 text-xs font-medium text-sky-600 bg-sky-50 rounded-lg hover:bg-sky-100 transition-colors"
-                    >
-                      View
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setSelectedCamper(camper)}
+                        className="px-3 py-1 text-xs font-black text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                      >
+                        QR / Pickup
+                      </button>
+                      <button
+                        onClick={() => setSelectedCamper(camper)}
+                        className="px-3 py-1 text-xs font-medium text-sky-600 bg-sky-50 rounded-lg hover:bg-sky-100 transition-colors"
+                      >
+                        View
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
