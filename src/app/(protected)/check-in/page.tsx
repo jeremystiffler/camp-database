@@ -301,8 +301,6 @@ function CheckInContent() {
     withKioskUrl(false);
   };
 
-  const publicRegistrationHref = `/register/${campId}?source=kiosk`;
-
   const updateAttendance = async (camper: Camper, action: string, extra: Record<string, unknown> = {}) => {
     setSavingId(camper.id);
     const res = await fetch(`/api/camps/${campId}/attendance`, {
@@ -335,12 +333,7 @@ function CheckInContent() {
       return;
     }
     const camper = matches[0];
-    const action = kioskMode ? "check_in" : nextScanAction(camper);
-    if (kioskMode && attendanceStatus(camper) === "checked_in") {
-      setScanMessage("This child is already checked in. Please ask a staff member if you need help.");
-      setScannerOpen(false);
-      return;
-    }
+    const action = nextScanAction(camper);
     const contacts = contactInfo(camper);
     scanLockRef.current = true;
     setLastScanned(raw);
@@ -348,14 +341,14 @@ function CheckInContent() {
       pickupPersonName: action === "check_out" ? (camper.guardianName || contacts.approved[0]?.name || "QR self checkout") : undefined,
       pickupRelationship: action === "check_out" ? "QR scan" : undefined,
       pickupCodeVerified: true,
-      note: kioskMode ? "Self-serve kiosk QR check-in" : (action === "check_in" ? "Auto checked in by QR scan" : "Auto checked out by QR scan"),
+      note: kioskMode ? `Self-serve kiosk QR ${action === "check_in" ? "check-in" : "check-out"}` : (action === "check_in" ? "Auto checked in by QR scan" : "Auto checked out by QR scan"),
     });
     scanLockRef.current = false;
     if (ok) {
       setQuery("");
       setActiveLetter("");
       setView(action === "check_in" ? "checked_in" : "checked_out");
-      setScanMessage(kioskMode ? "You're checked in. You're all set!" : `${fullName(camper)} ${action === "check_in" ? "checked in" : "checked out"} by QR scan.`);
+      setScanMessage(kioskMode ? `${fullName(camper)} is ${action === "check_in" ? "checked in" : "checked out"}.` : `${fullName(camper)} ${action === "check_in" ? "checked in" : "checked out"} by QR scan.`);
       setScannerOpen(false);
     }
   };
@@ -507,6 +500,13 @@ function CheckInContent() {
     void autoHandleScan(query.trim());
   };
 
+  const kioskNameMatches = query.trim().length >= 2
+    ? campers
+      .filter(camper => `${fullName(camper)} ${camper.lastName} ${camper.firstName}`.toLowerCase().includes(query.trim().toLowerCase()))
+      .sort((a, b) => `${a.lastName}|${a.firstName}`.localeCompare(`${b.lastName}|${b.firstName}`))
+      .slice(0, 8)
+    : [];
+
   if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a camp to open kiosk / check-in mode.</div>;
 
   if (kioskMode) {
@@ -515,28 +515,46 @@ function CheckInContent() {
         <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Self-serve mode</p>
           <h1 className="mt-2 text-4xl font-black text-slate-950 sm:text-5xl">Camp Kiosk</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-base font-semibold text-slate-600">Scan your child&apos;s QR code to check in. Walk-up families can register below. No camper lists or private registration details are visible in this mode.</p>
+          <p className="mx-auto mt-3 max-w-2xl text-base font-semibold text-slate-600">Check children in or out by scanning a QR code or finding their name. Admin menus, camper records, schedules, and private details stay hidden.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-48 rounded-[2rem] bg-slate-950 p-8 text-left text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800">
             <span className="text-5xl">▣</span>
-            <span className="mt-5 block text-2xl font-black">Scan QR to Check In</span>
-            <span className="mt-2 block text-sm font-semibold text-white/70">Opens the camera scanner.</span>
+            <span className="mt-5 block text-2xl font-black">Scan QR Code</span>
+            <span className="mt-2 block text-sm font-semibold text-white/70">Scans check in if not arrived, or check out if already checked in.</span>
           </button>
-          <Link href={publicRegistrationHref} className="min-h-48 rounded-[2rem] border border-sky-200 bg-sky-50 p-8 text-left text-sky-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-sky-100">
-            <span className="text-5xl">+</span>
-            <span className="mt-5 block text-2xl font-black">Walk-Up Registration</span>
-            <span className="mt-2 block text-sm font-semibold text-sky-800/70">Register a new child without opening admin data.</span>
-          </Link>
+          <div className="min-h-48 rounded-[2rem] border border-sky-200 bg-sky-50 p-8 text-left text-sky-950 shadow-sm">
+            <span className="text-5xl">⌕</span>
+            <span className="mt-5 block text-2xl font-black">Find by Name</span>
+            <span className="mt-2 block text-sm font-semibold text-sky-800/70">Type at least two letters below, then tap Check In or Check Out.</span>
+          </div>
         </div>
 
         <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
-          <label className="text-xs font-black uppercase tracking-wide text-slate-400">Scanner fallback</label>
+          <label className="text-xs font-black uppercase tracking-wide text-slate-400">Scan code or find a name</label>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder="Paste or scan QR text here..." className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" autoFocus />
-            <button onClick={manualScanSubmit} className="min-h-14 rounded-2xl bg-emerald-600 px-6 text-base font-black text-white hover:bg-emerald-700">Check In</button>
+            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder="Type camper name, paste QR text, or scan from a USB scanner..." className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" autoFocus />
+            <button onClick={manualScanSubmit} className="min-h-14 rounded-2xl bg-emerald-600 px-6 text-base font-black text-white hover:bg-emerald-700">Use Scan</button>
           </div>
+          {kioskNameMatches.length > 0 && <div className="mt-4 space-y-2">
+            {kioskNameMatches.map(camper => {
+              const status = attendanceStatus(camper);
+              const canCheckOut = status === "checked_in";
+              const done = status === "checked_out";
+              return <div key={camper.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-lg font-black text-slate-900">{fullName(camper)}</p>
+                  <p className="text-xs font-bold text-slate-500">Status: {STATUS_COPY[status]?.label || "Not arrived"}</p>
+                </div>
+                <div className="flex gap-2">
+                  {!canCheckOut && !done && <button disabled={savingId === camper.id} onClick={() => checkInAndShowCheckout(camper)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Check In</button>}
+                  {canCheckOut && <button disabled={savingId === camper.id} onClick={() => updateAttendance(camper, "check_out", { pickupPersonName: camper.guardianName || "Kiosk name search", pickupRelationship: "Kiosk", pickupCodeVerified: false, note: "Self-serve kiosk name checkout" })} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Check Out</button>}
+                  {done && <span className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-400">Checked Out</span>}
+                </div>
+              </div>;
+            })}
+          </div>}
           {scanMessage && <p className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900">{scanMessage}</p>}
           {scanError && <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scanError}</p>}
         </div>

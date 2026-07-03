@@ -118,6 +118,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       if (!ageGroup) return NextResponse.json({ error: "Selected age group does not belong to this camp" }, { status: 400 });
     }
 
+    // Keep this as a single plain insert. Prisma's HTTP adapter (Neon/Vercel)
+    // does not support transactions, and relation includes on writes can be
+    // planned as transaction-like query batches by some adapter versions.
     const item = await prisma.camper.create({
       data: {
         campId,
@@ -144,7 +147,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         scanCode: generateCamperScanCode(),
         scanCodeGeneratedAt: new Date(),
       },
-      include: camperInclude,
+      select: { id: true },
     });
     await replaceEnrollments(campId, item.id, parseSessionIds(data.sessionIds), parseSessionChoices(data.sessionChoices));
     const reloaded = await prisma.camper.findFirst({ where: { id: item.id, campId }, include: camperInclude });

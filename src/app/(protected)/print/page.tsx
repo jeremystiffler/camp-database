@@ -110,8 +110,8 @@ const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Pickup Window Cards — Number + Family", type: "pickup_cards", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large" }) },
   { builtin: true, name: "Pickup Number Roster", type: "pickup_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "Camper Badges — Sheet", type: "badges", category: "badges", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 4, badgeCols: 3, showAgeGroup: true }) },
-  { builtin: true, name: "Custom Schedule Lanyard Badge — 3×5", type: "badges", category: "badges", paperSize: "3x5", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, badgeLayout: "schedule_lanyard", lanyardTheme: "aquaSheet", showSchedule: true, showAgeGroup: false }) },
-  { builtin: true, name: "Camper Lanyard Badge — 5×3", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showSchedule: true }) },
+  { builtin: true, name: "Custom Schedule Lanyard Badge — 3×5", type: "badges", category: "badges", paperSize: "3x5", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, badgeLayout: "schedule_lanyard", lanyardTheme: "aquaSheet", showSchedule: true, showAgeGroup: false, badgeBackEnabled: true, badgeBackContentBlocks: ["qr"] }) },
+  { builtin: true, name: "Camper Lanyard Badge — 5×3", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showSchedule: true, badgeBackEnabled: true, badgeBackContentBlocks: ["qr"] }) },
   { builtin: true, name: "Camper Card — 4×6", type: "badges", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showGuardian: true, showSchedule: true }) },
 ];
 
@@ -133,6 +133,7 @@ const BADGE_STANDARD_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "emergency", label: "Emergency phone" },
   { id: "medical", label: "Medical / dietary notes" },
   { id: "schedule", label: "Compact schedule" },
+  { id: "qr", label: "QR scan code" },
 ];
 const BADGE_LANYARD_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "name", label: "Name header" },
@@ -142,6 +143,7 @@ const BADGE_LANYARD_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "guardian", label: "Guardian contact" },
   { id: "emergency", label: "Emergency phone" },
   { id: "medical", label: "Medical / dietary notes" },
+  { id: "qr", label: "QR scan code" },
 ];
 const CUSTOM_PRINTABLE_BACK_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "fullName", label: "Full name" },
@@ -150,6 +152,7 @@ const CUSTOM_PRINTABLE_BACK_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "emergency", label: "Emergency phone" },
   { id: "medical", label: "Medical / dietary notes" },
   { id: "schedule", label: "Compact schedule" },
+  { id: "qr", label: "QR scan code" },
 ];
 const LANYARD_THEMES = {
   aquaSheet: { label: "Aqua spreadsheet", headerBg: "#63d2d2", headerText: "#071827", border: "#334155", rowAlt: "#edfafa", rowBg: "#ffffff", timeBg: "#f8fafc" },
@@ -935,6 +938,7 @@ function PrintContent() {
             if (blockId === "emergency") return field("Emergency phone", c.emergencyPhone || c.guardianPhone || "—");
             if (blockId === "medical") return field("Medical / dietary", [c.medicalNotes, c.dietaryNotes].filter(Boolean).join("\n") || "None listed");
             if (blockId === "schedule") return field("Schedule", badgeScheduleSummary(c) || "—");
+            if (blockId === "qr") return <div key="qr" style={{ display: "flex", flex: 1, minHeight: 0, alignItems: "center", justifyContent: "center", padding: "0.08in 0" }}><CamperScannableCode value={c.scanCode} label="Scan for check-in / checkout" size={lanyard ? 150 : 132} /></div>;
             if (blockId === "firstName") return field("First name", c.firstName);
             if (blockId === "lastName") return field("Last name", c.lastName);
             return null;

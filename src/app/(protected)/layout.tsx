@@ -263,7 +263,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         <span className="ml-3 font-bold text-slate-800">Camp Creator</span>
       </div>}
       <main className={`flex-1 min-h-screen flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`}>
-        <div className={`w-full px-5 sm:px-8 py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>
+        <div className={`w-full px-3 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>
           {children}
         </div>
       </main>
