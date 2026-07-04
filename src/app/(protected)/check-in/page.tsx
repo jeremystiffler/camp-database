@@ -228,6 +228,7 @@ function CheckInContent() {
   const [kioskMode, setKioskMode] = useState(false);
   const [kioskExitPassword, setKioskExitPassword] = useState("");
   const [kioskExitError, setKioskExitError] = useState("");
+  const [showKioskExitPrompt, setShowKioskExitPrompt] = useState(false);
   const [settingKioskPassword, setSettingKioskPassword] = useState(false);
   const [newKioskPassword, setNewKioskPassword] = useState("");
   const [kioskSetupError, setKioskSetupError] = useState("");
@@ -252,6 +253,7 @@ function CheckInContent() {
     const savedPassword = sessionStorage.getItem(`camp-kiosk-password:${campId}`);
     if (sessionStorage.getItem(`camp-kiosk-active:${campId}`) === "1" || (kioskParam && savedPassword)) {
       setKioskMode(true);
+      if (!kioskParam) withKioskUrl(true);
       return;
     }
     if (kioskParam && !savedPassword) setSettingKioskPassword(true);
@@ -296,6 +298,7 @@ function CheckInContent() {
     }
     sessionStorage.removeItem(`camp-kiosk-active:${campId}`);
     setKioskMode(false);
+    setShowKioskExitPrompt(false);
     setKioskExitPassword("");
     setKioskExitError("");
     withKioskUrl(false);
@@ -542,7 +545,15 @@ function CheckInContent() {
 
   if (kioskMode) {
     return (
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col justify-center space-y-6 py-8">
+      <div className="fixed inset-0 z-40 overflow-y-auto bg-slate-50 px-4 py-6 sm:px-6">
+        <button
+          type="button"
+          onClick={() => { setShowKioskExitPrompt(true); setKioskExitPassword(""); setKioskExitError(""); }}
+          className="fixed right-4 top-4 z-50 rounded-2xl border border-slate-200 bg-white/95 px-4 py-2 text-sm font-black text-slate-700 shadow-sm backdrop-blur hover:bg-slate-50"
+        >
+          Exit kiosk
+        </button>
+        <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-4xl flex-col justify-center space-y-6 py-8">
         <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Kiosk mode</p>
           <h1 className="mt-2 text-4xl font-black text-slate-950 sm:text-5xl">Self Check In/Out</h1>
@@ -590,14 +601,28 @@ function CheckInContent() {
           {scanError && <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scanError}</p>}
         </div>
 
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-wide text-slate-400">Staff only</p>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-            <input type="password" value={kioskExitPassword} onChange={e => { setKioskExitPassword(e.target.value); setKioskExitError(""); }} onKeyDown={e => { if (e.key === "Enter") exitKioskMode(); }} placeholder="Password to exit kiosk" className="min-h-12 flex-1 rounded-2xl border border-slate-200 px-4 text-base font-bold text-slate-800 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100" />
-            <button onClick={exitKioskMode} className="min-h-12 rounded-2xl border border-slate-200 px-5 text-sm font-black text-slate-700 hover:bg-slate-50">Exit Kiosk</button>
-          </div>
-          {kioskExitError && <p className="mt-2 text-sm font-bold text-rose-600">{kioskExitError}</p>}
         </div>
+
+        {showKioskExitPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+            <div className="w-full max-w-md rounded-[2rem] bg-white p-5 shadow-2xl">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Staff only</p>
+                  <h2 className="mt-1 text-2xl font-black text-slate-950">Exit kiosk mode</h2>
+                  <p className="mt-2 text-sm font-semibold text-slate-500">Enter the staff password to restore the admin sidebar and navigation.</p>
+                </div>
+                <button onClick={() => { setShowKioskExitPrompt(false); setKioskExitPassword(""); setKioskExitError(""); }} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
+              </div>
+              <input type="password" value={kioskExitPassword} onChange={e => { setKioskExitPassword(e.target.value); setKioskExitError(""); }} onKeyDown={e => { if (e.key === "Enter") exitKioskMode(); }} placeholder="Password to exit kiosk" className="mt-5 min-h-14 w-full rounded-2xl border border-slate-200 px-4 text-base font-bold text-slate-800 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100" autoFocus />
+              {kioskExitError && <p className="mt-2 text-sm font-bold text-rose-600">{kioskExitError}</p>}
+              <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button onClick={() => { setShowKioskExitPrompt(false); setKioskExitPassword(""); setKioskExitError(""); }} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 hover:bg-slate-50">Cancel</button>
+                <button onClick={exitKioskMode} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800">Exit kiosk</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {scannerOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
