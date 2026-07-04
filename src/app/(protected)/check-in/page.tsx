@@ -500,22 +500,53 @@ function CheckInContent() {
     void autoHandleScan(query.trim());
   };
 
-  const kioskNameMatches = query.trim().length >= 2
+  const kioskSearchText = query.trim().toLowerCase();
+  const kioskNameMatches = kioskSearchText.length >= 2
     ? campers
-      .filter(camper => `${fullName(camper)} ${camper.lastName} ${camper.firstName}`.toLowerCase().includes(query.trim().toLowerCase()))
+      .filter(camper => [fullName(camper), `${camper.lastName} ${camper.firstName}`, camper.guardianName || ""].join(" ").toLowerCase().includes(kioskSearchText))
       .sort((a, b) => `${a.lastName}|${a.firstName}`.localeCompare(`${b.lastName}|${b.firstName}`))
       .slice(0, 8)
     : [];
 
-  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a camp to open kiosk / check-in mode.</div>;
+  const kioskToggleCamper = async (camper: Camper) => {
+    const action = nextScanAction(camper);
+    const contacts = contactInfo(camper);
+    const ok = await updateAttendance(camper, action, {
+      pickupPersonName: action === "check_out" ? (camper.guardianName || contacts.approved[0]?.name || "Kiosk name search") : undefined,
+      pickupRelationship: action === "check_out" ? "Kiosk name search" : undefined,
+      pickupCodeVerified: false,
+      note: `Self-serve kiosk name ${action === "check_in" ? "check-in" : "check-out"}`,
+    });
+    if (ok) {
+      setScanMessage(`${fullName(camper)} is ${action === "check_in" ? "checked in" : "checked out"}.`);
+      setQuery("");
+    }
+  };
+
+  const kioskSearchSubmit = async () => {
+    const raw = query.trim();
+    if (!raw) return;
+    const scanMatchesForQuery = campers.filter(camper => scanMatches(camper, raw));
+    if (scanMatchesForQuery.length === 1) {
+      await autoHandleScan(raw);
+      return;
+    }
+    if (kioskNameMatches.length === 1) {
+      await kioskToggleCamper(kioskNameMatches[0]);
+      return;
+    }
+    setScanMessage(kioskNameMatches.length > 1 ? "Choose the matching child below." : "No match found. Please ask a staff member for help.");
+  };
+
+  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a camp to open Check in/out.</div>;
 
   if (kioskMode) {
     return (
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl flex-col justify-center space-y-6 py-8">
         <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Self-serve mode</p>
-          <h1 className="mt-2 text-4xl font-black text-slate-950 sm:text-5xl">Camp Kiosk</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-base font-semibold text-slate-600">Check children in or out by scanning a QR code or finding their name. Admin menus, camper records, schedules, and private details stay hidden.</p>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Kiosk mode</p>
+          <h1 className="mt-2 text-4xl font-black text-slate-950 sm:text-5xl">Self Check In/Out</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-base font-semibold text-slate-600">Check children in or out by scanning their QR code, searching for the adult/guardian name, or finding the child's name. Admin menus, camper records, schedules, and private details stay hidden.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -527,15 +558,15 @@ function CheckInContent() {
           <div className="min-h-48 rounded-[2rem] border border-sky-200 bg-sky-50 p-8 text-left text-sky-950 shadow-sm">
             <span className="text-5xl">⌕</span>
             <span className="mt-5 block text-2xl font-black">Find by Name</span>
-            <span className="mt-2 block text-sm font-semibold text-sky-800/70">Type at least two letters below, then tap Check In or Check Out.</span>
+            <span className="mt-2 block text-sm font-semibold text-sky-800/70">Type at least two letters of the adult or child name, then tap Check In or Check Out.</span>
           </div>
         </div>
 
         <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
           <label className="text-xs font-black uppercase tracking-wide text-slate-400">Scan code or find a name</label>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder="Type camper name, paste QR text, or scan from a USB scanner..." className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" autoFocus />
-            <button onClick={manualScanSubmit} className="min-h-14 rounded-2xl bg-emerald-600 px-6 text-base font-black text-white hover:bg-emerald-700">Use Scan</button>
+            <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void kioskSearchSubmit(); }} placeholder="Type adult/guardian name, child name, paste QR text, or scan from a USB scanner..." className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" autoFocus />
+            <button onClick={() => void kioskSearchSubmit()} className="min-h-14 rounded-2xl bg-emerald-600 px-6 text-base font-black text-white hover:bg-emerald-700">Search / Use Scan</button>
           </div>
           {kioskNameMatches.length > 0 && <div className="mt-4 space-y-2">
             {kioskNameMatches.map(camper => {
@@ -548,8 +579,8 @@ function CheckInContent() {
                   <p className="text-xs font-bold text-slate-500">Status: {STATUS_COPY[status]?.label || "Not arrived"}</p>
                 </div>
                 <div className="flex gap-2">
-                  {!canCheckOut && !done && <button disabled={savingId === camper.id} onClick={() => checkInAndShowCheckout(camper)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Check In</button>}
-                  {canCheckOut && <button disabled={savingId === camper.id} onClick={() => updateAttendance(camper, "check_out", { pickupPersonName: camper.guardianName || "Kiosk name search", pickupRelationship: "Kiosk", pickupCodeVerified: false, note: "Self-serve kiosk name checkout" })} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Check Out</button>}
+                  {!canCheckOut && !done && <button disabled={savingId === camper.id} onClick={() => void kioskToggleCamper(camper)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Check In</button>}
+                  {canCheckOut && <button disabled={savingId === camper.id} onClick={() => void kioskToggleCamper(camper)} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Check Out</button>}
                   {done && <span className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-400">Checked Out</span>}
                 </div>
               </div>;
@@ -597,8 +628,31 @@ function CheckInContent() {
         <div className="flex flex-wrap gap-2">
           <input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" />
           <button onClick={load} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50">Refresh</button>
+          <button onClick={startKioskSetup} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-slate-800">Kiosk mode</button>
         </div>
       </div>
+
+      {settingKioskPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Kiosk mode</p>
+                <h2 className="mt-1 text-2xl font-black text-slate-950">Start self check in/out</h2>
+                <p className="mt-2 text-sm font-semibold text-slate-500">Families can scan a QR code or search by adult/guardian name or child name. The app chrome and private admin details will be hidden until staff enters this exit password.</p>
+              </div>
+              <button onClick={() => { setSettingKioskPassword(false); setKioskSetupError(""); }} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
+            </div>
+            <label className="mt-5 block text-xs font-black uppercase tracking-wide text-slate-400">Staff exit password</label>
+            <input type="password" value={newKioskPassword} onChange={e => { setNewKioskPassword(e.target.value); setKioskSetupError(""); }} onKeyDown={e => { if (e.key === "Enter") enterKioskMode(); }} placeholder="Set a password staff can use to exit" className="mt-2 min-h-14 w-full rounded-2xl border border-slate-200 px-4 text-base font-bold text-slate-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" autoFocus />
+            {kioskSetupError && <p className="mt-2 text-sm font-bold text-rose-600">{kioskSetupError}</p>}
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button onClick={() => { setSettingKioskPassword(false); setKioskSetupError(""); }} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button onClick={enterKioskMode} className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700">Enter kiosk mode</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-3 md:grid-cols-4">
         <button onClick={() => setView("walk_up")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "walk_up" ? "bg-emerald-600 text-white" : "border border-emerald-200 bg-emerald-50 text-emerald-900"}`}><p className="text-3xl font-black">{counts.walk_up}</p><p className="text-sm font-black">Check In</p><p className="text-xs font-semibold opacity-75">Not arrived</p></button>

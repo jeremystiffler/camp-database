@@ -9,7 +9,7 @@ const navItems = [
   { href: "/dashboard",    label: "Dashboard",      icon: "D" },
   { href: "/setup",        label: "Camp Setup",     icon: "S" },
   { href: "/campers",      label: "Campers",        icon: "C" },
-  { href: "/check-in",     label: "Kiosk",         icon: "K" },
+  { href: "/check-in",     label: "Check in/out",   icon: "✓" },
   { href: "/schedule",     label: "Schedule",       icon: "Sc" },
   { href: "/registration", label: "Registration",   icon: "R" },
   { href: "/print",        label: "Print Center",   icon: "P" },
