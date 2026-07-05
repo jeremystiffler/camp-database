@@ -37,6 +37,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const { campId } = await params;
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const data = await req.json();
+  if (data?.courseId && !data?.sessionTemplateId) {
+    return NextResponse.json({ error: "Activity sessions must be tied to a schedule template." }, { status: 400 });
+  }
   if (data?.courseId && data?.sessionTemplateId) {
     const lockedTemplate = await prisma.sessionTemplate.findFirst({
       where: { id: data.sessionTemplateId, campId, mandatory: true },

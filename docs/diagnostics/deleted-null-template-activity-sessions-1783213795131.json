@@ -1,0 +1,115 @@
+{
+  "createdAt": "2026-07-05T01:09:55.131Z",
+  "reason": "Remove stale zero-enrollment activity sessions not tied to any schedule template so identical days collapse cleanly",
+  "camp": {
+    "id": "cmqrdmxyx000004la54z565ve",
+    "name": "2027 Creator's Camp"
+  },
+  "rows": [
+    {
+      "id": "cmqu9qljx00031s1ycubxx3nl",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:20",
+      "endTime": "09:45",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:53.661Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "room": {
+        "name": "First Things Cafe"
+      },
+      "enrollments": []
+    },
+    {
+      "id": "cmqu9qmpm000n1s1yxza3c5jh",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:20",
+      "endTime": "09:45",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:55.163Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "room": {
+        "name": "First Things Cafe"
+      },
+      "enrollments": []
+    },
+    {
+      "id": "cmqu9qm4s000d1s1y7wp81y32",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:20",
+      "endTime": "09:45",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:54.412Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "room": {
+        "name": "First Things Cafe"
+      },
+      "enrollments": []
+    },
+    {
+      "id": "cmqu9qnwa00171s1ypryz4s5d",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:20",
+      "endTime": "09:45",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:56.698Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "room": {
+        "name": "First Things Cafe"
+      },
+      "enrollments": []
+    },
+    {
+      "id": "cmqu9qnax000x1s1ysys6jtsi",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:20",
+      "endTime": "09:45",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:55.929Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "room": {
+        "name": "First Things Cafe"
+      },
+      "enrollments": []
+    }
+  ]
+}
