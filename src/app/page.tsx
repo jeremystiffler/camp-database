@@ -89,7 +89,7 @@ export default function LandingPage() {
       <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🏕️</span>
-          <span className="font-heading font-bold text-xl text-cream">Camp Creator</span>
+          <span className="font-heading font-bold text-xl text-cream">Camp Creator Pro</span>
         </div>
         <div className="flex items-center gap-3">
           <a href="#pricing" className="hidden px-4 py-2 text-sm text-muted hover:text-cream transition-colors sm:inline-block">Pricing</a>
@@ -196,7 +196,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="relative z-10 border-t border-night-700 py-8 text-center text-muted text-sm">
-        <p>Camp Creator — Built with 🔥 for camp directors, volunteers, and the blessed souls who used to own the spreadsheet.</p>
+        <p>Camp Creator Pro — Built with 🔥 for camp directors, volunteers, and the blessed souls who used to own the spreadsheet.</p>
       </footer>
     </div>
   );

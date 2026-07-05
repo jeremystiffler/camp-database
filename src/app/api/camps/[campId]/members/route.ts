@@ -71,11 +71,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       const { getResend } = await import("@/lib/email");
       const resend = getResend();
       // Must use a verified domain — onboarding@resend.dev is sandbox only
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "Camp Creator <noreply@camp-database.vercel.app>";
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "Camp Creator Pro <noreply@camp-database.vercel.app>";
       const result = await resend.emails.send({
         from: fromEmail,
         to: email,
-        subject: `You're invited to join ${camp?.name || "a camp"} on Camp Creator`,
+        subject: `You're invited to join ${camp?.name || "a camp"} on Camp Creator Pro`,
         html: buildInviteEmail({ email, campName: camp?.name || "a camp", role: inviteRole, inviteUrl, inviterName: session.name }),
       });
       if (result.error) {

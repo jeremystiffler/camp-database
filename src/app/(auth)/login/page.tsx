@@ -102,7 +102,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <span className="text-4xl mb-4 block">🏕️</span>
           <h1 className="font-heading font-bold text-2xl text-cream mb-2">Welcome back</h1>
-          <p className="text-muted">Sign in to your Camp Creator account</p>
+          <p className="text-muted">Sign in to your Camp Creator Pro account</p>
         </div>
 
         {/* Google Sign-In button — rendered by GIS SDK */}
