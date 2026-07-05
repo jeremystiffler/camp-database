@@ -155,42 +155,42 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       {!isKioskShell && <aside
-        className={`fixed top-0 left-0 h-full w-64 border-r border-white/10 bg-[#102033] text-[#FFF7ED] shadow-2xl shadow-slate-950/20 flex flex-col z-30 transition-transform duration-200 ${
+        className={`fixed top-0 left-0 h-full w-64 border-r border-slate-200 bg-white/95 text-slate-900 shadow-xl shadow-slate-200/50 backdrop-blur flex flex-col z-30 transition-transform duration-200 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-white/10">
+        <div className="px-5 py-5 border-b border-slate-100">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#F97316] to-[#FACC15] flex items-center justify-center text-[#102033] text-xs font-black shadow-sm">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4F46E5] to-[#0EA5E9] flex items-center justify-center text-white text-xs font-black shadow-sm">
               CC
             </div>
-            <span className="font-bold text-[#FFF7ED] text-base tracking-tight">Camp Creator</span>
+            <span className="font-bold text-slate-900 text-base tracking-tight">Camp Creator</span>
           </Link>
         </div>
 
         {/* Camp switcher */}
         {camps.length > 0 && (
-          <div className="px-3 py-4 border-b border-white/10">
-            <p className="px-2 mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-orange-200/80">Current camp</p>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-3 shadow-sm">
-              <p className="text-sm font-black text-white leading-snug break-words">
+          <div className="px-3 py-4 border-b border-slate-100">
+            <p className="minimal-section-title px-2 mb-2">Current camp</p>
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3 shadow-sm">
+              <p className="text-sm font-black text-slate-900 leading-snug break-words">
                 {activeCamp?.name || "Select a camp"}
               </p>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-orange-100/60 mt-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500/70 mt-1">
                 {activeCamp?.status || "No active camp"}
               </p>
               <button
                 type="button"
                 onClick={() => setCampSwitcherOpen((open) => !open)}
-                className="mt-3 w-full rounded-xl bg-gradient-to-r from-[#F97316] to-[#FACC15] px-3 py-2 text-xs font-black text-[#102033] shadow-sm hover:brightness-105 transition-all"
+                className="mt-3 w-full rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] px-3 py-2 text-xs font-black text-white shadow-sm hover:brightness-105 transition-all"
               >
                 Switch camps
               </button>
             </div>
 
             {campSwitcherOpen && (
-              <div className="mt-2 rounded-2xl border border-orange-100/20 bg-[#17293d] p-2 shadow-lg space-y-1 max-h-72 overflow-y-auto">
+              <div className="mt-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg space-y-1 max-h-72 overflow-y-auto">
                 {camps.map((camp) => {
                   const selected = camp.id === activeCamp?.id;
                   return (
@@ -198,10 +198,10 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                       key={camp.id}
                       type="button"
                       onClick={() => handleCampChange(camp)}
-                      className={`w-full text-left rounded-xl px-3 py-2.5 transition-colors ${selected ? "bg-white text-[#102033]" : "text-orange-50/85 hover:bg-white/10"}`}
+                      className={`w-full text-left rounded-xl px-3 py-2.5 transition-colors ${selected ? "bg-indigo-600 text-white" : "text-slate-700 hover:bg-indigo-50"}`}
                     >
                       <span className="block text-sm font-black leading-tight">{camp.name}</span>
-                      <span className={`block text-[11px] mt-0.5 ${selected ? "text-slate-500" : "text-orange-100/50"}`}>
+                      <span className={`block text-[11px] mt-0.5 ${selected ? "text-white/75" : "text-slate-400"}`}>
                         {selected ? "Active now" : `Switch to ${camp.status}`}
                       </span>
                     </button>
@@ -223,11 +223,11 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
                   isActive
-                    ? "bg-gradient-to-r from-[#F97316] to-[#FACC15] text-[#102033] shadow-sm"
-                    : "text-orange-50/75 hover:text-white hover:bg-white/10"
+                    ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"
                 }`}
               >
-                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${isActive ? "bg-white/35 text-[#102033]" : "bg-white/10 text-orange-100/75"}`}>{item.icon}</span>
+                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>{item.icon}</span>
                 {item.label}
               </Link>
             );
@@ -235,20 +235,20 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User footer */}
-        <div className="px-3 py-4 border-t border-white/10">
+        <div className="px-3 py-4 border-t border-slate-100">
           <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-[#2F855A] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
               {(user.name?.[0] || user.email[0]).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-orange-50 truncate">{user.name || user.email}</p>
+              <p className="text-sm font-medium text-slate-800 truncate">{user.name || user.email}</p>
               <div className="mt-2"><HelpModeToggle compact /></div>
               <button
                 onClick={async () => {
                   await fetch("/api/auth/me", { method: "DELETE" });
                   router.push("/login");
                 }}
-                className="text-xs text-orange-100/50 hover:text-orange-200 transition-colors"
+                className="text-xs text-slate-400 hover:text-rose-500 transition-colors"
               >
                 Sign out
               </button>
