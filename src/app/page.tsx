@@ -4,9 +4,55 @@ import Link from "next/link";
 
 const stats = [
   { value: "14", label: "day free trial" },
-  { value: "$299", label: "camp-paid yearly plan" },
+  { value: "50%", label: "off first year" },
   { value: "3%", label: "camper-paid fee" },
-  { value: "$25", label: "max platform fee" },
+  { value: "$29", label: "monthly from" },
+];
+
+const pricingPlans = [
+  {
+    eyebrow: "Start here",
+    title: "Launch",
+    monthly: "$29/mo",
+    yearly: "$299/yr",
+    founding: "$149.50 first year",
+    desc: "For small camps, VBS, and first-time online registration.",
+    checks: [
+      "1 active camp",
+      "Up to 100 paid registrations/year",
+      "Unlimited free registrations",
+      "Forms, payments, coupons, schedules, check-in, and basic print tools",
+    ],
+  },
+  {
+    eyebrow: "Most popular",
+    title: "Camp Pro",
+    monthly: "$79/mo",
+    yearly: "$799/yr",
+    founding: "$399.50 first year",
+    desc: "For multi-week camps that want smoother setup and operations.",
+    highlighted: true,
+    checks: [
+      "Up to 3 active camps/programs",
+      "Up to 500 paid registrations/year",
+      "Camp copy/templates, advanced scheduling, class choices, and age rules",
+      "Team members, admin notifications, advanced print tools, and priority support",
+    ],
+  },
+  {
+    eyebrow: "Scale up",
+    title: "Organization",
+    monthly: "$149/mo",
+    yearly: "$1,499/yr",
+    founding: "$749.50 first year",
+    desc: "For schools, churches, and larger programs running multiple camps.",
+    checks: [
+      "Unlimited active camps/programs",
+      "Up to 2,000 paid registrations/year",
+      "Reusable registration templates and cross-camp setup patterns",
+      "Advanced team permissions, premium print center, and priority onboarding",
+    ],
+  },
 ];
 
 const features = [
@@ -38,14 +84,18 @@ function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc:
 function PricingCard({
   eyebrow,
   title,
-  price,
+  monthly,
+  yearly,
+  founding,
   desc,
   children,
   highlighted = false,
 }: {
   eyebrow: string;
   title: string;
-  price: string;
+  monthly: string;
+  yearly: string;
+  founding: string;
   desc: string;
   children: React.ReactNode;
   highlighted?: boolean;
@@ -54,7 +104,11 @@ function PricingCard({
     <div className={`rounded-3xl border p-7 shadow-sm ${highlighted ? "border-indigo-200 bg-gradient-to-b from-indigo-50 to-white ring-4 ring-indigo-100" : "border-slate-200 bg-white"}`}>
       <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">{eyebrow}</p>
       <h3 className="mt-3 text-2xl font-black text-slate-900">{title}</h3>
-      <p className="mt-4 text-4xl font-black tracking-tight text-slate-950">{price}</p>
+      <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
+        <p className="text-4xl font-black tracking-tight text-slate-950">{monthly}</p>
+        <p className="pb-1 text-sm font-black text-emerald-600">or {yearly}</p>
+      </div>
+      <p className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">Founding offer: {founding}</p>
       <p className="mt-3 min-h-12 text-sm leading-relaxed text-slate-600">{desc}</p>
       <div className="mt-6 space-y-3 text-sm font-semibold text-slate-700">{children}</div>
     </div>
@@ -167,32 +221,25 @@ export default function LandingPage() {
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.22em] text-indigo-500">Pricing</p>
-            <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Start free. Pick the model when you’re ready.</h2>
+            <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Simple pricing for camps just getting started — and ready to grow.</h2>
           </div>
-          <p className="max-w-2xl text-slate-600">Use the full setup workflow first. When you open real registration, choose whether the camp pays the yearly subscription or families pay through registration with a transparent platform fee.</p>
+          <p className="max-w-2xl text-slate-600">Try Camp Creator Pro free for 14 days, no credit card required. Founding customers get 50% off their first year. Paid registrations include a simple 3% platform fee, usually paid by the registrant.</p>
+        </div>
+        <div className="mb-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950 shadow-sm">
+          <strong>14-day free trial • no credit card required.</strong> Build your camp, test registration, invite your team, and only pay when you are ready to keep going.
         </div>
         <div className="grid gap-5 lg:grid-cols-3">
-          <PricingCard eyebrow="Free trial" title="Try it first" price="$0" desc="Build your camp before you commit. No credit card required to get started.">
-            <Check>Create age groups, rooms, teachers, activities, time slots, and schedules.</Check>
-            <Check>Preview registration forms and test your workflow.</Check>
-            <Check>Upgrade only when you are ready to collect real registrations or payments.</Check>
-          </PricingCard>
-          <PricingCard eyebrow="Best for camp budgets" title="Camp pays" price="$299/year" desc="Your organization pays once per year. Families register without a platform fee added at checkout." highlighted>
-            <Check>One annual platform subscription for the camp.</Check>
-            <Check>Best for free camps, already-paid registrations, or the cleanest family experience.</Check>
-            <Check>Registration can still collect camper info, class choices, emergency info, and confirmations.</Check>
-          </PricingCard>
-          <PricingCard eyebrow="Best for paid camps" title="Camper pays" price="Your price + fee" desc="Set your camper registration price. Families pay that amount plus the platform fee during checkout.">
-            <Check>You choose the camp price per camper in Settings.</Check>
-            <Check>Platform fee is 3%, with a $2 minimum and $25 maximum.</Check>
-            <Check>Family registration, coupons, and confirmation emails are supported.</Check>
-          </PricingCard>
+          {pricingPlans.map((plan) => (
+            <PricingCard key={plan.title} eyebrow={plan.eyebrow} title={plan.title} monthly={plan.monthly} yearly={plan.yearly} founding={plan.founding} desc={plan.desc} highlighted={plan.highlighted}>
+              {plan.checks.map((check) => <Check key={check}>{check}</Check>)}
+            </PricingCard>
+          ))}
         </div>
         <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-4 text-sm text-slate-600 md:grid-cols-3">
-            <div className="rounded-2xl bg-indigo-50 p-4"><strong className="text-slate-950">1. Set camp price</strong><br />Example: you charge $100 per camper.</div>
-            <div className="rounded-2xl bg-sky-50 p-4"><strong className="text-slate-950">2. Add platform fee</strong><br />3% would be $3, so the family pays $103.</div>
-            <div className="rounded-2xl bg-emerald-50 p-4"><strong className="text-slate-950">3. Fee guardrails</strong><br />The fee is never below $2 and never above $25.</div>
+            <div className="rounded-2xl bg-indigo-50 p-4"><strong className="text-slate-950">Founding customers</strong><br />Get 50% off the first year on any paid plan.</div>
+            <div className="rounded-2xl bg-sky-50 p-4"><strong className="text-slate-950">3% paid-registration fee</strong><br />Usually passed to registrants. Camps can choose to absorb it.</div>
+            <div className="rounded-2xl bg-emerald-50 p-4"><strong className="text-slate-950">Free stays free</strong><br />Free registrations and scholarship-only registrations have no platform fee.</div>
           </div>
         </div>
       </section>
@@ -200,7 +247,7 @@ export default function LandingPage() {
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-20 text-center">
         <div className="rounded-[2rem] bg-gradient-to-r from-indigo-500 to-sky-500 p-10 text-white shadow-2xl shadow-indigo-200">
           <h2 className="text-4xl font-black tracking-tight">Ready to launch your camp without the spreadsheet circus?</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-white/85">Start free, build the whole camp, and choose your pricing model when you are ready.</p>
+          <p className="mx-auto mt-4 max-w-2xl text-white/85">Start your 14-day no-card trial today. Founding camps get 50% off the first year when they upgrade.</p>
           <Link href="/signup" className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 text-base font-black text-indigo-600 shadow-lg transition hover:-translate-y-1">Start Free Trial</Link>
         </div>
       </section>
