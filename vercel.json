@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/trial-emails/run",
+      "schedule": "0 13 * * *"
+    }
+  ]
+}

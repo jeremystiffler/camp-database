@@ -20,17 +20,32 @@ model Organization {
 }
 
 model User {
-  id             String        @id @default(cuid())
-  email          String        @unique
+  id             String          @id @default(cuid())
+  email          String          @unique
   name           String?
   passwordHash   String?
   avatar         String?
-  role           String        @default("owner")
+  role           String          @default("owner")
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   campMembers    CampMember[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  trialEmailLogs TrialEmailLog[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model TrialEmailLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email      String
+  step       String
+  subject    String
+  providerId String?
+  sentAt     DateTime @default(now())
+
+  @@unique([userId, step])
+  @@index([sentAt])
 }
 
 model Camp {
