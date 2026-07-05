@@ -187,9 +187,9 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         <div className="px-5 py-5 border-b border-slate-100">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4F46E5] to-[#0EA5E9] flex items-center justify-center text-white text-xs font-black shadow-sm">
-              CC
+              SS
             </div>
-            <span className="font-bold text-slate-900 text-base tracking-tight">Camp Creator Pro</span>
+            <span className="font-bold text-slate-900 text-base tracking-tight">Simple Schedule Pro</span>
           </Link>
         </div>
 
@@ -288,7 +288,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg text-slate-600 hover:bg-slate-100">
           ☰
         </button>
-        <span className="ml-3 font-bold text-slate-800">Camp Creator Pro</span>
+        <span className="ml-3 font-bold text-slate-800">Simple Schedule Pro</span>
       </div>}
       <main className={`flex-1 min-h-screen flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`}>
         <div className={`w-full px-3 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>

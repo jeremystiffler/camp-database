@@ -168,7 +168,7 @@ export default function LandingPage() {
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 text-lg shadow-sm">🏕️</span>
-          <span className="text-lg font-black tracking-tight text-slate-950">Camp Creator Pro</span>
+          <span className="text-lg font-black tracking-tight text-slate-950">Simple Schedule Pro</span>
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
           <a href="#features" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 sm:inline-block">Features</a>
@@ -188,7 +188,7 @@ export default function LandingPage() {
             Run camp registration, schedules, and check-in from one calm command center.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl">
-            Camp Creator Pro replaces the spreadsheet circus with family registration, class choices, conflict-safe scheduling, rosters, badges, pickup cards, and payment options built for real camp operations.
+            Simple Schedule Pro replaces the spreadsheet circus with family registration, class choices, conflict-safe scheduling, rosters, badges, pickup cards, and payment options built for real camp operations.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/signup" className="rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-7 py-4 text-center text-base font-black text-white shadow-xl shadow-indigo-200 transition hover:-translate-y-1">Start Free Trial</Link>
@@ -223,7 +223,7 @@ export default function LandingPage() {
             <p className="text-sm font-black uppercase tracking-[0.22em] text-indigo-500">Pricing</p>
             <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Simple pricing for camps just getting started — and ready to grow.</h2>
           </div>
-          <p className="max-w-2xl text-slate-600">Try Camp Creator Pro free for 14 days, no credit card required. Founding customers get 50% off their first year. Paid registrations include a simple 3% platform fee, usually paid by the registrant.</p>
+          <p className="max-w-2xl text-slate-600">Try Simple Schedule Pro free for 14 days, no credit card required. Founding customers get 50% off their first year. Paid registrations include a simple 3% platform fee, usually paid by the registrant.</p>
         </div>
         <div className="mb-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950 shadow-sm">
           <strong>14-day free trial • no credit card required.</strong> Build your camp, test registration, invite your team, and only pay when you are ready to keep going.
@@ -253,7 +253,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="relative z-10 border-t border-slate-200 bg-white px-6 py-8 text-center text-sm font-semibold text-slate-500">
-        <p>Camp Creator Pro — Built for camp directors, volunteers, and the blessed souls who used to own the spreadsheet.</p>
+        <p>Simple Schedule Pro — Built for camp directors, volunteers, and the blessed souls who used to own the spreadsheet.</p>
       </footer>
     </div>
   );

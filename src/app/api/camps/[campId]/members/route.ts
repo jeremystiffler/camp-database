@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   });
 
   const camp = await prisma.camp.findUnique({ where: { id: campId }, select: { name: true } });
-  const inviteUrl = `${process.env.NEXTAUTH_URL || "https://camp-database.vercel.app"}/invite/${invite.token}`;
+  const inviteUrl = `${process.env.NEXTAUTH_URL || "https://simpleschedulepro.com"}/invite/${invite.token}`;
 
   // Send invite email if Resend configured
   let emailSent = false;
@@ -71,11 +71,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       const { getResend } = await import("@/lib/email");
       const resend = getResend();
       // Must use a verified domain — onboarding@resend.dev is sandbox only
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "Camp Creator Pro <noreply@camp-database.vercel.app>";
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "Simple Schedule Pro <noreply@simpleschedulepro.com>";
       const result = await resend.emails.send({
         from: fromEmail,
         to: email,
-        subject: `You're invited to join ${camp?.name || "a camp"} on Camp Creator Pro`,
+        subject: `You're invited to join ${camp?.name || "a camp"} on Simple Schedule Pro`,
         html: buildInviteEmail({ email, campName: camp?.name || "a camp", role: inviteRole, inviteUrl, inviterName: session.name }),
       });
       if (result.error) {

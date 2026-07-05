@@ -54,10 +54,10 @@ export const TRIAL_EMAIL_SEQUENCE: TrialEmailDefinition[] = [
   {
     step: "welcome",
     day: 0,
-    subject: "Welcome to Camp Creator Pro - your 14-day trial is live",
+    subject: "Welcome to Simple Schedule Pro - your 14-day trial is live",
     preview: "Your no-card trial is active. Start by building your first camp setup.",
     heading: "Your camp command center is ready.",
-    intro: "Welcome to Camp Creator Pro. Your 14-day free trial is active, and no credit card is required. The fastest way to see the value is to build your first camp setup.",
+    intro: "Welcome to Simple Schedule Pro. Your 14-day free trial is active, and no credit card is required. The fastest way to see the value is to build your first camp setup.",
     bullets: ["Add your camp name and dates", "Create age groups", "Add rooms, teachers, and activities", "Build your schedule", "Open registration when you are ready"],
     ctaLabel: "Set up your camp",
     ctaPath: "/setup",
@@ -105,7 +105,7 @@ export const TRIAL_EMAIL_SEQUENCE: TrialEmailDefinition[] = [
     subject: "You are halfway through your trial",
     preview: "7 days left. Here is what to finish next.",
     heading: "You are halfway through your 14-day trial.",
-    intro: "If you have already started setup, now is a great time to finish the pieces that turn Camp Creator Pro into your real camp workflow.",
+    intro: "If you have already started setup, now is a great time to finish the pieces that turn Simple Schedule Pro into your real camp workflow.",
     bullets: ["Camp setup", "Activities/classes", "Schedule", "Registration form", "Confirmation email", "Check-in and print tools"],
     ctaLabel: "Continue your camp setup",
     ctaPath: "/dashboard",
@@ -116,8 +116,8 @@ export const TRIAL_EMAIL_SEQUENCE: TrialEmailDefinition[] = [
     day: 11,
     subject: "Your trial ends in 3 days",
     preview: "Keep your camp setup active with 50% off your first year.",
-    heading: "Your Camp Creator Pro trial ends in 3 days.",
-    intro: "If Camp Creator Pro is helping you simplify registration, scheduling, check-in, or print materials, now is a good time to choose a plan.",
+    heading: "Your Simple Schedule Pro trial ends in 3 days.",
+    intro: "If Simple Schedule Pro is helping you simplify registration, scheduling, check-in, or print materials, now is a good time to choose a plan.",
     bullets: ["Launch: $299/year, $149.50 first year", "Camp Pro: $799/year, $399.50 first year", "Organization: $1,499/year, $749.50 first year", "Paid registrations include a simple 3% platform fee, usually paid by the registrant"],
     ctaLabel: "View plans",
     ctaPath: "/#pricing",
@@ -138,7 +138,7 @@ export const TRIAL_EMAIL_SEQUENCE: TrialEmailDefinition[] = [
   {
     step: "expired",
     day: 14,
-    subject: "Your Camp Creator Pro trial has ended",
+    subject: "Your Simple Schedule Pro trial has ended",
     preview: "Reactivate your account and keep your setup moving.",
     heading: "Your 14-day trial has ended.",
     intro: "Your setup work is still worth protecting. Your camp info, activities, registration setup, and schedule can keep moving when you choose a plan.",
@@ -150,12 +150,12 @@ export const TRIAL_EMAIL_SEQUENCE: TrialEmailDefinition[] = [
   {
     step: "rescue_day_17",
     day: 17,
-    subject: "Need more time with Camp Creator Pro?",
+    subject: "Need more time with Simple Schedule Pro?",
     preview: "Come back and finish your camp setup.",
     heading: "Still thinking it over?",
     intro: "If you did not get enough time to finish your setup, we understand. Camp season has a way of turning every day into a dodgeball tournament for your attention.",
     bullets: ["Review your camp setup", "Finish registration", "Test a sample camper registration", "Try check-in and print tools", "Choose the plan that fits your size"],
-    ctaLabel: "Open Camp Creator Pro",
+    ctaLabel: "Open Simple Schedule Pro",
     ctaPath: "/dashboard",
     footer: "The founding customer offer is still available for a limited time.",
   },
@@ -199,7 +199,7 @@ function renderTrialEmail(definition: TrialEmailDefinition, user: TrialEmailUser
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(definition.preview)}</div>
   <div style="max-width:620px;margin:0 auto;padding:32px 16px;">
     <div style="background:linear-gradient(135deg,#4f46e5,#0ea5e9);border-radius:24px;padding:30px;color:#fff;text-align:center;">
-      <div style="font-size:42px;margin-bottom:8px;">Camp Creator Pro</div>
+      <div style="font-size:42px;margin-bottom:8px;">Simple Schedule Pro</div>
       <h1 style="margin:0;font-size:28px;line-height:1.15;font-weight:900;">${escapeHtml(definition.heading)}</h1>
       <p style="margin:14px 0 0;color:rgba(255,255,255,.88);font-size:15px;">14-day trial · no credit card required · 50% off first year</p>
     </div>
@@ -210,11 +210,11 @@ function renderTrialEmail(definition: TrialEmailDefinition, user: TrialEmailUser
       <a href="${ctaUrl}" style="display:block;background:#0f172a;color:#fff;text-align:center;padding:15px 18px;border-radius:14px;font-weight:900;text-decoration:none;font-size:15px;">${escapeHtml(definition.ctaLabel)}</a>
       ${definition.footer ? `<p style="margin:18px 0 0;font-size:14px;line-height:1.55;color:#64748b;">${escapeHtml(definition.footer)}</p>` : ""}
     </div>
-    <p style="text-align:center;margin:18px 0 0;font-size:12px;color:#94a3b8;">Camp Creator Pro — built for camp directors, volunteers, and spreadsheet survivors.</p>
+    <p style="text-align:center;margin:18px 0 0;font-size:12px;color:#94a3b8;">Simple Schedule Pro — built for camp directors, volunteers, and spreadsheet survivors.</p>
   </div>
 </body></html>`;
 
-  const text = `Hi ${greetingName},\n\n${definition.heading}\n\n${definition.intro}\n\n${plainBullets}\n\n${definition.ctaLabel}: ${ctaUrl}\n\n${definition.footer || ""}\n\nCamp Creator Pro`;
+  const text = `Hi ${greetingName},\n\n${definition.heading}\n\n${definition.intro}\n\n${plainBullets}\n\n${definition.ctaLabel}: ${ctaUrl}\n\n${definition.footer || ""}\n\nSimple Schedule Pro`;
   return { html, text };
 }
 

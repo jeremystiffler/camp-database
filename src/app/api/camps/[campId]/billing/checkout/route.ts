@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         price_data: {
           currency: "usd",
           unit_amount: camp.annualSubscriptionCents || 29900,
-          product_data: { name: `${camp.name} annual Camp Creator Pro subscription` },
+          product_data: { name: `${camp.name} annual Simple Schedule Pro subscription` },
         },
         quantity: 1,
       }],

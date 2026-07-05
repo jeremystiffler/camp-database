@@ -16,7 +16,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Camp Creator Pro — Camp Management Platform",
+  title: "Simple Schedule Pro — Camp Management Platform",
   description:
     "Multi-tenant camp management — registrations, activities, scheduling, assignments, and print materials.",
 };
