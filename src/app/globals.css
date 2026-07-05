@@ -25,25 +25,25 @@
   --color-error: #E53935;
   --color-info: #42A5F5;
 
-  /* === Colorful SaaS (used on dashboard / admin pages) === */
+  /* === Campfire Pro (used on dashboard / admin pages) === */
   --color-forest-50:  #F0FDF4;
   --color-forest-100: #DCFCE7;
-  --color-forest-500: #22C55E;
-  --color-forest-600: #16A34A;
-  --color-forest-700: #15803D;
-  --color-sky-50:  #F0F9FF;
-  --color-sky-100: #E0F2FE;
-  --color-sky-500: #0EA5E9;
-  --color-sky-600: #0284C7;
+  --color-forest-500: #2F855A;
+  --color-forest-600: #276749;
+  --color-forest-700: #22543D;
+  --color-sky-50:  #EFF6FF;
+  --color-sky-100: #DBEAFE;
+  --color-sky-500: #0284C7;
+  --color-sky-600: #0369A1;
   --color-sunset-50:  #FFF7ED;
   --color-sunset-100: #FFEDD5;
   --color-sunset-500: #F97316;
   --color-sunset-600: #EA580C;
-  --color-berry-50:  #FAF5FF;
-  --color-berry-100: #F3E8FF;
-  --color-berry-500: #A855F7;
-  --color-berry-600: #9333EA;
-  --color-earth-500: #EAB308;
+  --color-berry-50:  #FFF1F2;
+  --color-berry-100: #FFE4E6;
+  --color-berry-500: #FB7185;
+  --color-berry-600: #E11D48;
+  --color-earth-500: #FACC15;
   --color-earth-600: #CA8A04;
   --color-slate-50:  #F8FAFC;
   --color-slate-100: #F1F5F9;
@@ -207,34 +207,34 @@
   color: #737373;
 }
 
-/* ===================== Muted 2026 Admin Color System ===================== */
+/* ===================== Campfire Pro Admin Color System ===================== */
 :root {
-  --ui-bg: #f8f4ee;
+  --ui-bg: #fff7ed;
   --ui-surface: #fffdf9;
-  --ui-surface-muted: #f1ebe2;
-  --ui-border: #ddd1c3;
-  --ui-border-strong: #c9b8a5;
-  --ui-text: #1f2326;
-  --ui-text-soft: #46515a;
-  --ui-text-muted: #7b746d;
+  --ui-surface-muted: #ffedd5;
+  --ui-border: #fed7aa;
+  --ui-border-strong: #fdba74;
+  --ui-text: #102033;
+  --ui-text-soft: #334155;
+  --ui-text-muted: #64748b;
 
-  /* Muted 2026-inspired accents: softened digital lavender, sea-glass, butter, clay, berry, sage, denim. */
-  --ui-lavender: #8f88b8;
-  --ui-lavender-soft: #ece8f4;
-  --ui-aqua: #74a7a2;
-  --ui-aqua-soft: #e5f1ef;
-  --ui-butter: #c4a75f;
-  --ui-butter-soft: #f5ecd1;
-  --ui-clay: #b67862;
-  --ui-clay-soft: #f3e3dc;
-  --ui-berry: #a66f8f;
-  --ui-berry-soft: #f1e4ec;
-  --ui-sage: #7f956f;
-  --ui-sage-soft: #e8eee2;
-  --ui-denim: #6f8da8;
-  --ui-denim-soft: #e5edf3;
-  --ui-danger: #a45d5d;
-  --ui-danger-soft: #f1dfdd;
+  /* Campfire Pro: warm camp energy over a calm navy/cream foundation. */
+  --ui-lavender: #fb7185;
+  --ui-lavender-soft: #ffe4e6;
+  --ui-aqua: #0284c7;
+  --ui-aqua-soft: #dbeafe;
+  --ui-butter: #facc15;
+  --ui-butter-soft: #fef3c7;
+  --ui-clay: #f97316;
+  --ui-clay-soft: #ffedd5;
+  --ui-berry: #fb7185;
+  --ui-berry-soft: #ffe4e6;
+  --ui-sage: #2f855a;
+  --ui-sage-soft: #dcfce7;
+  --ui-denim: #102033;
+  --ui-denim-soft: #e2e8f0;
+  --ui-danger: #dc2626;
+  --ui-danger-soft: #fee2e2;
 
   --age-slate: #6f7f91;
   --age-stone: #8b7e70;
@@ -248,7 +248,7 @@
 
 .bg-gradient-to-r,
 .bg-gradient-to-br {
-  background-image: linear-gradient(135deg, var(--ui-sage), var(--ui-aqua)) !important;
+  background-image: linear-gradient(135deg, var(--ui-clay), var(--ui-butter)) !important;
 }
 
 .bg-forest-500, .bg-forest-600, .bg-emerald-500 { background-color: var(--ui-sage) !important; }
@@ -272,11 +272,11 @@
 .bg-amber-100 { background-color: #eee0b7 !important; }
 .bg-rose-100, .bg-red-100 { background-color: #e8cbc8 !important; }
 
-.text-forest-600, .text-forest-700, .text-emerald-600, .text-emerald-700 { color: #637a55 !important; }
-.text-sky-600, .text-sky-700 { color: #5f7e99 !important; }
-.text-berry-600, .text-berry-700 { color: #796fa4 !important; }
-.text-sunset-600, .text-sunset-700, .text-orange-600, .text-orange-700 { color: #9b624f !important; }
-.text-amber-600, .text-amber-700 { color: #92743a !important; }
+.text-forest-600, .text-forest-700, .text-emerald-600, .text-emerald-700 { color: #276749 !important; }
+.text-sky-600, .text-sky-700 { color: #0369a1 !important; }
+.text-berry-600, .text-berry-700 { color: #be123c !important; }
+.text-sunset-600, .text-sunset-700, .text-orange-600, .text-orange-700 { color: #c2410c !important; }
+.text-amber-600, .text-amber-700 { color: #a16207 !important; }
 .text-rose-700, .text-red-500, .text-red-600, .text-red-700 { color: var(--ui-danger) !important; }
 
 .text-red-800, .text-red-900, .text-orange-800, .text-orange-900, .text-amber-800, .text-amber-900,
