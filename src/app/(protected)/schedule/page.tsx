@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { HelpCopy } from "@/components/HelpMode";
 
 interface SessionTemplate {
   id: string;
@@ -224,7 +225,7 @@ function ScheduleContent() {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Schedule intelligence</p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">Schedule</h1>
-          <p className="mt-1 text-sm text-slate-500">Pivot-table style views plus metrics for rooms, teachers, courses, capacity, and time slots.</p>
+          <HelpCopy title="Schedule views" className="mt-1 text-sm text-slate-500">Pivot-table style views plus metrics for rooms, teachers, courses, capacity, and time slots.</HelpCopy>
         </div>
         {activeDays.length > 1 && (
           <div className="flex flex-wrap gap-2">

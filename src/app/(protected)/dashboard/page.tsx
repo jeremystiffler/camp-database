@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import NewCampWizard from "@/components/NewCampWizard";
+import { HelpCopy } from "@/components/HelpMode";
 
 interface Camp {
   id: string;
@@ -54,7 +55,7 @@ function QuickAction({ href, icon, title, desc, iconClass }: QuickActionProps) {
       </div>
       <div>
         <h3 className="font-black text-slate-900 group-hover:text-slate-700 transition-colors text-sm">{title}</h3>
-        <p className="text-slate-600 text-xs mt-1 leading-relaxed">{desc}</p>
+        <HelpCopy title={title} className="text-slate-600 text-xs mt-1 leading-relaxed">{desc}</HelpCopy>
       </div>
     </Link>
   );

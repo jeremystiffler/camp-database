@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { HelpCopy } from "@/components/HelpMode";
 
 interface FormField {
   id: string;
@@ -514,8 +515,8 @@ function RegistrationContent() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Form setup</p>
-              <h2 className="mt-1 text-lg font-black text-slate-900">Settings without the scroll avalanche</h2>
-              <p className="mt-1 text-sm text-slate-500">Choose a section on the left, adjust only what matters, then save. Calm as a monk with a spreadsheet.</p>
+              <h2 className="mt-1 text-lg font-black text-slate-900">Settings</h2>
+              <HelpCopy title="Registration settings" className="mt-1 text-sm text-slate-500">Choose a section on the left, adjust only what matters, then save.</HelpCopy>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-bold">
               <span className={`rounded-full px-3 py-1 ${formStatus === "draft" ? "bg-slate-100 text-slate-600" : formStatus === "linkOnly" ? "bg-sky-100 text-sky-700" : "bg-forest-100 text-forest-700"}`}>{formStatus === "draft" ? "Draft" : formStatus === "linkOnly" ? "Link only" : "Public"}</span>

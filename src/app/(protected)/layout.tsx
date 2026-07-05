@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { HelpModeToggle } from "@/components/HelpMode";
 
 const navItems = [
   { href: "/dashboard",    label: "Dashboard",      icon: "D" },
@@ -241,6 +242,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-slate-800 truncate">{user.name || user.email}</p>
+              <div className="mt-2"><HelpModeToggle compact /></div>
               <button
                 onClick={async () => {
                   await fetch("/api/auth/me", { method: "DELETE" });
