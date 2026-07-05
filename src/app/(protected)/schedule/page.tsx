@@ -206,6 +206,7 @@ function ScheduleContent() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ScheduleView>("dayGrid");
   const [filterDay, setFilterDay] = useState<number | "">("");
+  const [showHealth, setShowHealth] = useState(false);
 
   useEffect(() => {
     if (!campId) return;
@@ -258,23 +259,32 @@ function ScheduleContent() {
   const unassignedRooms = displaySessions.filter((session) => !session.room).length;
   const unassignedTeachers = displaySessions.filter((session) => !session.course?.courseTeachers?.length).length;
   const busiest = [...displaySessions].sort((a, b) => capacityPercent(b) - capacityPercent(a))[0];
+  const scheduleSummary = activeDays.length > 0
+    ? `${dayRangeLabel(activeDays)} · ${timeSlots.length} time block${timeSlots.length === 1 ? "" : "s"}${duplicateDayCount > 0 ? ` · ${duplicateDayCount} duplicate day${duplicateDayCount === 1 ? "" : "s"} hidden` : ""}`
+    : `${timeSlots.length} time block${timeSlots.length === 1 ? "" : "s"}`;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Schedule intelligence</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Schedule</p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">Schedule</h1>
-          <HelpCopy title="Schedule views" className="mt-1 text-sm text-slate-500">Pivot-table style views plus metrics for rooms, teachers, courses, capacity, and time slots.</HelpCopy>
+          <p className="mt-1 text-sm font-semibold text-slate-500">{scheduleSummary}</p>
+          <HelpCopy title="Schedule views" className="mt-1 text-sm text-slate-500">Use the view buttons below to switch between the schedule grid, room, teacher, course, capacity, and list views.</HelpCopy>
         </div>
-        {activeDays.length > 1 && (
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setFilterDay("")} className={`rounded-xl px-3 py-2 text-xs font-black transition ${filterDay === "" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>All Days</button>
-            {activeDays.map((day) => (
-              <button key={day} onClick={() => setFilterDay(day)} className={`rounded-xl px-3 py-2 text-xs font-black transition ${filterDay === day ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{DAYS[day]}</button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-col gap-2 xl:items-end">
+          <button onClick={() => setShowHealth((value) => !value)} className="w-fit rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50">
+            {showHealth ? "Hide schedule health" : "Show schedule health"}
+          </button>
+          {activeDays.length > 1 && (
+            <div className="flex flex-wrap gap-2 xl:justify-end">
+              <button onClick={() => setFilterDay("")} className={`rounded-xl px-3 py-2 text-xs font-black transition ${filterDay === "" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>All Days</button>
+              {activeDays.map((day) => (
+                <button key={day} onClick={() => setFilterDay(day)} className={`rounded-xl px-3 py-2 text-xs font-black transition ${filterDay === day ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{DAYS[day]}</button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -290,24 +300,27 @@ function ScheduleContent() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-            <MetricCard label="Sessions" value={displaySessions.length} sub={`${activeDays.length} active day${activeDays.length === 1 ? "" : "s"}`} tone="tile-aqua" />
-            <MetricCard label="Classes" value={courses.length} sub={`${templates.length} time templates`} tone="tile-sage" />
-            <MetricCard label="Enrollment" value={`${totalEnrolled}/${totalCapacity || "?"}`} sub={`${averageFill}% avg fill`} tone="tile-butter" />
-            <MetricCard label="Full / over" value={overloaded} sub="sessions at capacity" tone="tile-clay" />
-            <MetricCard label="No room" value={unassignedRooms} sub="needs placement" tone="tile-lavender" />
-            <MetricCard label="No teacher" value={unassignedTeachers} sub="needs staffing" tone="tile-berry" />
-          </div>
-
-          {busiest && (
-            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-slate-400">Highest load</p>
-                  <p className="text-sm font-bold text-slate-800">{sessionTitle(busiest)} · {DAYS[sessionDay(busiest)]} {timeRange(busiest)} · {busiest.room?.name || "No room"}</p>
-                </div>
-                <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{busiest.course?.cap || "?"}</span>
+          {showHealth && (
+            <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                <MetricCard label="Sessions" value={displaySessions.length} sub={`${activeDays.length} active day${activeDays.length === 1 ? "" : "s"}`} tone="tile-aqua" />
+                <MetricCard label="Classes" value={courses.length} sub={`${templates.length} time templates`} tone="tile-sage" />
+                <MetricCard label="Enrollment" value={`${totalEnrolled}/${totalCapacity || "?"}`} sub={`${averageFill}% avg fill`} tone="tile-butter" />
+                <MetricCard label="Full / over" value={overloaded} sub="sessions at capacity" tone="tile-clay" />
+                <MetricCard label="No room" value={unassignedRooms} sub="needs placement" tone="tile-lavender" />
+                <MetricCard label="No teacher" value={unassignedTeachers} sub="needs staffing" tone="tile-berry" />
               </div>
+              {busiest && (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-400">Highest load</p>
+                      <p className="text-sm font-bold text-slate-800">{sessionTitle(busiest)} · {DAYS[sessionDay(busiest)]} {timeRange(busiest)} · {busiest.room?.name || "No room"}</p>
+                    </div>
+                    <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{busiest.course?.cap || "?"}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
