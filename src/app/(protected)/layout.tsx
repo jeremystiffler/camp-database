@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
 
@@ -186,9 +187,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="px-5 py-5 border-b border-slate-100">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#4F46E5] to-[#0EA5E9] flex items-center justify-center text-white text-xs font-black shadow-sm">
-              SS
-            </div>
+            <SSPLogo size={32} />
             <span className="font-bold text-slate-900 text-base tracking-tight">Simple Schedule Pro</span>
           </Link>
         </div>

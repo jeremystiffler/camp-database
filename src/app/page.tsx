@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SSPLogo } from "@/components/SSPLogo";
 
 const stats = [
   { value: "14", label: "day free trial" },
@@ -167,7 +168,7 @@ export default function LandingPage() {
 
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 text-lg shadow-sm">🏕️</span>
+          <SSPLogo size={40} />
           <span className="text-lg font-black tracking-tight text-slate-950">Simple Schedule Pro</span>
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
