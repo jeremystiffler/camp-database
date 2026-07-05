@@ -7,17 +7,41 @@ import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
 
 const navItems = [
-  { href: "/dashboard",    label: "Dashboard",      icon: "D" },
-  { href: "/setup",        label: "Camp Setup",     icon: "S" },
-  { href: "/campers",      label: "Campers",        icon: "C" },
-  { href: "/check-in",     label: "Check in/out",   icon: "✓" },
-  { href: "/schedule",     label: "Schedule",       icon: "Sc" },
-  { href: "/registration", label: "Registration",   icon: "R" },
-  { href: "/print",        label: "Print Center",   icon: "P" },
-  { href: "/team",         label: "Team",           icon: "T" },
-  { href: "/import",       label: "Import",         icon: "I" },
-  { href: "/settings",     label: "Settings",       icon: "Se" },
+  { href: "/dashboard",    label: "Dashboard",      icon: "compass" },
+  { href: "/setup",        label: "Camp Setup",     icon: "tent" },
+  { href: "/campers",      label: "Campers",        icon: "campers" },
+  { href: "/check-in",     label: "Check in/out",   icon: "check" },
+  { href: "/schedule",     label: "Schedule",       icon: "calendar" },
+  { href: "/registration", label: "Registration",   icon: "clipboard" },
+  { href: "/print",        label: "Print Center",   icon: "printer" },
+  { href: "/team",         label: "Team",           icon: "team" },
+  { href: "/import",       label: "Import",         icon: "upload" },
+  { href: "/settings",     label: "Settings",       icon: "gear" },
 ];
+
+function SidebarIcon({ name }: { name: string }) {
+  const common = {
+    className: "h-4 w-4",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
+  if (name === "compass") return <svg {...common}><circle cx="12" cy="12" r="8" /><path d="m14.6 9.4-1.7 3.5-3.5 1.7 1.7-3.5 3.5-1.7Z" /></svg>;
+  if (name === "tent") return <svg {...common}><path d="M3 19h18" /><path d="M12 4 4 19" /><path d="m12 4 8 15" /><path d="M12 4v15" /><path d="m9.5 19 2.5-5 2.5 5" /></svg>;
+  if (name === "campers") return <svg {...common}><circle cx="8" cy="8" r="3" /><circle cx="16" cy="9" r="2.5" /><path d="M3.5 19c.8-3 2.3-5 4.5-5s3.7 2 4.5 5" /><path d="M12.5 18.8c.6-2.4 1.8-4 3.5-4 2 0 3.4 1.7 4 4" /></svg>;
+  if (name === "check") return <svg {...common}><path d="M4 12.5 9 17l11-11" /><path d="M5 5h5" /><path d="M5 9h3" /><path d="M15 17h4" /></svg>;
+  if (name === "calendar") return <svg {...common}><rect x="4" y="5" width="16" height="15" rx="3" /><path d="M8 3v4" /><path d="M16 3v4" /><path d="M4 10h16" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" /></svg>;
+  if (name === "clipboard") return <svg {...common}><path d="M9 4h6l1 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2l1-2Z" /><path d="M9 6h6" /><path d="M8 12h8" /><path d="M8 16h5" /></svg>;
+  if (name === "printer") return <svg {...common}><path d="M7 8V4h10v4" /><rect x="6" y="14" width="12" height="6" rx="1" /><path d="M6 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1" /><path d="M17 12h.01" /></svg>;
+  if (name === "team") return <svg {...common}><circle cx="9" cy="8" r="3" /><path d="M3.5 19c.9-3 2.8-5 5.5-5s4.6 2 5.5 5" /><path d="M16 11a2.5 2.5 0 1 0-.7-4.9" /><path d="M16.5 14.5c1.7.5 3 2.1 3.8 4.5" /></svg>;
+  if (name === "upload") return <svg {...common}><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M5 16v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" /></svg>;
+  return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2 3-.2-.1a1.7 1.7 0 0 0-2 .2 1.7 1.7 0 0 0-.8 1.7V22h-3.6v-.2a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.2.1-2-3 .1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1.1H4v-3.6h.2a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9L5.3 8l2-3 .2.1a1.7 1.7 0 0 0 1.9-.3 1.7 1.7 0 0 0 1-1.6V3h3.6v.2a1.7 1.7 0 0 0 1.1 1.6 1.7 1.7 0 0 0 1.9-.3l.2-.1 2 3-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1.1h.2v3.6h-.2a1.7 1.7 0 0 0-1.5.9Z" /></svg>;
+}
 
 interface AuthUser {
   id: string;
@@ -227,7 +251,9 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                     : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"
                 }`}
               >
-                <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>{item.icon}</span>
+                <span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+                  <SidebarIcon name={item.icon} />
+                </span>
                 {item.label}
               </Link>
             );
