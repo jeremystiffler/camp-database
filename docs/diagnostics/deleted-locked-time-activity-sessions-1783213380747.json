@@ -1,0 +1,101 @@
+{
+  "createdAt": "2026-07-05T01:03:00.746Z",
+  "reason": "Remove activity sessions occupying locked mandatory schedule times",
+  "rows": [
+    {
+      "id": "cmqu9qlfe00011s1yiq4a00pa",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:00",
+      "endTime": "09:20",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:53.498Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "sessionTemplate": null,
+      "enrollments": []
+    },
+    {
+      "id": "cmqu9qm0j000b1s1y82zohsd8",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:00",
+      "endTime": "09:20",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:54.259Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "sessionTemplate": null,
+      "enrollments": []
+    },
+    {
+      "id": "cmqu9qns200151s1y2h83hl6z",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:00",
+      "endTime": "09:20",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:56.546Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "sessionTemplate": null,
+      "enrollments": []
+    },
+    {
+      "id": "cmqu9qmld000l1s1ya4su2hsf",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:00",
+      "endTime": "09:20",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:55.009Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "sessionTemplate": null,
+      "enrollments": []
+    },
+    {
+      "id": "cmqu9qn6k000v1s1ygzp03fnf",
+      "campId": "cmqrdmxyx000004la54z565ve",
+      "courseId": "cmqs9fcjd000004kykn30j3z4",
+      "sessionTemplateId": null,
+      "mandatorySessionId": null,
+      "roomId": "cmqs262rx000604jsjpzuljew",
+      "date": null,
+      "startTime": "09:00",
+      "endTime": "09:20",
+      "status": "scheduled",
+      "enrolledCount": 0,
+      "createdAt": "2026-06-25T21:44:55.772Z",
+      "course": {
+        "name": "Arts and Crafts"
+      },
+      "sessionTemplate": null,
+      "enrollments": []
+    }
+  ]
+}

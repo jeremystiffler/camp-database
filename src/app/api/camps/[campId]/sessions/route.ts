@@ -46,6 +46,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       return NextResponse.json({ error: `${lockedTemplate.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.` }, { status: 409 });
     }
   }
+  if (data?.courseId && data?.startTime && data?.endTime) {
+    const lockedByTime = await prisma.sessionTemplate.findFirst({
+      where: { campId, startTime: data.startTime, endTime: data.endTime, mandatory: true },
+      select: { label: true },
+    });
+    if (lockedByTime) {
+      return NextResponse.json({ error: `${lockedByTime.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.` }, { status: 409 });
+    }
+  }
   const item = await prisma.session.create({ data: { ...data, campId } });
   return NextResponse.json(item, { status: 201 });
 }
