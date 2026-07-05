@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import CamperScannableCode from "@/components/CamperScannableCode";
+import { HelpCopy } from "@/components/HelpMode";
 
 type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "rotation_roster" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges" | "pickup_cards" | "pickup_roster";
 type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3" | "3x5" | "custom";
@@ -718,7 +719,7 @@ function PrintContent() {
           <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-3xl font-black text-slate-900">Print Center</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">Choose a clear stock printable, or jump into a custom builder when you need drag/drop fields, special badge layouts, and two-sided backs.</p>
+              <HelpCopy title="Print Center" className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">Choose a clear stock printable, or jump into a custom builder when you need drag/drop fields, special badge layouts, and two-sided backs.</HelpCopy>
             </div>
             <button onClick={() => printDoc()} className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white shadow-sm">Print preview</button>
           </div>
@@ -744,14 +745,14 @@ function PrintContent() {
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Build your own</p>
                     <h2 className="mt-1 text-lg font-black text-slate-900">Custom printables</h2>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">Custom builders and saved camp templates live here, away from the stock shelf.</p>
+                    <HelpCopy title="Custom printables" className="mt-1 text-xs font-semibold text-slate-500">Custom builders and saved camp templates live here, away from the stock shelf.</HelpCopy>
                   </div>
                   <button onClick={saveAsTemplate} disabled={saving} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">Save current as custom</button>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {customTemplates.map((template, index) => renderTemplateCard(template, index + stockTemplates.length))}
                 </div>
-                {savedTemplates.length === 0 && <p className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">No saved custom templates yet. Select a builder, adjust it, then save it here for the camp.</p>}
+                {savedTemplates.length === 0 && <HelpCopy title="Saved custom templates" className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">No saved custom templates yet. Select a builder, adjust it, then save it here for the camp.</HelpCopy>}
                 <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
                   <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Template library</summary>
                   <div className="mt-3 space-y-3">
@@ -806,7 +807,7 @@ function PrintContent() {
                       <label className="block text-xs font-bold text-slate-500">Columns per page<input type="number" min={1} max={20} value={rotationColumns} onChange={e => updateSettings({ rotationColumns: Number(e.target.value) })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" /></label>
                       <label className="block text-xs font-bold text-slate-500">Band style<select value={selectedSettings.rotationBandMode} onChange={e => updateSettings({ rotationBandMode: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="color">Color by time slot</option><option value="grayscale">Grayscale by time slot</option></select></label>
                     </div>
-                    <p className="text-[11px] font-semibold text-slate-400">Time bands color themselves. No color picker, no chaos gremlin.</p>
+                    <HelpCopy title="Time bands" className="text-[11px] font-semibold text-slate-400">Time bands color themselves. No color picker, no chaos gremlin.</HelpCopy>
                     <details className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                       <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Fine-tune row heights</summary>
                       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -870,7 +871,7 @@ function PrintContent() {
 
                 {supportsTwoSidedCustom && <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
                   <label className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-600"><input type="checkbox" checked={selectedSettings.badgeBackEnabled} onChange={e => updateSettings({ badgeBackEnabled: e.target.checked, badgeBackContentBlocks: selectedSettings.badgeBackContentBlocks.length ? selectedSettings.badgeBackContentBlocks : defaultBadgeBackBlockIds })} /> Print a back side</label>
-                  <p className="text-[11px] font-semibold text-slate-400">Backs use the subtle business-card style for guardian, emergency, medical, and schedule info.</p>
+                  <HelpCopy title="Badge backs" className="text-[11px] font-semibold text-slate-400">Backs use the subtle business-card style for guardian, emergency, medical, and schedule info.</HelpCopy>
                   {selectedSettings.badgeBackEnabled && <>
                     <div className="flex items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-wide text-slate-500">Back content</p><button type="button" onClick={resetBadgeBackBlocks} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500">Reset back</button></div>
                     <div className="space-y-1">{badgeBackBlocks.map((block, index) => <div key={block.id} draggable onDragStart={e => { e.dataTransfer.setData("text/plain", block.id); e.dataTransfer.effectAllowed = "move"; }} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); dropBadgeBackBlock(e.dataTransfer.getData("text/plain"), block.id); }} className="flex cursor-grab items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 active:cursor-grabbing"><span className="text-slate-400">☰</span><span className="flex-1">{index + 1}. {block.label}</span><button type="button" onClick={() => moveBadgeBackBlock(block.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button><button type="button" onClick={() => moveBadgeBackBlock(block.id, 1)} disabled={index === badgeBackBlocks.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button><button type="button" onClick={() => removeBadgeBackBlock(block.id)} className="rounded-md border border-rose-100 bg-rose-50 px-2 py-1 text-[10px] text-rose-600">Remove</button></div>)}</div>

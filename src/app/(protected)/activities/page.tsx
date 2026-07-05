@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
+import { HelpCopy } from "@/components/HelpMode";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -986,9 +987,9 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
               Activity command center
             </div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Activities</h1>
-            <p className="mt-1 max-w-2xl text-sm text-slate-600">
+            <HelpCopy title="Activities workflow" className="mt-1 max-w-2xl text-sm text-slate-600">
               Manage activities from one working sheet: default camp blocks at the top, then activity rows with room, teacher, capacity, and click-to-schedule cells.
-            </p>
+            </HelpCopy>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
@@ -1038,7 +1039,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-sm font-black uppercase tracking-wide text-slate-700">Activity catalog</h2>
-              <p className="mt-1 text-xs text-slate-500">Simple rows only: activity, teacher, room, seats, and age groups. Use the Schedule Grid tab for clickable time-slot assignment.</p>
+              <HelpCopy title="Activity catalog" className="mt-1 text-xs text-slate-500">Simple rows only: activity, teacher, room, seats, and age groups. Use the Schedule Grid tab for clickable time-slot assignment.</HelpCopy>
             </div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">{filteredByStatus.length} shown</span>

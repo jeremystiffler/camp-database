@@ -6,6 +6,7 @@ import Link from "next/link";
 import { TeachersContent } from "../teachers/page";
 import { ActivitiesContent } from "../activities/page";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
+import { HelpCopy } from "@/components/HelpMode";
 
 interface Camp {
   id: string;
@@ -983,9 +984,9 @@ function SetupContent() {
       {/* ── Time Slots ── */}
       {activeTab === "times" && (
       <Section title="Time Slots">
-        <p className="text-xs text-slate-400 mb-4">
+        <HelpCopy title="Time slots" className="text-xs text-slate-400 mb-4">
           Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of camp. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
-        </p>
+        </HelpCopy>
 
         {/* No dates warning */}
         {campDates.length === 0 && (
@@ -1292,7 +1293,7 @@ function SetupContent() {
               <div>
                 <p className="text-xs font-black uppercase tracking-wide text-sky-700">Step 6 · Activity Catalog</p>
                 <h2 className="mt-1 text-lg font-black text-slate-900">Add the activity basics. Schedule comes next.</h2>
-                <p className="mt-1 text-sm text-slate-600">Keep this tab simple: activity name, lead teacher, room, and total seats available. The clickable time-slot grid lives on the next tab.</p>
+                <HelpCopy title="Activity basics" className="mt-1 text-sm text-slate-600">Keep this tab simple: activity name, lead teacher, room, and total seats available. The clickable time-slot grid lives on the next tab.</HelpCopy>
               </div>
               <button
                 type="button"
@@ -1325,7 +1326,7 @@ function SetupContent() {
               <div>
                 <p className="text-xs font-black uppercase tracking-wide text-amber-700">Step 7 · Clickable Schedule Grid</p>
                 <h2 className="mt-1 text-lg font-black text-slate-900">Click where each activity belongs.</h2>
-                <p className="mt-1 text-sm text-slate-600">Activities are rows. Time slots are columns. Click a cell to add or remove that activity from that slot — simple as setting chairs before service starts.</p>
+                <HelpCopy title="Clickable schedule grid" className="mt-1 text-sm text-slate-600">Activities are rows. Time slots are columns. Click a cell to add or remove that activity from that slot — simple as setting chairs before service starts.</HelpCopy>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
                   <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{courses.length} activities</span>
                   <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{scheduledActivities} scheduled</span>
@@ -1360,7 +1361,7 @@ function SetupContent() {
         <Section title="Registration">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <p className="text-sm text-slate-600">Once the schedule is sane, preview what families will see. Campers will only see eligible, non-mandatory activity choices, and full classes stay protected by capacity rules.</p>
+              <HelpCopy title="Registration preview" className="text-sm text-slate-600">Once the schedule is sane, preview what families will see. Campers will only see eligible, non-mandatory activity choices, and full classes stay protected by capacity rules.</HelpCopy>
               <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
                 <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-800">Public link:</span> /register/{campId}</div>
                 <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-800">Status:</span> {registrationOpen ? "Open" : "Closed"}</div>
@@ -1386,7 +1387,7 @@ function SetupContent() {
               ))}
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm text-slate-600">Opening registration makes the public form usable for families. If anything above is amber, fix that first — like Nehemiah checking the wall before opening the gates.</p>
+              <HelpCopy title="Open registration" className="text-sm text-slate-600">Opening registration makes the public form usable for families. If anything above is amber, fix that first — like Nehemiah checking the wall before opening the gates.</HelpCopy>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   type="button"

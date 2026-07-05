@@ -492,7 +492,7 @@ function RegistrationContent() {
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Registration Form</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Drag fields to reorder. Click any field to edit its label, help text, options, and required status. Any field can be deleted.</p>
+          <HelpCopy title="Form builder" className="text-slate-500 text-sm mt-0.5">Drag fields to reorder. Click any field to edit its label, help text, options, and required status. Any field can be deleted.</HelpCopy>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {formStatus !== "draft" && (
@@ -600,7 +600,7 @@ function RegistrationContent() {
                 <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
                   <div className="max-w-2xl">
                     <p className="text-sm font-black text-sky-950">Class choices automation</p>
-                    <p className="mt-1 text-sm text-sky-800">Families pick an <strong>Age Group</strong>, then the form inserts class choices from your Schedule Grid. Full classes hide themselves; opened seats reappear.</p>
+                    <HelpCopy title="Class choices" className="mt-1 text-sm text-sky-800">Families pick an <strong>Age Group</strong>, then the form inserts class choices from your Schedule Grid. Full classes hide themselves; opened seats reappear.</HelpCopy>
                     <p className={`mt-2 rounded-xl px-3 py-2 text-xs font-bold ${ageGroupReady ? "bg-forest-50 text-forest-800 border border-forest-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
                       {ageGroupReady ? "✓ Age Group is present and required." : "⚠ Age Group must be on this form and marked required before families can register."}
                     </p>
@@ -619,7 +619,7 @@ function RegistrationContent() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="max-w-2xl">
                         <p className="text-sm font-black text-indigo-950">Required class choices by age group</p>
-                        <p className="mt-1 text-sm leading-relaxed text-indigo-800">Use only when an age group must choose a specific class in any available time slot.</p>
+                        <HelpCopy title="Required class choices" className="mt-1 text-sm leading-relaxed text-indigo-800">Use only when an age group must choose a specific class in any available time slot.</HelpCopy>
                       </div>
                       <button type="button" onClick={addMandatoryRule} disabled={ageGroups.length === 0 || courses.length === 0} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white hover:bg-indigo-700 disabled:opacity-50">+ Add required class</button>
                     </div>
@@ -661,7 +661,7 @@ function RegistrationContent() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-2xl">
                     <p className="text-sm font-black text-amber-950">Family registration mode</p>
-                    <p className="mt-1 text-sm text-amber-800">One guardian can add multiple students, choose classes for each child, pay once, and receive one family confirmation email.</p>
+                    <HelpCopy title="Family registration" className="mt-1 text-sm text-amber-800">One guardian can add multiple students, choose classes for each child, pay once, and receive one family confirmation email.</HelpCopy>
                   </div>
                   <label className="flex min-w-[240px] items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-3 shadow-sm">
                     <span>
@@ -678,7 +678,7 @@ function RegistrationContent() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm font-black text-berry-950">Confirmation email builder</p>
-                  <p className="mt-1 text-sm text-berry-800">Drag sections into the order you want. Use tokens from camp data, guardian data, student data, and your form fields.</p>
+                  <HelpCopy title="Confirmation email" className="mt-1 text-sm text-berry-800">Drag sections into the order you want. Use tokens from camp data, guardian data, student data, and your form fields.</HelpCopy>
                 </div>
                 <div className="grid gap-3">
                   <label className="block">
@@ -688,14 +688,14 @@ function RegistrationContent() {
                   <label className="block rounded-2xl border border-amber-100 bg-amber-50/60 p-3">
                     <span className="block text-xs font-black uppercase tracking-wide text-amber-700 mb-1">Admin notification emails</span>
                     <textarea rows={2} value={adminNotificationEmails} onChange={e => setAdminNotificationEmails(e.target.value)} placeholder={"director@example.com\nregistrar@example.com"} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400/30 resize-none" />
-                    <p className="mt-1 text-xs font-semibold text-amber-800">Optional. Enter any number of admin emails, separated by commas or new lines.</p>
+                    <HelpCopy title="Admin notifications" className="mt-1 text-xs font-semibold text-amber-800">Optional. Enter any number of admin emails, separated by commas or new lines.</HelpCopy>
                   </label>
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="text-xs font-black uppercase tracking-wide text-slate-500">Available tokens</p>
-                        <p className="text-xs text-slate-500">Click a tag to copy it, then paste it into any editable section.</p>
+                        <HelpCopy title="Email tokens" className="text-xs text-slate-500">Click a tag to copy it, then paste it into any editable section.</HelpCopy>
                       </div>
                       <button type="button" onClick={() => setEmailTemplateBlocks(cloneDefaultEmailBlocks())} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Reset default layout</button>
                     </div>
@@ -709,7 +709,7 @@ function RegistrationContent() {
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="text-sm font-black text-slate-900">Email sections</p>
-                        <p className="text-xs text-slate-500">Drag with the handle. Toggle sections on/off. Custom text sections can use tokens.</p>
+                        <HelpCopy title="Email sections" className="text-xs text-slate-500">Drag with the handle. Toggle sections on/off. Custom text sections can use tokens.</HelpCopy>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <button type="button" onClick={() => addEmailBlock("text")} className="rounded-xl bg-berry-600 px-3 py-2 text-xs font-black text-white hover:bg-berry-700">+ Text block</button>

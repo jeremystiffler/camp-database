@@ -2,6 +2,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { HelpCopy } from "@/components/HelpMode";
 
 interface Room { id: string; name: string; capacity?: number | null; }
 interface AgeGroup { id: string; name: string; noSchedule?: boolean; }
@@ -427,7 +428,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
           <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
             Visual Schedule Builder
           </h2>
-          <p className="text-xs text-slate-500 mt-1">Put the pieces together visually: choose a time block, drop in activities, confirm room + teacher, and keep the detailed grid one click away.</p>
+          <HelpCopy title="Visual schedule builder" className="text-xs text-slate-500 mt-1">Put the pieces together visually: choose a time block, drop in activities, confirm room + teacher, and keep the detailed grid one click away.</HelpCopy>
         </div>
         <span className="text-xs font-semibold text-slate-600 bg-stone-100 border border-stone-200 rounded-full px-3 py-1 whitespace-nowrap">
           {sessionGroups.length} time blocks · {defaultSessionGroups.length} locked
@@ -486,7 +487,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       {courses.length > 0 && sessionGroups.length === 0 && allSessionGroups.length > 0 && (
         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
           <span className="text-lg"></span>
-          <span>All time slots are locked to the schedule. Unlock a row in Time Slots to make that slot assignable to activities.</span>
+          <HelpCopy title="Locked time slots" className="text-sm text-slate-500">All time slots are locked to the schedule. Unlock a row in Time Slots to make that slot assignable to activities.</HelpCopy>
         </div>
       )}
 
@@ -546,7 +547,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             <div className="flex flex-col gap-1 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-sm font-black text-slate-800">Activity scheduling grid</h3>
-                <p className="text-xs text-slate-500">One row per activity. Pick room, teacher, seats, and time cells without opening extra blocks.</p>
+                <HelpCopy title="Scheduling grid" className="text-xs text-slate-500">One row per activity. Pick room, teacher, seats, and time cells without opening extra blocks.</HelpCopy>
               </div>
               <span className="text-xs font-bold text-slate-400">{filteredCourses.length} rows × {visibleSessionGroups.length}/{sessionGroups.length} blocks</span>
             </div>
@@ -692,7 +693,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
           </section>
 
           <div className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
-            <span>Rows are the default view: edit room, teacher, assistant, capacity, and schedule cells in one dense sheet</span>
+            <HelpCopy title="Dense schedule sheet" className="text-xs text-slate-400">Rows are the default view: edit room, teacher, assistant, capacity, and schedule cells in one dense sheet</HelpCopy>
             <span className="basis-full h-0" />
             <span className="font-semibold text-slate-500">Capacity colors:</span>
             <span><span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300 align-middle" /> 0–49% full · roomy</span>
