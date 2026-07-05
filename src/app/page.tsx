@@ -186,10 +186,10 @@ export default function LandingPage() {
             14-day free trial • no credit card required
           </div>
           <h1 className="max-w-4xl text-5xl font-black tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
-            Run camp registration, schedules, and check-in from one calm command center.
+            Registration, scheduling, and check-in — finally in one place.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl">
-            Simple Schedule Pro replaces the spreadsheet circus with family registration, class choices, conflict-safe scheduling, rosters, badges, pickup cards, and payment options built for real camp operations.
+            Simple Schedule Pro gives youth programs, workshops, leagues, and classes a single command center for family sign-ups, class choices, conflict-safe schedules, rosters, badges, pickup cards, and payments — no spreadsheet required.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/signup" className="rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-7 py-4 text-center text-base font-black text-white shadow-xl shadow-indigo-200 transition hover:-translate-y-1">Start Free Trial</Link>
@@ -247,14 +247,14 @@ export default function LandingPage() {
 
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-20 text-center">
         <div className="rounded-[2rem] bg-gradient-to-r from-indigo-500 to-sky-500 p-10 text-white shadow-2xl shadow-indigo-200">
-          <h2 className="text-4xl font-black tracking-tight">Ready to launch your camp without the spreadsheet circus?</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-white/85">Start your 14-day no-card trial today. Founding camps get 50% off the first year when they upgrade.</p>
+          <h2 className="text-4xl font-black tracking-tight">Ready to run your program without the spreadsheet circus?</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-white/85">Start your 14-day no-card trial today. Founding programs get 50% off the first year when they upgrade.</p>
           <Link href="/signup" className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 text-base font-black text-indigo-600 shadow-lg transition hover:-translate-y-1">Start Free Trial</Link>
         </div>
       </section>
 
       <footer className="relative z-10 border-t border-slate-200 bg-white px-6 py-8 text-center text-sm font-semibold text-slate-500">
-        <p>Simple Schedule Pro — Built for camp directors, volunteers, and the blessed souls who used to own the spreadsheet.</p>
+        <p>Simple Schedule Pro — Built for program directors, volunteers, and the blessed souls who used to own the spreadsheet.</p>
       </footer>
     </div>
   );
