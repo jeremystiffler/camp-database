@@ -60,6 +60,7 @@ interface Session {
 }
 
 type ScheduleView = "dayGrid" | "roomPivot" | "teacherPivot" | "coursePivot" | "capacity" | "list";
+type DisplayDayGroup = { key: string; label: string; days: number[] };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -124,6 +125,41 @@ function sessionDisplayKey(session: Session, includeDay = false) {
 }
 function dedupeSessions(sessions: Session[], includeDay = false) {
   return uniqueBy(sessions, (session) => sessionDisplayKey(session, includeDay));
+}
+function daySignature(sessions: Session[], day: number) {
+  return sessions
+    .filter((session) => sessionDay(session) === day)
+    .map((session) => sessionDisplayKey(session, false))
+    .sort()
+    .join("||");
+}
+function dayRangeLabel(days: number[]) {
+  const sorted = [...days].sort((a, b) => a - b);
+  const isConsecutive = sorted.every((day, index) => index === 0 || day === sorted[index - 1] + 1);
+  if (sorted.length === 1) return DAYS[sorted[0]];
+  if (isConsecutive) return `${DAYS[sorted[0]]}–${DAYS[sorted[sorted.length - 1]]}`;
+  return sorted.map((day) => DAYS[day]).join(", ");
+}
+function groupIdenticalDays(sessions: Session[], activeDays: number[]): DisplayDayGroup[] {
+  const groups: DisplayDayGroup[] = [];
+  const bySignature = new Map<string, number[]>();
+  for (const day of activeDays) {
+    const signature = daySignature(sessions, day);
+    if (!signature) continue;
+    const days = bySignature.get(signature) || [];
+    days.push(day);
+    bySignature.set(signature, days);
+  }
+  for (const days of bySignature.values()) {
+    const sorted = days.sort((a, b) => a - b);
+    const range = dayRangeLabel(sorted);
+    groups.push({
+      key: sorted.join("-"),
+      label: sorted.length === activeDays.length && activeDays.length > 1 ? `Daily (${range})` : range,
+      days: sorted,
+    });
+  }
+  return groups.sort((a, b) => a.days[0] - b.days[0]);
 }
 function sessionSort(a: Session, b: Session) {
   return sessionDay(a) - sessionDay(b) || a.startTime.localeCompare(b.startTime) || (a.room?.name || "").localeCompare(b.room?.name || "") || sessionTitle(a).localeCompare(sessionTitle(b));
@@ -203,7 +239,11 @@ function ScheduleContent() {
   const displaySessions = dedupeSessions(sortedSessions);
   const dayDisplaySessions = dedupeSessions(sortedSessions, true);
   const activeDays = uniqueBy(dayDisplaySessions, (s) => String(sessionDay(s))).map(sessionDay).sort((a, b) => a - b);
-  const displayDays = filterDay === "" ? activeDays : [Number(filterDay)];
+  const dayGroups = groupIdenticalDays(dayDisplaySessions, activeDays);
+  const displayDayGroups = filterDay === ""
+    ? dayGroups
+    : [{ key: String(filterDay), label: DAYS[Number(filterDay)], days: [Number(filterDay)] }];
+  const duplicateDayCount = Math.max(activeDays.length - dayGroups.length, 0);
   const filteredDaySessions = dayDisplaySessions.filter((session) => filterDay === "" || sessionDay(session) === Number(filterDay));
   const filteredSessions = filterDay === "" ? displaySessions : filteredDaySessions;
   const timeSlots = uniqueBy(dayDisplaySessions, (s) => `${s.startTime}|${s.endTime}`)
@@ -280,7 +320,7 @@ function ScheduleContent() {
             ))}
           </div>
 
-          {view === "dayGrid" && <DayTimeGrid sessions={filteredDaySessions} displayDays={displayDays} timeSlots={timeSlots} campId={campId} />}
+          {view === "dayGrid" && <DayTimeGrid sessions={filteredDaySessions} displayDayGroups={displayDayGroups} duplicateDayCount={filterDay === "" ? duplicateDayCount : 0} timeSlots={timeSlots} campId={campId} />}
           {view === "roomPivot" && <RoomPivot sessions={filteredSessions} rooms={roomRows} timeSlots={timeSlots} campId={campId} />}
           {view === "teacherPivot" && <TeacherPivot sessions={filteredSessions} teachers={teacherRows} timeSlots={timeSlots} campId={campId} />}
           {view === "coursePivot" && <CoursePivot sessions={filteredSessions} courses={courses} campId={campId} />}
@@ -314,12 +354,15 @@ function PivotShell({ title, subtitle, children }: { title: string; subtitle: st
   );
 }
 
-function DayTimeGrid({ sessions, displayDays, timeSlots, campId }: { sessions: Session[]; displayDays: number[]; timeSlots: { key: string; start: string; end: string; label: string }[]; campId: string }) {
+function DayTimeGrid({ sessions, displayDayGroups, duplicateDayCount, timeSlots, campId }: { sessions: Session[]; displayDayGroups: DisplayDayGroup[]; duplicateDayCount: number; timeSlots: { key: string; start: string; end: string; label: string }[]; campId: string }) {
   return (
-    <PivotShell title="Day × Time grid" subtitle="Each cell shows the classes happening during that day and time block.">
+    <PivotShell
+      title="Day × Time grid"
+      subtitle={duplicateDayCount > 0 ? `${duplicateDayCount} duplicate day${duplicateDayCount === 1 ? "" : "s"} hidden because the daily schedule is identical.` : "Each cell shows the classes happening during that day and time block."}
+    >
       <table className="min-w-full border-collapse text-left text-sm">
-        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-28 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Day</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-56 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
-        <tbody>{displayDays.map((day) => <tr key={day}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{DAYS[day]}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => sessionDay(s) === day && s.startTime === slot.start && s.endTime === slot.end).map((s) => sessionCell(s, campId))}</div></td>)}</tr>)}</tbody>
+        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-36 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Day</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-56 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
+        <tbody>{displayDayGroups.map((group) => <tr key={group.key}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800"><div>{group.label}</div>{group.days.length > 1 && <div className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">shown once</div>}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{dedupeSessions(sessions.filter((s) => group.days.includes(sessionDay(s)) && s.startTime === slot.start && s.endTime === slot.end)).map((s) => sessionCell(s, campId))}</div></td>)}</tr>)}</tbody>
       </table>
     </PivotShell>
   );
