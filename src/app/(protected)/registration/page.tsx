@@ -53,7 +53,7 @@ const FIELD_ICONS: Record<string, string> = {
   text: "Aa", email: "@", tel: "📞", date: "Date", number: "#", url: "🔗", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
 };
 
-type AddFieldCategory = "Basic" | "Contact" | "Choice" | "Camp" | "Consent" | "Layout";
+type AddFieldCategory = "Basic" | "Contact" | "Choice" | "Program" | "Consent" | "Layout";
 type AddFieldItem = {
   type: FormField["type"];
   label: string;
@@ -103,7 +103,7 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
   { category: "Consent", type: "checkbox", label: "Code of conduct", icon: "🤝", description: "Behavior agreement", defaults: { label: "Code of conduct", checkboxDescription: "I have reviewed the camp expectations with my camper and agree to support them.", required: true } },
 ];
 
-const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", "Camp", "Consent", "Layout"];
+const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", "Program", "Consent", "Layout"];
 
 const DEFAULT_EMAIL_BLOCKS: EmailTemplateBlock[] = [
   { id: "hero", type: "hero", title: "{{updateStatus}}", content: "Thanks for registering for {{campName}}. Below is the information we received.", enabled: true },
