@@ -971,7 +971,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">A</span><p>Select a camp to view activities.</p></div>
+      <div className="text-center"><span className="text-4xl mb-3 block">A</span><p>Select a program to view activities.</p></div>
     </div>
   );
 
@@ -988,7 +988,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
             </div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Activities</h1>
             <HelpCopy title="Activities workflow" className="mt-1 max-w-2xl text-sm text-slate-600">
-              Manage activities from one working sheet: default camp blocks at the top, then activity rows with room, teacher, capacity, and click-to-schedule cells.
+              Manage activities from one working sheet: default program blocks at the top, then activity rows with room, teacher, capacity, and click-to-schedule cells.
             </HelpCopy>
           </div>
           <div className="flex flex-wrap items-center gap-2">

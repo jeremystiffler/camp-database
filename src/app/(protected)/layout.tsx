@@ -10,7 +10,7 @@ import { HelpModeToggle } from "@/components/HelpMode";
 const navItems = [
   { href: "/dashboard",    label: "Dashboard",      icon: "compass" },
   { href: "/setup",        label: "Camp Setup",     icon: "tent" },
-  { href: "/campers",      label: "Campers",        icon: "campers" },
+  { href: "/campers",      label: "Participants",      icon: "campers" },
   { href: "/check-in",     label: "Check in/out",   icon: "check" },
   { href: "/schedule",     label: "Schedule",       icon: "calendar" },
   { href: "/registration", label: "Registration",   icon: "clipboard" },

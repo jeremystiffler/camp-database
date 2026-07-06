@@ -16,8 +16,8 @@ const ROLE_LABELS: Record<string, string> = {
   owner: "Owner", admin: "Admin", editor: "Editor", viewer: "Viewer",
 };
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  admin:  "Manage team, create & delete camps",
-  editor: "Edit all content in the camp",
+  admin:  "Manage team, create & delete programs",
+  editor: "Edit all content in this program",
   viewer: "View-only access",
 };
 
@@ -144,7 +144,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
           >
             {status === "accepting"
               ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Accepting…</>
-              : needsSignup ? "Create Account & Join Camp" : "Accept Invitation & Join Camp"}
+              : needsSignup ? "Create Account & Join Program" : "Accept Invitation & Join Program"}
           </button>
 
           <p className="text-center text-xs text-slate-400">

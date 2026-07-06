@@ -16,9 +16,9 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Simple Schedule Pro — Camp Management Platform",
+  title: "Simple Schedule Pro — Program Management Platform",
   description:
-    "Multi-tenant camp management — registrations, activities, scheduling, assignments, and print materials.",
+    "Simple Schedule Pro — registrations, scheduling, check-in, and print materials for youth programs, workshops, leagues, and classes.",
 };
 
 export default function RootLayout({

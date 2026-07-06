@@ -21,9 +21,9 @@ export const ROLE_LABELS: Record<CampRole, string> = {
 };
 
 export const ROLE_DESCRIPTIONS: Record<CampRole, string> = {
-  owner:  "Created this camp — full control",
+  owner:  "Created this program — full control",
   admin:  "Manage team, create & delete camps",
-  editor: "Edit all content, cannot delete camp",
+  editor: "Edit all content, cannot delete program",
   viewer: "View-only access",
 };
 

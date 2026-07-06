@@ -558,7 +558,7 @@ function CheckInContent() {
         <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Kiosk mode</p>
           <h1 className="mt-2 text-4xl font-black text-slate-950 sm:text-5xl">Self Check In/Out</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-base font-semibold text-slate-600">Check children in or out by scanning their QR code, searching for the adult/guardian name, or finding the child's name. Admin menus, camper records, schedules, and private details stay hidden.</p>
+          <p className="mx-auto mt-3 max-w-2xl text-base font-semibold text-slate-600">Check children in or out by scanning their QR code, searching for the adult/guardian name, or finding the child's name. Admin menus, participant records, schedules, and private details stay hidden.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -647,7 +647,7 @@ function CheckInContent() {
     <div className="space-y-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Day-of-camp operations</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Day-of operations</p>
           <h1 className="mt-1 text-3xl font-black text-slate-900">Fast Check-In / Check-Out</h1>
           <HelpCopy title="Check in/out workflow" className="mt-1 text-sm text-slate-500">Use Check In for arrivals. Once a child is checked in, they immediately move to Check Out so staff can release them from the still-on-campus list.</HelpCopy>
         </div>
@@ -689,7 +689,7 @@ function CheckInContent() {
 
       <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row">
-          <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder={view === "checked_in" ? "Search who is still on campus, guardian phone, or paste/scan QR text..." : "Quick search: camper, guardian, phone, email, or paste/scan QR text..."} className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100" autoFocus />
+          <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder={view === "checked_in" ? "Search who is still on campus, guardian phone, or paste/scan QR text..." : "Quick search: participant, guardian, phone, email, or paste/scan QR text..."} className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100" autoFocus />
           <button onClick={manualScanSubmit} className="min-h-14 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 text-base font-black text-emerald-800 hover:bg-emerald-100">Use as Scan</button>
           <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-14 rounded-2xl bg-slate-900 px-6 text-base font-black text-white hover:bg-slate-700">Open Camera</button>
           <Link href={`/campers?campId=${campId}`} className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-6 text-base font-black text-slate-700 hover:bg-slate-100">+ Walk-Up</Link>
@@ -711,7 +711,7 @@ function CheckInContent() {
             </div>
             <video ref={videoRef} className="aspect-video w-full rounded-2xl bg-slate-900 object-cover" playsInline muted autoPlay />
             <canvas ref={canvasRef} className="hidden" />
-            <p className="mt-3 text-sm font-semibold text-slate-500">{scanMode === "camera" ? "Camera is live. Point it at a confirmation QR or camper badge QR." : "Opening camera…"}</p>
+            <p className="mt-3 text-sm font-semibold text-slate-500">{scanMode === "camera" ? "Camera is live. Point it at a confirmation QR or participant badge QR." : "Opening camera…"}</p>
             {scanError && <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scanError}</p>}
           </div>
         </div>
@@ -721,7 +721,7 @@ function CheckInContent() {
         <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-forest-500 border-t-transparent" /></div>
       ) : visibleCampers.length === 0 ? (
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <p className="text-lg font-black text-slate-800">{view === "walk_up" ? "Everyone is either checked in or checked out." : view === "checked_in" ? "No one is currently waiting for checkout." : view === "attention" ? "No campers need attention right now." : "No campers match this view."}</p>
+          <p className="text-lg font-black text-slate-800">{view === "walk_up" ? "Everyone is either checked in or checked out." : view === "checked_in" ? "No one is currently waiting for checkout." : view === "attention" ? "No participants need attention right now." : "No participants match this view."}</p>
           <p className="mt-1 text-sm font-semibold text-slate-400">{query ? "Try clearing the search or switching tabs." : "Nice and tidy — like a clipboard after a miracle."}</p>
         </div>
       ) : (

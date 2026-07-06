@@ -105,15 +105,15 @@ const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Teacher Schedule Only — Deduped", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", groupByPage: true, showStudents: false }) },
   { builtin: true, name: "Classroom Rosters — Deduped", type: "class_rosters", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showEmergency: true, showMedical: true, showTeacher: true }) },
   { builtin: true, name: "Custom Grid Printable — Rotation Roster", type: "rotation_roster", category: "operations", paperSize: "custom", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", customPageWidth: "36in", customPageHeight: "8.5in", rotationColumns: 5, rotationBandColor: "#f8dfe6", showTeacher: true, showRoom: true, showFooterLabel: true }) },
-  { builtin: true, name: "Camper Class Choices", type: "camper_choices", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showRoom: true, showTeacher: true }) },
-  { builtin: true, name: "Camper Roster", type: "camper_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
+  { builtin: true, name: "Participant Class Choices", type: "camper_choices", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", showRoom: true, showTeacher: true }) },
+  { builtin: true, name: "Participant Roster", type: "camper_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "T-Shirt List", type: "tshirt_list", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
   { builtin: true, name: "Pickup Window Cards — Number + Family", type: "pickup_cards", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large" }) },
   { builtin: true, name: "Pickup Number Roster", type: "pickup_roster", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify(DEFAULT_SETTINGS) },
-  { builtin: true, name: "Camper Badges — Sheet", type: "badges", category: "badges", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 4, badgeCols: 3, showAgeGroup: true }) },
+  { builtin: true, name: "Participant Badges — Sheet", type: "badges", category: "badges", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 4, badgeCols: 3, showAgeGroup: true }) },
   { builtin: true, name: "Custom Schedule Lanyard Badge — 3×5", type: "badges", category: "badges", paperSize: "3x5", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, badgeLayout: "schedule_lanyard", lanyardTheme: "aquaSheet", showSchedule: true, showAgeGroup: false, badgeBackEnabled: true, badgeBackContentBlocks: ["qr"] }) },
-  { builtin: true, name: "Camper Lanyard Badge — 5×3", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showSchedule: true, badgeBackEnabled: true, badgeBackContentBlocks: ["qr"] }) },
-  { builtin: true, name: "Camper Card — 4×6", type: "badges", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showGuardian: true, showSchedule: true }) },
+  { builtin: true, name: "Participant Lanyard Badge — 5×3", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showSchedule: true, badgeBackEnabled: true, badgeBackContentBlocks: ["qr"] }) },
+  { builtin: true, name: "Participant Card — 4×6", type: "badges", category: "badges", paperSize: "4x6", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, showAgeGroup: true, showGuardian: true, showSchedule: true }) },
 ];
 
 type CustomBlockOption = { id: string; label: string };
@@ -125,7 +125,7 @@ const ROTATION_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "footer", label: "Footer label" },
 ];
 const BADGE_STANDARD_BLOCK_OPTIONS: CustomBlockOption[] = [
-  { id: "label", label: "Camper label" },
+  { id: "label", label: "Participant label" },
   { id: "firstName", label: "First name" },
   { id: "lastName", label: "Last name" },
   { id: "fullName", label: "Full name" },
@@ -167,16 +167,16 @@ function isCustomBuilder(template: PrintTemplate) { return CUSTOM_BUILTIN_NAMES.
 function templateMeta(template: PrintTemplate): TemplateMeta {
   if (template.name.includes("Schedule Lanyard")) return { eyebrow: "Custom badge builder", visual: "lanyard", description: "A child-name header with a vertical schedule table for lanyards." };
   if (template.type === "rotation_roster") return { eyebrow: "Custom grid builder", visual: "grid", description: "Wide rotation charts with draggable blocks, time bands, and optional backs." };
-  if (template.type === "principal_schedule") return { eyebrow: "Stock schedule", visual: "grid", description: "A landscape master grid: campers down the left, schedule blocks across." };
+  if (template.type === "principal_schedule") return { eyebrow: "Stock schedule", visual: "grid", description: "A landscape master grid: participants down the left, schedule blocks across." };
   if (template.type === "teacher_schedules") return { eyebrow: "Stock teacher packet", visual: "packet", description: template.name.includes("Only") ? "Deduped teacher schedules without student lists." : "Teacher schedules with optional class rosters under each assignment." };
   if (template.type === "class_rosters") return { eyebrow: "Stock roster", visual: "roster", description: "Classroom rosters by class/time with guardian, emergency, and medical columns." };
-  if (template.type === "camper_choices") return { eyebrow: "Stock camper report", visual: "choices", description: "Every camper with their chosen classes, times, rooms, and teachers." };
-  if (template.type === "camper_roster") return { eyebrow: "Stock list", visual: "list", description: "A clean camper directory with age group and guardian contact." };
+  if (template.type === "camper_choices") return { eyebrow: "Stock participant report", visual: "choices", description: "Every participant with their chosen classes, times, rooms, and teachers." };
+  if (template.type === "camper_roster") return { eyebrow: "Stock list", visual: "list", description: "A clean participant directory with age group and guardian contact." };
   if (template.type === "tshirt_list") return { eyebrow: "Stock list", visual: "list", description: "Grouped t-shirt sizes for quick sorting and distribution." };
-  if (template.type === "pickup_cards") return { eyebrow: "Pickup & scanner", visual: "card", description: "4×6 window cards with large pickup number, family last name, and camper QR." };
+  if (template.type === "pickup_cards") return { eyebrow: "Pickup & scanner", visual: "card", description: "4×6 window cards with large pickup number, family last name, and participant QR." };
   if (template.type === "pickup_roster") return { eyebrow: "Pickup & scanner", visual: "list", description: "Backup roster sorted by pickup number for car-line lookup." };
-  if (template.type === "badges" && template.paperSize === "4x6") return { eyebrow: "Stock card", visual: "card", description: "A larger camper info card with guardian and schedule options." };
-  if (template.type === "badges" && template.paperSize !== "letter") return { eyebrow: "Stock badge", visual: "badge", description: "One camper per page for lanyards and badge printers." };
+  if (template.type === "badges" && template.paperSize === "4x6") return { eyebrow: "Stock card", visual: "card", description: "A larger participant info card with guardian and schedule options." };
+  if (template.type === "badges" && template.paperSize !== "letter") return { eyebrow: "Stock badge", visual: "badge", description: "One participant per page for lanyards and badge printers." };
   return { eyebrow: "Stock badge sheet", visual: "badge", description: "Printable name badges laid out on a letter-size sheet." };
 }
 type LanyardThemeKey = keyof typeof LANYARD_THEMES;

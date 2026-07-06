@@ -82,7 +82,7 @@ function Step1({
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-bold text-slate-800 mb-1">Camp Details</h2>
-        <p className="text-slate-500 text-sm">Give your camp a name and set the dates.</p>
+        <p className="text-slate-500 text-sm">Give your program a name and set the dates.</p>
       </div>
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1.5">Camp Name *</label>
@@ -148,7 +148,7 @@ function Step2({
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-bold text-slate-800 mb-1">Age Groups</h2>
-        <p className="text-slate-500 text-sm">Define the age groups for your camp (e.g. Younger Campers 6–9, Older Campers 10–13).</p>
+        <p className="text-slate-500 text-sm">Define the age groups for your program (e.g. Younger Participants 6–9, Older Participants 10–13).</p>
       </div>
 
       {/* Existing groups */}
@@ -231,7 +231,7 @@ function Step2({
 
       {groups.length === 0 && (
         <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-4 py-3">
-          At least one age group is required to assign campers and activities.
+          At least one age group is required to assign participants and activities.
         </p>
       )}
     </div>
@@ -266,7 +266,7 @@ function Step3({
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-bold text-slate-800 mb-1">Rooms & Locations</h2>
-        <p className="text-slate-500 text-sm">Where will activities be held? Add every room or location your camp uses.</p>
+        <p className="text-slate-500 text-sm">Where will activities be held? Add every room or location your program uses.</p>
       </div>
 
       {rooms.length > 0 && (

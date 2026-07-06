@@ -101,7 +101,7 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <span className="text-4xl mb-4 block">🏕️</span>
           <h1 className="font-heading font-bold text-2xl text-cream mb-2">Create your account</h1>
-          <p className="text-muted">Start managing your camp today</p>
+          <p className="text-muted">Start managing your program today</p>
         </div>
 
         {/* Google Sign-Up button — rendered by GIS SDK */}

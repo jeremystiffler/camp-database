@@ -6,7 +6,7 @@ import { SSPLogo } from "@/components/SSPLogo";
 const stats = [
   { value: "14", label: "day free trial" },
   { value: "50%", label: "off first year" },
-  { value: "3%", label: "camper-paid fee" },
+  { value: "3%", label: "participant-paid fee" },
   { value: "$29", label: "monthly from" },
 ];
 
@@ -17,9 +17,9 @@ const pricingPlans = [
     monthly: "$29/mo",
     yearly: "$299/yr",
     founding: "$149.50 first year",
-    desc: "For small camps, VBS, and first-time online registration.",
+    desc: "For small programs, VBS, and first-time online registration.",
     checks: [
-      "1 active camp",
+      "1 active program",
       "Up to 100 paid registrations/year",
       "Unlimited free registrations",
       "Forms, payments, coupons, schedules, check-in, and basic print tools",
@@ -27,16 +27,16 @@ const pricingPlans = [
   },
   {
     eyebrow: "Most popular",
-    title: "Camp Pro",
+    title: "Program Pro",
     monthly: "$79/mo",
     yearly: "$799/yr",
     founding: "$399.50 first year",
-    desc: "For multi-week camps that want smoother setup and operations.",
+    desc: "For multi-week programs that want smoother setup and operations.",
     highlighted: true,
     checks: [
-      "Up to 3 active camps/programs",
+      "Up to 3 active programs",
       "Up to 500 paid registrations/year",
-      "Camp copy/templates, advanced scheduling, class choices, and age rules",
+      "Program copy/templates, advanced scheduling, class choices, and age rules",
       "Team members, admin notifications, advanced print tools, and priority support",
     ],
   },
@@ -46,23 +46,23 @@ const pricingPlans = [
     monthly: "$149/mo",
     yearly: "$1,499/yr",
     founding: "$749.50 first year",
-    desc: "For schools, churches, and larger programs running multiple camps.",
+    desc: "For schools, churches, and larger organizations running multiple programs.",
     checks: [
-      "Unlimited active camps/programs",
+      "Unlimited active programs",
       "Up to 2,000 paid registrations/year",
-      "Reusable registration templates and cross-camp setup patterns",
+      "Reusable registration templates and cross-program setup patterns",
       "Advanced team permissions, premium print center, and priority onboarding",
     ],
   },
 ];
 
 const features = [
-  { icon: "👨‍👩‍👧‍👦", title: "Family Registration", desc: "One guardian can register multiple students, choose age groups and classes per camper, and pay once." },
+  { icon: "👨‍👩‍👧‍👦", title: "Family Registration", desc: "One guardian can register multiple students, choose age groups and classes per participant, and pay once." },
   { icon: "🗓️", title: "Schedule Builder", desc: "Rooms, teachers, time slots, required blocks, capacity limits, and conflict checks stay tied together." },
   { icon: "🎨", title: "Activity Catalog", desc: "Build classes by age group, location, teacher, capacity, and schedule block without duct-taping spreadsheets." },
-  { icon: "✅", title: "Check in/out", desc: "Run day-of-camp operations with QR/name lookup, family pickup numbers, and staff-friendly attendance state." },
-  { icon: "🖨️", title: "Print Center", desc: "Generate rosters, teacher packets, camper class choices, pickup cards, and QR schedule lanyards." },
-  { icon: "💳", title: "Payments", desc: "Choose whether the camp pays the platform or families pay registration plus a transparent platform fee." },
+  { icon: "✅", title: "Check in/out", desc: "Run day-of operations with QR/name lookup, family pickup numbers, and staff-friendly attendance state." },
+  { icon: "🖨️", title: "Print Center", desc: "Generate rosters, teacher packets, participant class choices, pickup cards, and QR schedule lanyards." },
+  { icon: "💳", title: "Payments", desc: "Choose whether your program pays the platform or families pay registration plus a transparent platform fee." },
 ];
 
 const timeline = [
@@ -128,7 +128,7 @@ function ProductMockup() {
       <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">Today’s camp</p>
+            <p className="text-xs font-black uppercase tracking-wide text-slate-400">Today's program</p>
             <h3 className="text-lg font-black text-slate-900">Daily schedule</h3>
           </div>
           <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">Ready</span>
@@ -150,7 +150,7 @@ function ProductMockup() {
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="text-xs font-black uppercase tracking-wide text-slate-400">Operations</p>
             <div className="mt-4 space-y-3">
-              <div className="rounded-2xl bg-indigo-50 p-3"><p className="text-2xl font-black text-indigo-600">84</p><p className="text-xs font-bold text-slate-500">registered campers</p></div>
+              <div className="rounded-2xl bg-indigo-50 p-3"><p className="text-2xl font-black text-indigo-600">84</p><p className="text-xs font-bold text-slate-500">registered participants</p></div>
               <div className="rounded-2xl bg-sky-50 p-3"><p className="text-2xl font-black text-sky-600">6</p><p className="text-xs font-bold text-slate-500">printable packets</p></div>
               <div className="rounded-2xl bg-emerald-50 p-3"><p className="text-2xl font-black text-emerald-600">0</p><p className="text-xs font-bold text-slate-500">schedule conflicts</p></div>
             </div>
@@ -222,12 +222,12 @@ export default function LandingPage() {
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.22em] text-indigo-500">Pricing</p>
-            <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Simple pricing for camps just getting started — and ready to grow.</h2>
+            <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Simple pricing for programs just getting started — and ready to grow.</h2>
           </div>
           <p className="max-w-2xl text-slate-600">Try Simple Schedule Pro free for 14 days, no credit card required. Founding customers get 50% off their first year. Paid registrations include a simple 3% platform fee, usually paid by the registrant.</p>
         </div>
         <div className="mb-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950 shadow-sm">
-          <strong>14-day free trial • no credit card required.</strong> Build your camp, test registration, invite your team, and only pay when you are ready to keep going.
+          <strong>14-day free trial • no credit card required.</strong> Build your program, test registration, invite your team, and only pay when you are ready to keep going.
         </div>
         <div className="grid gap-5 lg:grid-cols-3">
           {pricingPlans.map((plan) => (
@@ -239,7 +239,7 @@ export default function LandingPage() {
         <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-4 text-sm text-slate-600 md:grid-cols-3">
             <div className="rounded-2xl bg-indigo-50 p-4"><strong className="text-slate-950">Founding customers</strong><br />Get 50% off the first year on any paid plan.</div>
-            <div className="rounded-2xl bg-sky-50 p-4"><strong className="text-slate-950">3% paid-registration fee</strong><br />Usually passed to registrants. Camps can choose to absorb it.</div>
+            <div className="rounded-2xl bg-sky-50 p-4"><strong className="text-slate-950">3% paid-registration fee</strong><br />Usually passed to registrants. Programs can choose to absorb it.</div>
             <div className="rounded-2xl bg-emerald-50 p-4"><strong className="text-slate-950">Free stays free</strong><br />Free registrations and scholarship-only registrations have no platform fee.</div>
           </div>
         </div>

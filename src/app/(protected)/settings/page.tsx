@@ -249,9 +249,9 @@ function SettingsContent() {
   return (
     <div className="max-w-5xl">
       <div className="mb-6">
-        <p className="minimal-section-title mb-2">Camp administration</p>
+        <p className="minimal-section-title mb-2">Program administration</p>
         <h1 className="text-2xl font-black tracking-tight text-slate-900">Settings</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Profile, billing, appearance, utilities, and camp-level actions.</p>
+        <p className="text-slate-500 text-sm mt-0.5">Profile, billing, appearance, utilities, and program-level actions.</p>
       </div>
 
       {campId && (
@@ -331,20 +331,20 @@ function SettingsContent() {
 
       {/* ── Camp Billing ── */}
       {campId && (
-        <Section title="Billing" subtitle="Choose who covers the platform cost for this camp">
+        <Section title="Billing" subtitle="Choose who covers the platform cost for this program">
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "campPays" }))}
                 className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "campPays" ? "border-forest-400 bg-forest-50" : "border-slate-200 hover:border-slate-300"}`}>
-                <p className="text-sm font-bold text-slate-800">Camp pays yearly</p>
+                <p className="text-sm font-bold text-slate-800">Program pays yearly</p>
                 <p className="mt-1 text-2xl font-black text-forest-700">{money(billing.annualSubscriptionCents)}<span className="text-xs font-semibold text-slate-500">/year</span></p>
-                <p className="mt-2 text-xs text-slate-500">Best when the camp wants registration to feel completely free for families.</p>
+                <p className="mt-2 text-xs text-slate-500">Best when your program wants registration to feel completely free for families.</p>
               </button>
               <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "camperFee" }))}
                 className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "camperFee" ? "border-sky-400 bg-sky-50" : "border-slate-200 hover:border-slate-300"}`}>
-                <p className="text-sm font-bold text-slate-800">Campers pay registration</p>
-                <p className="mt-1 text-2xl font-black text-sky-700">{money(billing.camperPriceCents + platformEstimate)}<span className="text-xs font-semibold text-slate-500">/camper</span></p>
-                <p className="mt-2 text-xs text-slate-500">Families pay the camp price plus our 3% platform fee, capped at {money(billing.platformFeeCapCents)}.</p>
+                <p className="text-sm font-bold text-slate-800">Participants pay registration</p>
+                <p className="mt-1 text-2xl font-black text-sky-700">{money(billing.camperPriceCents + platformEstimate)}<span className="text-xs font-semibold text-slate-500">/participant</span></p>
+                <p className="mt-2 text-xs text-slate-500">Families pay the program price plus our 3% platform fee, capped at {money(billing.platformFeeCapCents)}.</p>
               </button>
             </div>
 
@@ -352,7 +352,7 @@ function SettingsContent() {
               <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label className="block">
-                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Camp price per camper</span>
+                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Program price per participant</span>
                     <input type="number" min="0" step="1" value={billing.camperPriceCents / 100} onChange={e => setBilling(prev => ({ ...prev, camperPriceCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
                   </label>
                   <label className="block">
@@ -369,13 +369,13 @@ function SettingsContent() {
                   </label>
                 </div>
                 <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 text-sm text-sky-900">
-                  Example checkout today: camp price <strong>{money(billing.camperPriceCents)}</strong> + platform fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.camperPriceCents + platformEstimate)}</strong>.
+                  Example checkout today: program price <strong>{money(billing.camperPriceCents)}</strong> + platform fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.camperPriceCents + platformEstimate)}</strong>.
                 </div>
               </div>
             )}
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              Current status: <span className="font-bold capitalize text-slate-800">{billing.billingStatus.replace(/_/g, " ")}</span>. Registration pages will show the {billing.billingMode === "camperFee" ? `${money(billing.camperPriceCents)} camp price + platform fee` : "camp-paid plan"} messaging.
+              Current status: <span className="font-bold capitalize text-slate-800">{billing.billingStatus.replace(/_/g, " ")}</span>. Registration pages will show the {billing.billingMode === "camperFee" ? `${money(billing.camperPriceCents)} program price + platform fee` : "program-paid plan"} messaging.
             </div>
 
             {billing.billingMode === "camperFee" && (
@@ -565,7 +565,7 @@ function SettingsContent() {
             }}
             className="px-4 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors"
           >
-            Delete This Camp
+            Delete This Program
           </button>
         </Section>
       )}
