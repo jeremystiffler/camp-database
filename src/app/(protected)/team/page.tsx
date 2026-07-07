@@ -35,6 +35,7 @@ function TeamContent() {
   const [members,  setMembers]  = useState<TeamMember[]>([]);
   const [invites,  setInvites]  = useState<PendingInvite[]>([]);
   const [myRole,   setMyRole]   = useState<string>("viewer");
+  const [sessionUserId, setSessionUserId] = useState("");
   const [loading,  setLoading]  = useState(true);
 
   // Invite form
@@ -54,6 +55,7 @@ function TeamContent() {
         setMembers(Array.isArray(d.members) ? d.members : []);
         setInvites(Array.isArray(d.invites) ? d.invites : []);
         setMyRole(d.myRole || "viewer");
+        setSessionUserId(d.sessionUserId || "");
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -204,7 +206,7 @@ function TeamContent() {
             </div>
             <div className="divide-y divide-slate-50">
               {members.map(m => {
-                const isMe = m.user.id === undefined; // will compare via email match below
+                const isMe = m.user.id === sessionUserId;
                 const isOwner = m.role === "owner";
                 return (
                   <div key={m.id} className="flex items-center gap-3 px-5 py-3.5">
@@ -213,11 +215,13 @@ function TeamContent() {
                       {(m.user.name?.[0] || m.user.email[0]).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{m.user.name || m.user.email}</p>
+                      <p className="text-sm font-semibold text-slate-800 truncate">
+                        {m.user.name || m.user.email}{isMe && <span className="ml-2 text-[11px] font-black uppercase tracking-wide text-sky-600">You</span>}
+                      </p>
                       <p className="text-xs text-slate-400 truncate">{m.user.email}</p>
                     </div>
                     {/* Role selector */}
-                    {canManage && !isOwner ? (
+                    {canManage && !isOwner && !isMe ? (
                       <select
                         value={m.role}
                         onChange={e => changeRole(m.id, e.target.value)}
@@ -231,7 +235,7 @@ function TeamContent() {
                       <RoleBadge role={m.role} />
                     )}
                     {/* Remove button */}
-                    {canManage && !isOwner && (
+                    {canManage && !isOwner && !isMe && (
                       <button
                         onClick={() => removeMember(m.id)}
                         className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"

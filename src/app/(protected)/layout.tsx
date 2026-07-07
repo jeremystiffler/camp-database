@@ -8,17 +8,19 @@ import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
 
 const navItems = [
-  { href: "/dashboard",    label: "Dashboard",      icon: "compass" },
-  { href: "/setup",        label: "Camp Setup",     icon: "tent" },
-  { href: "/campers",      label: "Participants",      icon: "campers" },
-  { href: "/check-in",     label: "Check in/out",   icon: "check" },
-  { href: "/schedule",     label: "Schedule",       icon: "calendar" },
-  { href: "/registration", label: "Registration",   icon: "clipboard" },
-  { href: "/print",        label: "Print Center",   icon: "printer" },
-  { href: "/team",         label: "Team",           icon: "team" },
-  { href: "/import",       label: "Import",         icon: "upload" },
-  { href: "/settings",     label: "Settings",       icon: "gear" },
-];
+  { href: "/dashboard",    label: "Dashboard",      icon: "compass", minRole: "viewer" },
+  { href: "/setup",        label: "Camp Setup",     icon: "tent", minRole: "viewer" },
+  { href: "/campers",      label: "Participants",   icon: "campers", minRole: "viewer" },
+  { href: "/check-in",     label: "Check in/out",   icon: "check", minRole: "viewer" },
+  { href: "/schedule",     label: "Schedule",       icon: "calendar", minRole: "viewer" },
+  { href: "/registration", label: "Registration",   icon: "clipboard", minRole: "editor" },
+  { href: "/print",        label: "Print Center",   icon: "printer", minRole: "viewer" },
+  { href: "/team",         label: "Team",           icon: "team", minRole: "viewer" },
+  { href: "/import",       label: "Import",         icon: "upload", minRole: "editor" },
+  { href: "/settings",     label: "Settings",       icon: "gear", minRole: "admin" },
+] as const;
+
+const roleRank = (role?: string) => ({ owner: 4, admin: 3, editor: 2, viewer: 1 }[role || "viewer"] || 1);
 
 function SidebarIcon({ name }: { name: string }) {
   const common = {
@@ -55,6 +57,7 @@ interface Camp {
   id: string;
   name: string;
   status: string;
+  myRole?: string;
 }
 
 function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
@@ -201,7 +204,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                 {activeCamp?.name || "Select a camp"}
               </p>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500/70 mt-1">
-                {activeCamp?.status || "No active camp"}
+                {activeCamp?.status || "No active camp"} {activeCamp?.myRole ? `• ${activeCamp.myRole}` : ""}
               </p>
               <button
                 type="button"
@@ -225,7 +228,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                     >
                       <span className="block text-sm font-black leading-tight">{camp.name}</span>
                       <span className={`block text-[11px] mt-0.5 ${selected ? "text-white/75" : "text-slate-400"}`}>
-                        {selected ? "Active now" : `Switch to ${camp.status}`}
+                        {selected ? `Active now • ${camp.myRole || "viewer"}` : `Switch to ${camp.status} • ${camp.myRole || "viewer"}`}
                       </span>
                     </button>
                   );
@@ -237,7 +240,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+          {navItems.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
               <Link

@@ -8,11 +8,18 @@ export async function GET() {
 
   const camps = await prisma.camp.findMany({
     where: { members: { some: { userId: session.userId } } },
-    include: { ageGroups: true, _count: { select: { campers: true, courses: true } } },
+    include: {
+      ageGroups: true,
+      members: { where: { userId: session.userId }, select: { role: true } },
+      _count: { select: { campers: true, courses: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(camps);
+  return NextResponse.json(camps.map((camp) => {
+    const { members, ...rest } = camp;
+    return { ...rest, myRole: members[0]?.role || "viewer" };
+  }));
 }
 
 export async function POST(req: NextRequest) {
@@ -43,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   // Separate create to avoid implicit transaction (not supported in HTTP mode)
   await prisma.campMember.create({
-    data: { campId: camp.id, userId: session.userId, role: "admin" },
+    data: { campId: camp.id, userId: session.userId, role: "owner" },
   });
 
   return NextResponse.json(camp, { status: 201 });

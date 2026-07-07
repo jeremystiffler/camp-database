@@ -71,7 +71,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         <span className="text-5xl mb-4 block">⚠️</span>
         <h1 className="text-xl font-bold text-slate-800 mb-2">Invite Unavailable</h1>
         <p className="text-slate-500 text-sm mb-6">{errMsg}</p>
-        <Link href="/login" className="inline-block px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+        <Link href={token ? `/login?next=${encodeURIComponent(`/invite/${token}`)}` : "/login"} className="inline-block px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
           Go to Login
         </Link>
       </div>
@@ -147,11 +147,13 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
               : needsSignup ? "Create Account & Join Program" : "Accept Invitation & Join Program"}
           </button>
 
-          <p className="text-center text-xs text-slate-400">
-            Already have an account?{" "}
-            <Link href={`/login?next=/invite/${token}`} className="text-forest-600 hover:underline font-medium">
-              Log in first
-            </Link>
+          <p className="text-center text-xs text-slate-400 space-y-2">
+            <span className="block">Already have an account?{" "}
+              <Link href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`} className="text-forest-600 hover:underline font-medium">
+                Log in first
+              </Link>
+            </span>
+            <span className="block">New to Simple Schedule Pro? Click the invite button above — we’ll create the right guest account for this email.</span>
           </p>
         </div>
       </div>

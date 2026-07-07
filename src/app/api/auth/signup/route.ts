@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     });
     // Separate create — nested creates use implicit transactions (not supported in HTTP mode)
     await prisma.campMember.create({
-      data: { campId: camp.id, userId: user.id, role: "admin" },
+      data: { campId: camp.id, userId: user.id, role: "owner" },
     });
 
     await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [{ ...camp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], campers: [] }] } });

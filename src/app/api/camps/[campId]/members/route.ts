@@ -27,7 +27,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ members, invites, myRole: role });
+  return NextResponse.json({ members, invites, myRole: role, sessionUserId: session.userId });
 }
 
 // POST — invite by email

@@ -10,10 +10,15 @@ interface Camp {
   id: string;
   name: string;
   status: string;
+  myRole?: "owner" | "admin" | "editor" | "viewer";
   startDate?: string;
   endDate?: string;
   _count?: { campers: number; courses: number };
 }
+
+const roleRank = (role?: string) => ({ owner: 4, admin: 3, editor: 2, viewer: 1 }[role || "viewer"] || 1);
+const canEditCamp = (camp?: Camp) => roleRank(camp?.myRole) >= 2;
+const canAdminCamp = (camp?: Camp) => roleRank(camp?.myRole) >= 3;
 
 interface StatCardProps {
   label: string;
@@ -226,12 +231,14 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
   return (
     <div className={`camp-card p-5 relative group ${active ? "ring-2 ring-slate-900" : ""}`}>
       {/* Copy button */}
-      <button
-        onClick={e => { e.preventDefault(); onCopy(camp); }}
-        title="Copy this program"
-        className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 hover:text-sky-500 hover:bg-sky-50 transition-colors opacity-0 group-hover:opacity-100 text-sm z-10">
-        
-      </button>
+      {canEditCamp(camp) && (
+        <button
+          onClick={e => { e.preventDefault(); onCopy(camp); }}
+          title="Copy this program"
+          className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 hover:text-sky-500 hover:bg-sky-50 transition-colors opacity-0 group-hover:opacity-100 text-sm z-10">
+          ⧉
+        </button>
+      )}
 
       <Link
         href={`/activities?campId=${camp.id}`}
@@ -349,10 +356,12 @@ function DashboardContent() {
           <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
           <p className="text-slate-500 text-sm mt-0.5">Welcome back! Here&apos;s your camp overview.</p>
         </div>
-        <button onClick={() => setShowNewCamp(true)}
-          className="minimal-button-primary flex items-center gap-2">
-          <span>+</span> New Program
-        </button>
+        {(camps.length === 0 || canAdminCamp(activeCamp)) && (
+          <button onClick={() => setShowNewCamp(true)}
+            className="minimal-button-primary flex items-center gap-2">
+            <span>+</span> New Program
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -363,26 +372,73 @@ function DashboardContent() {
         <StatCard label="This Season"    value={loading ? "–" : (activeCamp?.status === "published" ? "Live" : "Draft")} icon="S" gradient="stat-berry" />
       </div>
 
+      {/* New/returning user guide */}
+      {activeCamp && (
+        <div className="camp-card p-5 mb-8 bg-gradient-to-r from-sky-50 via-white to-amber-50 border-sky-100">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <p className="minimal-section-title mb-2">Recommended next step</p>
+              <h2 className="text-lg font-black text-slate-900">
+                {canEditCamp(activeCamp) ? "Finish setup before families arrive" : "You have view-only access"}
+              </h2>
+              <p className="mt-1 text-sm text-slate-600 max-w-2xl">
+                {canEditCamp(activeCamp)
+                  ? "For a new program, work left-to-right: setup basics, add people/activities, review the schedule, then open registration. Returning users can jump straight to the active program tools below."
+                  : "You were invited to this program as a guest viewer. You can review rosters, schedules, check-in status, and printable materials, but edits are reserved for the program admins."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {canEditCamp(activeCamp) ? (
+                <Link href={`/setup?campId=${activeCamp.id}`} className="minimal-button-primary">Open setup checklist</Link>
+              ) : (
+                <Link href={`/schedule?campId=${activeCamp.id}`} className="minimal-button-primary">View schedule</Link>
+              )}
+              <Link href={`/team?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:border-slate-400">View team role</Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeCamp && (
         <div className="camp-card p-5 mb-8 bg-white">
           <div className="flex flex-col lg:flex-row lg:items-end gap-5 justify-between">
             <div className="flex-1 min-w-0">
               <p className="minimal-section-title mb-2">Active camp</p>
-              <p className="text-sm font-black text-slate-900 mb-3">{activeCamp.name}</p>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Rename camp</label>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input flex-1" />
-                <button onClick={saveCampName} disabled={renameSaving} className="minimal-button-primary">
-                  {renameSaving ? "Saving…" : "Save Name"}
-                </button>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <p className="text-sm font-black text-slate-900">{activeCamp.name}</p>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500">{activeCamp.myRole || "viewer"}</span>
               </div>
-              {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg.text}</p>}
+              {canEditCamp(activeCamp) ? (
+                <>
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5">Rename camp</label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input flex-1" />
+                    <button onClick={saveCampName} disabled={renameSaving} className="minimal-button-primary">
+                      {renameSaving ? "Saving…" : "Save Name"}
+                    </button>
+                  </div>
+                  {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg.text}</p>}
+                </>
+              ) : (
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">This shared program is read-only for your account.</p>
+              )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:w-[560px]">
-              <Link href={`/setup?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Setup</Link>
-              <Link href={`/teachers?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Teachers</Link>
-              <Link href={`/registration?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Registration</Link>
-              <Link href={`/schedule?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Schedule</Link>
+              {canEditCamp(activeCamp) ? (
+                <>
+                  <Link href={`/setup?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Setup</Link>
+                  <Link href={`/teachers?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Teachers</Link>
+                  <Link href={`/registration?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Registration</Link>
+                  <Link href={`/schedule?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Schedule</Link>
+                </>
+              ) : (
+                <>
+                  <Link href={`/campers?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Participants</Link>
+                  <Link href={`/schedule?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Schedule</Link>
+                  <Link href={`/print?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Print</Link>
+                  <Link href={`/team?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Team</Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -410,11 +466,13 @@ function DashboardContent() {
             {camps.map((camp) => (
               <CampCard key={camp.id} camp={camp} active={camp.id === activeCamp?.id} onCopy={setCopyingCamp} />
             ))}
-            <button onClick={() => setShowNewCamp(true)}
-              className="camp-card p-5 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-forest-600 hover:border-forest-200 transition-colors min-h-[160px] border-dashed">
-              <span className="text-3xl">+</span>
-              <span className="text-sm font-medium">Add Camp</span>
-            </button>
+            {canAdminCamp(activeCamp) && (
+              <button onClick={() => setShowNewCamp(true)}
+                className="camp-card p-5 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-forest-600 hover:border-forest-200 transition-colors min-h-[160px] border-dashed">
+                <span className="text-3xl">+</span>
+                <span className="text-sm font-medium">Add Camp</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -430,15 +488,17 @@ function DashboardContent() {
             <QuickAction href={`/campers?campId=${activeCamp.id}`}     icon="C" title="Campers"      desc="View registrations, search, and manage enrollments"       iconClass="icon-badge-sky" />
             <QuickAction href={`/schedule?campId=${activeCamp.id}`}    icon="S" title="Schedule"     desc="View the full camp schedule grid by time slot"                     iconClass="icon-badge-sunset" />
             <QuickAction href={`/print?campId=${activeCamp.id}`}       icon="P" title="Print Center" desc="Generate schedules, rosters, and name badges"                      iconClass="icon-badge-berry" />
-            <QuickAction href={`/settings?campId=${activeCamp.id}`}    icon="Se" title="Settings"     desc="Profile, appearance, billing, and camp-level actions"              iconClass="icon-badge-forest" />
-            <button onClick={() => setCopyingCamp(activeCamp)}
-              className="camp-card p-4 flex items-start gap-3 group text-left">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 icon-badge-sky">Cp</div>
-              <div>
-                <h3 className="font-bold text-slate-900 group-hover:text-slate-700 transition-colors text-sm">Copy Program</h3>
-                <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">Clone this program&apos;s structure for a new season</p>
-              </div>
-            </button>
+            {canAdminCamp(activeCamp) && <QuickAction href={`/settings?campId=${activeCamp.id}`}    icon="Se" title="Settings"     desc="Profile, appearance, billing, and camp-level actions"              iconClass="icon-badge-forest" />}
+            {canEditCamp(activeCamp) && (
+              <button onClick={() => setCopyingCamp(activeCamp)}
+                className="camp-card p-4 flex items-start gap-3 group text-left">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 icon-badge-sky">Cp</div>
+                <div>
+                  <h3 className="font-bold text-slate-900 group-hover:text-slate-700 transition-colors text-sm">Copy Program</h3>
+                  <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">Clone this program&apos;s structure for a new season</p>
+                </div>
+              </button>
+            )}
           </div>
         </div>
       )}

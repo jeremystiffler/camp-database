@@ -12,6 +12,18 @@ export default function SignupPage() {
   const [loading,  setLoading]  = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
+  const getSafeNext = () => {
+    if (typeof window === "undefined") return "/dashboard";
+    const next = new URLSearchParams(window.location.search).get("next") || "/dashboard";
+    return next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  };
+
+  const [inviteNext, setInviteNext] = useState("");
+
+  useEffect(() => {
+    setInviteNext(new URLSearchParams(window.location.search).get("next") || "");
+  }, []);
+
   useEffect(() => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId) return;
@@ -30,7 +42,7 @@ export default function SignupPage() {
           body: JSON.stringify({ credential: response.credential }),
         });
         if (res.ok) {
-          window.location.href = "/dashboard";
+          window.location.href = getSafeNext();
         } else {
           const data = await res.json();
           setError(data.error || "Google sign-up failed");
@@ -84,7 +96,7 @@ export default function SignupPage() {
         body: JSON.stringify({ name, email, password }),
       });
       if (res.ok) {
-        window.location.href = "/dashboard";
+        window.location.href = getSafeNext();
       } else {
         const data = await res.json();
         setError(data.error || "Sign up failed");
@@ -103,6 +115,11 @@ export default function SignupPage() {
           <span className="mb-4 block"><SSPLogo size={48} /></span>
           <h1 className="font-heading font-bold text-2xl text-cream mb-2">Create your account</h1>
           <p className="text-muted">Start managing your program today</p>
+          {inviteNext?.startsWith("/invite/") && (
+            <p className="mt-3 rounded-xl border border-ember-500/30 bg-ember-500/10 px-4 py-2 text-sm text-cream">
+              Create your account, then we’ll bring you back to accept the invitation.
+            </p>
+          )}
         </div>
 
         {/* Google Sign-Up button — rendered by GIS SDK */}
@@ -173,7 +190,7 @@ export default function SignupPage() {
 
         <p className="text-center text-muted text-sm mt-6">
           Already have an account?{" "}
-          <Link href="/login" className="text-ember-400 hover:text-ember-300 underline">
+          <Link href={inviteNext ? `/login?next=${encodeURIComponent(inviteNext)}` : "/login"} className="text-ember-400 hover:text-ember-300 underline">
             Sign in
           </Link>
         </p>
