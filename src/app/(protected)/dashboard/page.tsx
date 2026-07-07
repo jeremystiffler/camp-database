@@ -19,6 +19,13 @@ interface Camp {
 const roleRank = (role?: string) => ({ owner: 4, admin: 3, editor: 2, viewer: 1 }[role || "viewer"] || 1);
 const canEditCamp = (camp?: Camp) => roleRank(camp?.myRole) >= 2;
 const canAdminCamp = (camp?: Camp) => roleRank(camp?.myRole) >= 3;
+function formatCampDate(value?: string) {
+  if (!value) return "No dates set";
+  const isoDate = value.slice(0, 10);
+  const [year, month, day] = isoDate.split("-").map(Number);
+  if (!year || !month || !day) return "No dates set";
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 interface StatCardProps {
   label: string;
@@ -256,9 +263,7 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
         <h3 className="font-bold text-slate-800 mb-1">{camp.name}</h3>
         {active && <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-900 mb-1">Active now</p>}
         <p className="text-slate-500 text-xs">
-          {camp.startDate
-            ? new Date(camp.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-            : "No dates set"}
+          {formatCampDate(camp.startDate)}
         </p>
         <div className="flex gap-4 mt-3 pt-3 border-t border-slate-100">
           <div className="text-center">

@@ -38,7 +38,9 @@ export function calculateRegistrationTotal(camp: PricingCamp, coupon?: PricingCo
   const campPriceCents = perCamperPriceCents * safeQuantity;
   const discountCents = calculateDiscount(campPriceCents, coupon);
   const subtotalCents = Math.max(0, campPriceCents - discountCents);
-  const platformFeeCents = perCamperPriceCents > 0 ? calculatePlatformFee(subtotalCents, camp) : Math.max(0, camp.platformFeeCents ?? 0);
+  // Free registrations and fully-discounted registrations should stay free.
+  // Only charge the platform fee when there is an actual paid subtotal.
+  const platformFeeCents = subtotalCents > 0 ? calculatePlatformFee(subtotalCents, camp) : 0;
   const totalCents = subtotalCents + platformFeeCents;
   return { campPriceCents, discountCents, subtotalCents, platformFeeCents, totalCents, quantity: safeQuantity, perCamperPriceCents };
 }
