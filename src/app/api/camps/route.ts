@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
   });
 
   // Separate create to avoid implicit transaction (not supported in HTTP mode)
+  // The creator should be the camp owner so the UI and permissions match first-run expectations.
   await prisma.campMember.create({
     data: { campId: camp.id, userId: session.userId, role: "owner" },
   });

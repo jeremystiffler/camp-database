@@ -142,6 +142,7 @@ function SetupContent() {
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
+  const [setupNotice, setSetupNotice] = useState("");
   const [activeTab, setActiveTab]  = useState<SetupTab>("details");
   const [requiredRoomDrafts, setRequiredRoomDrafts] = useState<Record<string, string>>({});
   const [overrideDraftRows, setOverrideDraftRows] = useState<Record<string, boolean>>({});
@@ -373,6 +374,22 @@ function SetupContent() {
   // ── Handlers ──
 
   const saveCamp = async (override?: Partial<{ registrationOpen: boolean; status: string }>) => {
+    setSetupNotice("");
+    if (!campName.trim()) {
+      setSetupNotice("Give the program a name before moving on.");
+      setActiveTab("details");
+      return false;
+    }
+    if ((startDate && !endDate) || (!startDate && endDate)) {
+      setSetupNotice("Add both a start and end date, or leave both blank until you know the dates.");
+      setActiveTab("details");
+      return false;
+    }
+    if (startDate && endDate && startDate > endDate) {
+      setSetupNotice("End date needs to be after the start date.");
+      setActiveTab("details");
+      return false;
+    }
     setSaving(true);
     const nextRegistrationOpen = override?.registrationOpen ?? registrationOpen;
     const nextStatus = override?.status ?? status;
@@ -388,7 +405,10 @@ function SetupContent() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       load();
+      return true;
     }
+    setSetupNotice("Could not save the program details. Please try again.");
+    return false;
   };
 
   const addRoom = async (e: React.FormEvent) => {
@@ -704,6 +724,27 @@ function SetupContent() {
   const nextStep = setupSteps.find(step => !step.done && !step.locked) || setupSteps.find(step => !step.done) || setupSteps[setupSteps.length - 1];
   const setupPercent = Math.round((completedSteps / setupSteps.length) * 100);
 
+  const jumpToNextStep = async () => {
+    if (activeTab === "details" || nextStep.key === "details") {
+      const savedDetails = await saveCamp();
+      if (!savedDetails) return;
+    }
+    setActiveTab(nextStep.key);
+  };
+
+  const useSampleWeekDates = () => {
+    const today = new Date();
+    const nextMonday = new Date(today);
+    const daysUntilMonday = (8 - today.getDay()) % 7 || 7;
+    nextMonday.setDate(today.getDate() + daysUntilMonday);
+    const friday = new Date(nextMonday);
+    friday.setDate(nextMonday.getDate() + 4);
+    const toInput = (date: Date) => date.toISOString().slice(0, 10);
+    setStartDate(toInput(nextMonday));
+    setEndDate(toInput(friday));
+    setSetupNotice("Dates filled with a Monday–Friday sample week. Adjust them if needed, then save.");
+  };
+
   return (
     <div>
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -714,7 +755,7 @@ function SetupContent() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setActiveTab(nextStep.key)}
+            onClick={jumpToNextStep}
             className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
           >
             Next: {nextStep.actionLabel || nextStep.label} →
@@ -777,15 +818,22 @@ function SetupContent() {
           <div className="grid grid-cols-2 gap-4 max-w-md">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Start Date</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              <input type="date" aria-label="Start date" value={startDate} onChange={e => setStartDate(e.target.value)}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">End Date</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+              <input type="date" aria-label="End date" value={endDate} onChange={e => setEndDate(e.target.value)}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30" />
             </div>
           </div>
+          <div className="flex max-w-md flex-wrap items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
+            <span className="font-semibold text-slate-700">Dates drive the schedule grid.</span>
+            <button type="button" onClick={useSampleWeekDates} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-black text-slate-700 hover:border-slate-400">
+              Use next Mon–Fri
+            </button>
+          </div>
+          {setupNotice && <p className="max-w-md rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">{setupNotice}</p>}
           <div className="flex items-center gap-4 flex-wrap">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
