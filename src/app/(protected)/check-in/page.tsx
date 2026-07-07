@@ -727,7 +727,7 @@ function CheckInContent() {
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="grid grid-cols-[1.1fr_1fr_1.35fr_0.9fr] gap-4 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400 max-lg:hidden">
-            <div>Camper</div><div>Guardian</div><div>Approved pickup</div><div>Check-in</div>
+            <div>Participant</div><div>Guardian</div><div>Approved pickup</div><div>Check-in</div>
           </div>
           <div className="divide-y divide-slate-100">
             {visibleCampers.map(camper => {
@@ -740,7 +740,7 @@ function CheckInContent() {
               return (
                 <div key={camper.id} className="grid gap-4 px-4 py-4 text-sm lg:grid-cols-[1.1fr_1fr_1.35fr_0.9fr] lg:items-start">
                   <div className="min-w-0 space-y-2">
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 lg:hidden">Camper</p>
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 lg:hidden">Participant</p>
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <h2 className="truncate text-base font-black text-slate-900">{fullName(camper)}</h2>
                       <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${statusMeta.cls}`}>{statusMeta.label}</span>

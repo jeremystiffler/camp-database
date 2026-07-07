@@ -492,7 +492,7 @@ export function TeachersContent() {
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">🧑‍🏫</span><p>Select a camp to manage teachers.</p></div>
+      <div className="text-center"><span className="text-4xl mb-3 block">🧑‍🏫</span><p>Select a program to manage teachers.</p></div>
     </div>
   );
 

@@ -13,10 +13,10 @@ const IMPORT_HEADERS = [
 ];
 
 const COLUMN_NOTES: Record<string, string> = {
-  activity_name:      "Required. Unique per camp. Existing names update the activity.",
+  activity_name:      "Required. Unique per program. Existing names update the activity.",
   activity_capacity:  "Number e.g. 20",
-  room_name:          "Must match a room in Camp Setup (or will be created)",
-  age_group_name:     "Must match an age group in Camp Setup (see Reference tab)",
+  room_name:          "Must match a room in Program Setup (or will be created)",
+  age_group_name:     "Must match an age group in Program Setup (see Reference tab)",
   teacher_role:       "teacher  or  director",
   teacher_email:      "Optional — can add later",
   assistant_email:    "Optional — can add later",
@@ -24,9 +24,9 @@ const COLUMN_NOTES: Record<string, string> = {
 
 const EXAMPLE_ROW = [
   "Watercolor Painting", "Learn basic watercolor techniques", "15",
-  "Art Room", "Younger Campers",
-  "Jane", "Smith", "jane@camp.com", "teacher",
-  "Bob", "Jones", "bob@camp.com",
+  "Art Room", "Younger Participants",
+  "Jane", "Smith", "jane@example.com", "teacher",
+  "Bob", "Jones", "bob@example.com",
 ];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -120,7 +120,7 @@ async function downloadTemplate(campId: string) {
     ["=== TEACHER ROLES ==="],
     ["Role", "Description"],
     ["teacher",   "Lead teacher for the activity"],
-    ["director",  "Camp director also teaching"],
+    ["director",  "Program director also teaching"],
     ["assistant", "Teaching assistant"],
     ["staff",     "General staff helper"],
   ];
@@ -136,7 +136,7 @@ async function downloadTemplate(campId: string) {
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href = url; a.download = "camp-activities-import.xlsx";
+  a.href = url; a.download = "program-activities-import.xlsx";
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }

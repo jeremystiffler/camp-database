@@ -647,7 +647,7 @@ function SetupContent() {
       return;
     }
     if (draft.days.length === 0) {
-      alert("Choose at least one camp day before applying this session block.");
+      alert("Choose at least one day before applying this session block.");
       return;
     }
     const responses = await Promise.all(draft.days.map(dow =>
@@ -690,10 +690,10 @@ function SetupContent() {
   const registrationReady = detailsDone && ageGroups.length > 0 && rooms.length > 0 && sessionRows.length > 0 && teachersDone && activitiesDone && scheduleDone;
 
   const setupSteps: SetupStep[] = [
-    { key: "details", label: "Camp Info", shortLabel: "Camp", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What camp am I building?", done: detailsDone, actionLabel: "Set camp info" },
-    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this camp serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, actionLabel: "Add age groups" },
+    { key: "details", label: "Program Info", shortLabel: "Program", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What program am I building?", done: detailsDone, actionLabel: "Set camp info" },
+    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this program serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, actionLabel: "Add age groups" },
     { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, actionLabel: "Add rooms" },
-    { key: "times", label: "Time Slots", shortLabel: "Times", icon: "4", help: "Build the skeleton of each camp day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, actionLabel: "Build day schedule" },
+    { key: "times", label: "Time Slots", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, actionLabel: "Build day schedule" },
     { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning classes.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, actionLabel: "Add teachers" },
     { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of classes and activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, actionLabel: "Create activities" },
     { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time slots with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, actionLabel: "Schedule activities" },
@@ -708,8 +708,8 @@ function SetupContent() {
     <div>
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">First-Time Camp Setup</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Build the camp in the order your brain naturally asks the questions.</p>
+          <h1 className="text-2xl font-bold text-slate-800">Program Setup</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Build your program in the order your brain naturally asks the questions.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -765,12 +765,12 @@ function SetupContent() {
         </div>
       </div>
 
-      {/* ── Camp Details ── */}
+      {/* ── Program Details ── */}
       {activeTab === "details" && (
-      <Section title="Camp Details">
+      <Section title="Program Details">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Camp Name</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Program Name</label>
             <input type="text" value={campName} onChange={e => setCampName(e.target.value)}
               className="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400" />
           </div>

@@ -567,7 +567,7 @@ function PrintContent() {
     });
     const data = await res.json().catch(() => ({}));
     setSaving(false);
-    if (res.ok) { setSavedTemplates(prev => [...prev, data]); setSelectedTemplateKey(data.id); setDraftTemplate(data); setMessage("Template saved for this camp."); }
+    if (res.ok) { setSavedTemplates(prev => [...prev, data]); setSelectedTemplateKey(data.id); setDraftTemplate(data); setMessage("Template saved for this program."); }
     else setMessage(data.detail || data.error || "Could not save template.");
   };
   const updateSavedTemplate = async () => {

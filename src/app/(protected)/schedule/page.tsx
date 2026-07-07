@@ -230,7 +230,7 @@ function ScheduleContent() {
       <div className="flex h-64 items-center justify-center text-slate-400">
         <div className="text-center">
           <span className="mb-3 block text-4xl">Date</span>
-          <p>Select a camp to view its schedule.</p>
+          <p>Select a program to view its schedule.</p>
         </div>
       </div>
     );

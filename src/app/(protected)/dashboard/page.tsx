@@ -118,7 +118,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100">
-          <h2 className="font-bold text-lg text-slate-800">Copy Camp</h2>
+          <h2 className="font-bold text-lg text-slate-800">Copy Program</h2>
           <p className="text-sm text-slate-500 mt-0.5">Copying from <strong>{sourceCamp.name}</strong></p>
         </div>
 
@@ -129,7 +129,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 
               {/* New camp name */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">New Camp Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">New Program Name *</label>
                 <input type="text" value={name} onChange={e => setName(e.target.value)}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
               </div>
@@ -165,7 +165,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
                   ))}
                 </div>
                 <p className="text-xs text-slate-400 mt-2 pl-1">
-                  💡 Campers & enrollments are never copied — those are specific to each camp run.
+                  💡 Participants & enrollments are never copied — those are specific to each program run.
                 </p>
               </div>
             </div>
@@ -179,7 +179,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
                 {copying
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Copying…</>
-                  : "Copy Camp"}
+                  : "Copy Program"}
               </button>
             </div>
           </>
@@ -205,7 +205,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
               </button>
               <button onClick={() => onCopied(result.campId)}
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
-                Open New Camp →
+                Open New Program →
               </button>
             </div>
           </>
@@ -228,7 +228,7 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
       {/* Copy button */}
       <button
         onClick={e => { e.preventDefault(); onCopy(camp); }}
-        title="Copy this camp"
+        title="Copy this program"
         className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 hover:text-sky-500 hover:bg-sky-50 transition-colors opacity-0 group-hover:opacity-100 text-sm z-10">
         
       </button>
@@ -270,7 +270,7 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
           onClick={() => localStorage.setItem("activeCampId", camp.id)}
           className="mt-4 block w-full rounded-xl bg-slate-900 px-3 py-2 text-center text-xs font-black text-white hover:bg-slate-700 transition-colors"
         >
-          Switch to this camp
+          Switch to this program
         </Link>
       )}
     </div>
@@ -320,7 +320,7 @@ function DashboardContent() {
     if (!activeCamp) return;
     const name = renameValue.trim();
     if (!name) { setRenameMsg({ type: "error", text: "Camp name cannot be blank." }); return; }
-    if (name === activeCamp.name) { setRenameMsg({ type: "error", text: "No rename needed — that is already the camp name." }); return; }
+    if (name === activeCamp.name) { setRenameMsg({ type: "error", text: "No rename needed — that is already the program name." }); return; }
     setRenameSaving(true); setRenameMsg(null);
     const res = await fetch(`/api/camps/${activeCamp.id}`, {
       method: "PATCH",
@@ -351,7 +351,7 @@ function DashboardContent() {
         </div>
         <button onClick={() => setShowNewCamp(true)}
           className="minimal-button-primary flex items-center gap-2">
-          <span>+</span> New Camp
+          <span>+</span> New Program
         </button>
       </div>
 
@@ -399,7 +399,7 @@ function DashboardContent() {
           <div className="camp-card p-12 text-center">
             <span className="text-5xl mb-4 block"></span>
             <h3 className="font-bold text-slate-700 mb-2">No camps yet</h3>
-            <p className="text-slate-400 text-sm mb-5">Create your first camp to get started.</p>
+            <p className="text-slate-400 text-sm mb-5">Create your first program to get started.</p>
             <button onClick={() => setShowNewCamp(true)}
               className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
               + Create Your First Camp
@@ -435,8 +435,8 @@ function DashboardContent() {
               className="camp-card p-4 flex items-start gap-3 group text-left">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 icon-badge-sky">Cp</div>
               <div>
-                <h3 className="font-bold text-slate-900 group-hover:text-slate-700 transition-colors text-sm">Copy Camp</h3>
-                <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">Clone this camp&apos;s structure for a new season</p>
+                <h3 className="font-bold text-slate-900 group-hover:text-slate-700 transition-colors text-sm">Copy Program</h3>
+                <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">Clone this program&apos;s structure for a new season</p>
               </div>
             </button>
           </div>

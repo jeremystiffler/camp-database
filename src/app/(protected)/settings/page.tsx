@@ -260,7 +260,7 @@ function SettingsContent() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <a href="#your-profile" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Profile</a>
             <a href="#billing" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Billing</a>
-            <a href="#camp-appearance" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Appearance</a>
+            <a href="#program-appearance" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Appearance</a>
             <a href="#utilities" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Utilities</a>
           </div>
           <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 border-t border-slate-100 pt-3">
@@ -439,9 +439,9 @@ function SettingsContent() {
         </Section>
       )}
 
-      {/* ── Camp Appearance ── */}
+      {/* ── Program Appearance ── */}
       {campId && (
-        <Section title="Camp Appearance" subtitle={`Customize how ${campName}'s registration page and print materials look`}>
+        <Section title="Program Appearance" subtitle={`Customize how ${campName}'s registration page and print materials look`}>
           <div className="space-y-5">
 
             {/* Color themes */}

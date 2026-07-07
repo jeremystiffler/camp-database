@@ -102,7 +102,7 @@ function TeamContent() {
   };
 
   const removeMember = async (memberId: string) => {
-    if (!confirm("Remove this person from the camp?")) return;
+    if (!confirm("Remove this person from the program?")) return;
     await fetch(`/api/camps/${campId}/members/${memberId}`, { method: "DELETE" });
     load();
   };
@@ -115,7 +115,7 @@ function TeamContent() {
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">👥</span><p>Select a camp to manage its team.</p></div>
+      <div className="text-center"><span className="text-4xl mb-3 block">👥</span><p>Select a program to manage its team.</p></div>
     </div>
   );
 
@@ -123,7 +123,7 @@ function TeamContent() {
     <div className="max-w-2xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800">Team</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Manage who has access to this camp and their permissions.</p>
+        <p className="text-slate-500 text-sm mt-0.5">Manage who has access to this program and their permissions.</p>
       </div>
 
       {/* Role legend */}

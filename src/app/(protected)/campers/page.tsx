@@ -403,7 +403,7 @@ function CamperDrawer({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {!editing && <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100">Edit Camper</button>}
+            {!editing && <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100">Edit Participant</button>}
             {!editing && !isNew && <button onClick={remove} disabled={deleting} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 disabled:opacity-50">{deleting ? "Deleting…" : "Delete"}</button>}
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">✕</button>
           </div>
@@ -461,7 +461,7 @@ function CamperDrawer({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Pickup / Scannable Codes</h3>
-                <p className="mt-1 text-xs font-semibold text-slate-500">Unique camper QR plus shared family pickup number for car-line cards.</p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Unique participant QR plus shared family pickup number for car-line cards.</p>
               </div>
               {!isNew && <button type="button" onClick={() => manageIdentity("ensure_identity")} disabled={saving} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-60">Ensure codes</button>}
             </div>
@@ -512,7 +512,7 @@ function CamperDrawer({
                     ? showSessionCatalog
                       ? "Showing the full class catalogue so you can add or remove choices."
                       : `Showing only this camper's ${selectedChoiceCount || selectedSessionIds.length} selected choice${(selectedChoiceCount || selectedSessionIds.length) === 1 ? "" : "s"}.`
-                    : "Only classes chosen for this camper are shown here."}
+                    : "Only classes chosen for this participant are shown here."}
                 </p>
               </div>
               {editing && !isNew && (availableSessionChoices.length > selectedChoiceObjects.length || selectedChoiceObjects.length > 0) && (
@@ -579,7 +579,7 @@ function CamperDrawer({
               <div className="grid gap-3 sm:grid-cols-2">
                 <input className={inputCls} placeholder="Coupon code" value={form.couponCode} onChange={e => update("couponCode", e.target.value)} />
                 <select className={inputCls} value={form.paymentStatus} onChange={e => update("paymentStatus", e.target.value)}>{PAYMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select>
-                <input className={inputCls} type="number" placeholder="Camp price cents" value={form.campPriceCents} onChange={e => update("campPriceCents", e.target.value)} />
+                <input className={inputCls} type="number" placeholder="Program price cents" value={form.campPriceCents} onChange={e => update("campPriceCents", e.target.value)} />
                 <input className={inputCls} type="number" placeholder="Discount cents" value={form.discountCents} onChange={e => update("discountCents", e.target.value)} />
                 <input className={inputCls} type="number" placeholder="Platform fee cents" value={form.platformFeeCents} onChange={e => update("platformFeeCents", e.target.value)} />
                 <input className={inputCls} type="number" placeholder="Total paid cents" value={form.totalPaidCents} onChange={e => update("totalPaidCents", e.target.value)} />
@@ -669,7 +669,7 @@ function CampersContent() {
     const data = await res.json().catch(() => ({}));
     if (res.ok && Array.isArray(data.campers)) {
       setCampers(data.campers);
-      alert(`Assigned/generated ${data.updated || 0} camper code record${data.updated === 1 ? "" : "s"}.`);
+      alert(`Assigned/generated ${data.updated || 0} participant code record${data.updated === 1 ? "" : "s"}.`);
     } else {
       alert(data.detail || data.error || "Could not assign pickup numbers.");
     }

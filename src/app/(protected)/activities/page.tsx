@@ -693,7 +693,7 @@ function MandatorySessionModal({
             </div>
           </div>
           <div className="bg-forest-50 border border-forest-100 rounded-xl p-3 text-xs text-forest-700">
-            Parents will not choose this session. Campers in the selected age group are enrolled automatically when they register.
+            Parents will not choose this session. Participants in the selected age group are enrolled automatically when they register.
           </div>
           <div className="flex gap-3 pt-2 border-t border-slate-100">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
