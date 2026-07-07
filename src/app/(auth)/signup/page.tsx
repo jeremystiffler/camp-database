@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { SSPLogo } from "@/components/SSPLogo";
 
 export default function SignupPage() {
   const [name,     setName]     = useState("");
@@ -99,7 +100,7 @@ export default function SignupPage() {
     <div className="min-h-screen bg-night-900 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <span className="text-4xl mb-4 block">🏕️</span>
+          <span className="mb-4 block"><SSPLogo size={48} /></span>
           <h1 className="font-heading font-bold text-2xl text-cream mb-2">Create your account</h1>
           <p className="text-muted">Start managing your program today</p>
         </div>
