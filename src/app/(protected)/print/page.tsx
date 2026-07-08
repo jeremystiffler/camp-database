@@ -102,6 +102,7 @@ const PAPER_CSS: Record<PaperSize, string> = {
 const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], badgeContentBlocks: [] as string[], badgeBackEnabled: false, badgeBackContentBlocks: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9, customDataSource: "participants" as CustomDataSource, customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"] as string[], customGroupBy: "", customSortBy: "lastName" };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Field Builder — Blank Table", type: "custom_table", category: "custom", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", customDataSource: "participants", customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"], customSortBy: "lastName" }) },
+  { builtin: true, name: "Badge Designer — Blank Badge", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, badgeLayout: "standard", badgeContentBlocks: ["label", "fullName", "ageGroup", "qr"], badgeBackEnabled: true, badgeBackContentBlocks: ["guardian", "emergency", "medical", "schedule"] }) },
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
   { builtin: true, name: "Teacher Packets — Classes + Students", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true, showStudents: true }) },
   { builtin: true, name: "Teacher Schedule Only — Deduped", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", groupByPage: true, showStudents: false }) },
@@ -202,6 +203,7 @@ type TemplateMeta = { eyebrow: string; description: string; visual: "grid" | "pa
 function isCustomBuilder(template: PrintTemplate) { return CUSTOM_BUILTIN_NAMES.has(template.name) || (!template.builtin && Boolean(template.id)); }
 function templateMeta(template: PrintTemplate): TemplateMeta {
   if (template.type === "custom_table") return { eyebrow: "Field builder", visual: "list", description: "Build a custom table from participants, people, or activities by choosing fields, sort, and grouping." };
+  if (template.name.includes("Badge Designer")) return { eyebrow: "Badge designer", visual: "badge", description: "Design participant badges with custom front/back fields, QR blocks, themes, and current-or-batch printing." };
   if (template.name.includes("Schedule Lanyard")) return { eyebrow: "Custom badge builder", visual: "lanyard", description: "A child-name header with a vertical schedule table for lanyards." };
   if (template.type === "rotation_roster") return { eyebrow: "Custom grid builder", visual: "grid", description: "Wide rotation charts with draggable blocks, time bands, and optional backs." };
   if (template.type === "principal_schedule") return { eyebrow: "Stock schedule", visual: "grid", description: "A landscape master grid: participants down the left, schedule blocks across." };
@@ -451,6 +453,8 @@ function PrintContent() {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("builtin-0");
   const [draftTemplate, setDraftTemplate] = useState<PrintTemplate>(BUILTIN_TEMPLATES[0]);
   const [message, setMessage] = useState("");
+  const [selectedBadgeCamperId, setSelectedBadgeCamperId] = useState("");
+  const [badgePrintScope, setBadgePrintScope] = useState<"all" | "current">("all");
 
   useEffect(() => {
     if (campIdFromUrl) {
@@ -501,6 +505,10 @@ function PrintContent() {
   }, [campId]);
 
   useEffect(() => {
+    if (campers.length && !selectedBadgeCamperId) setSelectedBadgeCamperId(sortedCampersList(campers)[0]?.id || "");
+  }, [campers, selectedBadgeCamperId]);
+
+  useEffect(() => {
     if (!printQueued || !activeDoc) return;
     const id = window.setTimeout(() => {
       window.print();
@@ -512,6 +520,8 @@ function PrintContent() {
   const allTemplates = [...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })), ...savedTemplates];
   const selectedSettings = parseSettings(draftTemplate);
   const sortedCampers = sortedCampersList(campers);
+  const selectedBadgeCamper = sortedCampers.find(camper => camper.id === selectedBadgeCamperId) || sortedCampers[0] || null;
+  const badgeCampersToPrint = badgePrintScope === "current" && selectedBadgeCamper ? [selectedBadgeCamper] : sortedCampers;
   const principalScheduleSlots = scheduleSlots(campers);
   const sizeGroups = campers.reduce<Record<string, Camper[]>>((acc, c) => { const s = c.tshirtSize || "Unknown"; acc[s] = [...(acc[s] || []), c]; return acc; }, {});
   const tshirtOrder = ["YXS","YS","YM","YL","AS","AM","AL","AXL","A2XL","Unknown"];
@@ -676,7 +686,8 @@ function PrintContent() {
       setSaving(false);
     }
   };
-  const printDoc = (type = draftTemplate.type) => { setActiveDoc(type); setPrintQueued(true); };
+  const printDoc = (type = draftTemplate.type) => { if (type === "badges") setBadgePrintScope("all"); setActiveDoc(type); setPrintQueued(true); };
+  const printBadges = (scope: "all" | "current") => { setBadgePrintScope(scope); setActiveDoc("badges"); setPrintQueued(true); };
   const renderTemplateCard = (template: PrintTemplate, index: number) => {
     const meta = templateMeta(template);
     const key = template.id || `template-${index}`;
@@ -976,7 +987,15 @@ function PrintContent() {
 
                 {draftTemplate.type === "badges" && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
-                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge builder</p>
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge designer</p>
+                      <p className="mt-1 text-[11px] font-semibold text-slate-500">Build reusable badges, preview one participant, then print one or batch-print everyone.</p>
+                    </div>
+                    <label className="block text-xs font-bold text-slate-500">Preview / current participant<select value={selectedBadgeCamper?.id || ""} onChange={e => setSelectedBadgeCamperId(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">{sortedCampers.map(camper => <option key={camper.id} value={camper.id}>{fullName(camper)}{camper.ageGroup?.name ? ` — ${camper.ageGroup.name}` : ""}</option>)}</select></label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => printBadges("current")} disabled={!selectedBadgeCamper} className="rounded-xl bg-slate-900 px-3 py-2.5 text-xs font-black text-white disabled:opacity-50">Print current</button>
+                      <button type="button" onClick={() => printBadges("all")} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-black text-slate-700">Batch print all</button>
+                    </div>
                     <label className="block text-xs font-bold text-slate-500">Layout<select value={selectedSettings.badgeLayout} onChange={e => updateSettings({ badgeLayout: e.target.value, badgeContentBlocks: e.target.value === "schedule_lanyard" ? ["name", "schedule"] : ["label", "firstName", "lastName"] })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="standard">Standard name badge</option><option value="schedule_lanyard">Schedule lanyard table</option></select></label>
                     {selectedSettings.badgeLayout === "schedule_lanyard" && <label className="block text-xs font-bold text-slate-500">Lanyard style<select value={selectedSettings.lanyardTheme} onChange={e => updateSettings({ lanyardTheme: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800">{Object.entries(LANYARD_THEMES).map(([key, theme]) => <option key={key} value={key}>{theme.label}</option>)}</select></label>}
                     {draftTemplate.paperSize === "letter" && <div className="grid grid-cols-2 gap-2">
@@ -1121,12 +1140,12 @@ function PrintContent() {
             : <div key={`${c.id}-back`} className={`badge-card badge-card-back ${withPageBreak && draftTemplate.paperSize !== "letter" ? "single-badge-page" : ""}`}><div className="badge-back-title">{fullName(c)}</div>{badgeBackBlocks.map(block => renderBackField(c, block.id))}</div>;
           if (draftTemplate.paperSize === "letter") {
             const perSheet = Math.max(1, badgeRows * badgeCols);
-            return chunkItems(sortedCampers, perSheet).map((sheetCampers, sheetIndex) => <div key={`sheet-${sheetIndex}`}>
+            return chunkItems(badgeCampersToPrint, perSheet).map((sheetCampers, sheetIndex) => <div key={`sheet-${sheetIndex}`}>
               <div className="badge-sheet page-break">{sheetCampers.map(c => renderFront(c, false))}</div>
               {selectedSettings.badgeBackEnabled && <div className="badge-sheet page-break">{sheetCampers.map(c => renderBack(c, false))}</div>}
             </div>);
           }
-          return sortedCampers.map(c => <div key={c.id}>{renderFront(c, selectedSettings.badgeBackEnabled)}{selectedSettings.badgeBackEnabled && renderBack(c)}</div>);
+          return badgeCampersToPrint.map(c => <div key={c.id}>{renderFront(c, selectedSettings.badgeBackEnabled)}{selectedSettings.badgeBackEnabled && renderBack(c)}</div>);
         })()}
       </div>}
     </>
