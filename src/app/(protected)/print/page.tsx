@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import CamperScannableCode from "@/components/CamperScannableCode";
 import { HelpCopy } from "@/components/HelpMode";
 
-type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "rotation_roster" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges" | "pickup_cards" | "pickup_roster";
+type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "rotation_roster" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges" | "pickup_cards" | "pickup_roster" | "custom_table";
+type CustomDataSource = "participants" | "people" | "activities";
 type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3" | "3x5" | "custom";
 type Orientation = "portrait" | "landscape";
 type Density = "compact" | "normal" | "large";
@@ -98,8 +99,9 @@ const PAPER_CSS: Record<PaperSize, string> = {
   "3x5": "3in 5in",
   custom: "var(--custom-print-size)",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], badgeContentBlocks: [] as string[], badgeBackEnabled: false, badgeBackContentBlocks: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9 };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], badgeContentBlocks: [] as string[], badgeBackEnabled: false, badgeBackContentBlocks: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9, customDataSource: "participants" as CustomDataSource, customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"] as string[], customGroupBy: "", customSortBy: "lastName" };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
+  { builtin: true, name: "Field Builder — Blank Table", type: "custom_table", category: "custom", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", customDataSource: "participants", customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"], customSortBy: "lastName" }) },
   { builtin: true, name: "Principal Schedule — Landscape Grid", type: "principal_schedule", category: "operations", paperSize: "letter", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact" }) },
   { builtin: true, name: "Teacher Packets — Classes + Students", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "normal", groupByPage: true, showStudents: true }) },
   { builtin: true, name: "Teacher Schedule Only — Deduped", type: "teacher_schedules", category: "operations", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", groupByPage: true, showStudents: false }) },
@@ -146,6 +148,40 @@ const BADGE_LANYARD_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "medical", label: "Medical / dietary notes" },
   { id: "qr", label: "QR scan code" },
 ];
+type FieldOption = { id: string; label: string; value: (item: any, courses?: Course[]) => string };
+const CUSTOM_FIELD_OPTIONS: Record<CustomDataSource, FieldOption[]> = {
+  participants: [
+    { id: "fullName", label: "Participant name", value: (c: Camper) => fullName(c) },
+    { id: "firstName", label: "First name", value: (c: Camper) => c.firstName || "" },
+    { id: "lastName", label: "Last name", value: (c: Camper) => c.lastName || "" },
+    { id: "ageGroup", label: "Age group", value: (c: Camper) => c.ageGroup?.name || "" },
+    { id: "guardianName", label: "Guardian", value: (c: Camper) => c.guardianName || "" },
+    { id: "guardianEmail", label: "Guardian email", value: (c: Camper) => c.guardianEmail || "" },
+    { id: "guardianPhone", label: "Guardian phone", value: (c: Camper) => c.guardianPhone || "" },
+    { id: "emergencyPhone", label: "Emergency phone", value: (c: Camper) => c.emergencyPhone || "" },
+    { id: "pickupNumber", label: "Pickup #", value: (c: Camper) => c.pickupNumber || "" },
+    { id: "tshirtSize", label: "T-shirt", value: (c: Camper) => c.tshirtSize || "" },
+    { id: "medicalNotes", label: "Medical", value: (c: Camper) => c.medicalNotes || "" },
+    { id: "dietaryNotes", label: "Dietary", value: (c: Camper) => c.dietaryNotes || "" },
+    { id: "classChoices", label: "Class choices", value: (c: Camper, courses = []) => classChoicesForCamper(c, courses).map(choice => choice.label).join("\n") },
+    { id: "schedule", label: "Schedule summary", value: (c: Camper) => badgeScheduleSummary(c) },
+  ],
+  people: [
+    { id: "fullName", label: "Name", value: (p: Person) => fullName(p) },
+    { id: "role", label: "Role", value: (p: Person) => p.role || "" },
+    { id: "email", label: "Email", value: (p: Person) => p.email || "" },
+    { id: "phone", label: "Phone", value: (p: Person) => p.phone || "" },
+  ],
+  activities: [
+    { id: "name", label: "Activity", value: (c: Course) => c.name || "" },
+    { id: "room", label: "Room", value: (c: Course) => c.room?.name || "" },
+    { id: "teachers", label: "Teachers", value: (c: Course) => courseTeacherNames(c) },
+    { id: "ageGroups", label: "Age groups", value: (c: Course) => courseAgeLabel(c) },
+    { id: "capacity", label: "Capacity", value: (c: Course) => String(c.cap ?? "") },
+    { id: "times", label: "Times", value: (c: Course) => (c.courseSessionTemplates || []).map(cst => formatRange(cst.sessionTemplate.startTime, cst.sessionTemplate.endTime)).filter(Boolean).join("\n") },
+  ],
+};
+
 const CUSTOM_PRINTABLE_BACK_BLOCK_OPTIONS: CustomBlockOption[] = [
   { id: "fullName", label: "Full name" },
   { id: "ageGroup", label: "Age group" },
@@ -165,6 +201,7 @@ const CUSTOM_BUILTIN_NAMES = new Set(["Custom Grid Printable — Rotation Roster
 type TemplateMeta = { eyebrow: string; description: string; visual: "grid" | "packet" | "roster" | "choices" | "list" | "badge" | "lanyard" | "card" };
 function isCustomBuilder(template: PrintTemplate) { return CUSTOM_BUILTIN_NAMES.has(template.name) || (!template.builtin && Boolean(template.id)); }
 function templateMeta(template: PrintTemplate): TemplateMeta {
+  if (template.type === "custom_table") return { eyebrow: "Field builder", visual: "list", description: "Build a custom table from participants, people, or activities by choosing fields, sort, and grouping." };
   if (template.name.includes("Schedule Lanyard")) return { eyebrow: "Custom badge builder", visual: "lanyard", description: "A child-name header with a vertical schedule table for lanyards." };
   if (template.type === "rotation_roster") return { eyebrow: "Custom grid builder", visual: "grid", description: "Wide rotation charts with draggable blocks, time bands, and optional backs." };
   if (template.type === "principal_schedule") return { eyebrow: "Stock schedule", visual: "grid", description: "A landscape master grid: participants down the left, schedule blocks across." };
@@ -524,6 +561,27 @@ function PrintContent() {
   const badgeBackBlocks = selectedBlocks(selectedSettings.badgeBackContentBlocks, defaultBadgeBackBlockIds, printableBackBlockOptions);
   const badgeBackBlockIds = badgeBackBlocks.map(block => block.id);
   const addableBadgeBackBlocks = printableBackBlockOptions.filter(block => !badgeBackBlockIds.includes(block.id));
+  const customDataSource = (["participants", "people", "activities"].includes(String(selectedSettings.customDataSource)) ? selectedSettings.customDataSource : "participants") as CustomDataSource;
+  const customFieldOptions = CUSTOM_FIELD_OPTIONS[customDataSource];
+  const customFieldOptionMap = new Map<string, FieldOption>(customFieldOptions.map((field: FieldOption) => [field.id, field]));
+  const defaultCustomFields: string[] = customFieldOptions.slice(0, Math.min(5, customFieldOptions.length)).map((field: FieldOption) => field.id);
+  const customFieldIds: string[] = (Array.isArray(selectedSettings.customFields) ? selectedSettings.customFields : defaultCustomFields).filter((id: string) => customFieldOptionMap.has(id));
+  const visibleCustomFieldIds: string[] = customFieldIds.length ? customFieldIds : defaultCustomFields;
+  const selectedCustomFields: FieldOption[] = visibleCustomFieldIds.map((id: string) => customFieldOptionMap.get(id)).filter((field: FieldOption | undefined): field is FieldOption => Boolean(field));
+  const addableCustomFields = customFieldOptions.filter((field: FieldOption) => !visibleCustomFieldIds.includes(field.id));
+  const customGroupBy = typeof selectedSettings.customGroupBy === "string" ? selectedSettings.customGroupBy : "";
+  const customSortBy = typeof selectedSettings.customSortBy === "string" ? selectedSettings.customSortBy : "";
+  const customSourceItems = customDataSource === "participants" ? campers : customDataSource === "people" ? persons : courses;
+  const customValue = (item: any, fieldId: string) => customFieldOptionMap.get(fieldId)?.value(item, courses) || "";
+  const sortedCustomItems = [...customSourceItems].sort((a, b) => customValue(a, customSortBy || visibleCustomFieldIds[0] || "").localeCompare(customValue(b, customSortBy || visibleCustomFieldIds[0] || "")));
+  const groupedCustomItems = customGroupBy
+    ? Array.from(sortedCustomItems.reduce((map, item) => { const key = customValue(item, customGroupBy) || "Ungrouped"; map.set(key, [...(map.get(key) || []), item]); return map; }, new Map<string, any[]>()).entries())
+    : [["", sortedCustomItems]] as [string, any[]][];
+  const setCustomFields = (ids: string[]) => updateSettings({ customFields: ids });
+  const addCustomField = (id: string) => { if (id) setCustomFields([...visibleCustomFieldIds, id]); };
+  const removeCustomField = (id: string) => setCustomFields(visibleCustomFieldIds.filter((fieldId: string) => fieldId !== id));
+  const moveCustomField = (id: string, direction: -1 | 1) => setCustomFields(moveId(visibleCustomFieldIds, id, direction));
+  const resetCustomFields = () => setCustomFields(defaultCustomFields);
   const rotationCardRows = customBlockOrder.map(block => {
     if (block.id === "header") return selectedSettings.rotationHeaderHeight || "0.70in";
     if (block.id === "timeBand") return selectedSettings.rotationBandHeight || "0.36in";
@@ -831,7 +889,7 @@ function PrintContent() {
                   <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Advanced page setup</summary>
                   <div className="mt-3 space-y-3">
                     {!draftTemplate.builtin && <label className="block text-xs font-bold text-slate-500">Document type<select value={draftTemplate.type} onChange={e => updateDraft({ type: e.target.value as PrintType })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
-                      <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Participant class choices</option><option value="camper_roster">Participant roster</option><option value="tshirt_list">T-shirt list</option><option value="pickup_cards">Pickup window cards</option><option value="pickup_roster">Pickup number roster</option><option value="badges">Badges</option>
+                      <option value="custom_table">Field builder table</option><option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Participant class choices</option><option value="camper_roster">Participant roster</option><option value="tshirt_list">T-shirt list</option><option value="pickup_cards">Pickup window cards</option><option value="pickup_roster">Pickup number roster</option><option value="badges">Badges</option>
                     </select></label>}
                     <div className="grid grid-cols-2 gap-3">
                       <label className="block text-xs font-bold text-slate-500">Paper<select value={draftTemplate.paperSize} onChange={e => updateDraft({ paperSize: e.target.value as PaperSize })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">{Object.entries(PAPER_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
@@ -843,6 +901,25 @@ function PrintContent() {
                     </div>}
                   </div>
                 </details>}
+
+                {draftTemplate.type === "custom_table" && (
+                  <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-wide text-slate-500">Field builder</p>
+                      <p className="mt-1 text-[11px] font-semibold text-slate-500">Choose any data source, then build the columns in the exact order you want.</p>
+                    </div>
+                    <label className="block text-xs font-bold text-slate-500">Data source<select value={customDataSource} onChange={e => updateSettings({ customDataSource: e.target.value as CustomDataSource, customFields: CUSTOM_FIELD_OPTIONS[e.target.value as CustomDataSource].slice(0, 5).map(field => field.id), customGroupBy: "", customSortBy: CUSTOM_FIELD_OPTIONS[e.target.value as CustomDataSource][0]?.id || "" })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="participants">Participants</option><option value="people">People / staff</option><option value="activities">Activities</option></select></label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block text-xs font-bold text-slate-500">Sort by<select value={customSortBy} onChange={e => updateSettings({ customSortBy: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="">First selected field</option>{customFieldOptions.map(field => <option key={field.id} value={field.id}>{field.label}</option>)}</select></label>
+                      <label className="block text-xs font-bold text-slate-500">Group by<select value={customGroupBy} onChange={e => updateSettings({ customGroupBy: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="">No grouping</option>{customFieldOptions.map(field => <option key={field.id} value={field.id}>{field.label}</option>)}</select></label>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-wide text-slate-500">Columns</p><button type="button" onClick={resetCustomFields} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500">Reset</button></div>
+                      <div className="space-y-1">{selectedCustomFields.map((field, index) => <div key={field.id} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700"><span className="text-slate-400">☰</span><span className="flex-1">{index + 1}. {field.label}</span><button type="button" onClick={() => moveCustomField(field.id, -1)} disabled={index === 0} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↑</button><button type="button" onClick={() => moveCustomField(field.id, 1)} disabled={index === selectedCustomFields.length - 1} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] disabled:opacity-30">↓</button><button type="button" onClick={() => removeCustomField(field.id)} className="rounded-md border border-rose-100 bg-rose-50 px-2 py-1 text-[10px] text-rose-600">Remove</button></div>)}</div>
+                      {addableCustomFields.length > 0 && <label className="block text-xs font-bold text-slate-500">Add column<select value="" onChange={e => addCustomField(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="">Choose a field…</option>{addableCustomFields.map(field => <option key={field.id} value={field.id}>{field.label}</option>)}</select></label>}
+                    </div>
+                  </div>
+                )}
 
                 {draftTemplate.type === "rotation_roster" && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
@@ -934,6 +1011,18 @@ function PrintContent() {
           </div>
         )}
       </div>
+
+      {activeDoc === "custom_table" && <div className="print-doc ops-print">
+        <h1 className="ops-title">{draftTemplate.name}</h1>
+        <p className="ops-subtitle">{customDataSource === "participants" ? "Participants" : customDataSource === "people" ? "People / staff" : "Activities"} • {selectedCustomFields.length} column{selectedCustomFields.length === 1 ? "" : "s"} • {sortedCustomItems.length} row{sortedCustomItems.length === 1 ? "" : "s"}</p>
+        {groupedCustomItems.map(([groupName, items]) => <section key={groupName || "all"} className={selectedSettings.groupByPage && groupName ? "page-break" : ""}>
+          {groupName && <h2 style={{fontSize: 15, margin: "0 0 6px", fontWeight: 900}}>{groupName} <span style={{fontSize: 11, fontWeight: 700}}>({items.length})</span></h2>}
+          <table className={selectedSettings.stripedRows ? "striped" : ""}>
+            <thead><tr>{selectedCustomFields.map(field => <th key={field.id}>{field.label}</th>)}</tr></thead>
+            <tbody>{items.length ? items.map((item: any, rowIndex: number) => <tr key={`${groupName}-${rowIndex}`}>{selectedCustomFields.map(field => <td key={field.id}>{field.value(item, courses) || "—"}</td>)}</tr>) : <tr><td colSpan={Math.max(selectedCustomFields.length, 1)}>No records found.</td></tr>}</tbody>
+          </table>
+        </section>)}
+      </div>}
 
       {activeDoc === "principal_schedule" && <div className="print-doc ops-print"><table className={`center ${selectedSettings.stripedRows ? "striped" : ""}`}><thead><tr><th className="student-col">Student</th>{principalScheduleSlots.map(slot => <th key={slot.key} className="time-col">{slot.label}</th>)}</tr></thead><tbody>{sortedCampers.map(camper => <tr key={camper.id}><td className="student-col">{fullName(camper)}</td>{principalScheduleSlots.map(slot => <td key={slot.key} className="time-col">{cellForSlot(camper, slot)}</td>)}</tr>)}</tbody></table></div>}
 
