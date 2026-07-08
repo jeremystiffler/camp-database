@@ -27,11 +27,11 @@ export async function POST(req: NextRequest) {
       data: { email, name, passwordHash, role: "owner", organizationId: org.id },
     });
 
-    const campSlug = "my-camp-" + Date.now();
+    const campSlug = "my-program-" + Date.now();
     const camp = await prisma.camp.create({
       data: {
         organizationId: org.id,
-        name: "My Camp",
+        name: "My Program",
         slug: campSlug,
         status: "draft",
       },

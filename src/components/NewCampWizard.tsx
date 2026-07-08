@@ -35,7 +35,7 @@ const AGE_COLORS = [
 ];
 
 const STEPS = [
-  { num: 1, label: "Camp Info",   icon: "1" },
+  { num: 1, label: "Program Info",   icon: "1" },
   { num: 2, label: "Age Groups",  icon: "2" },
   { num: 3, label: "Rooms",       icon: "3" },
   { num: 4, label: "Time Slots",  icon: "4" },
@@ -67,7 +67,7 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-// ─── Step 1: Camp Info ────────────────────────────────────────────────────────
+// ─── Step 1: Program Info ────────────────────────────────────────────────────────
 
 function Step1({
   name, setName,
@@ -81,17 +81,17 @@ function Step1({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-bold text-slate-800 mb-1">Camp Details</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-1">Program Details</h2>
         <p className="text-slate-500 text-sm">Give your program a name and set the dates.</p>
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">Camp Name *</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">Program Name *</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          placeholder="e.g. Creator's Camp 2027"
+          placeholder="e.g. Creator's Program 2027"
           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400 text-slate-800 placeholder:text-slate-400"
         />
       </div>
@@ -538,7 +538,7 @@ export default function NewCampWizard({ onClose, onCreated }: {
       });
       if (!campRes.ok) {
         const d = await campRes.json();
-        throw new Error(d.error || "Failed to create camp");
+        throw new Error(d.error || "Failed to create program");
       }
       const camp = await campRes.json();
       const campId = camp.id;
@@ -600,7 +600,7 @@ export default function NewCampWizard({ onClose, onCreated }: {
         {/* Header */}
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="font-bold text-xl text-slate-800">Create New Camp</h1>
+            <h1 className="font-bold text-xl text-slate-800">Create New Program</h1>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 text-sm">✕</button>
           </div>
           <StepIndicator current={step} />
@@ -651,7 +651,7 @@ export default function NewCampWizard({ onClose, onCreated }: {
                 disabled={loading || slots.length === 0}
                 className="minimal-button-primary disabled:opacity-40"
               >
-                {loading ? "Creating..." : "Create Camp"}
+                {loading ? "Creating..." : "Create Program"}
               </button>
             )}
           </div>

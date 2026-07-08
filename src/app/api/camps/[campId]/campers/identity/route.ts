@@ -80,7 +80,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
     if (!camperId) return NextResponse.json({ error: "camperId is required" }, { status: 400 });
     const camper = await prisma.camper.findFirst({ where: { id: camperId, campId } });
-    if (!camper) return NextResponse.json({ error: "Camper not found" }, { status: 404 });
+    if (!camper) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
 
     if (action === "regenerate_scan_code") {
       const updated = await prisma.camper.update({ where: { id: camper.id }, data: { scanCode: generateCamperScanCode(), scanCodeGeneratedAt: new Date() }, include: { ageGroup: true, enrollments: { include: { session: { include: { course: true, mandatorySession: true, room: true, sessionTemplate: true } } }, orderBy: { createdAt: "asc" } } } });
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err) {
-    console.error("Camper identity error:", err);
-    return NextResponse.json({ error: "Failed to manage camper identity", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    console.error("Participant identity error:", err);
+    return NextResponse.json({ error: "Failed to manage participant identity", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 }

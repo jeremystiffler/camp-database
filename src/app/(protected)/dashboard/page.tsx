@@ -109,7 +109,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
   const toggle = (key: string) => setOptions(prev => ({ ...prev, [key]: !prev[key] }));
 
   const handleCopy = async () => {
-    if (!name.trim()) { setError("Camp name is required"); return; }
+    if (!name.trim()) { setError("Program name is required"); return; }
     setCopying(true); setError("");
     try {
       const res  = await fetch(`/api/camps/${sourceCamp.id}/copy`, {
@@ -268,7 +268,7 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
         <div className="flex gap-4 mt-3 pt-3 border-t border-slate-100">
           <div className="text-center">
             <div className="font-bold text-slate-700">{camp._count?.campers ?? 0}</div>
-            <div className="text-xs text-slate-400">Campers</div>
+            <div className="text-xs text-slate-400">Participants</div>
           </div>
           <div className="text-center">
             <div className="font-bold text-slate-700">{camp._count?.courses ?? 0}</div>
@@ -294,7 +294,7 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
 function DashboardContent() {
   const searchParams = useSearchParams();
   const router       = useRouter();
-  const [camps,        setCamps]        = useState<Camp[]>([]);
+  const [camps,        setPrograms]        = useState<Camp[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [showNewCamp,  setShowNewCamp]  = useState(false);
   const [copyingCamp,  setCopyingCamp]  = useState<Camp | null>(null);
@@ -314,7 +314,7 @@ function DashboardContent() {
   useEffect(() => {
     fetch("/api/camps")
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setCamps(data); setLoading(false); })
+      .then((data) => { if (Array.isArray(data)) setPrograms(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -324,14 +324,14 @@ function DashboardContent() {
     if (activeCamp?.id) localStorage.setItem("activeCampId", activeCamp.id);
   }, [activeCamp?.id, activeCamp?.name]);
 
-  const reloadCamps = () => {
-    fetch("/api/camps").then(r => r.json()).then(d => { if (Array.isArray(d)) setCamps(d); });
+  const reloadPrograms = () => {
+    fetch("/api/camps").then(r => r.json()).then(d => { if (Array.isArray(d)) setPrograms(d); });
   };
 
   const saveCampName = async () => {
     if (!activeCamp) return;
     const name = renameValue.trim();
-    if (!name) { setRenameMsg({ type: "error", text: "Camp name cannot be blank." }); return; }
+    if (!name) { setRenameMsg({ type: "error", text: "Program name cannot be blank." }); return; }
     if (name === activeCamp.name) { setRenameMsg({ type: "error", text: "No rename needed — that is already the program name." }); return; }
     setRenameSaving(true); setRenameMsg(null);
     const res = await fetch(`/api/camps/${activeCamp.id}`, {
@@ -342,11 +342,11 @@ function DashboardContent() {
     const data = await res.json().catch(() => ({}));
     setRenameSaving(false);
     if (res.ok) {
-      setCamps(prev => prev.map(c => c.id === activeCamp.id ? { ...c, name } : c));
+      setPrograms(prev => prev.map(c => c.id === activeCamp.id ? { ...c, name } : c));
       window.dispatchEvent(new Event("camp:list-changed"));
-      setRenameMsg({ type: "success", text: "Camp renamed." });
+      setRenameMsg({ type: "success", text: "Program renamed." });
     } else {
-      setRenameMsg({ type: "error", text: data.detail || data.error || "Could not rename camp." });
+      setRenameMsg({ type: "error", text: data.detail || data.error || "Could not rename program." });
     }
   };
 
@@ -359,7 +359,7 @@ function DashboardContent() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Welcome back! Here&apos;s your camp overview.</p>
+          <p className="text-slate-500 text-sm mt-0.5">Welcome back! Here&apos;s your program overview.</p>
         </div>
         {(camps.length === 0 || canAdminCamp(activeCamp)) && (
           <button onClick={() => setShowNewCamp(true)}
@@ -371,9 +371,9 @@ function DashboardContent() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total Campers"  value={loading ? "–" : totalCampers}    icon="C" gradient="stat-forest" />
+        <StatCard label="Total Participants"  value={loading ? "–" : totalCampers}    icon="C" gradient="stat-forest" />
         <StatCard label="Activities"     value={loading ? "–" : totalActivities} icon="A" gradient="stat-sky" />
-        <StatCard label="Camps"          value={loading ? "–" : camps.length}    icon="N" gradient="stat-sunset" />
+        <StatCard label="Programs"          value={loading ? "–" : camps.length}    icon="N" gradient="stat-sunset" />
         <StatCard label="This Season"    value={loading ? "–" : (activeCamp?.status === "published" ? "Live" : "Draft")} icon="S" gradient="stat-berry" />
       </div>
 
@@ -408,14 +408,14 @@ function DashboardContent() {
         <div className="camp-card p-5 mb-8 bg-white">
           <div className="flex flex-col lg:flex-row lg:items-end gap-5 justify-between">
             <div className="flex-1 min-w-0">
-              <p className="minimal-section-title mb-2">Active camp</p>
+              <p className="minimal-section-title mb-2">Active program</p>
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <p className="text-sm font-black text-slate-900">{activeCamp.name}</p>
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500">{activeCamp.myRole || "viewer"}</span>
               </div>
               {canEditCamp(activeCamp) ? (
                 <>
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5">Rename camp</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5">Rename program</label>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input flex-1" />
                     <button onClick={saveCampName} disabled={renameSaving} className="minimal-button-primary">
@@ -451,7 +451,7 @@ function DashboardContent() {
 
       {/* Camp list */}
       <div className="mb-8">
-        <h2 className="text-base font-bold text-slate-700 mb-4">Your Camps</h2>
+        <h2 className="text-base font-bold text-slate-700 mb-4">Your Programs</h2>
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="w-8 h-8 border-2 border-forest-500 border-t-transparent rounded-full animate-spin" />
@@ -459,11 +459,11 @@ function DashboardContent() {
         ) : camps.length === 0 ? (
           <div className="camp-card p-12 text-center">
             <span className="text-5xl mb-4 block"></span>
-            <h3 className="font-bold text-slate-700 mb-2">No camps yet</h3>
+            <h3 className="font-bold text-slate-700 mb-2">No programs yet</h3>
             <p className="text-slate-400 text-sm mb-5">Create your first program to get started.</p>
             <button onClick={() => setShowNewCamp(true)}
               className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
-              + Create Your First Camp
+              + Create Your First Program
             </button>
           </div>
         ) : (
@@ -475,7 +475,7 @@ function DashboardContent() {
               <button onClick={() => setShowNewCamp(true)}
                 className="camp-card p-5 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-forest-600 hover:border-forest-200 transition-colors min-h-[160px] border-dashed">
                 <span className="text-3xl">+</span>
-                <span className="text-sm font-medium">Add Camp</span>
+                <span className="text-sm font-medium">Add Program</span>
               </button>
             )}
           </div>
@@ -490,10 +490,10 @@ function DashboardContent() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <QuickAction href={`/activities?campId=${activeCamp.id}`}  icon="A" title="Activities"   desc="Create and manage activities, teachers, rooms, and capacity"  iconClass="icon-badge-forest" />
-            <QuickAction href={`/campers?campId=${activeCamp.id}`}     icon="C" title="Campers"      desc="View registrations, search, and manage enrollments"       iconClass="icon-badge-sky" />
-            <QuickAction href={`/schedule?campId=${activeCamp.id}`}    icon="S" title="Schedule"     desc="View the full camp schedule grid by time slot"                     iconClass="icon-badge-sunset" />
+            <QuickAction href={`/campers?campId=${activeCamp.id}`}     icon="C" title="Participants"      desc="View registrations, search, and manage enrollments"       iconClass="icon-badge-sky" />
+            <QuickAction href={`/schedule?campId=${activeCamp.id}`}    icon="S" title="Schedule"     desc="View the full program schedule grid by time slot"                     iconClass="icon-badge-sunset" />
             <QuickAction href={`/print?campId=${activeCamp.id}`}       icon="P" title="Print Center" desc="Generate schedules, rosters, and name badges"                      iconClass="icon-badge-berry" />
-            {canAdminCamp(activeCamp) && <QuickAction href={`/settings?campId=${activeCamp.id}`}    icon="Se" title="Settings"     desc="Profile, appearance, billing, and camp-level actions"              iconClass="icon-badge-forest" />}
+            {canAdminCamp(activeCamp) && <QuickAction href={`/settings?campId=${activeCamp.id}`}    icon="Se" title="Settings"     desc="Profile, appearance, billing, and program-level actions"              iconClass="icon-badge-forest" />}
             {canEditCamp(activeCamp) && (
               <button onClick={() => setCopyingCamp(activeCamp)}
                 className="camp-card p-4 flex items-start gap-3 group text-left">
@@ -515,7 +515,7 @@ function DashboardContent() {
             setShowNewCamp(false);
             localStorage.setItem("activeCampId", newCampId);
             window.dispatchEvent(new Event("camp:list-changed"));
-            reloadCamps();
+            reloadPrograms();
             router.push(`/setup?campId=${newCampId}`);
             router.refresh();
           }}
@@ -525,12 +525,12 @@ function DashboardContent() {
       {copyingCamp && (
         <CopyCampModal
           sourceCamp={copyingCamp}
-          onClose={() => { setCopyingCamp(null); reloadCamps(); }}
+          onClose={() => { setCopyingCamp(null); reloadPrograms(); }}
           onCopied={(newCampId) => {
             setCopyingCamp(null);
             localStorage.setItem("activeCampId", newCampId);
             window.dispatchEvent(new Event("camp:list-changed"));
-            reloadCamps();
+            reloadPrograms();
             router.push(`/setup?campId=${newCampId}`);
             router.refresh();
           }}

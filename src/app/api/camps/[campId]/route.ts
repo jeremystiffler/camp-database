@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
   if (!member || !hasPermission(member.role, "editor")) {
-    return NextResponse.json({ error: "Editors and above can edit camps" }, { status: 403 });
+    return NextResponse.json({ error: "Editors and above can edit programs" }, { status: 403 });
   }
 
   try {
@@ -70,7 +70,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
   if (!member || !hasPermission(member.role, "admin")) {
-    return NextResponse.json({ error: "Only admins and owners can delete camps" }, { status: 403 });
+    return NextResponse.json({ error: "Only admins and owners can delete programs" }, { status: 403 });
   }
   await prisma.camp.deleteMany({ where: { id: campId } });
   return NextResponse.json({ success: true });

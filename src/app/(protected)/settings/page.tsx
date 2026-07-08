@@ -123,7 +123,7 @@ function SettingsContent() {
       .then(r => r.json())
       .then(d => {
         if (d && !d.error) {
-          setCampName(d.name || "this camp");
+          setCampName(d.name || "this program");
           setAppearance({
             primaryColor: d.primaryColor || "#64748B",
             accentColor:  d.accentColor  || "#475569",

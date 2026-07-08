@@ -542,7 +542,7 @@ function CheckInContent() {
     setScanMessage(kioskNameMatches.length > 1 ? "Choose the matching child below." : "No match found. Please ask a staff member for help.");
   };
 
-  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a camp to open Check in/out.</div>;
+  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a program to open Check in/out.</div>;
 
   if (kioskMode) {
     return (
@@ -789,7 +789,7 @@ function CheckInContent() {
               </div>
               <button onClick={() => setCodeCamper(null)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
             </div>
-            <div className="mt-5 flex justify-center"><CamperScannableCode value={codeCamper.scanCode} label="Camper QR" size={180} /></div>
+            <div className="mt-5 flex justify-center"><CamperScannableCode value={codeCamper.scanCode} label="Participant QR" size={180} /></div>
             <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-black">
               <Link href={`/print?campId=${campId}`} className="rounded-xl border border-slate-200 px-3 py-2 text-center text-slate-700 hover:bg-slate-50">Open Print Center</Link>
               <button onClick={() => navigator.clipboard?.writeText(codeCamper.scanCode || "")} className="rounded-xl bg-slate-900 px-3 py-2 text-white">Copy scan code</button>

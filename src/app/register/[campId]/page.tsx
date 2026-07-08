@@ -317,7 +317,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         .map(session => session.sessionIds.map(sessionId => activeSelectedBySession[sessionId]).find(Boolean))
         .filter((courseId): courseId is string => Boolean(courseId));
       const duplicateCourse = selectedCoursesByWeeklySession.find((courseId, index) => selectedCoursesByWeeklySession.indexOf(courseId) !== index);
-      if (unavailable.length > 0) errs._form = "One or more sessions has no open classes left. Please contact the camp before registering.";
+      if (unavailable.length > 0) errs._form = "One or more sessions has no open classes left. Please contact the program before registering.";
       else if (missing.length > 0) errs._form = "Please choose one class for each session.";
       else if (duplicateCourse) errs._form = "Each class can only be chosen once. Please pick a different class for one of the sessions.";
       else if (missingRequiredClassRules.length > 0) {
@@ -462,7 +462,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         return;
       }
       if (d.paymentUnavailable) {
-        setPaymentNotice("Registration saved. The payment system is not configured yet, so the camp will follow up about the platform fee.");
+        setPaymentNotice("Registration saved. The payment system is not configured yet, so the program will follow up about the platform fee.");
       }
       setSubmittedUpdated(Boolean(d.updated));
       setSubmitted(true);
@@ -587,7 +587,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-forest-500 to-sky-500 flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg">🏕️</div>
           <h1 className="text-3xl font-bold text-slate-800">{campName}</h1>
-          <p className="text-slate-500 mt-1">{familyRegistrationEnabled ? "Family Registration" : "Camper Registration"}</p>
+          <p className="text-slate-500 mt-1">{familyRegistrationEnabled ? "Family Registration" : "Participant Registration"}</p>
         </div>
 
         <div className="flex items-center gap-2 mb-5">
@@ -603,7 +603,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           {paymentNotice && <div className="mb-5 px-4 py-3 bg-forest-50 border border-forest-200 rounded-xl text-sm text-forest-800">{paymentNotice}</div>}
           {billingMode === "camperFee" && (
             <div className="mb-5 px-4 py-4 bg-sky-50 border border-sky-200 rounded-xl text-sm text-sky-900 space-y-3">
-              <p><strong>Registration total:</strong> {money(totalDueCents)} {camperPriceCents > 0 ? `(${activeStudentCount} student${activeStudentCount === 1 ? "" : "s"} · camp price ${money(familyCampPriceCents)}${couponDiscountCents ? ` − ${money(couponDiscountCents)} coupon` : ""} + ${money(calculatedPlatformFeeCents)} platform fee)` : `(platform fee ${money(platformFeeCents)})`}.</p>
+              <p><strong>Registration total:</strong> {money(totalDueCents)} {camperPriceCents > 0 ? `(${activeStudentCount} student${activeStudentCount === 1 ? "" : "s"} · program price ${money(familyCampPriceCents)}${couponDiscountCents ? ` − ${money(couponDiscountCents)} coupon` : ""} + ${money(calculatedPlatformFeeCents)} platform fee)` : `(platform fee ${money(platformFeeCents)})`}.</p>
               <div className="flex gap-2">
                 <input value={couponCode} onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponDiscountCents(0); setCouponMsg(null); }} placeholder="Coupon code" className="flex-1 px-3 py-2 border border-sky-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
                 <button type="button" onClick={applyCoupon} className="px-3 py-2 bg-sky-600 text-white rounded-lg text-sm font-bold hover:bg-sky-700">Apply</button>

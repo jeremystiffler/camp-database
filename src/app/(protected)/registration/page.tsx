@@ -96,11 +96,11 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
   { category: "Program", type: "text", label: "Not authorized pickup", icon: "🚫", description: "Restricted pickup", defaults: { label: "People not authorized for pickup", placeholder: "Optional" } },
   { category: "Program", type: "tel", label: "Emergency backup phone", icon: "☎️", description: "Backup contact", defaults: { label: "Backup emergency phone", placeholder: "If guardian cannot be reached" } },
   { category: "Program", type: "text", label: "Physician / clinic", icon: "🩺", description: "Medical contact", defaults: { label: "Physician or clinic", placeholder: "Doctor/clinic name and phone" } },
-  { category: "Program", type: "text", label: "Insurance info", icon: "🛡️", description: "Policy details", defaults: { label: "Insurance provider / policy", placeholder: "Optional, if your camp collects it" } },
+  { category: "Program", type: "text", label: "Insurance info", icon: "🛡️", description: "Policy details", defaults: { label: "Insurance provider / policy", placeholder: "Optional, if your program collects it" } },
 
-  { category: "Consent", type: "checkbox", label: "Transportation permission", icon: "🚌", description: "Travel consent", defaults: { label: "Transportation permission", checkboxDescription: "I give permission for camp-provided transportation when applicable." } },
-  { category: "Consent", type: "checkbox", label: "Medical consent", icon: "Required", description: "Emergency care", defaults: { label: "Medical consent", checkboxDescription: "I authorize camp staff to seek emergency medical care if needed.", required: true } },
-  { category: "Consent", type: "checkbox", label: "Code of conduct", icon: "🤝", description: "Behavior agreement", defaults: { label: "Code of conduct", checkboxDescription: "I have reviewed the camp expectations with my camper and agree to support them.", required: true } },
+  { category: "Consent", type: "checkbox", label: "Transportation permission", icon: "🚌", description: "Travel consent", defaults: { label: "Transportation permission", checkboxDescription: "I give permission for program-provided transportation when applicable." } },
+  { category: "Consent", type: "checkbox", label: "Medical consent", icon: "Required", description: "Emergency care", defaults: { label: "Medical consent", checkboxDescription: "I authorize program staff to seek emergency medical care if needed.", required: true } },
+  { category: "Consent", type: "checkbox", label: "Code of conduct", icon: "🤝", description: "Behavior agreement", defaults: { label: "Code of conduct", checkboxDescription: "I have reviewed the program expectations with my camper and agree to support them.", required: true } },
 ];
 
 const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", "Program", "Consent", "Layout"];
@@ -112,7 +112,7 @@ const DEFAULT_EMAIL_BLOCKS: EmailTemplateBlock[] = [
   { id: "emergency", type: "emergency", title: "Emergency Information", enabled: true },
   { id: "additional", type: "additionalInfo", title: "Additional Student Information", enabled: true },
   { id: "payment", type: "payment", title: "Payment Summary", enabled: true },
-  { id: "footer", type: "footer", content: "Need to change something? Contact the camp office, or return to the registration form and submit updated information.", enabled: true },
+  { id: "footer", type: "footer", content: "Need to change something? Contact the program office, or return to the registration form and submit updated information.", enabled: true },
 ];
 
 const EMAIL_BLOCK_LABELS: Record<EmailBlockType, string> = {
@@ -483,7 +483,7 @@ function RegistrationContent() {
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">Form</span><p>Select a camp to manage its registration form.</p></div>
+      <div className="text-center"><span className="text-4xl mb-3 block">Form</span><p>Select a program to manage its registration form.</p></div>
     </div>
   );
 
@@ -678,7 +678,7 @@ function RegistrationContent() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm font-black text-berry-950">Confirmation email builder</p>
-                  <HelpCopy title="Confirmation email" className="mt-1 text-sm text-berry-800">Drag sections into the order you want. Use tokens from camp data, guardian data, student data, and your form fields.</HelpCopy>
+                  <HelpCopy title="Confirmation email" className="mt-1 text-sm text-berry-800">Drag sections into the order you want. Use tokens from program data, guardian data, student data, and your form fields.</HelpCopy>
                 </div>
                 <div className="grid gap-3">
                   <label className="block">

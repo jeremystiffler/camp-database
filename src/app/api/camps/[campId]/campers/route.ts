@@ -41,11 +41,11 @@ async function resolveSessionChoices(campId: string, choices: SessionChoiceInput
       where: { id: choice.courseId, campId, courseSessionTemplates: { some: { sessionTemplateId: choice.sessionTemplateId } } },
       include: { sessions: { where: { campId, sessionTemplateId: choice.sessionTemplateId }, select: { id: true, enrolledCount: true } } },
     }).catch(() => null);
-    if (!course) throw new Error("One or more selected classes are not available for this camp");
+    if (!course) throw new Error("One or more selected classes are not available for this program");
     let session = course.sessions[0] || null;
     if (!session) {
       const template = await prisma.sessionTemplate.findFirst({ where: { id: choice.sessionTemplateId, campId }, select: { id: true, label: true, startTime: true, endTime: true, mandatory: true } });
-      if (!template) throw new Error("One or more selected time slots are not available for this camp");
+      if (!template) throw new Error("One or more selected time slots are not available for this program");
       if (template.mandatory) throw new Error(`${template.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.`);
       const created = await prisma.session.create({ data: { campId, courseId: course.id, sessionTemplateId: template.id, roomId: course.roomId, startTime: template.startTime, endTime: template.endTime }, select: { id: true, enrolledCount: true } });
       session = created;
@@ -68,7 +68,7 @@ async function replaceEnrollments(campId: string, camperId: string, nextSessionI
     const validSessions = await prisma.session.findMany({ where: { campId, id: { in: toAdd } }, select: { id: true, enrolledCount: true, course: { select: { name: true, cap: true } } } });
     const validIds = new Set(validSessions.map((s) => s.id));
     const invalid = toAdd.filter((id) => !validIds.has(id));
-    if (invalid.length) throw new Error("One or more selected sessions do not belong to this camp");
+    if (invalid.length) throw new Error("One or more selected sessions do not belong to this program");
     for (const session of validSessions) {
       if (session.course?.cap !== null && session.course?.cap !== undefined && session.enrolledCount >= session.course.cap) throw new Error(`${session.course.name} is full. Choose a different class.`);
     }
@@ -105,18 +105,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can add campers" }, { status: 403 });
+  if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can add participants" }, { status: 403 });
 
   try {
     const data = await req.json();
     const firstName = nullableString(data.firstName);
     const lastName = nullableString(data.lastName);
-    if (!firstName || !lastName) return NextResponse.json({ error: "Camper first and last name are required" }, { status: 400 });
+    if (!firstName || !lastName) return NextResponse.json({ error: "Participant first and last name are required" }, { status: 400 });
 
     const ageGroupId = nullableString(data.ageGroupId);
     if (ageGroupId) {
       const ageGroup = await prisma.ageGroup.findFirst({ where: { id: ageGroupId, campId }, select: { id: true } });
-      if (!ageGroup) return NextResponse.json({ error: "Selected age group does not belong to this camp" }, { status: 400 });
+      if (!ageGroup) return NextResponse.json({ error: "Selected age group does not belong to this program" }, { status: 400 });
     }
 
     // Keep this as a single plain insert. Prisma's HTTP adapter (Neon/Vercel)
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     const reloaded = await prisma.camper.findFirst({ where: { id: item.id, campId }, include: camperInclude });
     return NextResponse.json(reloaded, { status: 201 });
   } catch (err) {
-    console.error("Camper POST error:", err);
-    return NextResponse.json({ error: "Failed to add camper", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    console.error("Participant POST error:", err);
+    return NextResponse.json({ error: "Failed to add participant", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 }

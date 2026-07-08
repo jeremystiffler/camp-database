@@ -11,4 +11,4 @@ export function getResend(): Resend {
   return _resend;
 }
 
-export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "Camp Manager <onboarding@resend.dev>";
+export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "Program Manager <onboarding@resend.dev>";

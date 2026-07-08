@@ -9,7 +9,7 @@ import { HelpModeToggle } from "@/components/HelpMode";
 
 const navItems = [
   { href: "/dashboard",    label: "Dashboard",      icon: "compass", minRole: "viewer" },
-  { href: "/setup",        label: "Camp Setup",     icon: "tent", minRole: "editor" },
+  { href: "/setup",        label: "Program Setup",     icon: "tent", minRole: "editor" },
   { href: "/campers",      label: "Participants",   icon: "campers", minRole: "viewer" },
   { href: "/check-in",     label: "Check in/out",   icon: "check", minRole: "viewer" },
   { href: "/schedule",     label: "Schedule",       icon: "calendar", minRole: "viewer" },
@@ -66,7 +66,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checking, setChecking] = useState(true);
-  const [camps, setCamps] = useState<Camp[]>([]);
+  const [camps, setPrograms] = useState<Camp[]>([]);
   const [activeCamp, setActiveCamp] = useState<Camp | null>(null);
   const [lastKnownCampId, setLastKnownCampId] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -109,12 +109,12 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
-    const loadCamps = () => {
+    const loadPrograms = () => {
       fetch("/api/camps")
         .then((r) => r.json())
         .then((data) => {
           if (Array.isArray(data) && data.length > 0) {
-            setCamps(data);
+            setPrograms(data);
             const urlCampId = new URLSearchParams(window.location.search).get("campId");
             const saved = localStorage.getItem("activeCampId");
             const found = data.find((c: Camp) => c.id === urlCampId) || data.find((c: Camp) => c.id === saved) || data[0];
@@ -122,19 +122,19 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             setLastKnownCampId(found.id);
             localStorage.setItem("activeCampId", found.id);
           } else {
-            setCamps([]);
+            setPrograms([]);
             setActiveCamp(null);
           }
         })
         .catch(() => {});
     };
 
-    loadCamps();
-    window.addEventListener("camp:list-changed", loadCamps);
-    window.addEventListener("focus", loadCamps);
+    loadPrograms();
+    window.addEventListener("camp:list-changed", loadPrograms);
+    window.addEventListener("focus", loadPrograms);
     return () => {
-      window.removeEventListener("camp:list-changed", loadCamps);
-      window.removeEventListener("focus", loadCamps);
+      window.removeEventListener("camp:list-changed", loadPrograms);
+      window.removeEventListener("focus", loadPrograms);
     };
   }, [user]);
 
@@ -198,20 +198,20 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         {/* Camp switcher */}
         {camps.length > 0 && (
           <div className="px-3 py-4 border-b border-slate-100">
-            <p className="minimal-section-title px-2 mb-2">Current camp</p>
+            <p className="minimal-section-title px-2 mb-2">Current program</p>
             <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3 shadow-sm">
               <p className="text-sm font-black text-slate-900 leading-snug break-words">
-                {activeCamp?.name || "Select a camp"}
+                {activeCamp?.name || "Select a program"}
               </p>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500/70 mt-1">
-                {activeCamp?.status || "No active camp"} {activeCamp?.myRole ? `• ${activeCamp.myRole}` : ""}
+                {activeCamp?.status || "No active program"} {activeCamp?.myRole ? `• ${activeCamp.myRole}` : ""}
               </p>
               <button
                 type="button"
                 onClick={() => setCampSwitcherOpen((open) => !open)}
                 className="mt-3 w-full rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] px-3 py-2 text-xs font-black text-white shadow-sm hover:brightness-105 transition-all"
               >
-                Switch camps
+                Switch programs
               </button>
             </div>
 

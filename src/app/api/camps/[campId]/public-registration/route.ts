@@ -291,7 +291,7 @@ async function sendConfirmationEmail({
   }).filter(Boolean).join("");
 
   const paymentHtml = paymentRequired
-    ? `<h2 style="font-size:16px;margin:18px 0 8px;">Payment Summary</h2><p style="margin:0;">Camp price: ${money(totals.campPriceCents)}<br>Discount: ${money(totals.discountCents)}<br>Platform fee: ${money(totals.platformFeeCents)}<br><strong>Total due: ${money(totals.totalCents)}</strong></p>`
+    ? `<h2 style="font-size:16px;margin:18px 0 8px;">Payment Summary</h2><p style="margin:0;">Program price: ${money(totals.campPriceCents)}<br>Discount: ${money(totals.discountCents)}<br>Platform fee: ${money(totals.platformFeeCents)}<br><strong>Total due: ${money(totals.totalCents)}</strong></p>`
     : "";
 
   const defaultBlocks: EmailTemplateBlock[] = [
@@ -301,7 +301,7 @@ async function sendConfirmationEmail({
     { id: "emergency", type: "emergency", enabled: settings.confirmationIncludeEmergency !== false },
     { id: "additional", type: "additionalInfo", enabled: settings.confirmationIncludeStudents !== false },
     { id: "payment", type: "payment", enabled: settings.confirmationIncludePayment !== false },
-    { id: "footer", type: "footer", content: "Need to change something? Contact the camp office, or return to the registration form and submit updated information.", enabled: true },
+    { id: "footer", type: "footer", content: "Need to change something? Contact the program office, or return to the registration form and submit updated information.", enabled: true },
   ];
   const configuredBlocks = parseEmailTemplate(settings.confirmationEmailTemplate);
   const blocks = configuredBlocks.length ? configuredBlocks : defaultBlocks;
@@ -315,7 +315,7 @@ async function sendConfirmationEmail({
     if (block.type === "emergency") return emergencyHtml ? `<h2 style="font-size:16px;margin:18px 0 8px;">${escapeHtml(title || "Emergency Information")}</h2>${emergencyHtml}` : "";
     if (block.type === "additionalInfo") return additionalInfoHtml ? `<h2 style="font-size:16px;margin:18px 0 8px;">${escapeHtml(title || "Additional Student Information")}</h2>${additionalInfoHtml}` : "";
     if (block.type === "payment") return paymentHtml;
-    if (block.type === "footer") return `<p style="margin-top:22px;color:#64748b;font-size:13px;">${textToHtml(content || "Need to change something? Contact the camp office.")}</p>`;
+    if (block.type === "footer") return `<p style="margin-top:22px;color:#64748b;font-size:13px;">${textToHtml(content || "Need to change something? Contact the program office.")}</p>`;
     return "";
   };
 
@@ -384,7 +384,7 @@ async function sendAdminNotificationEmail({
       <p style="margin:0 0 10px;">${escapeHtml(guardian.name)}<br>${escapeHtml(guardian.email)}<br>${escapeHtml(guardian.phone || "")}</p>
       ${studentBlocks}
       <h2 style="font-size:16px;margin:18px 0 8px;">Payment</h2>
-      <p style="margin:0;">${paymentRequired ? `Payment required: <strong>${money(totals.totalCents)}</strong>` : "No payment required at submission."}<br>Camp price: ${money(totals.campPriceCents)}<br>Discount: ${money(totals.discountCents)}<br>Platform fee: ${money(totals.platformFeeCents)}</p>
+      <p style="margin:0;">${paymentRequired ? `Payment required: <strong>${money(totals.totalCents)}</strong>` : "No payment required at submission."}<br>Program price: ${money(totals.campPriceCents)}<br>Discount: ${money(totals.discountCents)}<br>Platform fee: ${money(totals.platformFeeCents)}</p>
     </div>`;
 
   await resend.emails.send({
@@ -414,7 +414,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       camperPriceCents: true,
     },
   });
-  if (!camp) return NextResponse.json({ error: "Camp not found" }, { status: 404 });
+  if (!camp) return NextResponse.json({ error: "Program not found" }, { status: 404 });
   if (!camp.registrationOpen) return NextResponse.json({ error: "Registration is closed" }, { status: 403 });
 
   const ref = slugRef(data.formRef);
@@ -476,7 +476,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       return NextResponse.json({
         duplicate: true,
         camperId: existing.id,
-        message: `${firstName} ${lastName} already appears to be registered. Please edit that existing registration or contact the camp before submitting this family registration.`,
+        message: `${firstName} ${lastName} already appears to be registered. Please edit that existing registration or contact the program before submitting this family registration.`,
       }, { status: 409 });
     }
   }
@@ -509,7 +509,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       return NextResponse.json({
         duplicate: true,
         camperId: existing.id,
-        message: `${firstName} ${lastName} already appears to be registered. Please edit that existing registration or contact the camp before submitting this family registration.`,
+        message: `${firstName} ${lastName} already appears to be registered. Please edit that existing registration or contact the program before submitting this family registration.`,
       }, { status: 409 });
     }
 

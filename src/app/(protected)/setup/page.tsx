@@ -690,7 +690,7 @@ function SetupContent() {
 
   if (!campId) return (
     <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block"></span><p>Select a camp to configure it.</p></div>
+      <div className="text-center"><span className="text-4xl mb-3 block"></span><p>Select a program to configure it.</p></div>
     </div>
   );
 
@@ -710,7 +710,7 @@ function SetupContent() {
   const registrationReady = detailsDone && ageGroups.length > 0 && rooms.length > 0 && sessionRows.length > 0 && teachersDone && activitiesDone && scheduleDone;
 
   const setupSteps: SetupStep[] = [
-    { key: "details", label: "Program Info", shortLabel: "Program", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What program am I building?", done: detailsDone, actionLabel: "Set camp info" },
+    { key: "details", label: "Program Info", shortLabel: "Program", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What program am I building?", done: detailsDone, actionLabel: "Set program info" },
     { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this program serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, actionLabel: "Add age groups" },
     { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, actionLabel: "Add rooms" },
     { key: "times", label: "Time Slots", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, actionLabel: "Build day schedule" },
@@ -718,7 +718,7 @@ function SetupContent() {
     { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of classes and activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, actionLabel: "Create activities" },
     { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time slots with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, actionLabel: "Schedule activities" },
     { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, actionLabel: "Prepare registration" },
-    { key: "review", label: "Review & Open", shortLabel: "Review", icon: "9", help: "Run the readiness checklist before parents see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, actionLabel: registrationOpen ? "Review live camp" : "Open registration" },
+    { key: "review", label: "Review & Open", shortLabel: "Review", icon: "9", help: "Run the readiness checklist before parents see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, actionLabel: registrationOpen ? "Review live program" : "Open registration" },
   ];
   const completedSteps = setupSteps.filter(step => step.done).length;
   const nextStep = setupSteps.find(step => !step.done && !step.locked) || setupSteps.find(step => !step.done) || setupSteps[setupSteps.length - 1];
@@ -1004,7 +1004,7 @@ function SetupContent() {
         <form onSubmit={addAgeGroup} className="flex gap-3 items-end flex-wrap">
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Group Name</label>
-            <input type="text" value={newAgeName} onChange={e => setNewAgeName(e.target.value)} required placeholder="e.g. Younger Campers"
+            <input type="text" value={newAgeName} onChange={e => setNewAgeName(e.target.value)} required placeholder="e.g. Younger Participants"
               className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
           </div>
           <div>
@@ -1033,14 +1033,14 @@ function SetupContent() {
       {activeTab === "times" && (
       <Section title="Time Slots">
         <HelpCopy title="Time slots" className="text-xs text-slate-400 mb-4">
-          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of camp. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
+          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of the program. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
         </HelpCopy>
 
         {/* No dates warning */}
         {campDates.length === 0 && (
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 mb-4">
             <span className="text-lg"></span>
-            <span>Set your camp <strong>Start Date</strong> and <strong>End Date</strong> above to use the schedule grid.</span>
+            <span>Set your program <strong>Start Date</strong> and <strong>End Date</strong> above to use the schedule grid.</span>
           </div>
         )}
 
@@ -1194,7 +1194,7 @@ function SetupContent() {
                             type="checkbox"
                             checked={everyDay}
                             onChange={() => setEveryDayForRow(row, !everyDay)}
-                            title={everyDay ? "Clear every day" : "Use every day of camp"}
+                            title={everyDay ? "Clear every day" : "Use every day of the program"}
                             className="w-4 h-4 rounded cursor-pointer accent-sky-500"
                           />
                         </td>
@@ -1273,7 +1273,7 @@ function SetupContent() {
                             disabled={!valid}
                             checked={draftEveryDay}
                             onChange={() => setDraftEveryDay(draft.id, !draftEveryDay)}
-                            title="Use every day of camp"
+                            title="Use every day of the program"
                             className="w-4 h-4 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed accent-sky-500"
                           />
                         </td>
@@ -1320,7 +1320,7 @@ function SetupContent() {
 
             {/* Legend */}
             <p className="text-xs text-slate-400 mt-3 flex items-center gap-4">
-              <span><strong>All</strong> = every day of camp</span>
+              <span><strong>All</strong> = every day of the program</span>
               <span>day checkboxes save instantly</span>
             </p>
           </>
@@ -1409,7 +1409,7 @@ function SetupContent() {
         <Section title="Registration">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <HelpCopy title="Registration preview" className="text-sm text-slate-600">Once the schedule is sane, preview what families will see. Campers will only see eligible, non-mandatory activity choices, and full classes stay protected by capacity rules.</HelpCopy>
+              <HelpCopy title="Registration preview" className="text-sm text-slate-600">Once the schedule is sane, preview what families will see. Participants will only see eligible, non-mandatory activity choices, and full classes stay protected by capacity rules.</HelpCopy>
               <div className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
                 <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-800">Public link:</span> /register/{campId}</div>
                 <div className="rounded-xl bg-slate-50 px-3 py-2"><span className="font-bold text-slate-800">Status:</span> {registrationOpen ? "Open" : "Closed"}</div>

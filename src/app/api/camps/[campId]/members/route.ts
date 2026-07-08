@@ -103,7 +103,7 @@ function buildInviteEmail({ email, campName, role, inviteUrl, inviterName }: {
   email: string; campName: string; role: string; inviteUrl: string; inviterName: string;
 }) {
   const roleDesc: Record<string, string> = {
-    admin:  "Admin — manage team, create & delete camps",
+    admin:  "Admin — manage team, create & delete programs",
     editor: "Editor — edit all content",
     viewer: "Viewer — view-only access",
   };

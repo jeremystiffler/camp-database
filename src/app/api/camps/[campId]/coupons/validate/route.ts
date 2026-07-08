@@ -11,7 +11,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     where: { id: campId },
     select: { camperPriceCents: true, platformFeeCents: true, platformFeePercentBps: true, platformFeeMinCents: true, platformFeeCapCents: true },
   });
-  if (!camp) return NextResponse.json({ error: "Camp not found" }, { status: 404 });
+  if (!camp) return NextResponse.json({ error: "Program not found" }, { status: 404 });
   if (!code) return NextResponse.json({ valid: false, error: "Enter a coupon code" }, { status: 400 });
   const coupon = await prisma.campCoupon.findFirst({ where: { campId, code, active: true } });
   if (!coupon) return NextResponse.json({ valid: false, error: "Coupon code not found" }, { status: 404 });

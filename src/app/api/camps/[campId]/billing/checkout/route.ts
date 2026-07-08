@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     where: { id: campId },
     include: { organization: true },
   });
-  if (!camp) return NextResponse.json({ error: "Camp not found" }, { status: 404 });
+  if (!camp) return NextResponse.json({ error: "Program not found" }, { status: 404 });
 
   const baseUrl = getBaseUrl();
   const priceId = process.env.STRIPE_CAMP_ANNUAL_PRICE_ID || camp.stripePriceId;

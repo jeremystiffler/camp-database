@@ -67,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     if (!camperId || !action || !campDate) return NextResponse.json({ error: "camperId, action, and date are required" }, { status: 400 });
 
     const camper = await prisma.camper.findFirst({ where: { id: camperId, campId }, select: { id: true, firstName: true, lastName: true } });
-    if (!camper) return NextResponse.json({ error: "Camper not found" }, { status: 404 });
+    if (!camper) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
 
     const now = new Date();
     const note = clean(body.note);

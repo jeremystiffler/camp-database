@@ -590,7 +590,7 @@ function PrintContent() {
       const sourceRes = await fetch(`/api/camps/${sourceCampId}/print-templates`);
       const sourceTemplates = await sourceRes.json().catch(() => []);
       if (!sourceRes.ok || !Array.isArray(sourceTemplates) || sourceTemplates.length === 0) {
-        setMessage("No saved templates found in that camp yet.");
+        setMessage("No saved templates found in that program yet.");
         setSaving(false);
         return;
       }
@@ -605,8 +605,8 @@ function PrintContent() {
       }
       if (copied.length) {
         setSavedTemplates(prev => [...prev, ...copied]);
-        setMessage(`Copied ${copied.length} template${copied.length === 1 ? "" : "s"} from ${campOptions.find(c => c.id === sourceCampId)?.name || "that camp"}.`);
-      } else setMessage("Could not copy templates from that camp.");
+        setMessage(`Copied ${copied.length} template${copied.length === 1 ? "" : "s"} from ${campOptions.find(c => c.id === sourceCampId)?.name || "that program"}.`);
+      } else setMessage("Could not copy templates from that program.");
     } finally {
       setSaving(false);
     }
@@ -745,14 +745,14 @@ function PrintContent() {
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Build your own</p>
                     <h2 className="mt-1 text-lg font-black text-slate-900">Custom printables</h2>
-                    <HelpCopy title="Custom printables" className="mt-1 text-xs font-semibold text-slate-500">Custom builders and saved camp templates live here, away from the stock shelf.</HelpCopy>
+                    <HelpCopy title="Custom printables" className="mt-1 text-xs font-semibold text-slate-500">Custom builders and saved program templates live here, away from the stock shelf.</HelpCopy>
                   </div>
                   <button onClick={saveAsTemplate} disabled={saving} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">Save current as custom</button>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {customTemplates.map((template, index) => renderTemplateCard(template, index + stockTemplates.length))}
                 </div>
-                {savedTemplates.length === 0 && <HelpCopy title="Saved custom templates" className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">No saved custom templates yet. Select a builder, adjust it, then save it here for the camp.</HelpCopy>}
+                {savedTemplates.length === 0 && <HelpCopy title="Saved custom templates" className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs font-semibold text-slate-500">No saved custom templates yet. Select a builder, adjust it, then save it here for the program.</HelpCopy>}
                 <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
                   <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Template library</summary>
                   <div className="mt-3 space-y-3">
@@ -761,7 +761,7 @@ function PrintContent() {
                     </select>
                     <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                       <select value={sourceCampId} onChange={e => setSourceCampId(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                        <option value="">Copy custom templates from another camp…</option>
+                        <option value="">Copy custom templates from another program…</option>
                         {campOptions.filter(camp => camp.id !== campId).map(camp => <option key={camp.id} value={camp.id}>{camp.name}</option>)}
                       </select>
                       <button onClick={importTemplatesFromCamp} disabled={saving || !sourceCampId} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">Copy in</button>
@@ -786,7 +786,7 @@ function PrintContent() {
                   <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Advanced page setup</summary>
                   <div className="mt-3 space-y-3">
                     {!draftTemplate.builtin && <label className="block text-xs font-bold text-slate-500">Document type<select value={draftTemplate.type} onChange={e => updateDraft({ type: e.target.value as PrintType })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
-                      <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Camper class choices</option><option value="camper_roster">Camper roster</option><option value="tshirt_list">T-shirt list</option><option value="pickup_cards">Pickup window cards</option><option value="pickup_roster">Pickup number roster</option><option value="badges">Badges</option>
+                      <option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Participant class choices</option><option value="camper_roster">Participant roster</option><option value="tshirt_list">T-shirt list</option><option value="pickup_cards">Pickup window cards</option><option value="pickup_roster">Pickup number roster</option><option value="badges">Badges</option>
                     </select></label>}
                     <div className="grid grid-cols-2 gap-3">
                       <label className="block text-xs font-bold text-slate-500">Paper<select value={draftTemplate.paperSize} onChange={e => updateDraft({ paperSize: e.target.value as PaperSize })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">{Object.entries(PAPER_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
@@ -894,12 +894,12 @@ function PrintContent() {
 
       {activeDoc === "teacher_schedules" && <div className="print-doc ops-print">{operationalPeople.map(person => { const rows = teacherRows(person, courses, mandatorySessions, campers); const columns = 3 + (selectedSettings.showRoom ? 1 : 0) + (selectedSettings.showStudents ? 1 : 0); return <section key={person.id} className="page-break"><h1 className="ops-title">{fullName(person)} Teacher Packet</h1><p className="ops-subtitle">{person.role} {person.email ? `• ${person.email}` : ""} {person.phone ? `• ${person.phone}` : ""}</p><table><thead><tr><th style={{width:"100px"}}>Time</th><th>Assignment</th>{selectedSettings.showRoom && <th style={{width:"120px"}}>Room</th>}<th style={{width:"110px"}}>Group</th>{selectedSettings.showStudents && <th>Registered Students</th>}</tr></thead><tbody>{rows.length ? rows.map((row, idx) => <tr key={`${row.sortValue}-${idx}`}><td>{row.time}</td><td>{row.title}</td>{selectedSettings.showRoom && <td>{row.room}</td>}<td>{row.age}</td>{selectedSettings.showStudents && <td>{row.students.length ? row.students.map(student => fullName(student)).join("\n") : "—"}</td>}</tr>) : <tr><td colSpan={columns}>No scheduled assignments.</td></tr>}</tbody></table></section>; })}</div>}
 
-      {activeDoc === "class_rosters" && <div className="print-doc ops-print">{rosterPackets.map(group => { const course = courseById(courses, group.courseId); return <section key={group.key} className="page-break"><h1 className="ops-title">{group.title}</h1><p className="ops-subtitle">{group.time}{selectedSettings.showRoom ? ` • ${group.room}` : ""}{selectedSettings.showTeacher ? ` • Teacher: ${courseTeacherNames(course)}` : ""} • {group.campers.length} camper{group.campers.length === 1 ? "" : "s"}</p><table><thead><tr><th style={{width:"150px"}}>Camper</th><th style={{width:"100px"}}>Age Group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}{selectedSettings.showMedical && <th>Medical / Dietary</th>}</tr></thead><tbody>{group.campers.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || ""}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}{selectedSettings.showMedical && <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>}</tr>)}</tbody></table></section>; })}</div>}
+      {activeDoc === "class_rosters" && <div className="print-doc ops-print">{rosterPackets.map(group => { const course = courseById(courses, group.courseId); return <section key={group.key} className="page-break"><h1 className="ops-title">{group.title}</h1><p className="ops-subtitle">{group.time}{selectedSettings.showRoom ? ` • ${group.room}` : ""}{selectedSettings.showTeacher ? ` • Teacher: ${courseTeacherNames(course)}` : ""} • {group.campers.length} camper{group.campers.length === 1 ? "" : "s"}</p><table><thead><tr><th style={{width:"150px"}}>Participant</th><th style={{width:"100px"}}>Age Group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}{selectedSettings.showMedical && <th>Medical / Dietary</th>}</tr></thead><tbody>{group.campers.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || ""}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}{selectedSettings.showMedical && <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>}</tr>)}</tbody></table></section>; })}</div>}
 
       {activeDoc === "rotation_roster" && <div className="print-doc ops-print">{(() => {
         const renderCustomBackField = (camper: Camper, blockId: string) => {
           const field = (label: string, value: string) => <div key={blockId} className="custom-back-field"><span className="custom-back-label">{label}</span>{value || "—"}</div>;
-          if (blockId === "fullName" || blockId === "name") return field("Camper", fullName(camper));
+          if (blockId === "fullName" || blockId === "name") return field("Participant", fullName(camper));
           if (blockId === "ageGroup") return field("Age group", camper.ageGroup?.name || "—");
           if (blockId === "guardian") return field("Emergency contact", [camper.guardianName, camper.guardianPhone || camper.guardianEmail].filter(Boolean).join("\n") || "—");
           if (blockId === "emergency") return field("Emergency phone", camper.emergencyPhone || camper.guardianPhone || "—");
@@ -917,15 +917,15 @@ function PrintContent() {
         {selectedSettings.badgeBackEnabled && chunkItems(sortedCampers, draftTemplate.paperSize === "custom" ? 40 : 12).map((pageCampers, pageIndex) => <section key={`custom-back-${pageIndex}`} className="custom-back-page">{pageCampers.map(camper => <div key={camper.id} className="custom-back-card"><div className="custom-back-title">{fullName(camper)}</div>{badgeBackBlocks.map(block => renderCustomBackField(camper, block.id))}</div>)}</section>)}</>;
       })()}</div>}
 
-      {activeDoc === "camper_choices" && <div className="print-doc ops-print"><h1 className="ops-title">Camper Class Choices</h1><p className="ops-subtitle">Repeated sessions are combined; each selected class time appears once per camper.</p><table><thead><tr><th style={{width:"145px"}}>Camper</th><th style={{width:"95px"}}>Age Group</th><th>Class Choices</th></tr></thead><tbody>{sortedCampers.map(camper => { const choices = classChoicesForCamper(camper, courses); return <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{choices.length ? choices.map(choice => choice.label).join("\n") : "—"}</td></tr>; })}</tbody></table></div>}
+      {activeDoc === "camper_choices" && <div className="print-doc ops-print"><h1 className="ops-title">Participant Class Choices</h1><p className="ops-subtitle">Repeated sessions are combined; each selected class time appears once per participant.</p><table><thead><tr><th style={{width:"145px"}}>Participant</th><th style={{width:"95px"}}>Age Group</th><th>Class Choices</th></tr></thead><tbody>{sortedCampers.map(camper => { const choices = classChoicesForCamper(camper, courses); return <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{choices.length ? choices.map(choice => choice.label).join("\n") : "—"}</td></tr>; })}</tbody></table></div>}
 
-      {activeDoc === "camper_roster" && <div className="print-doc ops-print"><h1 className="ops-title">Camper Roster</h1><table><thead><tr><th>Last</th><th>First</th><th>Age Group</th><th>Guardian</th><th>Email</th></tr></thead><tbody>{sortedCampers.map(c => <tr key={c.id}><td>{c.lastName}</td><td>{c.firstName}</td><td>{c.ageGroup?.name || "—"}</td><td>{c.guardianName || "—"}</td><td>{c.guardianEmail || "—"}</td></tr>)}</tbody></table></div>}
+      {activeDoc === "camper_roster" && <div className="print-doc ops-print"><h1 className="ops-title">Participant Roster</h1><table><thead><tr><th>Last</th><th>First</th><th>Age Group</th><th>Guardian</th><th>Email</th></tr></thead><tbody>{sortedCampers.map(c => <tr key={c.id}><td>{c.lastName}</td><td>{c.firstName}</td><td>{c.ageGroup?.name || "—"}</td><td>{c.guardianName || "—"}</td><td>{c.guardianEmail || "—"}</td></tr>)}</tbody></table></div>}
 
       {activeDoc === "tshirt_list" && <div className="print-doc ops-print"><h1 className="ops-title">T-Shirt Sizes</h1>{tshirtOrder.filter(s => sizeGroups[s]?.length).map(size => <section key={size} style={{marginBottom:18}}><h2 style={{fontSize:16, margin:"0 0 6px"}}>{size} ({sizeGroups[size].length})</h2><table><tbody>{sortedCampersList(sizeGroups[size]).map(c => <tr key={c.id}><td>{c.lastName}, {c.firstName}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></section>)}</div>}
 
-      {activeDoc === "pickup_cards" && <div className="print-doc ops-print">{sortedCampers.map(c => <section key={c.id} className="page-break" style={{minHeight:"calc(100vh - 0.5in)", display:"flex", alignItems:"center", justifyContent:"center"}}><div style={{width:"100%", maxWidth:"5.4in", border:"4px solid #111", borderRadius:"18px", padding:"0.28in", textAlign:"center"}}><div style={{fontSize:18, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase"}}>Creator&apos;s Camp Pickup</div><div style={{fontSize:96, lineHeight:1, fontWeight:900, margin:"0.18in 0 0.08in"}}>{c.pickupNumber || "—"}</div><div style={{fontSize:24, fontWeight:900, letterSpacing:"0.08em", textTransform:"uppercase"}}>{c.lastName} Family</div><div style={{marginTop:"0.18in", display:"flex", justifyContent:"center"}}><CamperScannableCode value={c.scanCode} label="Scan for check-in" size={132} /></div><div style={{marginTop:"0.12in", fontSize:12, fontWeight:700, color:"#444"}}>Staff: scan QR or search pickup #{c.pickupNumber || "—"}</div></div></section>)}</div>}
+      {activeDoc === "pickup_cards" && <div className="print-doc ops-print">{sortedCampers.map(c => <section key={c.id} className="page-break" style={{minHeight:"calc(100vh - 0.5in)", display:"flex", alignItems:"center", justifyContent:"center"}}><div style={{width:"100%", maxWidth:"5.4in", border:"4px solid #111", borderRadius:"18px", padding:"0.28in", textAlign:"center"}}><div style={{fontSize:18, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase"}}>Creator&apos;s Program Pickup</div><div style={{fontSize:96, lineHeight:1, fontWeight:900, margin:"0.18in 0 0.08in"}}>{c.pickupNumber || "—"}</div><div style={{fontSize:24, fontWeight:900, letterSpacing:"0.08em", textTransform:"uppercase"}}>{c.lastName} Family</div><div style={{marginTop:"0.18in", display:"flex", justifyContent:"center"}}><CamperScannableCode value={c.scanCode} label="Scan for check-in" size={132} /></div><div style={{marginTop:"0.12in", fontSize:12, fontWeight:700, color:"#444"}}>Staff: scan QR or search pickup #{c.pickupNumber || "—"}</div></div></section>)}</div>}
 
-      {activeDoc === "pickup_roster" && <div className="print-doc ops-print"><h1 className="ops-title">Pickup Number Roster</h1><p className="ops-subtitle">Backup car-line lookup. Pickup numbers can be shared by siblings/family groups.</p><table><thead><tr><th style={{width:"80px"}}>Pickup #</th><th>Family / Camper</th><th>Guardian</th><th>Phone</th><th>Age Group</th></tr></thead><tbody>{[...sortedCampers].sort((a,b) => String(a.pickupNumber || "999999").localeCompare(String(b.pickupNumber || "999999"), undefined, { numeric: true })).map(c => <tr key={c.id}><td style={{fontSize:16, fontWeight:900, textAlign:"center"}}>{c.pickupNumber || "—"}</td><td>{c.lastName.toUpperCase()} FAMILY<br />{fullName(c)}</td><td>{c.guardianName || "—"}</td><td>{c.guardianPhone || c.guardianEmail || "—"}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></div>}
+      {activeDoc === "pickup_roster" && <div className="print-doc ops-print"><h1 className="ops-title">Pickup Number Roster</h1><p className="ops-subtitle">Backup car-line lookup. Pickup numbers can be shared by siblings/family groups.</p><table><thead><tr><th style={{width:"80px"}}>Pickup #</th><th>Family / Participant</th><th>Guardian</th><th>Phone</th><th>Age Group</th></tr></thead><tbody>{[...sortedCampers].sort((a,b) => String(a.pickupNumber || "999999").localeCompare(String(b.pickupNumber || "999999"), undefined, { numeric: true })).map(c => <tr key={c.id}><td style={{fontSize:16, fontWeight:900, textAlign:"center"}}>{c.pickupNumber || "—"}</td><td>{c.lastName.toUpperCase()} FAMILY<br />{fullName(c)}</td><td>{c.guardianName || "—"}</td><td>{c.guardianPhone || c.guardianEmail || "—"}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></div>}
 
       {activeDoc === "badges" && <div className="print-doc ops-print">
         {(() => {
@@ -933,7 +933,7 @@ function PrintContent() {
             const fieldClass = lanyard ? "lanyard-back-field" : "badge-back-field";
             const labelClass = lanyard ? "lanyard-back-label" : "badge-back-field-label";
             const field = (label: string, value: string) => <div key={blockId} className={fieldClass}><span className={labelClass}>{label}</span>{value || "—"}</div>;
-            if (blockId === "fullName" || blockId === "name") return field("Camper", fullName(c));
+            if (blockId === "fullName" || blockId === "name") return field("Participant", fullName(c));
             if (blockId === "ageGroup") return field("Age group", c.ageGroup?.name || "—");
             if (blockId === "guardian") return field("Emergency contact", [c.guardianName, c.guardianPhone || c.guardianEmail].filter(Boolean).join("\n") || "—");
             if (blockId === "emergency") return field("Emergency phone", c.emergencyPhone || c.guardianPhone || "—");
@@ -967,7 +967,7 @@ function PrintContent() {
               </div>;
             }
             const renderBadgeBlock = (blockId: string) => {
-              if (blockId === "label") return <div key="label" style={{fontSize:11, textTransform:"uppercase", letterSpacing:".12em", marginBottom:8}}>Camper</div>;
+              if (blockId === "label") return <div key="label" style={{fontSize:11, textTransform:"uppercase", letterSpacing:".12em", marginBottom:8}}>Participant</div>;
               if (blockId === "firstName") return <div key="firstName" className="badge-name">{c.firstName}</div>;
               if (blockId === "lastName") return <div key="lastName" className="badge-last">{c.lastName}</div>;
               if (blockId === "fullName") return <div key="fullName" className="badge-name">{fullName(c)}</div>;

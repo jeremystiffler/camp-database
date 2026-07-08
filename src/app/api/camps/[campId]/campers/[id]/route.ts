@@ -41,11 +41,11 @@ async function resolveSessionChoices(campId: string, choices: SessionChoiceInput
       where: { id: choice.courseId, campId, courseSessionTemplates: { some: { sessionTemplateId: choice.sessionTemplateId } } },
       include: { sessions: { where: { campId, sessionTemplateId: choice.sessionTemplateId }, select: { id: true, enrolledCount: true } } },
     }).catch(() => null);
-    if (!course) throw new Error("One or more selected classes are not available for this camp");
+    if (!course) throw new Error("One or more selected classes are not available for this program");
     let session = course.sessions[0] || null;
     if (!session) {
       const template = await prisma.sessionTemplate.findFirst({ where: { id: choice.sessionTemplateId, campId }, select: { id: true, label: true, startTime: true, endTime: true, mandatory: true } });
-      if (!template) throw new Error("One or more selected time slots are not available for this camp");
+      if (!template) throw new Error("One or more selected time slots are not available for this program");
       if (template.mandatory) throw new Error(`${template.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.`);
       const created = await prisma.session.create({ data: { campId, courseId: course.id, sessionTemplateId: template.id, roomId: course.roomId, startTime: template.startTime, endTime: template.endTime }, select: { id: true, enrolledCount: true } });
       session = created;
@@ -68,7 +68,7 @@ async function replaceEnrollments(campId: string, camperId: string, nextSessionI
     const validSessions = await prisma.session.findMany({ where: { campId, id: { in: toAdd } }, select: { id: true, enrolledCount: true, course: { select: { name: true, cap: true } } } });
     const validIds = new Set(validSessions.map((s) => s.id));
     const invalid = toAdd.filter((id) => !validIds.has(id));
-    if (invalid.length) throw new Error("One or more selected sessions do not belong to this camp");
+    if (invalid.length) throw new Error("One or more selected sessions do not belong to this program");
     for (const session of validSessions) {
       if (session.course?.cap !== null && session.course?.cap !== undefined && session.enrolledCount >= session.course.cap) throw new Error(`${session.course.name} is full. Choose a different class.`);
     }
@@ -95,21 +95,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can edit campers" }, { status: 403 });
+  if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can edit participants" }, { status: 403 });
 
   const existing = await prisma.camper.findFirst({ where: { id, campId }, select: { id: true } });
-  if (!existing) return NextResponse.json({ error: "Camper not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
 
   try {
     const data = await req.json();
     const firstName = nullableString(data.firstName);
     const lastName = nullableString(data.lastName);
-    if (!firstName || !lastName) return NextResponse.json({ error: "Camper first and last name are required" }, { status: 400 });
+    if (!firstName || !lastName) return NextResponse.json({ error: "Participant first and last name are required" }, { status: 400 });
 
     const ageGroupId = nullableString(data.ageGroupId);
     if (ageGroupId) {
       const ageGroup = await prisma.ageGroup.findFirst({ where: { id: ageGroupId, campId }, select: { id: true } });
-      if (!ageGroup) return NextResponse.json({ error: "Selected age group does not belong to this camp" }, { status: 400 });
+      if (!ageGroup) return NextResponse.json({ error: "Selected age group does not belong to this program" }, { status: 400 });
     }
 
     await prisma.camper.update({
@@ -144,8 +144,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     const item = await prisma.camper.findFirst({ where: { id, campId }, include: camperInclude });
     return NextResponse.json(item);
   } catch (err) {
-    console.error("Camper PATCH error:", err);
-    return NextResponse.json({ error: "Failed to update camper", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    console.error("Participant PATCH error:", err);
+    return NextResponse.json({ error: "Failed to update participant", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 }
 
@@ -154,10 +154,10 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "admin")) return NextResponse.json({ error: "Only admins and owners can delete campers" }, { status: 403 });
+  if (!member || !hasPermission(member.role, "admin")) return NextResponse.json({ error: "Only admins and owners can delete participants" }, { status: 403 });
 
   const existing = await prisma.camper.findFirst({ where: { id, campId }, select: { id: true } });
-  if (!existing) return NextResponse.json({ error: "Camper not found" }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
 
   const enrollments = await prisma.enrollment.findMany({ where: { campId, camperId: id }, select: { sessionId: true } });
   await prisma.camper.delete({ where: { id } });

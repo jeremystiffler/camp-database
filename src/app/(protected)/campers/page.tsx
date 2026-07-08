@@ -355,17 +355,17 @@ function CamperDrawer({
     const data = await res.json().catch(() => ({}));
     setSaving(false);
     if (res.ok) { onSaved(data); setEditing(false); }
-    else setError(data.detail || data.error || "Could not update this camper.");
+    else setError(data.detail || data.error || "Could not update this participant.");
   };
 
   const remove = async () => {
-    if (!confirm(`Delete ${camper.firstName} ${camper.lastName}? This removes the camper and their registration choices.`)) return;
+    if (!confirm(`Delete ${camper.firstName} ${camper.lastName}? This removes the participant and their registration choices.`)) return;
     setDeleting(true); setError("");
     const res = await fetch(`/api/camps/${campId}/campers/${camper.id}`, { method: "DELETE" });
     const data = await res.json().catch(() => ({}));
     setDeleting(false);
     if (res.ok) onDeleted(camper.id);
-    else setError(data.detail || data.error || "Could not delete this camper.");
+    else setError(data.detail || data.error || "Could not delete this participant.");
   };
 
   const manageIdentity = async (action: string, extra: Record<string, unknown> = {}) => {
@@ -480,7 +480,7 @@ function CamperDrawer({
                     <button type="button" onClick={() => manageIdentity("regenerate_scan_code")} disabled={saving || isNew} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800 disabled:opacity-40">Regenerate QR</button>
                   </div>
                 </div>
-                <CamperScannableCode value={camper.scanCode} label="Camper QR" size={132} />
+                <CamperScannableCode value={camper.scanCode} label="Participant QR" size={132} />
               </div>
             )}
           </section>
@@ -511,7 +511,7 @@ function CamperDrawer({
                   {editing
                     ? showSessionCatalog
                       ? "Showing the full class catalogue so you can add or remove choices."
-                      : `Showing only this camper's ${selectedChoiceCount || selectedSessionIds.length} selected choice${(selectedChoiceCount || selectedSessionIds.length) === 1 ? "" : "s"}.`
+                      : `Showing only this participant's ${selectedChoiceCount || selectedSessionIds.length} selected choice${(selectedChoiceCount || selectedSessionIds.length) === 1 ? "" : "s"}.`
                     : "Only classes chosen for this participant are shown here."}
                 </p>
               </div>
@@ -590,7 +590,7 @@ function CamperDrawer({
                 <div className="grid sm:grid-cols-2 gap-2.5">
                   <Info label="Status" value={camper.paymentStatus || "not_required"} />
                   <Info label="Coupon" value={camper.couponCode || "—"} />
-                  <Info label="Camp price" value={cents(camper.campPriceCents)} />
+                  <Info label="Program price" value={cents(camper.campPriceCents)} />
                   <Info label="Discount" value={cents(camper.discountCents)} />
                   <Info label="Platform fee" value={cents(camper.platformFeeCents)} />
                   <Info label="Total paid" value={cents(camper.totalPaidCents)} />
@@ -603,7 +603,7 @@ function CamperDrawer({
           {editing && (
             <div className="sticky bottom-0 bg-white border-t border-slate-100 py-4 flex gap-3">
               <button onClick={() => { if (isNew) onClose(); else setEditing(false); setError(""); }} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button onClick={save} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60">{saving ? "Saving…" : isNew ? "Add Camper" : "Save Camper"}</button>
+              <button onClick={save} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60">{saving ? "Saving…" : isNew ? "Add Participant" : "Save Participant"}</button>
             </div>
           )}
         </div>
@@ -700,7 +700,7 @@ function CampersContent() {
       <div className="flex items-center justify-center h-64 text-slate-400">
         <div className="text-center">
           <span className="text-4xl mb-3 block">👦</span>
-          <p>Select a camp from the sidebar to view campers.</p>
+          <p>Select a program from the sidebar to view participants.</p>
         </div>
       </div>
     );
@@ -710,12 +710,12 @@ function CampersContent() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Campers</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Participants</h1>
           <p className="text-slate-500 text-sm mt-0.5">{campers.length} registered</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-100">Assign Pickup #s</button>
-          <button onClick={() => setAddingCamper(true)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800">+ Add Camper</button>
+          <button onClick={() => setAddingCamper(true)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800">+ Add Participant</button>
           <button
             onClick={() => {
               const csv = [
@@ -733,7 +733,7 @@ function CampersContent() {
               const blob = new Blob([csv], { type: "text/csv" });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
-              a.href = url; a.download = "campers.csv"; a.click();
+              a.href = url; a.download = "participants.csv"; a.click();
             }}
             className="px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
           >
@@ -748,7 +748,7 @@ function CampersContent() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search campers, guardians..."
+          placeholder="Search participants, guardians..."
           className="flex-1 min-w-[200px] max-w-sm px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-400"
         />
         <select
@@ -797,15 +797,15 @@ function CampersContent() {
       ) : filtered.length === 0 ? (
         <div className="camp-card p-12 text-center">
           <span className="text-5xl mb-4 block">👦</span>
-          <h3 className="font-bold text-slate-700 mb-2">{search || filterAge || filterSize ? "No campers match your filters" : "No campers yet"}</h3>
-          <p className="text-slate-400 text-sm">Campers will appear here once they register through the public registration form.</p>
+          <h3 className="font-bold text-slate-700 mb-2">{search || filterAge || filterSize ? "No participants match your filters" : "No participants yet"}</h3>
+          <p className="text-slate-400 text-sm">Participants will appear here once they register through the public registration form.</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-4 py-3 font-semibold text-slate-600">Camper</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Participant</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Age Group</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Guardian</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Choices</th>

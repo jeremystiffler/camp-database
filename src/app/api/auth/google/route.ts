@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       const slug = googleUser.name.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Date.now();
       const org = await prisma.organization.create({ data: { name: googleUser.name, slug } });
 
-      const campSlug = "my-camp-" + Date.now();
+      const campSlug = "my-program-" + Date.now();
       user = await prisma.user.create({
         data: {
           email: googleUser.email,
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       const newCamp = await prisma.camp.create({
         data: {
           organizationId: org.id,
-          name: "My Camp",
+          name: "My Program",
           slug: campSlug,
           status: "draft",
         },
