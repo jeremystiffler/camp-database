@@ -22,7 +22,7 @@
   --color-cream: #F4E9D6;
   --color-muted: #A0B4C4;
   --color-success: #22C55E;
-  --color-error: #E53935;
+  --color-error: #F87171;
   --color-info: #42A5F5;
 
   /* === Clean Playground (used on dashboard / admin pages) === */
@@ -216,22 +216,24 @@
   --ui-border-strong: #cbd5e1;
   --ui-text: #1e293b;
   --ui-text-soft: #334155;
-  --ui-text-muted: #64748b;
+  --ui-text-muted: #334155;
+  --ui-text-faint: #475569;
 
-  /* Clean Playground: bright, modern, readable, with playful section color. */
-  --ui-lavender: #4f46e5;
+  /* Clean Playground: readable brand colors. Button/gradient endpoints are dark
+     enough for white text (WCAG AA for normal-sized labels). */
+  --ui-lavender: #4338ca;
   --ui-lavender-soft: #e0e7ff;
-  --ui-aqua: #0ea5e9;
+  --ui-aqua: #0369a1;
   --ui-aqua-soft: #e0f2fe;
-  --ui-butter: #f59e0b;
+  --ui-butter: #b45309;
   --ui-butter-soft: #fef3c7;
-  --ui-clay: #f43f5e;
+  --ui-clay: #be123c;
   --ui-clay-soft: #ffe4e6;
-  --ui-berry: #f43f5e;
+  --ui-berry: #be123c;
   --ui-berry-soft: #ffe4e6;
-  --ui-sage: #10b981;
+  --ui-sage: #047857;
   --ui-sage-soft: #d1fae5;
-  --ui-denim: #4f46e5;
+  --ui-denim: #4338ca;
   --ui-denim-soft: #e0e7ff;
   --ui-danger: #dc2626;
   --ui-danger-soft: #fee2e2;
@@ -273,11 +275,18 @@
 .bg-rose-100, .bg-red-100 { background-color: #e8cbc8 !important; }
 
 .text-forest-600, .text-forest-700, .text-emerald-600, .text-emerald-700 { color: #047857 !important; }
-.text-sky-600, .text-sky-700 { color: #0284c7 !important; }
+.text-sky-600, .text-sky-700 { color: #0369a1 !important; }
 .text-berry-600, .text-berry-700 { color: #4338ca !important; }
-.text-sunset-600, .text-sunset-700, .text-orange-600, .text-orange-700 { color: #d97706 !important; }
-.text-amber-600, .text-amber-700 { color: #b45309 !important; }
+.text-sunset-600, .text-sunset-700, .text-orange-600, .text-orange-700 { color: #be123c !important; }
+.text-amber-600, .text-amber-700 { color: #92400e !important; }
 .text-rose-700, .text-red-500, .text-red-600, .text-red-700 { color: var(--ui-danger) !important; }
+
+/* Contrast guardrails: slate-400/500 were too faint in many small labels,
+   especially when placed over tinted cards or dark selected states. */
+.text-slate-400 { color: var(--ui-text-faint) !important; }
+.text-slate-500 { color: var(--ui-text-muted) !important; }
+.text-white\/75 { color: rgba(255, 255, 255, 0.9) !important; }
+.text-indigo-500\/70 { color: #4338ca !important; }
 
 .text-red-800, .text-red-900, .text-orange-800, .text-orange-900, .text-amber-800, .text-amber-900,
 .text-emerald-800, .text-sky-800, .text-sky-900, .text-rose-800 {
