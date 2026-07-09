@@ -688,6 +688,54 @@ function PrintContent() {
   };
   const printDoc = (type = draftTemplate.type) => { if (type === "badges") setBadgePrintScope("all"); setActiveDoc(type); setPrintQueued(true); };
   const printBadges = (scope: "all" | "current") => { setBadgePrintScope(scope); setActiveDoc("badges"); setPrintQueued(true); };
+  const renderBadgeLivePreview = () => {
+    if (draftTemplate.type !== "badges" || !selectedBadgeCamper) return null;
+    const c = selectedBadgeCamper;
+    const renderQr = (size = 96) => <div key="qr" className="flex items-center justify-center py-2"><CamperScannableCode value={c.scanCode} label="Scan for check-in / checkout" size={size} /></div>;
+    const renderFieldLine = (key: string, text: string, className = "text-xs font-bold text-slate-700") => text ? <div key={key} className={className}>{text}</div> : null;
+    const renderStandardBlock = (blockId: string) => {
+      if (blockId === "label") return <div key="label" className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Participant</div>;
+      if (blockId === "firstName") return <div key="firstName" className="text-4xl font-black leading-none text-slate-950">{c.firstName}</div>;
+      if (blockId === "lastName") return <div key="lastName" className="text-xl font-black uppercase tracking-wide text-slate-700">{c.lastName}</div>;
+      if (blockId === "fullName") return <div key="fullName" className="text-3xl font-black leading-tight text-slate-950">{fullName(c)}</div>;
+      if (blockId === "ageGroup") return renderFieldLine("ageGroup", c.ageGroup?.name || "", "rounded-full bg-indigo-50 px-3 py-1 text-xs font-black text-indigo-700");
+      if (blockId === "guardian") return renderFieldLine("guardian", [c.guardianName, c.guardianPhone || c.guardianEmail].filter(Boolean).join(" • "));
+      if (blockId === "emergency") return renderFieldLine("emergency", `Emergency: ${c.emergencyPhone || c.guardianPhone || "—"}`);
+      if (blockId === "medical") return renderFieldLine("medical", [c.medicalNotes, c.dietaryNotes].filter(Boolean).join(" / ") || "No medical/dietary notes", "text-[11px] font-semibold text-slate-600");
+      if (blockId === "schedule") return renderFieldLine("schedule", badgeScheduleSummary(c), "whitespace-pre-line text-[11px] font-semibold leading-snug text-slate-600");
+      if (blockId === "qr") return renderQr(96);
+      return null;
+    };
+    const renderLanyardBlock = (blockId: string) => {
+      const rows = lanyardScheduleRows(c, badgeContentBlockIds.includes("ageGroup"));
+      if (blockId === "name" || blockId === "fullName") return <div key={blockId} className="lanyard-name">{fullName(c)}</div>;
+      if (blockId === "schedule") return <div key="schedule" className="lanyard-table">{rows.length ? rows.map((row, idx) => <div key={`${row.sortValue}-${idx}`} className="lanyard-row"><div className="lanyard-time">{row.time}</div><div className="lanyard-activity">{row.activity}</div></div>) : <div className="lanyard-row"><div className="lanyard-time">—</div><div className="lanyard-activity">No schedule assigned</div></div>}</div>;
+      if (blockId === "ageGroup") return <div key="ageGroup" className="lanyard-meta">{c.ageGroup?.name || "Age group not set"}</div>;
+      if (blockId === "guardian") return <div key="guardian" className="lanyard-meta">{[c.guardianName, c.guardianPhone || c.guardianEmail].filter(Boolean).join("\n") || "Guardian contact not set"}</div>;
+      if (blockId === "emergency") return <div key="emergency" className="lanyard-meta">Emergency: {c.emergencyPhone || "—"}</div>;
+      if (blockId === "medical") return <div key="medical" className="lanyard-meta">{[c.medicalNotes, c.dietaryNotes].filter(Boolean).join("\n") || "No medical/dietary notes"}</div>;
+      if (blockId === "qr") return <div key="qr" className="flex flex-1 items-center justify-center bg-white p-3">{renderQr(100)}</div>;
+      return null;
+    };
+    const renderBackBlock = (blockId: string) => {
+      const field = (label: string, value: string) => <div key={blockId} className="border-b border-slate-200 py-2 text-left text-xs font-semibold text-slate-700 last:border-b-0"><span className="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-500">{label}</span>{value || "—"}</div>;
+      if (blockId === "fullName" || blockId === "name") return field("Participant", fullName(c));
+      if (blockId === "ageGroup") return field("Age group", c.ageGroup?.name || "—");
+      if (blockId === "guardian") return field("Emergency contact", [c.guardianName, c.guardianPhone || c.guardianEmail].filter(Boolean).join("\n") || "—");
+      if (blockId === "emergency") return field("Emergency phone", c.emergencyPhone || c.guardianPhone || "—");
+      if (blockId === "medical") return field("Medical / dietary", [c.medicalNotes, c.dietaryNotes].filter(Boolean).join("\n") || "None listed");
+      if (blockId === "schedule") return field("Schedule", badgeScheduleSummary(c) || "—");
+      if (blockId === "qr") return renderQr(104);
+      return null;
+    };
+    return <div className="badge-live-preview space-y-4">
+      <div className="flex items-center justify-between gap-3 text-left"><div><p className="text-xs font-black uppercase tracking-wide text-slate-500">Live badge preview</p><p className="text-sm font-black text-slate-900">{fullName(c)}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500">{PAPER_LABELS[draftTemplate.paperSize]}</span></div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div><p className="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-500">Front</p>{selectedSettings.badgeLayout === "schedule_lanyard" ? <div className="lanyard-schedule-card badge-preview-card">{badgeContentBlocks.map(block => renderLanyardBlock(block.id))}</div> : <div className="badge-preview-card badge-card">{badgeContentBlocks.map(block => renderStandardBlock(block.id))}</div>}</div>
+        {selectedSettings.badgeBackEnabled && <div><p className="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-500">Back</p><div className="badge-preview-card badge-card badge-card-back"><div className="badge-back-title">{fullName(c)}</div>{badgeBackBlocks.map(block => renderBackBlock(block.id))}</div></div>}
+      </div>
+    </div>;
+  };
   const renderTemplateCard = (template: PrintTemplate, index: number) => {
     const meta = templateMeta(template);
     const key = template.id || `template-${index}`;
@@ -776,6 +824,10 @@ function PrintContent() {
         .rotation-students { min-height: 0; padding: 6px 7px; line-height: 1.28; font-weight: 800; text-align: ${rotationStudentTextAlign}; overflow: hidden; word-break: break-word; box-sizing: border-box; }
         .rotation-students div { break-inside: avoid; page-break-inside: avoid; }
         .rotation-footer { text-align: center; font-size: ${rotationFooterFont}px; font-weight: 800; line-height: 1.12; padding: 3px 4px; border-top: 1px solid #222; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; }
+        .badge-live-preview .badge-preview-card { min-height: 260px; max-width: 380px; margin: 0 auto; box-shadow: 0 18px 50px rgba(15,23,42,.14); }
+        .badge-live-preview .badge-card { min-height: 260px; border-color: #0f172a; }
+        .badge-live-preview .badge-card-back { justify-content: flex-start; }
+        .badge-live-preview .lanyard-schedule-card { min-height: 420px; max-width: 260px; }
         .print-template-card { border-radius: 1rem; padding: 1rem; min-height: 242px; display: flex; flex-direction: column; }
         .print-visual { height: 116px; border-radius: 14px; border: 1px solid rgba(15, 23, 42, .12); background: rgba(255,255,255,.58); padding: 10px; display: grid; gap: 6px; box-shadow: inset 0 1px 0 rgba(255,255,255,.75); }
         .print-visual span { display: block; border-radius: 7px; background: rgba(15,23,42,.16); }
@@ -873,13 +925,15 @@ function PrintContent() {
                 </div>
                 <div className="mt-4 rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-4">
                   <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="print-visual mx-auto max-w-xl" data-visual={selectedMeta.visual} aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
-                    <div className="mt-4 grid gap-2 text-sm font-semibold text-slate-600 sm:grid-cols-2">
-                      <p><strong className="text-slate-900">Data:</strong> {draftTemplate.type.includes("teacher") ? "Teachers + schedules" : draftTemplate.type.includes("roster") ? "Activities + participants" : "Participants + registration data"}</p>
-                      <p><strong className="text-slate-900">Layout:</strong> {selectedMeta.visual} / {draftTemplate.orientation}</p>
-                      <p><strong className="text-slate-900">Density:</strong> {selectedSettings.density}</p>
-                      <p><strong className="text-slate-900">Output:</strong> Print dialog or Save as PDF</p>
-                    </div>
+                    {draftTemplate.type === "badges" && selectedBadgeCamper ? renderBadgeLivePreview() : <>
+                      <div className="print-visual mx-auto max-w-xl" data-visual={selectedMeta.visual} aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
+                      <div className="mt-4 grid gap-2 text-sm font-semibold text-slate-600 sm:grid-cols-2">
+                        <p><strong className="text-slate-900">Data:</strong> {draftTemplate.type.includes("teacher") ? "Teachers + schedules" : draftTemplate.type.includes("roster") ? "Activities + participants" : "Participants + registration data"}</p>
+                        <p><strong className="text-slate-900">Layout:</strong> {selectedMeta.visual} / {draftTemplate.orientation}</p>
+                        <p><strong className="text-slate-900">Density:</strong> {selectedSettings.density}</p>
+                        <p><strong className="text-slate-900">Output:</strong> Print dialog or Save as PDF</p>
+                      </div>
+                    </>}
                     {activeDoc === draftTemplate.type && <p className="mt-4 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-900">Full printable preview is rendered below the studio. Use Print / PDF when ready.</p>}
                   </div>
                 </div>
@@ -1113,6 +1167,7 @@ function PrintContent() {
                 if (blockId === "guardian") return <div key="guardian" className="lanyard-meta">{[c.guardianName, c.guardianPhone || c.guardianEmail].filter(Boolean).join("\n") || "Guardian contact not set"}</div>;
                 if (blockId === "emergency") return <div key="emergency" className="lanyard-meta">Emergency: {c.emergencyPhone || "—"}</div>;
                 if (blockId === "medical") return <div key="medical" className="lanyard-meta">{[c.medicalNotes, c.dietaryNotes].filter(Boolean).join("\n") || "No medical/dietary notes"}</div>;
+                if (blockId === "qr") return <div key="qr" style={{ display: "flex", flex: 1, minHeight: 0, alignItems: "center", justifyContent: "center", padding: "0.08in", background: "#fff" }}><CamperScannableCode value={c.scanCode} label="Scan for check-in / checkout" size={150} /></div>;
                 return null;
               };
               return <div key={`${c.id}-front`} className={`lanyard-schedule-card ${withPageBreak && draftTemplate.paperSize !== "letter" ? "single-badge-page" : ""}`}>
@@ -1129,6 +1184,7 @@ function PrintContent() {
               if (blockId === "emergency") return <div key="emergency" style={{fontSize:10, marginTop:6}}>Emergency: {c.emergencyPhone || "—"}</div>;
               if (blockId === "medical") return <div key="medical" style={{fontSize:9, marginTop:6, lineHeight:1.2}}>{[c.medicalNotes, c.dietaryNotes].filter(Boolean).join(" / ") || "No medical/dietary notes"}</div>;
               if (blockId === "schedule") return <div key="schedule" style={{fontSize:9, marginTop:8, lineHeight:1.25}}>{badgeScheduleSummary(c)}</div>;
+              if (blockId === "qr") return <div key="qr" style={{ display: "flex", alignItems: "center", justifyContent: "center", marginTop: 8 }}><CamperScannableCode value={c.scanCode} label="Scan for check-in / checkout" size={132} /></div>;
               return null;
             };
             return <div key={`${c.id}-front`} className={`badge-card ${withPageBreak && draftTemplate.paperSize !== "letter" ? "single-badge-page" : ""}`}>
