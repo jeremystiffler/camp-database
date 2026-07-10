@@ -10,10 +10,30 @@ interface Camp {
   id: string;
   name: string;
   status: string;
+  registrationOpen?: boolean;
   myRole?: "owner" | "admin" | "editor" | "viewer";
   startDate?: string;
   endDate?: string;
   _count?: { campers: number; courses: number };
+}
+
+interface DashboardSummary {
+  stats: {
+    registeredStudents: number;
+    classes: number;
+    teachers: number;
+    rooms: number;
+    scheduleBlocks: number;
+    paymentCollectedCents: number;
+    paidPaymentCount: number;
+    pendingPaymentCount: number;
+  };
+  attention: {
+    classesWithoutTeachers: number;
+    unscheduledClasses: number;
+    fullOrOverCapacityClasses: number;
+    classesWithNoEnrollment: number;
+  };
 }
 
 const roleRank = (role?: string) => ({ owner: 4, admin: 3, editor: 2, viewer: 1 }[role || "viewer"] || 1);
@@ -25,6 +45,16 @@ function formatCampDate(value?: string) {
   const [year, month, day] = isoDate.split("-").map(Number);
   if (!year || !month || !day) return "No dates set";
   return new Date(year, month - 1, day).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatCampDateRange(camp?: Camp) {
+  if (!camp?.startDate && !camp?.endDate) return "Dates not set";
+  if (camp.startDate && camp.endDate) return `${formatCampDate(camp.startDate)} – ${formatCampDate(camp.endDate)}`;
+  return formatCampDate(camp.startDate || camp.endDate);
+}
+
+function formatCurrency(cents?: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format((cents || 0) / 100);
 }
 
 interface StatCardProps {
@@ -298,6 +328,9 @@ function DashboardContent() {
   const [loading,      setLoading]      = useState(true);
   const [showNewCamp,  setShowNewCamp]  = useState(false);
   const [copyingCamp,  setCopyingCamp]  = useState<Camp | null>(null);
+  const [summary,      setSummary]      = useState<DashboardSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [actionsOpen,  setActionsOpen]  = useState(false);
   const [renameValue,  setRenameValue]  = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameMsg,    setRenameMsg]    = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -321,8 +354,22 @@ function DashboardContent() {
   useEffect(() => {
     setRenameValue(activeCamp?.name || "");
     setRenameMsg(null);
+    setActionsOpen(false);
     if (activeCamp?.id) localStorage.setItem("activeCampId", activeCamp.id);
   }, [activeCamp?.id, activeCamp?.name]);
+
+  useEffect(() => {
+    if (!activeCamp?.id) {
+      setSummary(null);
+      return;
+    }
+    setSummaryLoading(true);
+    fetch(`/api/camps/${activeCamp.id}/dashboard`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => setSummary(data && data.stats ? data : null))
+      .catch(() => setSummary(null))
+      .finally(() => setSummaryLoading(false));
+  }, [activeCamp?.id]);
 
   const reloadPrograms = () => {
     fetch("/api/camps").then(r => r.json()).then(d => { if (Array.isArray(d)) setPrograms(d); });
@@ -350,8 +397,10 @@ function DashboardContent() {
     }
   };
 
-  const totalCampers    = camps.reduce((s, c) => s + (c._count?.campers   ?? 0), 0);
-  const totalActivities = camps.reduce((s, c) => s + (c._count?.courses   ?? 0), 0);
+  const attentionTotal = summary
+    ? summary.attention.classesWithoutTeachers + summary.attention.unscheduledClasses + summary.attention.fullOrOverCapacityClasses
+    : 0;
+  const selectedStats = summary?.stats;
 
   return (
     <div>
@@ -359,7 +408,9 @@ function DashboardContent() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Welcome back! Here&apos;s your program overview.</p>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {activeCamp ? `Current program: ${activeCamp.name}` : "Select a program to see details."}
+          </p>
         </div>
         {(camps.length === 0 || canAdminCamp(activeCamp)) && (
           <button onClick={() => setShowNewCamp(true)}
@@ -369,24 +420,66 @@ function DashboardContent() {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total Participants"  value={loading ? "–" : totalCampers}    icon="C" gradient="stat-forest" />
-        <StatCard label="Activities"     value={loading ? "–" : totalActivities} icon="A" gradient="stat-sky" />
-        <StatCard label="Programs"          value={loading ? "–" : camps.length}    icon="N" gradient="stat-sunset" />
-        <StatCard label="This Season"    value={loading ? "–" : (activeCamp?.status === "published" ? "Live" : "Draft")} icon="S" gradient="stat-berry" />
-      </div>
+      {/* Selected program stats */}
+      {activeCamp && (
+        <div className="mb-8 space-y-4">
+          <div className="camp-card p-5 bg-white">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <p className="minimal-section-title mb-2">Selected program details</p>
+                <h2 className="text-xl font-black text-slate-900">{activeCamp.name}</h2>
+                <p className="mt-1 text-sm font-semibold text-slate-600">{formatCampDateRange(activeCamp)}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-600">{activeCamp.status}</span>
+                <span className={`rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-wide ${activeCamp.registrationOpen ? "border-forest-200 bg-forest-50 text-forest-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+                  Registration {activeCamp.registrationOpen ? "open" : "closed"}
+                </span>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-600">{activeCamp.myRole || "viewer"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Registered Students" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" gradient="stat-forest" />
+            <StatCard label="Classes" value={summaryLoading ? "–" : (selectedStats?.classes ?? activeCamp._count?.courses ?? 0)} icon="C" gradient="stat-sky" sub={`${selectedStats?.teachers ?? 0} teachers • ${selectedStats?.rooms ?? 0} rooms`} />
+            <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" gradient="stat-sunset" sub={`${selectedStats?.paidPaymentCount ?? 0} paid • ${selectedStats?.pendingPaymentCount ?? 0} pending`} />
+            <StatCard label="Classes Needing Attention" value={summaryLoading ? "–" : attentionTotal} icon="!" gradient="stat-berry" sub="Teacher, schedule, or capacity issues" />
+          </div>
+
+          {summary && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-2xl font-black text-slate-900">{summary.attention.classesWithoutTeachers}</p>
+                <p className="text-xs font-bold text-slate-600">Classes without teachers</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-2xl font-black text-slate-900">{summary.attention.unscheduledClasses}</p>
+                <p className="text-xs font-bold text-slate-600">Classes not on schedule</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-2xl font-black text-slate-900">{summary.attention.fullOrOverCapacityClasses}</p>
+                <p className="text-xs font-bold text-slate-600">Full or over capacity</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                <p className="text-2xl font-black text-slate-900">{summary.attention.classesWithNoEnrollment}</p>
+                <p className="text-xs font-bold text-slate-600">Classes with no enrollments</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* New/returning user guide */}
       {activeCamp && (
-        <div className="camp-card p-5 mb-8 bg-gradient-to-r from-sky-50 via-white to-amber-50 border-sky-100">
+        <div className="camp-card p-5 mb-8 bg-white border-sky-200">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
-              <p className="minimal-section-title mb-2">Recommended next step</p>
-              <h2 className="text-lg font-black text-slate-900">
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-sky-700">Recommended next step</p>
+              <h2 className="text-lg font-black text-slate-950">
                 {canEditCamp(activeCamp) ? "Finish setup before families arrive" : "You have view-only access"}
               </h2>
-              <p className="mt-1 text-sm text-slate-600 max-w-2xl">
+              <p className="mt-1 text-sm font-semibold text-slate-700 max-w-2xl leading-relaxed">
                 {canEditCamp(activeCamp)
                   ? "For a new program, work left-to-right: setup basics, add people/activities, review the schedule, then open registration. Returning users can jump straight to the active program tools below."
                   : "You were invited to this program as a guest viewer. You can review rosters, schedules, check-in status, and printable materials, but edits are reserved for the program admins."}
@@ -405,47 +498,72 @@ function DashboardContent() {
       )}
 
       {activeCamp && (
-        <div className="camp-card p-5 mb-8 bg-white">
-          <div className="flex flex-col lg:flex-row lg:items-end gap-5 justify-between">
-            <div className="flex-1 min-w-0">
+        <div className="camp-card p-5 mb-8 bg-white relative">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
               <p className="minimal-section-title mb-2">Active program</p>
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <p className="text-sm font-black text-slate-900">{activeCamp.name}</p>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500">{activeCamp.myRole || "viewer"}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-black text-slate-900 truncate">{activeCamp.name}</p>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-slate-600">{activeCamp.myRole || "viewer"}</span>
+                {!canEditCamp(activeCamp) && <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">Read-only</span>}
               </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActionsOpen(v => !v)}
+              aria-expanded={actionsOpen}
+              className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-lg font-black leading-none text-slate-700 shadow-sm hover:border-slate-400 hover:text-slate-950"
+              title="Program actions"
+            >
+              ☰
+            </button>
+          </div>
+
+          {actionsOpen && (
+            <div className="absolute right-5 top-16 z-30 w-[min(92vw,360px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+              <div className="mb-2 px-2 py-1">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Program actions</p>
+                <p className="mt-0.5 truncate text-sm font-black text-slate-900">{activeCamp.name}</p>
+              </div>
+
               {canEditCamp(activeCamp) ? (
-                <>
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5">Rename program</label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input flex-1" />
-                    <button onClick={saveCampName} disabled={renameSaving} className="minimal-button-primary">
-                      {renameSaving ? "Saving…" : "Save Name"}
+                <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <label className="block text-xs font-black uppercase tracking-wide text-slate-600 mb-1.5">Rename program</label>
+                  <div className="flex gap-2">
+                    <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" />
+                    <button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">
+                      {renameSaving ? "Saving…" : "Save"}
                     </button>
                   </div>
                   {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg.text}</p>}
-                </>
+                </div>
               ) : (
-                <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">This shared program is read-only for your account.</p>
+                <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">This shared program is read-only for your account.</p>
               )}
+
+              <div className="grid gap-1">
+                {(canEditCamp(activeCamp)
+                  ? [
+                      ["Setup", `/setup?campId=${activeCamp.id}`],
+                      ["Teachers", `/teachers?campId=${activeCamp.id}`],
+                      ["Registration", `/registration?campId=${activeCamp.id}`],
+                      ["Schedule", `/schedule?campId=${activeCamp.id}`],
+                      ["Team", `/team?campId=${activeCamp.id}`],
+                    ]
+                  : [
+                      ["Participants", `/campers?campId=${activeCamp.id}`],
+                      ["Schedule", `/schedule?campId=${activeCamp.id}`],
+                      ["Print", `/print?campId=${activeCamp.id}`],
+                      ["Team", `/team?campId=${activeCamp.id}`],
+                    ]
+                ).map(([label, href]) => (
+                  <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-950">
+                    {label}
+                  </Link>
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:w-[560px]">
-              {canEditCamp(activeCamp) ? (
-                <>
-                  <Link href={`/setup?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Setup</Link>
-                  <Link href={`/teachers?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Teachers</Link>
-                  <Link href={`/registration?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Registration</Link>
-                  <Link href={`/schedule?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Schedule</Link>
-                </>
-              ) : (
-                <>
-                  <Link href={`/campers?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Participants</Link>
-                  <Link href={`/schedule?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Schedule</Link>
-                  <Link href={`/print?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Print</Link>
-                  <Link href={`/team?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-center text-xs font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Team</Link>
-                </>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       )}
 
