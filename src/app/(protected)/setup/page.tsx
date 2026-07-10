@@ -710,18 +710,21 @@ function SetupContent() {
   const registrationReady = detailsDone && ageGroups.length > 0 && rooms.length > 0 && sessionRows.length > 0 && teachersDone && activitiesDone && scheduleDone;
 
   const setupSteps: SetupStep[] = [
-    { key: "details", label: "Program Info", shortLabel: "Program", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What program am I building?", done: detailsDone, actionLabel: "Set program info" },
+    { key: "details", label: "Program Info", shortLabel: "Info", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What program am I building?", done: detailsDone, actionLabel: "Set program info" },
     { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this program serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, actionLabel: "Add age groups" },
     { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, actionLabel: "Add rooms" },
     { key: "times", label: "Time Slots", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, actionLabel: "Build day schedule" },
-    { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning classes.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, actionLabel: "Add teachers" },
-    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of classes and activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, actionLabel: "Create activities" },
+    { key: "teachers", label: "Teachers", shortLabel: "Staff", icon: "5", help: "Add staff before assigning classes.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, actionLabel: "Add teachers" },
+    { key: "activities", label: "Activities", shortLabel: "Classes", icon: "6", help: "Create the catalog of classes and activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, actionLabel: "Create activities" },
     { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time slots with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, actionLabel: "Schedule activities" },
     { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, actionLabel: "Prepare registration" },
-    { key: "review", label: "Review & Open", shortLabel: "Review", icon: "9", help: "Run the readiness checklist before parents see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, actionLabel: registrationOpen ? "Review live program" : "Open registration" },
+    { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before parents see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, actionLabel: registrationOpen ? "Review live program" : "Open registration" },
   ];
   const completedSteps = setupSteps.filter(step => step.done).length;
   const nextStep = setupSteps.find(step => !step.done && !step.locked) || setupSteps.find(step => !step.done) || setupSteps[setupSteps.length - 1];
+  const activeStep = setupSteps.find(step => step.key === activeTab) || nextStep;
+  const activeStepIndex = setupSteps.findIndex(step => step.key === activeStep.key);
+  const activeStateLabel = activeStep.done ? "Done" : activeStep.locked ? "Locked" : "Open";
   const setupPercent = Math.round((completedSteps / setupSteps.length) * 100);
 
   const jumpToNextStep = async () => {
@@ -798,25 +801,63 @@ function SetupContent() {
                   type="button"
                   disabled={step.locked}
                   onClick={() => setActiveTab(step.key)}
-                  className={`group relative -ml-3 first:ml-0 flex h-16 flex-1 min-w-[118px] items-center justify-center pl-7 pr-8 text-left transition-all disabled:cursor-not-allowed ${isActive ? "z-30 scale-[1.03]" : step.done ? "z-20" : "z-10 hover:z-20 hover:-translate-y-0.5"}`}
+                  className={`group relative -ml-3 first:ml-0 flex h-14 flex-1 min-w-[110px] items-center justify-center pl-7 pr-7 text-left transition-all disabled:cursor-not-allowed ${isActive ? "z-30 scale-[1.03]" : step.done ? "z-20" : "z-10 hover:z-20 hover:-translate-y-0.5"}`}
                   title={`${step.label}: ${stateLabel}`}
                   style={{ clipPath: "polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%)" }}
                 >
                   <span className={`absolute inset-0 shadow-sm transition ${isActive ? "bg-slate-950" : step.done ? "bg-gradient-to-r from-emerald-500 to-sky-500" : step.locked ? "bg-slate-100" : "bg-white group-hover:bg-sky-50"}`} />
                   <span className={`absolute inset-[2px] transition ${isActive ? "bg-slate-900" : step.done ? "bg-gradient-to-r from-emerald-500 to-sky-500" : step.locked ? "bg-slate-50" : "bg-white"}`} style={{ clipPath: "polygon(0 0, calc(100% - 17px) 0, 100% 50%, calc(100% - 17px) 100%, 0 100%, 17px 50%)" }} />
                   <span className="relative flex items-center gap-2 min-w-0">
-                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isActive ? "bg-white text-slate-950" : step.done ? "bg-white/95 text-emerald-700" : step.locked ? "bg-slate-200 text-slate-400" : "bg-sky-100 text-sky-700"}`}>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isActive ? "bg-white text-slate-950" : step.done ? "bg-white/95 text-emerald-700" : step.locked ? "bg-slate-200 text-slate-400" : "bg-sky-100 text-sky-700"}`}>
                       {step.done ? "✓" : index + 1}
                     </span>
-                    <span className="min-w-0">
-                      <span className={`block truncate text-[11px] font-black uppercase tracking-wide ${isActive || step.done ? "text-white" : step.locked ? "text-slate-400" : "text-slate-800"}`}>{step.shortLabel}</span>
-                      <span className={`mt-0.5 block text-[10px] font-bold ${isActive || step.done ? "text-white/75" : step.locked ? "text-slate-400" : "text-sky-700"}`}>{stateLabel}</span>
-                    </span>
+                    <span className={`block truncate text-[11px] font-black uppercase tracking-wide ${isActive || step.done ? "text-white" : step.locked ? "text-slate-400" : "text-slate-800"}`}>{step.shortLabel}</span>
                   </span>
                 </button>
               );
             })}
           </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 lg:grid-cols-[1fr_280px] lg:items-center">
+          <div className="flex items-start gap-3">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white shadow-sm">
+              {activeStep.done ? "✓" : activeStepIndex + 1}
+            </span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Step {activeStepIndex + 1} of {setupSteps.length} • {activeStateLabel}</p>
+              <h3 className="mt-1 text-xl font-black text-slate-950">{activeStep.label}</h3>
+              <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">{activeStep.help}</p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-500">Jump to section</label>
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value as SetupTab)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+            >
+              {setupSteps.map((step, index) => (
+                <option key={step.key} value={step.key} disabled={step.locked}>
+                  {index + 1}. {step.label}{step.locked ? " — locked" : ""}{step.done ? " — done" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {setupSteps.map((step, index) => (
+            <button
+              key={step.key}
+              type="button"
+              disabled={step.locked}
+              onClick={() => setActiveTab(step.key)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-45 ${activeTab === step.key ? "border-slate-900 bg-slate-900 text-white" : step.done ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"}`}
+            >
+              {index + 1}. {step.label}
+            </button>
+          ))}
         </div>
       </div>
 
