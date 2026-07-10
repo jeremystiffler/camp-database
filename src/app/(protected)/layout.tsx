@@ -172,7 +172,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex text-slate-900" style={{ background: "var(--ui-bg)" }}>
+    <div className="min-h-dvh w-full flex items-stretch text-slate-900" style={{ background: "var(--ui-bg)" }}>
       {/* Mobile overlay */}
       {sidebarOpen && !isKioskShell && (
         <div
@@ -292,8 +292,8 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         </button>
         <span className="ml-3 font-bold text-slate-800">Simple Schedule Pro</span>
       </div>}
-      <main className={`flex-1 min-h-screen flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`}>
-        <div className={`w-full px-3 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>
+      <main className={`flex-1 min-h-dvh flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`} style={{ background: "var(--ui-bg)" }}>
+        <div className={`w-full min-h-dvh px-3 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>
           {children}
         </div>
       </main>
