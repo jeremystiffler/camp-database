@@ -788,9 +788,7 @@ function SetupContent() {
         </div>
 
         <div className="overflow-x-auto pb-2">
-          <div className="relative flex min-w-[900px] items-start justify-between gap-2 px-1 pt-2">
-            <div className="absolute left-8 right-8 top-7 h-1 rounded-full bg-slate-200" aria-hidden="true" />
-            <div className="absolute left-8 top-7 h-1 rounded-full bg-gradient-to-r from-sky-500 via-emerald-500 to-amber-500 transition-all" style={{ width: `calc((100% - 4rem) * ${setupPercent / 100})` }} aria-hidden="true" />
+          <div className="flex min-w-[980px] items-stretch px-1 pt-2">
             {setupSteps.map((step, index) => {
               const isActive = activeTab === step.key;
               const stateLabel = step.done ? "Done" : step.locked ? "Locked" : "Open";
@@ -800,14 +798,21 @@ function SetupContent() {
                   type="button"
                   disabled={step.locked}
                   onClick={() => setActiveTab(step.key)}
-                  className="group relative z-10 flex w-24 flex-col items-center gap-2 text-center disabled:cursor-not-allowed"
+                  className={`group relative -ml-3 first:ml-0 flex h-16 flex-1 min-w-[118px] items-center justify-center pl-7 pr-8 text-left transition-all disabled:cursor-not-allowed ${isActive ? "z-30 scale-[1.03]" : step.done ? "z-20" : "z-10 hover:z-20 hover:-translate-y-0.5"}`}
                   title={`${step.label}: ${stateLabel}`}
+                  style={{ clipPath: "polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%)" }}
                 >
-                  <span className={`flex h-11 w-11 items-center justify-center rounded-full border-4 text-sm font-black shadow-sm transition ${isActive ? "border-slate-900 bg-slate-900 text-white scale-105" : step.done ? "border-emerald-500 bg-emerald-500 text-white" : step.locked ? "border-slate-200 bg-slate-100 text-slate-400" : "border-sky-500 bg-white text-sky-700 group-hover:bg-sky-50"}`}>
-                    {step.done ? "✓" : index + 1}
+                  <span className={`absolute inset-0 shadow-sm transition ${isActive ? "bg-slate-950" : step.done ? "bg-gradient-to-r from-emerald-500 to-sky-500" : step.locked ? "bg-slate-100" : "bg-white group-hover:bg-sky-50"}`} />
+                  <span className={`absolute inset-[2px] transition ${isActive ? "bg-slate-900" : step.done ? "bg-gradient-to-r from-emerald-500 to-sky-500" : step.locked ? "bg-slate-50" : "bg-white"}`} style={{ clipPath: "polygon(0 0, calc(100% - 17px) 0, 100% 50%, calc(100% - 17px) 100%, 0 100%, 17px 50%)" }} />
+                  <span className="relative flex items-center gap-2 min-w-0">
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isActive ? "bg-white text-slate-950" : step.done ? "bg-white/95 text-emerald-700" : step.locked ? "bg-slate-200 text-slate-400" : "bg-sky-100 text-sky-700"}`}>
+                      {step.done ? "✓" : index + 1}
+                    </span>
+                    <span className="min-w-0">
+                      <span className={`block truncate text-[11px] font-black uppercase tracking-wide ${isActive || step.done ? "text-white" : step.locked ? "text-slate-400" : "text-slate-800"}`}>{step.shortLabel}</span>
+                      <span className={`mt-0.5 block text-[10px] font-bold ${isActive || step.done ? "text-white/75" : step.locked ? "text-slate-400" : "text-sky-700"}`}>{stateLabel}</span>
+                    </span>
                   </span>
-                  <span className={`text-[11px] font-black uppercase tracking-wide ${isActive ? "text-slate-950" : step.locked ? "text-slate-400" : "text-slate-600"}`}>{step.shortLabel}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isActive ? "bg-slate-900 text-white" : step.done ? "bg-emerald-50 text-emerald-700" : step.locked ? "bg-slate-100 text-slate-400" : "bg-sky-50 text-sky-700"}`}>{stateLabel}</span>
                 </button>
               );
             })}
