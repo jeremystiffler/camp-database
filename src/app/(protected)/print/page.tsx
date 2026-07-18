@@ -805,6 +805,13 @@ function PrintContent() {
       <p className="mt-2 text-xs leading-relaxed text-slate-600">{meta.description}</p>
     </button>;
   };
+  const previewPages = (() => {
+    if (!livePreviewHtml || typeof document === "undefined") return [] as string[];
+    const source = document.createElement("div");
+    source.innerHTML = livePreviewHtml;
+    const explicitPages = Array.from(source.children).filter(element => element.classList.contains("page-break")).map(element => element.outerHTML);
+    return explicitPages.length ? explicitPages : [livePreviewHtml];
+  })();
 
   if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Finding your active camp…</div>;
 
@@ -888,7 +895,9 @@ function PrintContent() {
         .badge-live-preview .badge-card-back { justify-content: flex-start; }
         .badge-live-preview .lanyard-schedule-card { min-height: 420px; max-width: 260px; }
         .studio-workspace { min-height: calc(100vh - 7.5rem); }
-        .studio-canvas { min-height: 680px; overflow: auto; border: 1px solid #dbe3ef; border-radius: 24px; background-color: #eaf0f7; background-image: radial-gradient(#cbd5e1 0.7px, transparent 0.7px); background-size: 14px 14px; padding: 28px; }
+        .studio-canvas { min-height: 680px; overflow: auto; border: 1px solid #dbe3ef; border-radius: 24px; background-color: #eaf0f7; background-image: radial-gradient(#cbd5e1 0.7px, transparent 0.7px); background-size: 14px 14px; padding: 28px; display: flex; align-items: flex-start; justify-content: center; }
+        .studio-page-stack { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 28px; }
+        .studio-page-label { align-self: flex-start; margin: 0 auto -18px; width: min(100%, 8.5in); color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
         .studio-paper { width: min(100%, 8.5in); min-height: 10.5in; margin: 0 auto; background: #fff; box-shadow: 0 22px 60px rgba(15,23,42,.18); padding: .6in; color: #111827; transform-origin: top center; }
         .studio-paper-landscape { width: min(100%, 10.5in); min-height: 8in; }
         .studio-paper-wide { width: min(100%, 10.5in); }
@@ -978,7 +987,7 @@ function PrintContent() {
                   <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Live document</p><p className="mt-0.5 text-sm font-black text-slate-900">{selectedMeta.eyebrow} · {draftTemplate.orientation}</p></div>
                   <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1"><span className="px-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Zoom</span>{(["fit", "75", "100"] as const).map(value => <button key={value} onClick={() => setCanvasZoom(value)} className={`rounded-lg px-2.5 py-1.5 text-[11px] font-black ${canvasZoom === value ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{value === "fit" ? "Fit" : `${value}%`}</button>)}</div>
                 </div>
-                <div className="studio-canvas"><div data-zoom={canvasZoom === "fit" ? undefined : canvasZoom}>{livePreviewHtml ? <div className="studio-paper studio-print-surface" data-selected-block={selectedCanvasBlock || undefined} onClick={e => { const target = e.target as HTMLElement; const block: CanvasBlock = target.closest(".badge-card, .lanyard-schedule-card, .pickup-card") ? "badge" : target.closest("table") ? "table" : target.closest("h1, h2, h3, .ops-title") ? "title" : "document"; setSelectedCanvasBlock(block); setStudioTab(block === "table" || block === "badge" ? "content" : "document"); }}><div className="ops-print" dangerouslySetInnerHTML={{ __html: livePreviewHtml }} /></div> : <div className="studio-paper"><p className="text-sm font-semibold text-slate-500">Loading the exact printable…</p></div>}</div></div>
+                <div className="studio-canvas"><div className="studio-page-stack" data-zoom={canvasZoom === "fit" ? undefined : canvasZoom}>{previewPages.length ? previewPages.map((pageHtml, pageIndex) => <div key={pageIndex} className="w-full"><div className="studio-page-label">Page {pageIndex + 1} of {previewPages.length}</div><div className="studio-paper studio-print-surface" data-selected-block={selectedCanvasBlock || undefined} onClick={e => { const target = e.target as HTMLElement; const block: CanvasBlock = target.closest(".badge-card, .lanyard-schedule-card, .pickup-card") ? "badge" : target.closest("table") ? "table" : target.closest("h1, h2, h3, .ops-title") ? "title" : "document"; setSelectedCanvasBlock(block); setStudioTab(block === "table" || block === "badge" ? "content" : "document"); }}><div className="ops-print" dangerouslySetInnerHTML={{ __html: pageHtml }} /></div></div>) : <div className="studio-paper"><p className="text-sm font-semibold text-slate-500">Loading the exact printable…</p></div>}</div></div>
                 <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500"><span>Preview uses live program data. The final print remains print-safe.</span><button onClick={() => printDoc()} className="font-black text-indigo-700 hover:text-indigo-900">Open print preview →</button></div>
               </section>
             </main>
