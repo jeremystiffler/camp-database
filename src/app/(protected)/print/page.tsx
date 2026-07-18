@@ -604,7 +604,10 @@ function PrintContent() {
   const customSortBy = typeof selectedSettings.customSortBy === "string" ? selectedSettings.customSortBy : "";
   const customSourceItems = customDataSource === "participants" ? campers : customDataSource === "people" ? persons : courses;
   const customValue = (item: any, fieldId: string) => customFieldOptionMap.get(fieldId)?.value(item, courses) || "";
-  const sortedCustomItems = [...customSourceItems].sort((a, b) => customValue(a, customSortBy || visibleCustomFieldIds[0] || "").localeCompare(customValue(b, customSortBy || visibleCustomFieldIds[0] || "")));
+  const customSortValue = (item: any, fieldId: string) => customDataSource === "activities" && fieldId === "times"
+    ? (item as Course).courseSessionTemplates?.map(entry => entry.sessionTemplate.startTime || "99:99").sort()[0] || "99:99"
+    : customValue(item, fieldId);
+  const sortedCustomItems = [...customSourceItems].sort((a, b) => customSortValue(a, customSortBy || visibleCustomFieldIds[0] || "").localeCompare(customSortValue(b, customSortBy || visibleCustomFieldIds[0] || "")));
   const groupedCustomItems = customGroupBy
     ? Array.from(sortedCustomItems.reduce((map, item) => { const key = customValue(item, customGroupBy) || "Ungrouped"; map.set(key, [...(map.get(key) || []), item]); return map; }, new Map<string, any[]>()).entries())
     : [["", sortedCustomItems]] as [string, any[]][];
