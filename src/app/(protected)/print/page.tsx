@@ -181,7 +181,7 @@ const CUSTOM_FIELD_OPTIONS: Record<CustomDataSource, FieldOption[]> = {
     { id: "teachers", label: "Teachers", value: (c: Course) => courseTeacherNames(c) },
     { id: "ageGroups", label: "Age groups", value: (c: Course) => courseAgeLabel(c) },
     { id: "capacity", label: "Capacity", value: (c: Course) => String(c.cap ?? "") },
-    { id: "times", label: "Times", value: (c: Course) => (c.courseSessionTemplates || []).map(cst => formatRange(cst.sessionTemplate.startTime, cst.sessionTemplate.endTime)).filter(Boolean).join("\n") },
+    { id: "times", label: "Times", value: (c: Course) => Array.from(new Set((c.courseSessionTemplates || []).map(cst => formatRange(cst.sessionTemplate.startTime, cst.sessionTemplate.endTime)).filter(Boolean))).join("\n") },
   ],
 };
 
