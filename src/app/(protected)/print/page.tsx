@@ -638,7 +638,8 @@ function PrintContent() {
     if (block.id === "footer") return selectedSettings.rotationFooterHeight || "0.45in";
     return "minmax(0, 1fr)";
   }).join(" ") || "minmax(0, 1fr)";
-  const stockTemplates = BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })).filter(template => !isCustomBuilder(template));
+  const starterLibraryTemplates: PrintTemplate[] = PRINTABLE_LIBRARY_STARTERS.map((name, index) => ({ builtin: true, id: `library-${index}`, name, category: "library", type: /badge|lanyard|identity card/i.test(name) ? "badges" : /schedule|run sheet|rotation/i.test(name) ? "camper_choices" : "custom_table", paperSize: /3×5|Lanyard/i.test(name) ? "3x5" : /4×6|Card/i.test(name) ? "4x6" : /5×3|Badge/i.test(name) ? "5x3" : "letter", orientation: /4×6|Card|5×3/i.test(name) ? "landscape" : "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, customDataSource: "participants", customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"] }) }));
+  const stockTemplates = [...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })), ...starterLibraryTemplates].filter(template => !isCustomBuilder(template));
   const customTemplates = [
     ...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })).filter(template => isCustomBuilder(template)),
     ...savedTemplates,
