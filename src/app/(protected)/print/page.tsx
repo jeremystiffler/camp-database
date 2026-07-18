@@ -11,6 +11,7 @@ type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3" | "3x5" |
 type Orientation = "portrait" | "landscape";
 type Density = "compact" | "normal" | "large";
 type StudioTab = "document" | "content" | "page" | "layout";
+type CanvasBlock = "title" | "table" | "badge" | "document" | null;
 
 interface CampSession {
   id: string;
@@ -458,6 +459,7 @@ function PrintContent() {
   const [badgePrintScope, setBadgePrintScope] = useState<"all" | "current">("all");
   const [canvasZoom, setCanvasZoom] = useState<"fit" | "75" | "100">("fit");
   const [studioTab, setStudioTab] = useState<StudioTab>("document");
+  const [selectedCanvasBlock, setSelectedCanvasBlock] = useState<CanvasBlock>(null);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [livePreviewHtml, setLivePreviewHtml] = useState("");
 
@@ -871,6 +873,10 @@ function PrintContent() {
         .studio-canvas [data-zoom="75"] .studio-paper { transform: scale(.75); margin-bottom: -25%; }
         .studio-canvas [data-zoom="100"] .studio-paper { transform: scale(1); }
         .studio-badge-paper { max-width: 8.5in; min-height: auto; }
+        .studio-print-surface { cursor: pointer; }
+        .studio-print-surface[data-selected-block="table"] table { outline: 3px solid rgba(79,70,229,.58); outline-offset: 4px; }
+        .studio-print-surface[data-selected-block="badge"] .badge-card, .studio-print-surface[data-selected-block="badge"] .lanyard-schedule-card { outline: 3px solid rgba(79,70,229,.58); outline-offset: 4px; }
+        .studio-print-surface[data-selected-block="title"] h1, .studio-print-surface[data-selected-block="title"] h2, .studio-print-surface[data-selected-block="title"] h3, .studio-print-surface[data-selected-block="title"] .ops-title { outline: 3px solid rgba(79,70,229,.58); outline-offset: 3px; }
         .studio-document-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
         .studio-doc-title { outline: none; margin-bottom: 5px; color: #0f172a; font-size: 23px; font-weight: 900; line-height: 1.15; }
         .studio-doc-title:focus { border-radius: 5px; box-shadow: 0 0 0 3px rgba(79,70,229,.18); }
@@ -954,7 +960,7 @@ function PrintContent() {
                   <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Live document</p><p className="mt-0.5 text-sm font-black text-slate-900">{selectedMeta.eyebrow} · {draftTemplate.orientation}</p></div>
                   <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1"><span className="px-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Zoom</span>{(["fit", "75", "100"] as const).map(value => <button key={value} onClick={() => setCanvasZoom(value)} className={`rounded-lg px-2.5 py-1.5 text-[11px] font-black ${canvasZoom === value ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{value === "fit" ? "Fit" : `${value}%`}</button>)}</div>
                 </div>
-                <div className="studio-canvas"><div data-zoom={canvasZoom === "fit" ? undefined : canvasZoom}>{livePreviewHtml ? <div className="studio-paper studio-print-surface"><div className="ops-print" dangerouslySetInnerHTML={{ __html: livePreviewHtml }} /></div> : <div className="studio-paper"><p className="text-sm font-semibold text-slate-500">Loading the exact printable…</p></div>}</div></div>
+                <div className="studio-canvas"><div data-zoom={canvasZoom === "fit" ? undefined : canvasZoom}>{livePreviewHtml ? <div className="studio-paper studio-print-surface" data-selected-block={selectedCanvasBlock || undefined} onClick={e => { const target = e.target as HTMLElement; const block: CanvasBlock = target.closest(".badge-card, .lanyard-schedule-card, .pickup-card") ? "badge" : target.closest("table") ? "table" : target.closest("h1, h2, h3, .ops-title") ? "title" : "document"; setSelectedCanvasBlock(block); setStudioTab(block === "table" || block === "badge" ? "content" : "document"); }}><div className="ops-print" dangerouslySetInnerHTML={{ __html: livePreviewHtml }} /></div> : <div className="studio-paper"><p className="text-sm font-semibold text-slate-500">Loading the exact printable…</p></div>}</div></div>
                 <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500"><span>Preview uses live program data. The final print remains print-safe.</span><button onClick={() => printDoc()} className="font-black text-indigo-700 hover:text-indigo-900">Open print preview →</button></div>
               </section>
             </main>
@@ -968,6 +974,7 @@ function PrintContent() {
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500">{PAPER_LABELS[draftTemplate.paperSize]}</span>
               </div>
               <div className="mt-5 space-y-4">
+                {selectedCanvasBlock && <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-3 text-xs text-indigo-950"><div className="flex items-center justify-between gap-2"><strong className="font-black">{selectedCanvasBlock === "table" ? "Table selected" : selectedCanvasBlock === "badge" ? "Badge selected" : selectedCanvasBlock === "title" ? "Title selected" : "Document selected"}</strong><button type="button" onClick={() => setSelectedCanvasBlock(null)} className="font-bold text-indigo-700">Clear</button></div><p className="mt-1 font-semibold">{selectedCanvasBlock === "table" ? "Use Content & fields to edit columns, then Page & style for table appearance." : selectedCanvasBlock === "badge" ? "Use Content & fields to edit the visible badge blocks and order." : "Use the controls below to edit this printable."}</p></div>}
                 {studioTab === "document" && <><label className="block text-xs font-bold text-slate-500">Template name<input value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800" /></label><div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-3 text-xs font-semibold leading-relaxed text-indigo-950"><strong className="block font-black">Start here</strong>Rename this printable, then use <strong>Content & fields</strong> to choose what appears on the page. Use <strong>Page & style</strong> for paper and layout.</div></>}
                 {studioTab === "page" && hasAdvancedBasics && <details open className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
                   <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-500">Advanced page setup</summary>
