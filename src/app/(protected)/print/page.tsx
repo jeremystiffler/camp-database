@@ -935,7 +935,7 @@ function PrintContent() {
           <button type="button" onClick={() => setShowTemplateGallery(true)} className="ml-auto whitespace-nowrap rounded-xl px-4 py-2 text-xs font-black text-indigo-700 hover:bg-indigo-50">Templates</button>
         </nav>
         {loading ? <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" /></div> : (
-          <div className={showTemplateGallery ? "grid gap-5 lg:grid-cols-[120px_340px_minmax(0,1fr)] 2xl:grid-cols-[300px_120px_340px_minmax(0,1fr)]" : "grid gap-5 lg:grid-cols-[120px_340px_minmax(0,1fr)]"}>
+          <div className={showTemplateGallery ? "grid gap-5 lg:grid-cols-[300px_340px_minmax(0,1fr)]" : "grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]"}>
             {showTemplateGallery && <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm 2xl:sticky 2xl:top-4 2xl:self-start">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Saved printables</p>
@@ -971,8 +971,8 @@ function PrintContent() {
               </details>
             </aside>}
 
-            <aside className="sticky top-4 hidden h-fit rounded-2xl lg:order-1 border border-slate-200 bg-white p-2 shadow-sm lg:block"><p className="px-2 pb-2 pt-1 text-[10px] font-black uppercase tracking-wide text-slate-400">Edit</p>{(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`mb-1 w-full rounded-xl px-3 py-3 text-left text-xs font-black ${studioTab === tab ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}</aside>
-            <main className="min-w-0 lg:order-3">
+            <aside className={`sticky top-4 hidden h-fit rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:row-start-1 lg:block ${showTemplateGallery ? "lg:col-start-2" : "lg:col-start-1"}`}><p className="px-2 pb-2 pt-1 text-[10px] font-black uppercase tracking-wide text-slate-400">Edit</p>{(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`mb-1 w-full rounded-xl px-3 py-3 text-left text-xs font-black ${studioTab === tab ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}</aside>
+            <main className={`min-w-0 lg:row-span-2 ${showTemplateGallery ? "lg:col-start-3" : "lg:col-start-2"}`}>
               <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
                   <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Live document</p><p className="mt-0.5 text-sm font-black text-slate-900">{selectedMeta.eyebrow} · {draftTemplate.orientation}</p></div>
@@ -983,7 +983,7 @@ function PrintContent() {
               </section>
             </main>
 
-            <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:order-2 lg:sticky 2xl:top-4 2xl:self-start">
+            <aside className={`rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:row-start-2 lg:sticky 2xl:top-4 2xl:self-start ${showTemplateGallery ? "lg:col-start-2" : "lg:col-start-1"}`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Selected printable</p>
