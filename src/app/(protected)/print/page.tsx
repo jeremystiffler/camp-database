@@ -10,7 +10,7 @@ type CustomDataSource = "participants" | "people" | "activities";
 type PaperSize = "letter" | "legal" | "tabloid" | "a4" | "4x6" | "5x3" | "3x5" | "custom";
 type Orientation = "portrait" | "landscape";
 type Density = "compact" | "normal" | "large";
-type StudioTab = "document" | "content" | "page";
+type StudioTab = "document" | "content" | "page" | "layout";
 
 interface CampSession {
   id: string;
@@ -100,7 +100,7 @@ const PAPER_CSS: Record<PaperSize, string> = {
   "3x5": "3in 5in",
   custom: "var(--custom-print-size)",
 };
-const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], badgeContentBlocks: [] as string[], badgeBackEnabled: false, badgeBackContentBlocks: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9, customDataSource: "participants" as CustomDataSource, customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"] as string[], customGroupBy: "", customSortBy: "lastName" };
+const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], badgeContentBlocks: [] as string[], badgeBackEnabled: false, badgeBackContentBlocks: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9, customDataSource: "participants" as CustomDataSource, customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"] as string[], customGroupBy: "", customSortBy: "lastName", pageMargin: "0.5in", printScale: 100 };
 const BUILTIN_TEMPLATES: PrintTemplate[] = [
   { builtin: true, name: "Field Builder — Blank Table", type: "custom_table", category: "custom", paperSize: "letter", orientation: "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "compact", customDataSource: "participants", customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"], customSortBy: "lastName" }) },
   { builtin: true, name: "Badge Designer — Blank Badge", type: "badges", category: "badges", paperSize: "5x3", orientation: "landscape", settings: JSON.stringify({ ...DEFAULT_SETTINGS, density: "large", badgeRows: 1, badgeCols: 1, badgeLayout: "standard", badgeContentBlocks: ["label", "fullName", "ageGroup", "qr"], badgeBackEnabled: true, badgeBackContentBlocks: ["guardian", "emergency", "medical", "schedule"] }) },
@@ -788,7 +788,7 @@ function PrintContent() {
     <>
       <style>{`
         @media print {
-          @page { size: ${printPageSizeCss}; margin: 0.25in; }
+          @page { size: ${printPageSizeCss}; margin: ${selectedSettings.pageMargin}; }
           body { background: white !important; }
           body * { visibility: hidden !important; }
           aside, nav, .no-print { display: none !important; }
@@ -807,6 +807,7 @@ function PrintContent() {
         .ops-print table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .ops-print th, .ops-print td { border: 1px solid #111; vertical-align: middle; white-space: pre-line; line-height: 1.12; }
         .ops-print th { background: ${selectedSettings.headerColor}; color: #000; font-size: 10px; font-weight: 800; padding: 4px 3px; text-align: center; }
+        .ops-print { zoom: ${selectedSettings.printScale}%; }
         .ops-print td { font-size: ${bodyFont}; padding: ${cellPadding}; }
         .ops-print .center td { text-align: center; }
         .ops-print .striped tbody tr:nth-child(odd) td { background: #dff4f6; }
@@ -902,7 +903,7 @@ function PrintContent() {
           <div className="flex flex-wrap items-center gap-2"><button onClick={() => setShowTemplateGallery(true)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">Templates</button><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[draftTemplate.paperSize]}</span><button onClick={saveAsTemplate} disabled={saving} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:opacity-50">Save copy</button><button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white">Print / PDF</button></div>
         </header>
         <nav aria-label="Print Center editing modes" className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
-          {(["document", "content", "page"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`whitespace-nowrap rounded-xl px-4 py-2 text-xs font-black ${studioTab === tab ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : "Page & style"}</button>)}
+          {(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`whitespace-nowrap rounded-xl px-4 py-2 text-xs font-black ${studioTab === tab ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}
           <button type="button" onClick={() => setShowTemplateGallery(true)} className="ml-auto whitespace-nowrap rounded-xl px-4 py-2 text-xs font-black text-indigo-700 hover:bg-indigo-50">Templates</button>
         </nav>
         {loading ? <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" /></div> : (
@@ -985,6 +986,8 @@ function PrintContent() {
                   </div>
                 </details>}
                 {studioTab === "page" && <div className="rounded-2xl border border-slate-200 p-3 space-y-3"><div><p className="text-xs font-black uppercase tracking-wide text-slate-500">Layout & styling</p><p className="mt-1 text-[11px] font-semibold text-slate-500">These settings travel with the saved printable and its final PDF.</p></div><div className="grid grid-cols-2 gap-2"><label className="block text-xs font-bold text-slate-500">Density<select value={selectedSettings.density} onChange={e => updateSettings({ density: e.target.value as Density })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="compact">Compact</option><option value="normal">Normal</option><option value="large">Large</option></select></label><label className="block text-xs font-bold text-slate-500">Header color<input type="color" value={selectedSettings.headerColor} onChange={e => updateSettings({ headerColor: e.target.value })} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white p-1" /></label></div><label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs font-bold text-slate-700"><input type="checkbox" checked={selectedSettings.stripedRows} onChange={e => updateSettings({ stripedRows: e.target.checked })} /> Alternate table rows</label></div>}
+
+                {studioTab === "layout" && <div className="rounded-2xl border border-slate-200 p-3 space-y-3"><div><p className="text-xs font-black uppercase tracking-wide text-slate-500">Print layout</p><p className="mt-1 text-[11px] font-semibold text-slate-500">Safe page-wide controls. The same settings apply to canvas and Print / PDF.</p></div><label className="block text-xs font-bold text-slate-500">Page margins<select value={selectedSettings.pageMargin} onChange={e => updateSettings({ pageMargin: e.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="0.2in">Narrow — 0.2 in</option><option value="0.35in">Standard — 0.35 in</option><option value="0.5in">Comfortable — 0.5 in</option><option value="0.75in">Wide — 0.75 in</option></select></label><div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3"><div className="flex items-center justify-between"><label className="text-xs font-bold text-slate-700">Document scale</label><span className="text-xs font-black text-indigo-700">{selectedSettings.printScale}%</span></div><input type="range" min={80} max={115} step={5} value={selectedSettings.printScale} onChange={e => updateSettings({ printScale: Number(e.target.value) })} className="mt-3 w-full accent-indigo-600" /><p className="mt-2 text-[11px] font-semibold text-slate-500">Use this to fit dense tables without rebuilding the document.</p></div><div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-xs font-semibold text-indigo-950">More precise block positioning comes next; this phase keeps layout changes reliable across browser print dialogs.</div></div>}
 
                 {studioTab === "content" && draftTemplate.type === "custom_table" && (
                   <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
