@@ -477,6 +477,7 @@ function PrintContent() {
   const [studioTab, setStudioTab] = useState<StudioTab>("document");
   const [selectedCanvasBlock, setSelectedCanvasBlock] = useState<CanvasBlock>(null);
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
+  const [gallerySearch, setGallerySearch] = useState("");
   const [livePreviewHtml, setLivePreviewHtml] = useState("");
 
   useEffect(() => {
@@ -951,17 +952,12 @@ function PrintContent() {
                 }) : <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-500">No saved printables yet. Customize a starter, then save it here.</div>}
               </div>
               <div className="border-t border-slate-100 pt-4">
-                <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-500">Starter templates</p>
-                <div className="space-y-2">
-                  {BUILTIN_TEMPLATES.map((template, index) => {
-                    const key = `builtin-${index}`;
-                    const selected = selectedTemplateKey === key;
-                    return <button key={key} onClick={() => chooseTemplate(key)} className={`w-full rounded-2xl border px-3 py-3 text-left transition ${selected ? "border-indigo-300 bg-indigo-50 text-slate-950" : "border-slate-200 bg-white text-slate-700 hover:bg-indigo-50"}`}>
-                      <span className="block text-sm font-black leading-tight">{template.name}</span>
-                      <span className="mt-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">{templateMeta(template).visual} · {PAPER_LABELS[template.paperSize]}</span>
-                    </button>;
-                  })}
-                </div>
+                <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-slate-500">Starter library</p>
+                <input value={gallerySearch} onChange={e => setGallerySearch(e.target.value)} placeholder="Search printables…" className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+                <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-indigo-700">Top 10 essentials</p>
+                <div className="space-y-2">{stockTemplates.filter(template => PRINTABLE_LIBRARY_STARTERS.slice(0, 10).includes(template.name as typeof PRINTABLE_LIBRARY_STARTERS[number]) && template.name.toLowerCase().includes(gallerySearch.toLowerCase())).map((template, index) => renderTemplateCard(template, index))}</div>
+                <p className="mb-2 mt-4 text-[10px] font-black uppercase tracking-wide text-slate-500">All starter templates</p>
+                <div className="space-y-2">{stockTemplates.filter(template => !PRINTABLE_LIBRARY_STARTERS.slice(0, 10).includes(template.name as typeof PRINTABLE_LIBRARY_STARTERS[number]) && template.name.toLowerCase().includes(gallerySearch.toLowerCase())).map((template, index) => renderTemplateCard(template, index + 10))}</div>
               </div>
               <details className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
                 <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-600">Import from another program</summary>
