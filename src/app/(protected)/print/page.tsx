@@ -944,7 +944,7 @@ function PrintContent() {
           <button type="button" onClick={() => setShowTemplateGallery(true)} className="ml-auto whitespace-nowrap rounded-xl px-4 py-2 text-xs font-black text-indigo-700 hover:bg-indigo-50">Templates</button>
         </nav>
         {loading ? <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" /></div> : (
-          <div className={showTemplateGallery ? "grid gap-5 lg:grid-cols-[300px_340px_minmax(0,1fr)]" : "grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]"}>
+          <div className={showTemplateGallery ? "grid gap-5 lg:grid-cols-[300px_340px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]" : "grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]"}>
             {showTemplateGallery && <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm 2xl:sticky 2xl:top-4 2xl:self-start">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Saved printables</p>
