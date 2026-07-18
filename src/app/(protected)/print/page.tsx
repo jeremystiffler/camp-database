@@ -908,12 +908,12 @@ function PrintContent() {
           <div className="flex min-w-0 items-center gap-3"><span className="text-lg font-black text-slate-900">Print Center</span><span className="hidden h-5 w-px bg-slate-200 sm:block" /><input aria-label="Printable name" value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="min-w-0 max-w-xs bg-transparent text-sm font-bold text-slate-600 outline-none placeholder:text-slate-400" /></div>
           <div className="flex flex-wrap items-center gap-2"><button onClick={() => setShowTemplateGallery(true)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">Templates</button><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[draftTemplate.paperSize]}</span><button onClick={saveAsTemplate} disabled={saving} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:opacity-50">Save copy</button><button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white">Print / PDF</button></div>
         </header>
-        <nav aria-label="Print Center editing modes" className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+        <nav aria-label="Print Center editing modes" className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm lg:hidden">
           {(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`whitespace-nowrap rounded-xl px-4 py-2 text-xs font-black ${studioTab === tab ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}
           <button type="button" onClick={() => setShowTemplateGallery(true)} className="ml-auto whitespace-nowrap rounded-xl px-4 py-2 text-xs font-black text-indigo-700 hover:bg-indigo-50">Templates</button>
         </nav>
         {loading ? <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" /></div> : (
-          <div className={showTemplateGallery ? "grid gap-5 2xl:grid-cols-[300px_minmax(0,1fr)_390px] xl:grid-cols-[280px_minmax(0,1fr)]" : "grid gap-5 2xl:grid-cols-[minmax(0,1fr)_390px] xl:grid-cols-[minmax(0,1fr)_390px]"}>
+          <div className={showTemplateGallery ? "grid gap-5 lg:grid-cols-[120px_minmax(0,1fr)_390px] 2xl:grid-cols-[300px_120px_minmax(0,1fr)_390px]" : "grid gap-5 lg:grid-cols-[120px_minmax(0,1fr)_390px]"}>
             {showTemplateGallery && <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm 2xl:sticky 2xl:top-4 2xl:self-start">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Saved printables</p>
@@ -954,6 +954,7 @@ function PrintContent() {
               </details>
             </aside>}
 
+            <aside className="sticky top-4 hidden h-fit rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:block"><p className="px-2 pb-2 pt-1 text-[10px] font-black uppercase tracking-wide text-slate-400">Edit</p>{(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`mb-1 w-full rounded-xl px-3 py-3 text-left text-xs font-black ${studioTab === tab ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}</aside>
             <main className="min-w-0">
               <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
