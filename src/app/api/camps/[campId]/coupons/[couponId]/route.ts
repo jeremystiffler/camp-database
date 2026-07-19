@@ -12,7 +12,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, couponId } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can delete coupons" }, { status: 403 });
+  if (!member || !hasPermission(member.role, "admin")) return NextResponse.json({ error: "Only camp admins can delete registration coupons" }, { status: 403 });
   await prisma.campCoupon.deleteMany({ where: { id: couponId, campId } });
   return NextResponse.json({ success: true });
 }

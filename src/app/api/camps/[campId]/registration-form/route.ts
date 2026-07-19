@@ -136,6 +136,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
     select: {
       id: true,
       name: true,
+      primaryColor: true,
+      accentColor: true,
+      fontFamily: true,
       registrationOpen: true,
       billingMode: true,
       billingStatus: true,
@@ -235,6 +238,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
   const formOpen = selectedForm ? camp.registrationOpen && selectedForm.status !== "draft" : false;
   return NextResponse.json({
     campName: camp.name,
+    primaryColor: camp.primaryColor,
+    accentColor: camp.accentColor,
+    fontFamily: camp.fontFamily,
     registrationOpen: formOpen,
     billingMode: camp.billingMode,
     billingStatus: camp.billingStatus,

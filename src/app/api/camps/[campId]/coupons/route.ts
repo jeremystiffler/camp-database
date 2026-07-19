@@ -71,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can manage coupons" }, { status: 403 });
+  if (!member || !hasPermission(member.role, "admin")) return NextResponse.json({ error: "Only camp admins can manage registration coupons" }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   const data = safeCouponInput(body);
   if (!data.code) return NextResponse.json({ error: "Coupon code is required" }, { status: 400 });

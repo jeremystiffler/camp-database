@@ -34,6 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (priceId) {
     checkout = await stripe.checkout.sessions.create({
       mode: "subscription",
+      allow_promotion_codes: true,
       customer_email: customerEmail,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${baseUrl}/settings?campId=${campId}&billing=success`,
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   } else {
     checkout = await stripe.checkout.sessions.create({
       mode: "payment",
+      allow_promotion_codes: true,
       customer_email: customerEmail,
       line_items: [{
         price_data: {

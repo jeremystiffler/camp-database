@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, signToken, setSessionCookie, hashPassword, verifyPassword } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { isSuperAdminEmail } from "@/lib/platform-admin";
 
 export async function GET() {
   const session = await getSession();
@@ -12,10 +13,10 @@ export async function GET() {
       select: { id: true, email: true, name: true, role: true, organizationId: true },
     });
     if (!user) return NextResponse.json({ user: null }, { status: 401 });
-    return NextResponse.json({ user });
+    return NextResponse.json({ user: { ...user, isSuperAdmin: isSuperAdminEmail(user.email) } });
   } catch {
     return NextResponse.json({
-      user: { id: session.userId, email: session.email, name: session.name, role: "owner", organizationId: session.organizationId || null },
+      user: { id: session.userId, email: session.email, name: session.name, role: "owner", organizationId: session.organizationId || null, isSuperAdmin: isSuperAdminEmail(session.email) },
     });
   }
 }
