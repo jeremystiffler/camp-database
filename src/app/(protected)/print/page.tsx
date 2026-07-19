@@ -220,6 +220,11 @@ const CUSTOM_BUILTIN_NAMES = new Set(["Custom Grid Printable — Rotation Roster
 type TemplateMeta = { eyebrow: string; description: string; visual: "grid" | "packet" | "roster" | "choices" | "list" | "badge" | "lanyard" | "card" };
 function isCustomBuilder(template: PrintTemplate) { return CUSTOM_BUILTIN_NAMES.has(template.name) || (!template.builtin && Boolean(template.id)); }
 function templateMeta(template: PrintTemplate): TemplateMeta {
+  if (template.name.startsWith("Room / Door Schedule")) return { eyebrow: "Room signage", visual: "card", description: "Large, at-a-glance door signs with room, class, time, and teacher; choose Letter or 11×17." };
+  if (template.name.startsWith("Check-in Roster")) return { eyebrow: "Arrival operations", visual: "roster", description: "Arrival roster with a check-in status column, arrival time, and staff initials." };
+  if (template.name.startsWith("Check-out / Pickup Roster")) return { eyebrow: "Pickup operations", visual: "roster", description: "Car-line pickup roster with approved pickup, departure time, verification, and initials." };
+  if (template.name.startsWith("Emergency Contact Card")) return { eyebrow: "Safety card", visual: "card", description: "One participant per card with guardian, emergency, medical, and dietary information." };
+  if (template.name.startsWith("Staff / Volunteer Badge")) return { eyebrow: "Staff identity", visual: "badge", description: "Role-aware staff badges with room or assignment details and a scannable code." };
   if (template.type === "custom_table") return { eyebrow: "Field builder", visual: "list", description: "Build a custom table from participants, people, or activities by choosing fields, sort, and grouping." };
   if (template.name.includes("Badge Designer")) return { eyebrow: "Badge designer", visual: "badge", description: "Design participant badges with custom front/back fields, QR blocks, themes, and current-or-batch printing." };
   if (template.name.includes("Schedule Lanyard")) return { eyebrow: "Custom badge builder", visual: "lanyard", description: "A child-name header with a vertical schedule table for lanyards." };
@@ -236,6 +241,11 @@ function templateMeta(template: PrintTemplate): TemplateMeta {
   if (template.type === "badges" && template.paperSize !== "letter") return { eyebrow: "Stock badge", visual: "badge", description: "One participant per page for lanyards and badge printers." };
   return { eyebrow: "Stock badge sheet", visual: "badge", description: "Printable name badges laid out on a letter-size sheet." };
 }
+function isDoorSchedule(template: PrintTemplate) { return template.name.startsWith("Room / Door Schedule"); }
+function isCheckInRoster(template: PrintTemplate) { return template.name.startsWith("Check-in Roster"); }
+function isCheckOutRoster(template: PrintTemplate) { return template.name.startsWith("Check-out / Pickup Roster"); }
+function isEmergencyCard(template: PrintTemplate) { return template.name.startsWith("Emergency Contact Card"); }
+function isStaffBadge(template: PrintTemplate) { return template.name.startsWith("Staff / Volunteer Badge"); }
 type LanyardThemeKey = keyof typeof LANYARD_THEMES;
 function lanyardThemeFor(value: unknown) {
   return LANYARD_THEMES[(typeof value === "string" && value in LANYARD_THEMES ? value : "aquaSheet") as LanyardThemeKey];
@@ -472,6 +482,7 @@ function PrintContent() {
   const [draftTemplate, setDraftTemplate] = useState<PrintTemplate>(BUILTIN_TEMPLATES[0]);
   const [message, setMessage] = useState("");
   const [selectedBadgeCamperId, setSelectedBadgeCamperId] = useState("");
+  const [selectedStaffId, setSelectedStaffId] = useState("");
   const [badgePrintScope, setBadgePrintScope] = useState<"all" | "current">("all");
   const [canvasZoom, setCanvasZoom] = useState<"fit" | "75" | "100">("fit");
   const [studioTab, setStudioTab] = useState<StudioTab>("document");
@@ -531,6 +542,9 @@ function PrintContent() {
   useEffect(() => {
     if (campers.length && !selectedBadgeCamperId) setSelectedBadgeCamperId(sortedCampersList(campers)[0]?.id || "");
   }, [campers, selectedBadgeCamperId]);
+  useEffect(() => {
+    if (persons.length && !selectedStaffId) setSelectedStaffId(persons[0]?.id || "");
+  }, [persons, selectedStaffId]);
 
   useEffect(() => {
     if (!printQueued || !activeDoc) return;
@@ -551,7 +565,7 @@ function PrintContent() {
       setLivePreviewHtml(source?.innerHTML || "");
     }, 0);
     return () => window.clearTimeout(id);
-  }, [activeDoc, draftTemplate, campers, courses, persons, mandatorySessions, selectedBadgeCamperId, badgePrintScope]);
+  }, [activeDoc, draftTemplate, campers, courses, persons, mandatorySessions, selectedBadgeCamperId, selectedStaffId, badgePrintScope]);
 
   const allTemplates = [...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })), ...savedTemplates];
   const selectedSettings = parseSettings(draftTemplate);
@@ -563,6 +577,8 @@ function PrintContent() {
   const tshirtOrder = ["YXS","YS","YM","YL","AS","AM","AL","AXL","A2XL","Unknown"];
   const rosterPackets = rosterGroups(campers);
   const operationalPeople = persons.filter(p => ["teacher", "assistant", "director", "staff"].includes(p.role));
+  const selectedStaff = persons.find(person => person.id === selectedStaffId) || persons[0] || null;
+  const staffToPrint = badgePrintScope === "current" && selectedStaff ? [selectedStaff] : persons;
   const bodyFont = selectedSettings.density === "compact" ? "8px" : selectedSettings.density === "large" ? "11px" : "9px";
   const cellPadding = selectedSettings.density === "compact" ? "4px 3px" : selectedSettings.density === "large" ? "8px 6px" : "6px 4px";
   const badgeCols = draftTemplate.paperSize === "letter" ? Math.max(1, Number(selectedSettings.badgeCols || 3)) : 1;
@@ -639,17 +655,33 @@ function PrintContent() {
     if (block.id === "footer") return selectedSettings.rotationFooterHeight || "0.45in";
     return "minmax(0, 1fr)";
   }).join(" ") || "minmax(0, 1fr)";
-  const starterLibraryTemplates: PrintTemplate[] = PRINTABLE_LIBRARY_STARTERS.map((name, index) => ({ builtin: true, id: `library-${index}`, name, category: "library", type: name.startsWith("Participant Schedule Lanyard") || name.startsWith("Staff / Volunteer Badge") || name.startsWith("Emergency Contact Card") || /badge|lanyard|identity card/i.test(name) ? "badges" : name.startsWith("Pickup / Car-Window") ? "pickup_cards" : name.startsWith("Classroom Roster") ? "class_rosters" : name === "Teacher Packet" ? "teacher_schedules" : name.startsWith("Participant Class-Choices") ? "camper_choices" : /schedule|run sheet|rotation/i.test(name) ? "camper_choices" : "custom_table", paperSize: /3×5|Lanyard/i.test(name) ? "3x5" : /4×6|Card/i.test(name) ? "4x6" : /5×3|Badge/i.test(name) ? "5x3" : "letter", orientation: /4×6|Card|5×3/i.test(name) ? "landscape" : "portrait", settings: JSON.stringify({ ...DEFAULT_SETTINGS, ...(name.startsWith("Participant Schedule Lanyard") ? { badgeLayout: "schedule_lanyard", badgeContentBlocks: ["name", "schedule"], badgeBackEnabled: true, badgeBackContentBlocks: ["qr"] } : name.startsWith("Staff / Volunteer Badge") ? { badgeContentBlocks: ["label", "fullName", "qr"] } : {}), customDataSource: "participants", customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"] }) }));
+  const starterLibraryTemplates: PrintTemplate[] = PRINTABLE_LIBRARY_STARTERS.map((name, index) => {
+    const doorSign = name.startsWith("Room / Door Schedule");
+    const checkIn = name.startsWith("Check-in Roster");
+    const checkOut = name.startsWith("Check-out / Pickup Roster");
+    const emergencyCard = name.startsWith("Emergency Contact Card");
+    const staffBadge = name.startsWith("Staff / Volunteer Badge");
+    const type: PrintType = name.startsWith("Participant Schedule Lanyard") || staffBadge || emergencyCard || /badge|lanyard|identity card/i.test(name) ? "badges" : name.startsWith("Pickup / Car-Window") ? "pickup_cards" : name.startsWith("Classroom Roster") ? "class_rosters" : name === "Teacher Packet" || doorSign ? "teacher_schedules" : name.startsWith("Participant Class-Choices") ? "camper_choices" : checkIn || checkOut ? "pickup_roster" : /schedule|run sheet|rotation/i.test(name) ? "camper_choices" : "custom_table";
+    const paperSize: PaperSize = doorSign ? "tabloid" : /3×5|Lanyard/i.test(name) ? "3x5" : /4×6|Card/i.test(name) ? "4x6" : /5×3|Badge/i.test(name) ? "5x3" : "letter";
+    return { builtin: true, id: `library-${index}`, name, category: "library", type, paperSize, orientation: doorSign || /4×6|Card|5×3/i.test(name) ? "landscape" : "portrait", settings: JSON.stringify({
+      ...DEFAULT_SETTINGS,
+      ...(name.startsWith("Participant Schedule Lanyard") ? { badgeLayout: "schedule_lanyard", badgeContentBlocks: ["name", "schedule"], badgeBackEnabled: true, badgeBackContentBlocks: ["qr"] } : {}),
+      ...(staffBadge ? { badgeContentBlocks: ["label", "fullName", "qr"], badgeBackEnabled: false } : {}),
+      ...(emergencyCard ? { badgeContentBlocks: ["fullName", "guardian", "emergency", "medical"], badgeBackEnabled: false } : {}),
+      ...(checkIn || checkOut ? { density: "normal", showEmergency: checkOut, showMedical: false } : {}),
+      customDataSource: "participants", customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"]
+    }) };
+  });
   const stockTemplates = [...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })), ...starterLibraryTemplates].filter(template => !isCustomBuilder(template));
   const customTemplates = [
     ...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })).filter(template => isCustomBuilder(template)),
     ...savedTemplates,
   ];
   const flexibleFieldVisible = ["teacher_schedules", "class_rosters", "rotation_roster"].includes(draftTemplate.type);
-  const hasAdvancedBasics = !draftTemplate.builtin || draftTemplate.paperSize === "custom";
+  const hasAdvancedBasics = !draftTemplate.builtin || draftTemplate.paperSize === "custom" || isDoorSchedule(draftTemplate);
 
   const chooseTemplate = (key: string) => {
-    const template = allTemplates.find(t => t.id === key) || allTemplates[0];
+    const template = [...allTemplates, ...starterLibraryTemplates].find(t => t.id === key) || allTemplates[0];
     setSelectedTemplateKey(key);
     setDraftTemplate(template);
     setShowTemplateGallery(false);
@@ -847,6 +879,30 @@ function PrintContent() {
         .ops-print .time-col { width: calc((100% - 105px) / ${Math.max(principalScheduleSlots.length, 1)}); text-align: center; }
         .ops-title { font-size: 20px; font-weight: 900; margin: 0 0 8px; }
         .ops-subtitle { font-size: 12px; margin: 0 0 14px; color: #444; }
+        .door-sign { min-height: calc(100vh - ${selectedSettings.pageMargin} - ${selectedSettings.pageMargin}); border: 5px solid #111; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: .45in; box-sizing: border-box; }
+        .door-sign-kicker, .staff-badge-kicker, .safety-card-heading { font-size: 14px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+        .door-sign-room { margin-top: .12in; font-size: 34px; font-weight: 900; text-transform: uppercase; }
+        .door-sign-class { margin-top: .18in; font-size: 52px; font-weight: 900; line-height: 1; }
+        .door-sign-time { margin-top: .22in; border-top: 3px solid #111; border-bottom: 3px solid #111; padding: .13in .35in; font-size: 31px; font-weight: 900; }
+        .door-sign-teacher { margin-top: .25in; font-size: 23px; font-weight: 800; }
+        .door-sign-meta { margin-top: .12in; font-size: 15px; font-weight: 700; color: #444; }
+        .roster-write-line { border-bottom: 2px solid #111 !important; }
+        .roster-status-boxes { font-size: 9px !important; font-weight: 800; white-space: nowrap !important; }
+        .safety-card { min-height: calc(100vh - ${selectedSettings.pageMargin} - ${selectedSettings.pageMargin}); border: 3px solid #991b1b; border-radius: 14px; padding: .24in; box-sizing: border-box; color: #111827; }
+        .safety-card-heading { color: #991b1b; border-bottom: 2px solid #991b1b; padding-bottom: .08in; }
+        .safety-card-name { margin-top: .12in; font-size: 30px; font-weight: 900; line-height: 1; }
+        .safety-card-group { margin-top: .06in; font-size: 13px; font-weight: 800; color: #475569; }
+        .safety-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .12in; margin-top: .2in; }
+        .safety-card-grid > div { min-height: .68in; border: 1px solid #475569; padding: .09in; font-size: 11px; line-height: 1.25; white-space: pre-line; }
+        .safety-card-grid strong { display: block; margin-bottom: 3px; font-size: 8px; letter-spacing: .08em; text-transform: uppercase; color: #991b1b; }
+        .safety-card-foot { margin-top: .16in; font-size: 9px; font-weight: 700; color: #475569; }
+        .staff-badge { min-height: calc(100vh - ${selectedSettings.pageMargin} - ${selectedSettings.pageMargin}); border: 3px solid #0f172a; border-radius: 12px; padding: .18in; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .staff-badge-kicker { color: #2563eb; }
+        .staff-badge-name { margin-top: .1in; font-size: 30px; font-weight: 900; line-height: 1; }
+        .staff-badge-role { margin-top: .08in; border-radius: 999px; background: #dbeafe; padding: 5px 12px; color: #1d4ed8; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+        .staff-badge-assignment { margin-top: .16in; width: 100%; border-top: 1px solid #64748b; padding-top: .1in; font-size: 11px; font-weight: 800; }
+        .staff-badge-qr { margin-top: .08in; }
+        .staff-badge-contact { font-size: 9px; font-weight: 700; color: #475569; }
         .badge-sheet { display: grid; grid-template-columns: repeat(${badgeCols}, minmax(0, 1fr)); grid-auto-rows: ${draftTemplate.paperSize === "letter" ? `calc((10.5in - 0.18in * ${Math.max(badgeRows - 1, 0)}) / ${badgeRows})` : "auto"}; gap: 0.18in; }
         .badge-card { border: 2px solid #111; border-radius: 10px; padding: 0.16in; text-align: center; page-break-inside: avoid; display: flex; flex-direction: column; justify-content: center; min-height: ${draftTemplate.paperSize === "letter" ? "auto" : "calc(100vh - 0.5in)"}; }
         .badge-card-back { justify-content: flex-start; gap: 0; text-align: left; border: 1px solid #111; border-radius: 4px; padding: 0.18in; }
@@ -1101,9 +1157,9 @@ function PrintContent() {
                       <p className="text-xs font-black uppercase tracking-wide text-slate-500">Badge designer</p>
                       <p className="mt-1 text-[11px] font-semibold text-slate-500">Build reusable badges, preview one participant, then print one or batch-print everyone.</p>
                     </div>
-                    <label className="block text-xs font-bold text-slate-500">Preview / current participant<select value={selectedBadgeCamper?.id || ""} onChange={e => setSelectedBadgeCamperId(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">{sortedCampers.map(camper => <option key={camper.id} value={camper.id}>{fullName(camper)}{camper.ageGroup?.name ? ` — ${camper.ageGroup.name}` : ""}</option>)}</select></label>
+                    {isStaffBadge(draftTemplate) ? <label className="block text-xs font-bold text-slate-500">Preview / current staff member<select value={selectedStaff?.id || ""} onChange={e => setSelectedStaffId(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">{persons.map(person => <option key={person.id} value={person.id}>{fullName(person)} — {person.role || "Staff"}</option>)}</select></label> : <label className="block text-xs font-bold text-slate-500">Preview / current participant<select value={selectedBadgeCamper?.id || ""} onChange={e => setSelectedBadgeCamperId(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">{sortedCampers.map(camper => <option key={camper.id} value={camper.id}>{fullName(camper)}{camper.ageGroup?.name ? ` — ${camper.ageGroup.name}` : ""}</option>)}</select></label>}
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => printBadges("current")} disabled={!selectedBadgeCamper} className="rounded-xl bg-slate-900 px-3 py-2.5 text-xs font-black text-white disabled:opacity-50">Print current</button>
+                      <button type="button" onClick={() => printBadges("current")} disabled={isStaffBadge(draftTemplate) ? !selectedStaff : !selectedBadgeCamper} className="rounded-xl bg-slate-900 px-3 py-2.5 text-xs font-black text-white disabled:opacity-50">Print current</button>
                       <button type="button" onClick={() => printBadges("all")} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-black text-slate-700">Batch print all</button>
                     </div>
                     <label className="block text-xs font-bold text-slate-500">Layout<select value={selectedSettings.badgeLayout} onChange={e => updateSettings({ badgeLayout: e.target.value, badgeContentBlocks: e.target.value === "schedule_lanyard" ? ["name", "schedule"] : ["label", "firstName", "lastName"] })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800"><option value="standard">Standard name badge</option><option value="schedule_lanyard">Schedule lanyard table</option></select></label>
@@ -1156,7 +1212,7 @@ function PrintContent() {
 
       {activeDoc === "principal_schedule" && <div className="print-doc ops-print"><table className={`center ${selectedSettings.stripedRows ? "striped" : ""}`}><thead><tr><th className="student-col">Student</th>{principalScheduleSlots.map(slot => <th key={slot.key} className="time-col">{slot.label}</th>)}</tr></thead><tbody>{sortedCampers.map(camper => <tr key={camper.id}><td className="student-col">{fullName(camper)}</td>{principalScheduleSlots.map(slot => <td key={slot.key} className="time-col">{cellForSlot(camper, slot)}</td>)}</tr>)}</tbody></table></div>}
 
-      {activeDoc === "teacher_schedules" && <div className="print-doc ops-print">{operationalPeople.map(person => { const rows = teacherRows(person, courses, mandatorySessions, campers); const columns = 3 + (selectedSettings.showRoom ? 1 : 0) + (selectedSettings.showStudents ? 1 : 0); return <section key={person.id} className="page-break"><h1 className="ops-title">{fullName(person)} Teacher Packet</h1><p className="ops-subtitle">{person.role} {person.email ? `• ${person.email}` : ""} {person.phone ? `• ${person.phone}` : ""}</p><table><thead><tr><th style={{width:"100px"}}>Time</th><th>Assignment</th>{selectedSettings.showRoom && <th style={{width:"120px"}}>Room</th>}<th style={{width:"110px"}}>Group</th>{selectedSettings.showStudents && <th>Registered Students</th>}</tr></thead><tbody>{rows.length ? rows.map((row, idx) => <tr key={`${row.sortValue}-${idx}`}><td>{row.time}</td><td>{row.title}</td>{selectedSettings.showRoom && <td>{row.room}</td>}<td>{row.age}</td>{selectedSettings.showStudents && <td>{row.students.length ? row.students.map(student => fullName(student)).join("\n") : "—"}</td>}</tr>) : <tr><td colSpan={columns}>No scheduled assignments.</td></tr>}</tbody></table></section>; })}</div>}
+      {activeDoc === "teacher_schedules" && (isDoorSchedule(draftTemplate) ? <div className="print-doc ops-print">{rosterPackets.length ? rosterPackets.map(group => { const course = courseById(courses, group.courseId); return <section key={group.key} className="page-break door-sign"><div className="door-sign-kicker">Room / Door Schedule</div><div className="door-sign-room">{group.room}</div><div className="door-sign-class">{group.title}</div><div className="door-sign-time">{group.time}</div><div className="door-sign-teacher">Teacher: {courseTeacherNames(course)}</div><div className="door-sign-meta">{course ? courseAgeLabel(course) : "All groups"} · {group.campers.length} enrolled</div></section>; }) : <section className="page-break door-sign"><div className="door-sign-kicker">Room / Door Schedule</div><div className="door-sign-class">No scheduled rooms yet</div><div className="door-sign-meta">Add activities, rooms, and sessions to generate door signage.</div></section>}</div> : <div className="print-doc ops-print">{operationalPeople.map(person => { const rows = teacherRows(person, courses, mandatorySessions, campers); const columns = 3 + (selectedSettings.showRoom ? 1 : 0) + (selectedSettings.showStudents ? 1 : 0); return <section key={person.id} className="page-break"><h1 className="ops-title">{fullName(person)} Teacher Packet</h1><p className="ops-subtitle">{person.role} {person.email ? `• ${person.email}` : ""} {person.phone ? `• ${person.phone}` : ""}</p><table><thead><tr><th style={{width:"100px"}}>Time</th><th>Assignment</th>{selectedSettings.showRoom && <th style={{width:"120px"}}>Room</th>}<th style={{width:"110px"}}>Group</th>{selectedSettings.showStudents && <th>Registered Students</th>}</tr></thead><tbody>{rows.length ? rows.map((row, idx) => <tr key={`${row.sortValue}-${idx}`}><td>{row.time}</td><td>{row.title}</td>{selectedSettings.showRoom && <td>{row.room}</td>}<td>{row.age}</td>{selectedSettings.showStudents && <td>{row.students.length ? row.students.map(student => fullName(student)).join("\n") : "—"}</td>}</tr>) : <tr><td colSpan={columns}>No scheduled assignments.</td></tr>}</tbody></table></section>; })}</div>)}
 
       {activeDoc === "class_rosters" && <div className="print-doc ops-print">{rosterPackets.map(group => { const course = courseById(courses, group.courseId); return <section key={group.key} className="page-break"><h1 className="ops-title">{group.title}</h1><p className="ops-subtitle">{group.time}{selectedSettings.showRoom ? ` • ${group.room}` : ""}{selectedSettings.showTeacher ? ` • Teacher: ${courseTeacherNames(course)}` : ""} • {group.campers.length} camper{group.campers.length === 1 ? "" : "s"}</p><table><thead><tr><th style={{width:"150px"}}>Participant</th><th style={{width:"100px"}}>Age Group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}{selectedSettings.showMedical && <th>Medical / Dietary</th>}</tr></thead><tbody>{group.campers.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || ""}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}{selectedSettings.showMedical && <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>}</tr>)}</tbody></table></section>; })}</div>}
 
@@ -1189,10 +1245,12 @@ function PrintContent() {
 
       {activeDoc === "pickup_cards" && <div className="print-doc ops-print">{sortedCampers.map(c => <section key={c.id} className="page-break" style={{minHeight:"calc(100vh - 0.5in)", display:"flex", alignItems:"center", justifyContent:"center"}}><div style={{width:"100%", maxWidth:"5.4in", border:"4px solid #111", borderRadius:"18px", padding:"0.28in", textAlign:"center"}}><div style={{fontSize:18, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase"}}>Creator&apos;s Program Pickup</div><div style={{fontSize:96, lineHeight:1, fontWeight:900, margin:"0.18in 0 0.08in"}}>{c.pickupNumber || "—"}</div><div style={{fontSize:24, fontWeight:900, letterSpacing:"0.08em", textTransform:"uppercase"}}>{c.lastName} Family</div><div style={{marginTop:"0.18in", display:"flex", justifyContent:"center"}}><CamperScannableCode value={c.scanCode} label="Scan for check-in" size={132} /></div><div style={{marginTop:"0.12in", fontSize:12, fontWeight:700, color:"#444"}}>Staff: scan QR or search pickup #{c.pickupNumber || "—"}</div></div></section>)}</div>}
 
-      {activeDoc === "pickup_roster" && <div className="print-doc ops-print"><h1 className="ops-title">Pickup Number Roster</h1><p className="ops-subtitle">Backup car-line lookup. Pickup numbers can be shared by siblings/family groups.</p><table><thead><tr><th style={{width:"80px"}}>Pickup #</th><th>Family / Participant</th><th>Guardian</th><th>Phone</th><th>Age Group</th></tr></thead><tbody>{[...sortedCampers].sort((a,b) => String(a.pickupNumber || "999999").localeCompare(String(b.pickupNumber || "999999"), undefined, { numeric: true })).map(c => <tr key={c.id}><td style={{fontSize:16, fontWeight:900, textAlign:"center"}}>{c.pickupNumber || "—"}</td><td>{c.lastName.toUpperCase()} FAMILY<br />{fullName(c)}</td><td>{c.guardianName || "—"}</td><td>{c.guardianPhone || c.guardianEmail || "—"}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></div>}
+      {activeDoc === "pickup_roster" && (isCheckInRoster(draftTemplate) ? <div className="print-doc ops-print">{chunkItems(sortedCampers, 24).map((page, pageIndex) => <section key={pageIndex} className="page-break"><h1 className="ops-title">Check-in Roster</h1><p className="ops-subtitle">Arrival status, time, and staff initials · Page {pageIndex + 1}</p><table><thead><tr><th style={{width:"28px"}}>#</th><th>Participant</th><th style={{width:"95px"}}>Arrival</th><th style={{width:"110px"}}>Status</th><th style={{width:"85px"}}>Staff initials</th></tr></thead><tbody>{page.map((camper, index) => <tr key={camper.id}><td>{pageIndex * 24 + index + 1}</td><td><strong>{fullName(camper)}</strong><br />{camper.ageGroup?.name || "—"}</td><td className="roster-write-line">&nbsp;</td><td className="roster-status-boxes">☐ Here&nbsp;&nbsp; ☐ Late&nbsp;&nbsp; ☐ Absent</td><td className="roster-write-line">&nbsp;</td></tr>)}</tbody></table></section>)}</div> : isCheckOutRoster(draftTemplate) ? <div className="print-doc ops-print">{chunkItems([...sortedCampers].sort((a, b) => String(a.pickupNumber || "999999").localeCompare(String(b.pickupNumber || "999999"), undefined, { numeric: true })), 20).map((page, pageIndex) => <section key={pageIndex} className="page-break"><h1 className="ops-title">Check-out / Pickup Roster</h1><p className="ops-subtitle">Verify approved pickup before departure · Page {pageIndex + 1}</p><table><thead><tr><th style={{width:"66px"}}>Pickup #</th><th>Participant</th><th>Approved pickup / verification</th><th style={{width:"84px"}}>Departure</th><th style={{width:"70px"}}>Initials</th></tr></thead><tbody>{page.map(camper => <tr key={camper.id}><td style={{fontSize:16, fontWeight:900, textAlign:"center"}}>{camper.pickupNumber || "—"}</td><td><strong>{fullName(camper)}</strong><br />Guardian: {camper.guardianName || "—"}</td><td>{camper.guardianName || "________________"}<br /><span className="roster-status-boxes">☐ ID checked &nbsp; ☐ Approved</span></td><td className="roster-write-line">&nbsp;</td><td className="roster-write-line">&nbsp;</td></tr>)}</tbody></table></section>)}</div> : <div className="print-doc ops-print"><h1 className="ops-title">Pickup Number Roster</h1><p className="ops-subtitle">Backup car-line lookup. Pickup numbers can be shared by siblings/family groups.</p><table><thead><tr><th style={{width:"80px"}}>Pickup #</th><th>Family / Participant</th><th>Guardian</th><th>Phone</th><th>Age Group</th></tr></thead><tbody>{[...sortedCampers].sort((a,b) => String(a.pickupNumber || "999999").localeCompare(String(b.pickupNumber || "999999"), undefined, { numeric: true })).map(c => <tr key={c.id}><td style={{fontSize:16, fontWeight:900, textAlign:"center"}}>{c.pickupNumber || "—"}</td><td>{c.lastName.toUpperCase()} FAMILY<br />{fullName(c)}</td><td>{c.guardianName || "—"}</td><td>{c.guardianPhone || c.guardianEmail || "—"}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></div>)}
 
       {activeDoc === "badges" && <div className="print-doc ops-print">
         {(() => {
+          if (isEmergencyCard(draftTemplate)) return badgeCampersToPrint.map(camper => <section key={camper.id} className="page-break safety-card"><div className="safety-card-heading">Emergency Contact Card</div><div className="safety-card-name">{fullName(camper)}</div><div className="safety-card-group">{camper.ageGroup?.name || "Age group not set"}</div><div className="safety-card-grid"><div><strong>Guardian</strong>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || "—"}</div><div><strong>Emergency contact</strong>{camper.emergencyPhone || camper.guardianPhone || "—"}</div><div><strong>Medical</strong>{camper.medicalNotes || "None listed"}</div><div><strong>Dietary</strong>{camper.dietaryNotes || "None listed"}</div></div><div className="safety-card-foot">Keep with participant during activities, transport, and evacuation.</div></section>);
+          if (isStaffBadge(draftTemplate)) return staffToPrint.map(person => <section key={person.id} className="page-break staff-badge"><div className="staff-badge-kicker">Camp Team</div><div className="staff-badge-name">{fullName(person)}</div><div className="staff-badge-role">{person.role || "Staff / Volunteer"}</div><div className="staff-badge-assignment">Assignment / Room: ________________________</div><div className="staff-badge-qr"><CamperScannableCode value={`staff-${person.id}`} label="Scan staff badge" size={112} /></div><div className="staff-badge-contact">{person.email || person.phone || "Camp staff"}</div></section>);
           const renderBackField = (c: Camper, blockId: string, lanyard = false) => {
             const fieldClass = lanyard ? "lanyard-back-field" : "badge-back-field";
             const labelClass = lanyard ? "lanyard-back-label" : "badge-back-field-label";
