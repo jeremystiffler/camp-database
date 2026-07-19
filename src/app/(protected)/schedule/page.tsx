@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
+import { EmptyState } from "@/components/OperationalUI";
 import { RowDeleteButton } from "@/components/InlineEditing";
 
 interface SessionTemplate {
@@ -226,16 +227,7 @@ function ScheduleContent() {
     }).catch(() => setLoading(false));
   }, [campId]);
 
-  if (!campId) {
-    return (
-      <div className="flex h-64 items-center justify-center text-slate-400">
-        <div className="text-center">
-          <span className="mb-3 block text-4xl">Date</span>
-          <p>Select a program to view its schedule.</p>
-        </div>
-      </div>
-    );
-  }
+  if (!campId) return <EmptyState title="Choose a program first" description="Schedules are built for one program at a time." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   const sortedSessions = [...sessions].sort(sessionSort);
   const displaySessions = dedupeSessions(sortedSessions);

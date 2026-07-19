@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import jsQR from "jsqr";
 import CamperScannableCode from "@/components/CamperScannableCode";
 import { HelpCopy } from "@/components/HelpMode";
+import { EmptyState } from "@/components/OperationalUI";
 
 interface AgeGroup { id: string; name: string; }
 interface Attendance {
@@ -542,7 +543,7 @@ function CheckInContent() {
     setScanMessage(kioskNameMatches.length > 1 ? "Choose the matching child below." : "No match found. Please ask a staff member for help.");
   };
 
-  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Select a program to open Check in/out.</div>;
+  if (!campId) return <EmptyState title="Choose a program first" description="Check in and check out are recorded for one program at a time." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   if (kioskMode) {
     return (

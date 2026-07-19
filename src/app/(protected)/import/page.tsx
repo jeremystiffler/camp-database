@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import * as XLSX from "xlsx";
+import { EmptyState, PageHeader } from "@/components/OperationalUI";
 
 // ── Column definitions (no session columns) ──────────────────────────────────
 const IMPORT_HEADERS = [
@@ -440,11 +441,7 @@ function ImportContent() {
   const validRows   = rows.filter(r => r.activity_name?.trim());
   const invalidRows = rows.filter(r => !r.activity_name?.trim());
 
-  if (!campId) return (
-    <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">📥</span><p>Select a program to import data.</p></div>
-    </div>
-  );
+  if (!campId) return <EmptyState title="Choose a program first" description="Imported data must be attached to the right program." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <div className="max-w-5xl">

@@ -7,17 +7,24 @@ import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
 
-const navItems = [
-  { href: "/dashboard",    label: "Dashboard",      icon: "compass", minRole: "viewer" },
-  { href: "/setup",        label: "Program Setup",     icon: "tent", minRole: "editor" },
-  { href: "/campers",      label: "Participants",   icon: "campers", minRole: "viewer" },
-  { href: "/check-in",     label: "Check in/out",   icon: "check", minRole: "viewer" },
-  { href: "/schedule",     label: "Schedule",       icon: "calendar", minRole: "viewer" },
-  { href: "/registration", label: "Registration",   icon: "clipboard", minRole: "editor" },
-  { href: "/print",        label: "Print Center",   icon: "printer", minRole: "viewer" },
-  { href: "/team",         label: "Team",           icon: "team", minRole: "viewer" },
-  { href: "/import",       label: "Import",         icon: "upload", minRole: "editor" },
-  { href: "/settings",     label: "Settings",       icon: "gear", minRole: "admin" },
+const navGroups = [
+  { label: "Program", items: [
+    { href: "/dashboard", label: "Dashboard", icon: "compass", minRole: "viewer" },
+    { href: "/setup", label: "Setup", icon: "tent", minRole: "editor" },
+    { href: "/activities", label: "Activities", icon: "clipboard", minRole: "viewer" },
+    { href: "/schedule", label: "Schedule", icon: "calendar", minRole: "viewer" },
+    { href: "/registration", label: "Registration", icon: "clipboard", minRole: "editor" },
+  ] },
+  { label: "Operations", items: [
+    { href: "/campers", label: "Participants", icon: "campers", minRole: "viewer" },
+    { href: "/check-in", label: "Check in/out", icon: "check", minRole: "viewer" },
+    { href: "/team", label: "Team", icon: "team", minRole: "viewer" },
+    { href: "/print", label: "Print Center", icon: "printer", minRole: "viewer" },
+  ] },
+  { label: "Manage", items: [
+    { href: "/import", label: "Import", icon: "upload", minRole: "editor" },
+    { href: "/settings", label: "Settings", icon: "gear", minRole: "admin" },
+  ] },
 ] as const;
 
 const roleRank = (role?: string) => ({ owner: 4, admin: 3, editor: 2, viewer: 1 }[role || "viewer"] || 1);
@@ -90,6 +97,15 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     localStorage.setItem("activeCampId", campFromUrl.id);
   }, [searchParams, camps, activeCamp?.id]);
 
+  // A shared program selection should also survive a bookmarked operational URL.
+  // Do this only after the program list is known so an invalid URL is never masked.
+  useEffect(() => {
+    if (!activeCamp?.id || searchParams.get("campId") || pathname === "/super-admin") return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("campId", activeCamp.id);
+    router.replace(`${pathname}?${params.toString()}`);
+  }, [activeCamp?.id, pathname, router, searchParams]);
+
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
@@ -152,7 +168,6 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   };
 
   const navHref = (href: string) => {
-    if (href === "/dashboard") return "/dashboard";
     if (campId) return `${href}?campId=${campId}`;
     return href;
   };
@@ -240,13 +255,16 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
+        <nav aria-label="Program navigation" className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+          {navGroups.map((group) => <div key={group.label}>
+            <p className="minimal-section-title px-3 mb-1.5">{group.label}</p>
+            <div className="space-y-1">{group.items.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
                 href={navHref(item.href)}
+                aria-current={isActive ? "page" : undefined}
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
                   isActive
@@ -260,7 +278,8 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                 {item.label}
               </Link>
             );
-          })}
+            })}</div>
+          </div>)}
           {user.isSuperAdmin && <Link href="/super-admin" onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${pathname.startsWith("/super-admin") ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${pathname.startsWith("/super-admin") ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name="gear" /></span>Super Admin</Link>}
         </nav>
 

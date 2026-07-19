@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
+import { EmptyState, SaveState } from "@/components/OperationalUI";
 
 interface FormField {
   id: string;
@@ -419,7 +420,12 @@ function RegistrationContent() {
   };
 
   const updateField = (id: string, updated: FormField) => setFields(prev => prev.map(f => f.id === id ? updated : f));
-  const removeField = (id: string) => setFields(prev => prev.filter(f => f.id !== id));
+  const removeField = (id: string) => {
+    const field = fields.find(item => item.id === id);
+    if (!field || field.system) return;
+    if (!confirm(`Delete the custom field “${field.label || "Untitled field"}”? This change will be saved when you save the form.`)) return;
+    setFields(prev => prev.filter(item => item.id !== id));
+  };
 
   const onDragStart = (i: number) => { dragIdx.current = i; };
   const onDragOver  = (e: React.DragEvent, i: number) => { e.preventDefault(); dragOverIdx.current = i; };
@@ -481,18 +487,14 @@ function RegistrationContent() {
     ? `${window.location.origin}/register/${campId}${formSlug ? `?form=${encodeURIComponent(formSlug)}` : ""}`
     : `/register/${campId}${formSlug ? `?form=${encodeURIComponent(formSlug)}` : ""}`;
 
-  if (!campId) return (
-    <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">Form</span><p>Select a program to manage its registration form.</p></div>
-    </div>
-  );
+  if (!campId) return <EmptyState title="Choose a program first" description="Each program has its own registration form and family link." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <div className="max-w-5xl">
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Registration Form</h1>
-          <HelpCopy title="Form builder" className="text-slate-500 text-sm mt-0.5">Drag fields to reorder. Click any field to edit its label, help text, options, and required status. Any field can be deleted.</HelpCopy>
+          <HelpCopy title="Form builder" className="text-slate-500 text-sm mt-0.5">Drag fields to reorder. Click a field to edit it. Required system fields stay locked; custom fields can be deleted with confirmation.</HelpCopy>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           {formStatus !== "draft" && (
@@ -505,7 +507,7 @@ function RegistrationContent() {
             className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-forest-500 text-white" : "bg-gradient-to-r from-berry-500 to-berry-600 text-white hover:opacity-90"} disabled:opacity-60`}>
             {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Form"}
           </button>
-          {saveError && <p className="basis-full text-right text-xs font-bold text-red-500">{saveError}</p>}
+          <span className="basis-full text-right"><SaveState saving={saving} saved={saved} error={saveError} /></span>
         </div>
       </div>
 
@@ -809,11 +811,10 @@ function RegistrationContent() {
                   <span className={`flex-1 text-sm truncate ${indentField ? "font-medium text-slate-800" : "font-black text-slate-700"}`}>{field.type === "pageBreak" ? sectionBreakLabel(field) : field.label}</span>
                   {indentField && <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wide text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">field</span>}
                   {field.required && <span className="text-red-400 text-xs">*</span>}
-                  {field.system && <span className="text-xs text-slate-300 bg-slate-50 px-1.5 rounded border border-slate-100">system</span>}
+                  {field.system && <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-1.5 rounded border border-slate-200">Required program field · locked</span>}
                   {field.type === "pageBreak" && <button type="button" onClick={e => { e.stopPropagation(); }} className="text-xs font-bold text-amber-700">Section divider</button>}
                   <span className="text-slate-400 text-xs">{editingId === field.id ? "▲" : "▼"}</span>
-                  <button onClick={e => { e.stopPropagation(); removeField(field.id); }}
-                    className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>
+                  {field.system ? <span title="Required program fields cannot be deleted" className="text-slate-300 text-sm px-1" aria-label="Required program field is locked">🔒</span> : <button aria-label={`Delete custom field ${field.label || "Untitled field"}`} onClick={e => { e.stopPropagation(); removeField(field.id); }} className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>}
                 </div>
                 {editingId === field.id && field.type !== "divider" && field.type !== "pageBreak" && (
                   <FieldEditor field={field} onChange={updated => updateField(field.id, updated)} />

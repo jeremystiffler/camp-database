@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import CamperScannableCode from "@/components/CamperScannableCode";
 import { RowDeleteButton } from "@/components/InlineEditing";
+import { EmptyState } from "@/components/OperationalUI";
 
 interface AgeGroup {
   id: string;
@@ -702,16 +703,7 @@ function CampersContent() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  if (!campId) {
-    return (
-      <div className="flex items-center justify-center h-64 text-slate-400">
-        <div className="text-center">
-          <span className="text-4xl mb-3 block">👦</span>
-          <p>Select a program from the sidebar to view participants.</p>
-        </div>
-      </div>
-    );
-  }
+  if (!campId) return <EmptyState title="Choose a program first" description="Participants are organized by program. Choose one from the dashboard to view its roster." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <div>

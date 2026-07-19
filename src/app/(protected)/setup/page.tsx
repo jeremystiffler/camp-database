@@ -8,6 +8,7 @@ import { ActivitiesContent } from "../activities/page";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
 import { RowDeleteButton } from "@/components/InlineEditing";
+import { EmptyState, SaveState } from "@/components/OperationalUI";
 
 interface Camp {
   id: string;
@@ -689,11 +690,7 @@ function SetupContent() {
     load();
   };
 
-  if (!campId) return (
-    <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block"></span><p>Select a program to configure it.</p></div>
-    </div>
-  );
+  if (!campId) return <EmptyState title="Choose a program first" description="Setup is saved per program. Choose a program from the dashboard to continue." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -913,6 +910,7 @@ function SetupContent() {
             className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-slate-900 text-white" : "bg-slate-900 text-white hover:bg-slate-800"} disabled:opacity-60`}>
             {saved ? "Saved" : saving ? "Saving..." : "Save Changes"}
           </button>
+          <SaveState saving={saving} saved={saved} error={setupNotice} />
         </div>
       </Section>
       )}

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
 import { RowDeleteButton } from "@/components/InlineEditing";
+import { EmptyState } from "@/components/OperationalUI";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -977,11 +978,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
   const scheduledCount = courses.filter(c => (c.courseSessionTemplates || []).length > 0).length;
   const registrationReady = courses.length > 0 && needsCount === 0;
 
-  if (!campId) return (
-    <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">A</span><p>Select a program to view activities.</p></div>
-    </div>
-  );
+  if (!campId) return <EmptyState title="Choose a program first" description="Activities belong to a specific program. Choose one from the dashboard, then return here." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <div className="space-y-6">

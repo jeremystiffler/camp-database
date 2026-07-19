@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { EmptyState } from "@/components/OperationalUI";
 import CamperScannableCode from "@/components/CamperScannableCode";
 import { HelpCopy } from "@/components/HelpMode";
 
@@ -845,7 +846,7 @@ function PrintContent() {
     return explicitPages.length ? explicitPages : [livePreviewHtml];
   })();
 
-  if (!campId) return <div className="flex h-64 items-center justify-center text-slate-400">Finding your active camp…</div>;
+  if (!campId) return <EmptyState title="Choose a program first" description="Printable rosters, labels, and schedules are generated for a specific program." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <>

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_COLORS, ASSIGNABLE_ROLES, type CampRole } from "@/lib/permissions";
+import { EmptyState, PageHeader } from "@/components/OperationalUI";
 
 interface TeamMember {
   id: string;
@@ -115,18 +116,11 @@ function TeamContent() {
     load();
   };
 
-  if (!campId) return (
-    <div className="flex items-center justify-center h-64 text-slate-400">
-      <div className="text-center"><span className="text-4xl mb-3 block">👥</span><p>Select a program to manage its team.</p></div>
-    </div>
-  );
+  if (!campId) return <EmptyState title="Choose a program first" description="Team access is managed separately for each program." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Team</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Manage who has access to this program and their permissions.</p>
-      </div>
+      <PageHeader title="Team" description="Manage who has access to this program and their permissions." />
 
       {/* Role legend */}
       <div className="camp-card p-5 mb-6">
