@@ -1,24 +1,34 @@
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
-// Platform governance is deliberately separate from camp-level roles. Keep this
-// allowlist in the deployment environment when adding another trusted operator.
-const defaultAdmins = ["jeremystiffler@gmail.com"];
+// Root authority is intentionally environment-owned. Platform Super Admins can
+// manage promotions, but only the root owner can grant/revoke that authority.
+const defaultRootAdmins = ["jeremystiffler@gmail.com"];
 
-export function superAdminEmails() {
-  return (process.env.SUPER_ADMIN_EMAILS || defaultAdmins.join(","))
+export function rootSuperAdminEmails() {
+  return (process.env.ROOT_SUPER_ADMIN_EMAILS || defaultRootAdmins.join(","))
     .split(",")
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
 }
 
-export function isSuperAdminEmail(email?: string | null) {
-  return !!email && superAdminEmails().includes(email.toLowerCase());
+export function isRootSuperAdminEmail(email?: string | null) {
+  return !!email && rootSuperAdminEmails().includes(email.toLowerCase());
+}
+
+export async function requirePlatformAccess() {
+  const session = await getSession();
+  if (!session) return { session: null, user: null, authorized: false, root: false };
+  const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, email: true, name: true, platformRole: true } });
+  const root = isRootSuperAdminEmail(user?.email || session.email);
+  return { session, user, root, authorized: root || user?.platformRole === "super_admin" };
 }
 
 export async function requireSuperAdmin() {
-  const session = await getSession();
-  if (!session) return { session: null, user: null, authorized: false };
-  const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, email: true, name: true } });
-  return { session, user, authorized: isSuperAdminEmail(user?.email || session.email) };
+  return requirePlatformAccess();
+}
+
+export async function requireRootSuperAdmin() {
+  const gate = await requirePlatformAccess();
+  return { ...gate, authorized: gate.root };
 }

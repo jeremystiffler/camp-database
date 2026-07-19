@@ -26,6 +26,7 @@ model User {
   passwordHash   String?
   avatar         String?
   role           String          @default("owner")
+  platformRole   String          @default("user") // user | super_admin; root authority remains environment-owned
   organizationId String?
   organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   campMembers    CampMember[]

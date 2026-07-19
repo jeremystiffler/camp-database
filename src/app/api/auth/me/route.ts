@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, signToken, setSessionCookie, hashPassword, verifyPassword } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isSuperAdminEmail } from "@/lib/platform-admin";
+import { isRootSuperAdminEmail } from "@/lib/platform-admin";
 
 export async function GET() {
   const session = await getSession();
@@ -10,13 +10,13 @@ export async function GET() {
   try {
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { id: true, email: true, name: true, role: true, organizationId: true },
+      select: { id: true, email: true, name: true, role: true, platformRole: true, organizationId: true },
     });
     if (!user) return NextResponse.json({ user: null }, { status: 401 });
-    return NextResponse.json({ user: { ...user, isSuperAdmin: isSuperAdminEmail(user.email) } });
+    return NextResponse.json({ user: { ...user, isSuperAdmin: isRootSuperAdminEmail(user.email) || user.platformRole === "super_admin", isRootSuperAdmin: isRootSuperAdminEmail(user.email) } });
   } catch {
     return NextResponse.json({
-      user: { id: session.userId, email: session.email, name: session.name, role: "owner", organizationId: session.organizationId || null, isSuperAdmin: isSuperAdminEmail(session.email) },
+      user: { id: session.userId, email: session.email, name: session.name, role: "owner", organizationId: session.organizationId || null, isSuperAdmin: isRootSuperAdminEmail(session.email), isRootSuperAdmin: isRootSuperAdminEmail(session.email) },
     });
   }
 }
