@@ -519,6 +519,22 @@ function SettingsContent() {
               </div>
             </div>
 
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Live registration preview</p>
+              <div className="overflow-hidden rounded-xl bg-white shadow-sm" style={{ fontFamily: `${appearance.fontFamily}, sans-serif` }}>
+                <div className="p-4 text-white" style={{ background: `linear-gradient(135deg, ${appearance.primaryColor}, ${appearance.accentColor})` }}>
+                  <p className="text-lg font-bold">{campName}</p>
+                  <p className="text-sm opacity-90">Participant Registration</p>
+                </div>
+                <div className="space-y-2 p-4">
+                  <div className="h-3 w-2/5 rounded bg-slate-200" />
+                  <div className="h-10 rounded-lg border border-slate-200 bg-slate-50" />
+                  <div className="rounded-lg px-3 py-2 text-center text-sm font-bold text-white" style={{ background: `linear-gradient(135deg, ${appearance.primaryColor}, ${appearance.accentColor})` }}>Continue</div>
+                </div>
+              </div>
+              <a href={`/register/${campId}`} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-bold text-sky-700 hover:text-sky-900">Open full registration preview ↗</a>
+            </div>
+
             {appearanceMsg && (
               <div className={`px-4 py-2.5 rounded-xl text-sm ${appearanceMsg.type === "success" ? "bg-forest-50 text-forest-700 border border-forest-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
                 {appearanceMsg.text}

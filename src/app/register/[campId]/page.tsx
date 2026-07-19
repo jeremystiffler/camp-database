@@ -17,6 +17,7 @@ interface FormField {
 }
 
 interface AgeGroup { id: string; name: string; noSchedule?: boolean; }
+interface ProgramAppearance { primaryColor: string; accentColor: string; fontFamily: string; }
 interface Course {
   id: string;
   name: string;
@@ -160,6 +161,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const searchParams = useSearchParams();
   const [campId, setCampId]         = useState("");
   const [campName, setCampName]     = useState("");
+  const [appearance, setAppearance] = useState<ProgramAppearance>({ primaryColor: "#64748B", accentColor: "#475569", fontFamily: "Inter" });
   const [fields, setFields]         = useState<FormField[]>([]);
   const [ageGroups, setAgeGroups]   = useState<AgeGroup[]>([]);
   const [courses, setCourses]       = useState<Course[]>([]);
@@ -201,6 +203,11 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         .then(r => r.json())
         .then(d => {
           setCampName(d.campName || "Camp");
+          setAppearance({
+            primaryColor: /^#[0-9a-f]{6}$/i.test(d.primaryColor || "") ? d.primaryColor : "#64748B",
+            accentColor: /^#[0-9a-f]{6}$/i.test(d.accentColor || "") ? d.accentColor : "#475569",
+            fontFamily: ["Inter", "Poppins", "Georgia", "Merriweather", "Courier New", "Trebuchet MS"].includes(d.fontFamily) ? d.fontFamily : "Inter",
+          });
           setRegOpen(d.registrationOpen || false);
           setBillingMode(d.billingMode === "camperFee" ? "camperFee" : "campPays");
           setPlatformFeeCents(Number(d.platformFeeCents || 300));
@@ -496,8 +503,11 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     </div>
   );
 
+  const pageStyle = { background: `linear-gradient(135deg, ${appearance.primaryColor}18, ${appearance.accentColor}18)`, fontFamily: `${appearance.fontFamily}, ${appearance.fontFamily === "Georgia" || appearance.fontFamily === "Merriweather" ? "serif" : "sans-serif"}` };
+  const brandStyle = { background: `linear-gradient(135deg, ${appearance.primaryColor}, ${appearance.accentColor})` };
+
   if (!regOpen) return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-50 to-sky-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={pageStyle}>
       <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
         <span className="text-5xl mb-4 block">🔒</span>
         <h1 className="text-2xl font-bold text-slate-800 mb-2">{campName}</h1>
@@ -507,13 +517,13 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   );
 
   if (submitted) return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-50 to-sky-50 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={pageStyle}>
       <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
         <span className="text-6xl mb-4 block">🎉</span>
         <h1 className="text-2xl font-bold text-slate-800 mb-2">{submittedUpdated ? "Registration updated!" : "You're registered!"}</h1>
         <p className="text-slate-500 mb-6">Your registration for <strong>{campName}</strong> has been {submittedUpdated ? "updated" : "submitted"}. Check your email for a confirmation copy.</p>
         <button onClick={() => { setSubmitted(false); setSubmittedUpdated(false); setValues({}); setStudents([makeStudent(1)]); setActiveStudentIndex(0); setSelectedBySession({}); setStep(1); setSectionPageIndex(0); }}
-          className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+          style={brandStyle} className="px-5 py-2.5 text-white rounded-xl text-sm font-semibold hover:opacity-90">
           Register Another Camper
         </button>
       </div>
@@ -521,7 +531,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   );
 
   const inputCls = (id: string) => `w-full px-4 py-2.5 border rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-colors ${
-    errors[id] ? "border-red-400 focus:ring-red-300" : "border-slate-200 focus:ring-forest-500/30 focus:border-forest-400"
+    errors[id] ? "border-red-400 focus:ring-red-300" : "border-slate-200 focus:ring-slate-300"
   }`;
 
   const currentStepPages = pagesForStep(step);
@@ -582,10 +592,10 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-50 to-sky-50 py-10 px-4">
+    <div className="min-h-screen py-10 px-4" style={pageStyle}>
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-forest-500 to-sky-500 flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg">🏕️</div>
+          <div style={brandStyle} className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4 shadow-lg">🏕️</div>
           <h1 className="text-3xl font-bold text-slate-800">{campName}</h1>
           <p className="text-slate-500 mt-1">{familyRegistrationEnabled ? "Family Registration" : "Participant Registration"}</p>
         </div>
@@ -595,7 +605,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
             const num = classChoicesEnabled ? idx + 1 : (idx === 0 ? 1 : 3);
             const active = step === num;
             const done = step > num;
-            return <div key={label} className={`flex-1 rounded-full px-3 py-2 text-center text-xs font-bold ${active ? "bg-forest-600 text-white" : done ? "bg-forest-100 text-forest-700" : "bg-white text-slate-400 border border-slate-200"}`}>{done ? "✓ " : ""}{label}</div>;
+            return <div key={label} style={active ? brandStyle : done ? { backgroundColor: `${appearance.primaryColor}18`, color: appearance.primaryColor } : undefined} className={`flex-1 rounded-full px-3 py-2 text-center text-xs font-bold ${active ? "text-white" : done ? "" : "bg-white text-slate-400 border border-slate-200"}`}>{done ? "✓ " : ""}{label}</div>;
           })}
         </div>
 
@@ -642,7 +652,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                 <p className="text-sm text-slate-500">Age Group is required for registration. {classChoicesEnabled ? "The next step will show classroom choices based on the selected age group." : "Class choices are disabled for this form, so families will continue directly to consent."}</p>
                 {hasMultiplePagesInStep && <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Page {currentPageIndex + 1} of {currentStepPages.length}{currentPage.title ? ` · ${currentPage.title}` : ""}</p>}
                 {currentPage.fields.map(renderField)}
-                <button type="button" onClick={nextStep} className="w-full py-3.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">{currentPageIndex < currentStepPages.length - 1 ? "Continue →" : classChoicesEnabled ? "Continue to Classes →" : "Continue →"}</button>
+                <button type="button" onClick={nextStep} style={brandStyle} className="w-full py-3.5 text-white rounded-xl text-sm font-bold hover:opacity-90">{currentPageIndex < currentStepPages.length - 1 ? "Continue →" : classChoicesEnabled ? "Continue to Classes →" : "Continue →"}</button>
               </>
             )}
 
@@ -717,7 +727,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                 {errors._form && <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm font-bold text-red-700">{errors._form}</div>}
                 <div className="flex gap-3">
                   <button type="button" onClick={prevStep} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">← Back</button>
-                  <button type="button" onClick={nextStep} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">Continue →</button>
+                  <button type="button" onClick={nextStep} style={brandStyle} className="flex-1 py-3 text-white rounded-xl text-sm font-bold hover:opacity-90">Continue →</button>
                 </div>
               </>
             )}
@@ -730,11 +740,11 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                 <div className="flex gap-3">
                   <button type="button" onClick={prevStep} className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">← Back</button>
                   {currentPageIndex < currentStepPages.length - 1 ? (
-                    <button type="button" onClick={nextStep} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90">Continue →</button>
+                    <button type="button" onClick={nextStep} style={brandStyle} className="flex-1 py-3 text-white rounded-xl text-sm font-bold hover:opacity-90">Continue →</button>
                   ) : (
                     <>
                       {familyRegistrationEnabled && <button type="button" onClick={addAnotherStudent} className="flex-1 py-3 border border-sky-200 bg-sky-50 text-sky-700 rounded-xl text-sm font-bold hover:bg-sky-100">+ Add Student</button>}
-                      <button type="submit" disabled={submitting} className="flex-1 py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
+                      <button type="submit" disabled={submitting} style={brandStyle} className="flex-1 py-3 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
                         {submitting ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting…</> : billingMode === "camperFee" && totalDueCents > 0 ? `Submit ${activeStudentCount} + Pay ${money(totalDueCents)} →` : `Submit ${familyRegistrationEnabled ? `${activeStudentCount} Student${activeStudentCount === 1 ? "" : "s"}` : "Registration"} →`}
                       </button>
                     </>

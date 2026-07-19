@@ -49,6 +49,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     if (allowed.endDate)   allowed.endDate   = allowed.endDate   ? new Date(allowed.endDate   as string) : null;
     if (allowed.billingMode && !["campPays", "camperFee"].includes(String(allowed.billingMode))) delete allowed.billingMode;
     if (allowed.billingStatus && !["trial", "active", "past_due", "unpaid", "comped"].includes(String(allowed.billingStatus))) delete allowed.billingStatus;
+    // Appearance is rendered on public registration and printable material. Keep these
+    // values constrained here so a program setting cannot inject arbitrary CSS.
+    const colorValue = /^#[0-9a-fA-F]{6}$/;
+    for (const key of ["primaryColor", "accentColor"] as const) {
+      if (allowed[key] !== undefined) {
+        const value = String(allowed[key]).trim();
+        if (!colorValue.test(value)) return NextResponse.json({ error: `Invalid ${key}` }, { status: 400 });
+        allowed[key] = value.toUpperCase();
+      }
+    }
+    if (allowed.fontFamily !== undefined) {
+      const value = String(allowed.fontFamily).trim();
+      const allowedFonts = ["Inter", "Poppins", "Georgia", "Merriweather", "Courier New", "Trebuchet MS"];
+      if (!allowedFonts.includes(value)) return NextResponse.json({ error: "Invalid font family" }, { status: 400 });
+      allowed.fontFamily = value;
+    }
     if (allowed.platformFeeCents !== undefined) allowed.platformFeeCents = Math.max(0, Number(allowed.platformFeeCents) || 300);
     if (allowed.platformFeePercentBps !== undefined) allowed.platformFeePercentBps = Math.min(10000, Math.max(0, Number(allowed.platformFeePercentBps) || 300));
     if (allowed.platformFeeMinCents !== undefined) allowed.platformFeeMinCents = Math.max(0, Number(allowed.platformFeeMinCents) || 200);
