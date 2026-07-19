@@ -7,6 +7,7 @@ import { TeachersContent } from "../teachers/page";
 import { ActivitiesContent } from "../activities/page";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
+import { RowDeleteButton } from "@/components/InlineEditing";
 
 interface Camp {
   id: string;
@@ -440,8 +441,8 @@ function SetupContent() {
   };
 
   const deleteRoom = async (id: string) => {
-    if (!confirm("Delete this room?")) return;
-    await fetch(`/api/camps/${campId}/rooms/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/camps/${campId}/rooms/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Could not delete room");
     load();
   };
 
@@ -482,8 +483,8 @@ function SetupContent() {
   };
 
   const deleteAgeGroup = async (id: string) => {
-    if (!confirm("Delete this age group?")) return;
-    await fetch(`/api/camps/${campId}/age-groups/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/camps/${campId}/age-groups/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Could not delete age group");
     load();
   };
 
@@ -959,7 +960,7 @@ function SetupContent() {
                 />
               </label>
               <div className="flex items-center gap-2 md:justify-end">
-                <button type="button" onClick={() => deleteRoom(room.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">Delete</button>
+                <RowDeleteButton onDelete={() => deleteRoom(room.id)} label={room.name} />
               </div>
             </div>
           ))}
@@ -1049,7 +1050,7 @@ function SetupContent() {
                         <span className="text-xs text-slate-500 whitespace-nowrap">No classes</span>
                       </label>
                       <button type="button" onClick={() => startEditAgeGroup(ag)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:bg-sky-50 hover:text-sky-600" title="Rename age group">Rename</button>
-                      <button type="button" onClick={() => deleteAgeGroup(ag.id)} className="text-slate-300 hover:text-red-500 transition-colors text-sm p-1" title="Delete">Delete</button>
+                      <RowDeleteButton onDelete={() => deleteAgeGroup(ag.id)} label={ag.name} />
                     </div>
                   </div>
                 )}

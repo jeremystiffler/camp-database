@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
+import { RowDeleteButton } from "@/components/InlineEditing";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -802,6 +803,13 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
     load();
   };
 
+  const deleteCourse = async (course: Course) => {
+    const res = await fetch(`/api/camps/${campId}/courses/${course.id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Could not delete activity");
+    setCourses(prev => prev.filter(item => item.id !== course.id));
+    setSelectedCourseIds(prev => { const next = new Set(prev); next.delete(course.id); return next; });
+  };
+
   const duplicateSelectedCourses = async () => {
     const selected = courses.filter(course => selectedCourseIds.has(course.id));
     if (selected.length === 0) return;
@@ -1113,6 +1121,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                     <th className="px-3 py-3 text-left">Room</th>
                     <th className="px-3 py-3 text-center">Total seats</th>
                     <th className="px-4 py-3 text-left min-w-[280px]">Ages</th>
+                    <th className="px-3 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1134,7 +1143,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                             <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-base text-white shadow-sm" style={{ backgroundColor: course.color || "#64748B" }}>{course.icon || "A"}</span>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="truncate font-black text-slate-900">{course.name}</span>
+                                <button type="button" onClick={() => { setEditingCourse(course); setShowModal(true); }} className="truncate rounded px-1 font-black text-slate-900 hover:bg-sky-100 hover:text-sky-700" title="Open activity editor">{course.name}</button>
                                 <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${status.tone}`}>{status.label}</span>
                               </div>
                               {course.description && <p className="mt-0.5 line-clamp-1 max-w-sm text-xs text-slate-500">{course.description}</p>}
@@ -1239,6 +1248,9 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
                               );
                             }) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">No ages set up</span>}
                           </div>
+                        </td>
+                        <td className="px-3 py-3 text-right align-middle">
+                          <RowDeleteButton onDelete={() => deleteCourse(course)} label={course.name} />
                         </td>
                       </tr>
                     );

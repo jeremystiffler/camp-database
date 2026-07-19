@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import CamperScannableCode from "@/components/CamperScannableCode";
+import { RowDeleteButton } from "@/components/InlineEditing";
 
 interface AgeGroup {
   id: string;
@@ -675,6 +676,12 @@ function CampersContent() {
     }
   };
 
+  const deleteCamper = async (camper: Camper) => {
+    const res = await fetch(`/api/camps/${campId}/campers/${camper.id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Could not delete participant");
+    setCampers(prev => prev.filter(item => item.id !== camper.id));
+  };
+
   const filtered = campers
     .filter((c) => {
       const q = search.toLowerCase();
@@ -824,7 +831,7 @@ function CampersContent() {
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-berry-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                         {camper.firstName[0]}{camper.lastName[0]}
                       </div>
-                      <span className="font-medium text-slate-800">{`${camper.firstName} ${camper.lastName}`.trim()}</span>
+                      <button type="button" onClick={() => setSelectedCamper(camper)} className="truncate rounded px-1 font-medium text-slate-800 hover:bg-sky-50 hover:text-sky-700" title="Open participant editor">{`${camper.firstName} ${camper.lastName}`.trim()}</button>
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
@@ -873,6 +880,7 @@ function CampersContent() {
                       >
                         View
                       </button>
+                      <RowDeleteButton onDelete={() => deleteCamper(camper)} label={`${camper.firstName} ${camper.lastName}`} />
                     </div>
                   </td>
                 </tr>

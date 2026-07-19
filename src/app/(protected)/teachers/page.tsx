@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { RowDeleteButton } from "@/components/InlineEditing";
 
 interface Person {
   id: string;
@@ -367,7 +368,7 @@ function PersonRow({ person: p, roleColors, onSchedule, onEdit, onDelete }: {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-bold text-slate-800 truncate">{p.firstName} {p.lastName}</h3>
+              <button type="button" onClick={() => onEdit(p)} className="truncate rounded px-1 font-bold text-slate-800 hover:bg-sky-50 hover:text-sky-700" title="Open person editor">{p.firstName} {p.lastName}</button>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${roleColors[p.role] || "bg-slate-100 text-slate-600"}`}>
                 {p.role}
               </span>
@@ -418,9 +419,7 @@ function PersonRow({ person: p, roleColors, onSchedule, onEdit, onDelete }: {
           <button onClick={() => onEdit(p)}
             title="Edit person"
             className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">Edit</button>
-          <button onClick={() => onDelete(p.id)}
-            title="Remove person"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 text-sm">Delete</button>
+          <RowDeleteButton onDelete={() => onDelete(p.id)} label={`${p.firstName} ${p.lastName}`} />
         </div>
       </div>
     </div>
@@ -459,8 +458,8 @@ export function TeachersContent() {
   useEffect(() => { load(); }, [campId]);
 
   const deletePerson = async (id: string) => {
-    if (!confirm("Remove this teacher?")) return;
-    await fetch(`/api/camps/${campId}/persons/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/camps/${campId}/persons/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Could not remove person");
     load();
   };
 

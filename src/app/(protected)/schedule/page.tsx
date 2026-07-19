@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
+import { RowDeleteButton } from "@/components/InlineEditing";
 
 interface SessionTemplate {
   id: string;
@@ -429,6 +430,11 @@ function CapacityHeatmap({ sessions, campId }: { sessions: Session[]; campId: st
 }
 
 function ListView({ sessions, campId }: { sessions: Session[]; campId: string }) {
+  const deleteSession = async (session: Session) => {
+    const res = await fetch(`/api/camps/${campId}/sessions/${session.id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Could not delete session");
+    window.location.reload();
+  };
   return (
     <div className="space-y-3">
       {sessions.map((session) => (
@@ -437,6 +443,7 @@ function ListView({ sessions, campId }: { sessions: Session[]; campId: string })
           <div className="min-w-0 flex-1">{session.course ? <Link href={activityHref(campId, session.course.id)} className="truncate font-semibold text-slate-800 underline-offset-2 hover:underline">{sessionTitle(session)}</Link> : <p className="truncate font-semibold text-slate-800">{sessionTitle(session)}</p>}<p className="text-xs text-slate-500">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>
           <div className="flex-shrink-0 text-right"><div className="text-sm font-semibold text-slate-700">{session.enrolledCount}/{session.course?.cap || "?"}</div><div className="text-xs text-slate-400">enrolled</div></div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[session.status] || "bg-slate-100 text-slate-600"}`}>{session.status}</span>
+          <RowDeleteButton onDelete={() => deleteSession(session)} label={sessionTitle(session)} />
         </div>
       ))}
     </div>

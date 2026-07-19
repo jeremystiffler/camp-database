@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { RowDeleteButton } from "@/components/InlineEditing";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -238,7 +239,8 @@ function SettingsContent() {
   const deleteCoupon = async (couponId?: string) => {
     if (!campId || !couponId) return;
     const res = await fetch(`/api/camps/${campId}/coupons/${couponId}`, { method: "DELETE" });
-    if (res.ok) setCoupons(prev => prev.filter(c => c.id !== couponId));
+    if (!res.ok) throw new Error("Could not delete coupon");
+    setCoupons(prev => prev.filter(c => c.id !== couponId));
   };
 
   const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
@@ -409,7 +411,7 @@ function SettingsContent() {
                           <p className="font-bold text-slate-800">{coupon.code} <span className="text-xs font-medium text-slate-400">{coupon.active ? "active" : "inactive"}</span></p>
                           <p className="text-xs text-slate-500">{coupon.discountType === "percent" ? `${coupon.percentOff}% off` : coupon.discountType === "amount" ? `${money(coupon.amountOffCents || 0)} off` : coupon.discountType === "free" ? "Free registration" : "BOGO / half off"} · redeemed {coupon.redeemedCount || 0}{coupon.maxRedemptions ? `/${coupon.maxRedemptions}` : ""}</p>
                         </div>
-                        <button type="button" onClick={() => deleteCoupon(coupon.id)} className="text-xs font-bold text-red-500 hover:text-red-700">Delete</button>
+                        <RowDeleteButton onDelete={() => deleteCoupon(coupon.id)} label={`coupon ${coupon.code}`} />
                       </div>
                     ))}
                   </div>
