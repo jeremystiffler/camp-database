@@ -29,11 +29,21 @@ export default function SuperAdminPage() {
   };
   useEffect(() => { load(); }, []);
   const save = async (event: FormEvent) => {
-    event.preventDefault(); setSaving(true); setMessage("");
-    const response = await fetch("/api/platform/promotions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, percentOff: Number(form.percentOff), amountOffCents: Math.round(Number(form.amountOffCents) * 100), durationInMonths: Number(form.durationInMonths), maxRedemptions: form.maxRedemptions ? Number(form.maxRedemptions) : null }) });
-    const data = await response.json(); setSaving(false);
-    if (!response.ok) { setMessage(data.error || "Could not create promotion."); return; }
-    setMessage(`Created ${data.promotion.code}. It is now available at Stripe Checkout.`); setForm({ ...form, code: "" }); load();
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/platform/promotions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, percentOff: Number(form.percentOff), amountOffCents: Math.round(Number(form.amountOffCents) * 100), durationInMonths: Number(form.durationInMonths), maxRedemptions: form.maxRedemptions ? Number(form.maxRedemptions) : null }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { setMessage(data.error || "Could not create promotion. Please try again."); return; }
+      setMessage(`Created ${data.promotion.code}. It is now available at Stripe Checkout.`);
+      setForm({ ...form, code: "" });
+      load();
+    } catch {
+      setMessage("Could not reach the promotion service. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
   const disable = async (id: string, code: string) => {
     if (!confirm(`Deactivate ${code}? It can no longer be redeemed.`)) return;

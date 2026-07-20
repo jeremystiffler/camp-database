@@ -46,22 +46,28 @@ export async function POST(req: NextRequest) {
   if (discountType === "percent" && !percentOff) return NextResponse.json({ error: "Enter a percentage discount" }, { status: 400 });
   if (discountType === "amount" && !amountOff) return NextResponse.json({ error: "Enter a dollar discount" }, { status: 400 });
 
-  const coupon = await stripe.coupons.create({
-    name: `Simple Schedule Pro — ${code}`,
-    duration,
-    ...(duration === "repeating" ? { duration_in_months: durationInMonths } : {}),
-    ...(discountType === "percent" ? { percent_off: percentOff } : { amount_off: amountOff, currency: "usd" }),
-    metadata: { platform: "simple-schedule-pro", createdBy: gate.user?.email || "super-admin" },
-  });
-  const promotion = await stripe.promotionCodes.create({
-    promotion: { type: "coupon", coupon: coupon.id },
-    code,
-    max_redemptions: maxRedemptions,
-    expires_at: expiresAt,
-    restrictions: body.firstTimeOnly ? { first_time_transaction: true } : undefined,
-    metadata: { platform: "simple-schedule-pro", createdBy: gate.user?.email || "super-admin" },
-  });
-  return NextResponse.json({ success: true, promotion: { id: promotion.id, code: promotion.code } });
+  try {
+    const coupon = await stripe.coupons.create({
+      name: `Simple Schedule Pro — ${code}`,
+      duration,
+      ...(duration === "repeating" ? { duration_in_months: durationInMonths } : {}),
+      ...(discountType === "percent" ? { percent_off: percentOff } : { amount_off: amountOff, currency: "usd" }),
+      metadata: { platform: "simple-schedule-pro", createdBy: gate.user?.email || "super-admin" },
+    });
+    const promotion = await stripe.promotionCodes.create({
+      promotion: { type: "coupon", coupon: coupon.id },
+      code,
+      max_redemptions: maxRedemptions,
+      expires_at: expiresAt,
+      restrictions: body.firstTimeOnly ? { first_time_transaction: true } : undefined,
+      metadata: { platform: "simple-schedule-pro", createdBy: gate.user?.email || "super-admin" },
+    });
+    return NextResponse.json({ success: true, promotion: { id: promotion.id, code: promotion.code } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Stripe could not create this promotion.";
+    console.error("Promotion creation failed", { code, message });
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {

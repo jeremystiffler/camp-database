@@ -404,12 +404,13 @@ function DashboardContent() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      {/* Program command header */}
+      <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-0.5">
-            {activeCamp ? `Current program: ${activeCamp.name}` : "Select a program to see details."}
+          <p className="minimal-section-title">Program workspace</p>
+          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900">{activeCamp ? activeCamp.name : "Your programs"}</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            {activeCamp ? "Your program readiness, next steps, and operating tools in one place." : "Choose a program to manage its setup, people, schedule, and registration."}
           </p>
         </div>
         {(camps.length === 0 || canAdminCamp(activeCamp)) && (
