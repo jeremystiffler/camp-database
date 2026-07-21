@@ -335,13 +335,16 @@ function DashboardContent() {
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameMsg,    setRenameMsg]    = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [savedCampId,  setSavedCampId]  = useState("");
+  const [savedCampReady, setSavedCampReady] = useState(false);
 
   const campId     = searchParams.get("campId") || savedCampId || "";
-  const activeCamp = camps.find((c) => c.id === campId) || camps[0];
+  // Do not briefly choose the first/alphabetical program before the saved workspace is restored.
+  const activeCamp = camps.find((c) => c.id === campId) || (savedCampReady ? camps[0] : undefined);
 
   useEffect(() => {
     const saved = localStorage.getItem("activeCampId") || "";
     setSavedCampId(saved);
+    setSavedCampReady(true);
   }, []);
 
   useEffect(() => {
@@ -517,76 +520,6 @@ function DashboardContent() {
               <Link href={canEditCamp(activeCamp) ? `/setup?campId=${activeCamp.id}` : `/team?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:border-slate-400">{canEditCamp(activeCamp) ? "Setup checklist" : "View team role"}</Link>
             </div>
           </div>
-        </div>
-      )}
-
-      {false && activeCamp && (
-        <div className="camp-card p-5 mb-8 bg-white relative">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="minimal-section-title mb-2">Active program</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-black text-slate-900 truncate">{activeCamp.name}</p>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-slate-600">{activeCamp.myRole || "viewer"}</span>
-                {!canEditCamp(activeCamp) && <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">Read-only</span>}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActionsOpen(v => !v)}
-              aria-expanded={actionsOpen}
-              className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-lg font-black leading-none text-slate-700 shadow-sm hover:border-slate-400 hover:text-slate-950"
-              title="Program actions"
-            >
-              ☰
-            </button>
-          </div>
-
-          {actionsOpen && (
-            <div className="absolute right-5 top-16 z-30 w-[min(92vw,360px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
-              <div className="mb-2 px-2 py-1">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Program actions</p>
-                <p className="mt-0.5 truncate text-sm font-black text-slate-900">{activeCamp.name}</p>
-              </div>
-
-              {canEditCamp(activeCamp) ? (
-                <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <label className="block text-xs font-black uppercase tracking-wide text-slate-600 mb-1.5">Rename program</label>
-                  <div className="flex gap-2">
-                    <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" />
-                    <button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">
-                      {renameSaving ? "Saving…" : "Save"}
-                    </button>
-                  </div>
-                  {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}
-                </div>
-              ) : (
-                <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">This shared program is read-only for your account.</p>
-              )}
-
-              <div className="grid gap-1">
-                {(canEditCamp(activeCamp)
-                  ? [
-                      ["Setup", `/setup?campId=${activeCamp.id}`],
-                      ["Teachers", `/teachers?campId=${activeCamp.id}`],
-                      ["Registration", `/registration?campId=${activeCamp.id}`],
-                      ["Schedule", `/schedule?campId=${activeCamp.id}`],
-                      ["Team", `/team?campId=${activeCamp.id}`],
-                    ]
-                  : [
-                      ["Participants", `/campers?campId=${activeCamp.id}`],
-                      ["Schedule", `/schedule?campId=${activeCamp.id}`],
-                      ["Print", `/print?campId=${activeCamp.id}`],
-                      ["Team", `/team?campId=${activeCamp.id}`],
-                    ]
-                ).map(([label, href]) => (
-                  <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-950">
-                    {label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
