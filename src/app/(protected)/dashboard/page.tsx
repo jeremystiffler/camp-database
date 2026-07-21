@@ -401,6 +401,7 @@ function DashboardContent() {
     ? summary.attention.classesWithoutTeachers + summary.attention.unscheduledClasses + summary.attention.fullOrOverCapacityClasses
     : 0;
   const selectedStats = summary?.stats;
+  const needsAttention = attentionTotal > 0;
 
   return (
     <div>
@@ -424,19 +425,48 @@ function DashboardContent() {
       {/* Selected program stats */}
       {activeCamp && (
         <div className="mb-8 space-y-4">
-          <div className="camp-card p-5 bg-white">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div>
-                <p className="minimal-section-title mb-2">Selected program details</p>
-                <h2 className="text-xl font-black text-slate-900">{activeCamp.name}</h2>
+          <div className="camp-card relative overflow-visible border-indigo-100 bg-gradient-to-br from-white via-indigo-50/50 to-sky-50 p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <p className="minimal-section-title mb-2">Current program</p>
+                <h2 className="truncate text-2xl font-black tracking-tight text-slate-950">{activeCamp.name}</h2>
                 <p className="mt-1 text-sm font-semibold text-slate-600">{formatCampDateRange(activeCamp)}</p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-600">{activeCamp.status}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-600">{activeCamp.status}</span>
                 <span className={`rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-wide ${activeCamp.registrationOpen ? "border-forest-200 bg-forest-50 text-forest-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
                   Registration {activeCamp.registrationOpen ? "open" : "closed"}
                 </span>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-600">{activeCamp.myRole || "viewer"}</span>
+                <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-600">{activeCamp.myRole || "viewer"}</span>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setActionsOpen(v => !v)}
+                    aria-expanded={actionsOpen}
+                    className="rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs font-black text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50"
+                  >
+                    Manage ▾
+                  </button>
+                  {actionsOpen && (
+                    <div className="absolute right-0 top-10 z-30 w-[min(92vw,340px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+                      {canEditCamp(activeCamp) ? (
+                        <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-600">Rename program</label>
+                          <div className="flex gap-2">
+                            <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" />
+                            <button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button>
+                          </div>
+                          {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}
+                        </div>
+                      ) : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">This shared program is read-only for your account.</p>}
+                      <div className="grid gap-1">
+                        {(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => (
+                          <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-950">{label}</Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -471,34 +501,26 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* New/returning user guide */}
+      {/* Operational focus */}
       {activeCamp && (
-        <div className="camp-card p-5 mb-8 bg-white border-sky-200">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className={`camp-card mb-8 p-5 ${needsAttention ? "border-amber-200 bg-amber-50/60" : "border-forest-200 bg-forest-50/60"}`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-sky-700">Recommended next step</p>
-              <h2 className="text-lg font-black text-slate-950">
-                {canEditCamp(activeCamp) ? "Finish setup before families arrive" : "You have view-only access"}
-              </h2>
-              <p className="mt-1 text-sm font-semibold text-slate-700 max-w-2xl leading-relaxed">
-                {canEditCamp(activeCamp)
-                  ? "For a new program, work left-to-right: setup basics, add people/activities, review the schedule, then open registration. Returning users can jump straight to the active program tools below."
-                  : "You were invited to this program as a guest viewer. You can review rosters, schedules, check-in status, and printable materials, but edits are reserved for the program admins."}
+              <p className={`mb-2 text-xs font-black uppercase tracking-[0.18em] ${needsAttention ? "text-amber-700" : "text-forest-700"}`}>{needsAttention ? "Needs your attention" : "Program is in good shape"}</p>
+              <h2 className="text-lg font-black text-slate-950">{needsAttention ? `${attentionTotal} class ${attentionTotal === 1 ? "needs" : "need"} a quick look` : "No teacher, schedule, or capacity issues found."}</h2>
+              <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-700">
+                {needsAttention ? "Review teachers, unscheduled activities, and capacity before you open the doors." : canEditCamp(activeCamp) ? "Use the tools below to keep registration, check-in, and printed materials ready." : "You can review the program’s live schedule, rosters, and printable materials."}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {canEditCamp(activeCamp) ? (
-                <Link href={`/setup?campId=${activeCamp.id}`} className="minimal-button-primary">Open setup checklist</Link>
-              ) : (
-                <Link href={`/schedule?campId=${activeCamp.id}`} className="minimal-button-primary">View schedule</Link>
-              )}
-              <Link href={`/team?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:border-slate-400">View team role</Link>
+              {canEditCamp(activeCamp) ? <Link href={`/activities?campId=${activeCamp.id}`} className="minimal-button-primary">Review activities</Link> : <Link href={`/schedule?campId=${activeCamp.id}`} className="minimal-button-primary">View schedule</Link>}
+              <Link href={canEditCamp(activeCamp) ? `/setup?campId=${activeCamp.id}` : `/team?campId=${activeCamp.id}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:border-slate-400">{canEditCamp(activeCamp) ? "Setup checklist" : "View team role"}</Link>
             </div>
           </div>
         </div>
       )}
 
-      {activeCamp && (
+      {false && activeCamp && (
         <div className="camp-card p-5 mb-8 bg-white relative">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
@@ -536,7 +558,7 @@ function DashboardContent() {
                       {renameSaving ? "Saving…" : "Save"}
                     </button>
                   </div>
-                  {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg.text}</p>}
+                  {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}
                 </div>
               ) : (
                 <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">This shared program is read-only for your account.</p>
@@ -568,9 +590,15 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* Camp list */}
-      <div className="mb-8">
-        <h2 className="text-base font-bold text-slate-700 mb-4">Your Programs</h2>
+      {/* Program switcher */}
+      <div className="mb-8 border-t border-slate-200 pt-8">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="minimal-section-title">Program switcher</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Your programs</h2>
+          </div>
+          <p className="text-sm font-semibold text-slate-500">Choose a card to make it your active workspace.</p>
+        </div>
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <div className="w-8 h-8 border-2 border-forest-500 border-t-transparent rounded-full animate-spin" />
@@ -601,26 +629,30 @@ function DashboardContent() {
         )}
       </div>
 
-      {/* Quick actions */}
+      {/* Core work areas */}
       {activeCamp && (
         <div>
-          <h2 className="text-base font-bold text-slate-700 mb-4">
-            Quick Actions — <span className="text-forest-600">{activeCamp.name}</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <QuickAction href={`/activities?campId=${activeCamp.id}`}  icon="A" title="Activities"   desc="Create and manage activities, teachers, rooms, and capacity"  iconClass="icon-badge-forest" />
-            <QuickAction href={`/campers?campId=${activeCamp.id}`}     icon="C" title="Participants"      desc="View registrations, search, and manage enrollments"       iconClass="icon-badge-sky" />
-            <QuickAction href={`/schedule?campId=${activeCamp.id}`}    icon="S" title="Schedule"     desc="View the full program schedule grid by time slot"                     iconClass="icon-badge-sunset" />
-            <QuickAction href={`/print?campId=${activeCamp.id}`}       icon="P" title="Print Center" desc="Generate schedules, rosters, and name badges"                      iconClass="icon-badge-berry" />
-            {canAdminCamp(activeCamp) && <QuickAction href={`/settings?campId=${activeCamp.id}`}    icon="Se" title="Settings"     desc="Profile, appearance, billing, and program-level actions"              iconClass="icon-badge-forest" />}
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className="minimal-section-title">Run this program</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Daily work areas</h2>
+            </div>
+            <p className="text-sm font-semibold text-slate-500">Everything below stays scoped to {activeCamp.name}.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {canEditCamp(activeCamp) && <QuickAction href={`/setup?campId=${activeCamp.id}`} icon="1" title="Setup" desc="Program dates, age groups, rooms, time blocks, and readiness" iconClass="icon-badge-forest" />}
+            <QuickAction href={`/registration?campId=${activeCamp.id}`} icon="R" title="Registration" desc="Form settings, public link, family choices, and confirmation" iconClass="icon-badge-berry" />
+            <QuickAction href={`/campers?campId=${activeCamp.id}`} icon="P" title="Participants" desc="Registrations, families, and selected class choices" iconClass="icon-badge-sky" />
+            <QuickAction href={`/check-in?campId=${activeCamp.id}`} icon="✓" title="Check in/out" desc="Live attendance, pickup, and QR scanning" iconClass="icon-badge-forest" />
+            <QuickAction href={`/schedule?campId=${activeCamp.id}`} icon="S" title="Schedule" desc="Time blocks, activity assignments, and schedule health" iconClass="icon-badge-sunset" />
+            <QuickAction href={`/print?campId=${activeCamp.id}`} icon="P" title="Print Center" desc="Rosters, schedules, badges, and operational printouts" iconClass="icon-badge-berry" />
+            {canEditCamp(activeCamp) && <QuickAction href={`/activities?campId=${activeCamp.id}`} icon="A" title="Activities" desc="Classes, teachers, rooms, capacity, and assignments" iconClass="icon-badge-sky" />}
+            <QuickAction href={`/team?campId=${activeCamp.id}`} icon="T" title="Team" desc="People, access levels, and invitations" iconClass="icon-badge-forest" />
+            {canAdminCamp(activeCamp) && <QuickAction href={`/settings?campId=${activeCamp.id}`} icon="⚙" title="Settings" desc="Appearance, billing, and protected program settings" iconClass="icon-badge-sunset" />}
             {canEditCamp(activeCamp) && (
-              <button onClick={() => setCopyingCamp(activeCamp)}
-                className="camp-card p-4 flex items-start gap-3 group text-left">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 icon-badge-sky">Cp</div>
-                <div>
-                  <h3 className="font-bold text-slate-900 group-hover:text-slate-700 transition-colors text-sm">Copy Program</h3>
-                  <p className="text-slate-500 text-xs mt-0.5 leading-relaxed">Clone this program&apos;s structure for a new season</p>
-                </div>
+              <button onClick={() => setCopyingCamp(activeCamp)} className="camp-card flex items-start gap-3 p-4 text-left transition hover:border-indigo-200 hover:shadow-sm">
+                <div className="icon-badge-sky flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-xs font-black">Cp</div>
+                <div><h3 className="text-sm font-black text-slate-900">Copy program</h3><p className="mt-1 text-xs leading-relaxed text-slate-600">Clone this structure for a new season.</p></div>
               </button>
             )}
           </div>
