@@ -240,6 +240,7 @@ function ScheduleContent() {
   const duplicateDayCount = Math.max(activeDays.length - dayGroups.length, 0);
   const filteredDaySessions = dayDisplaySessions.filter((session) => filterDay === "" || sessionDay(session) === Number(filterDay));
   const filteredSessions = filterDay === "" ? displaySessions : filteredDaySessions;
+  const timeBlockCount = uniqueBy(templates, (template) => `${template.label || ""}|${template.startTime}|${template.endTime}`).length;
   const timeSlots = uniqueBy(dayDisplaySessions, (s) => `${s.startTime}|${s.endTime}`)
     .map((s) => ({ key: `${s.startTime}|${s.endTime}`, start: s.startTime, end: s.endTime, label: timeRange(s) }))
     .sort((a, b) => a.start.localeCompare(b.start));
@@ -297,7 +298,7 @@ function ScheduleContent() {
             <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <MetricCard label="Sessions" value={displaySessions.length} sub={`${activeDays.length} active day${activeDays.length === 1 ? "" : "s"}`} tone="tile-aqua" />
-                <MetricCard label="Classes" value={courses.length} sub={`${templates.length} time templates`} tone="tile-sage" />
+                <MetricCard label="Classes" value={courses.length} sub={`${timeBlockCount} time block${timeBlockCount === 1 ? "" : "s"}`} tone="tile-sage" />
                 <MetricCard label="Enrollment" value={`${totalEnrolled}/${totalCapacity || "?"}`} sub={`${averageFill}% avg fill`} tone="tile-butter" />
                 <MetricCard label="Full / over" value={overloaded} sub="sessions at capacity" tone="tile-clay" />
                 <MetricCard label="No room" value={unassignedRooms} sub="needs placement" tone="tile-lavender" />
