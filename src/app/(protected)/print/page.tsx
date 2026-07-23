@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/OperationalUI";
 import CamperScannableCode from "@/components/CamperScannableCode";
@@ -102,6 +102,10 @@ const PAPER_CSS: Record<PaperSize, string> = {
   "5x3": "5in 3in",
   "3x5": "3in 5in",
   custom: "var(--custom-print-size)",
+};
+// Paper profiles are the guardrail: preview and print share a real, non-skewable aspect ratio.
+const PAPER_PROFILES: Record<PaperSize, { width: number; height: number; safeInset: number }> = {
+  letter: { width: 8.5, height: 11, safeInset: 0.5 }, legal: { width: 8.5, height: 14, safeInset: 0.5 }, tabloid: { width: 11, height: 17, safeInset: 0.5 }, a4: { width: 8.27, height: 11.69, safeInset: 0.5 }, "4x6": { width: 4, height: 6, safeInset: 0.2 }, "5x3": { width: 5, height: 3, safeInset: 0.16 }, "3x5": { width: 3, height: 5, safeInset: 0.16 }, custom: { width: 8.5, height: 11, safeInset: 0.5 },
 };
 const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], badgeContentBlocks: [] as string[], badgeBackEnabled: false, badgeBackContentBlocks: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9, customDataSource: "participants" as CustomDataSource, customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"] as string[], customGroupBy: "", customSortBy: "lastName", customFieldFontSizes: {} as Record<string, number>, pageMargin: "0.5in", printScale: 100 };
 const PRINTABLE_LIBRARY_STARTERS = [
@@ -479,8 +483,8 @@ function PrintContent() {
   const [saving, setSaving] = useState(false);
   const [activeDoc, setActiveDoc] = useState<PrintType | null>(null);
   const [printQueued, setPrintQueued] = useState(false);
-  const [selectedTemplateKey, setSelectedTemplateKey] = useState("builtin-1");
-  const [draftTemplate, setDraftTemplate] = useState<PrintTemplate>(BUILTIN_TEMPLATES[1]);
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState("builtin-13");
+  const [draftTemplate, setDraftTemplate] = useState<PrintTemplate>(BUILTIN_TEMPLATES[13]);
   const [message, setMessage] = useState("");
   const [selectedBadgeCamperId, setSelectedBadgeCamperId] = useState("");
   const [selectedStaffId, setSelectedStaffId] = useState("");
@@ -578,6 +582,10 @@ function PrintContent() {
 
   const allTemplates = [...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })), ...savedTemplates];
   const selectedSettings = parseSettings(draftTemplate);
+  const selectedPaperProfile = PAPER_PROFILES[draftTemplate.paperSize];
+  const paperWidth = draftTemplate.orientation === "landscape" ? selectedPaperProfile.height : selectedPaperProfile.width;
+  const paperHeight = draftTemplate.orientation === "landscape" ? selectedPaperProfile.width : selectedPaperProfile.height;
+  const livePaperStyle = { "--live-paper-width": `${paperWidth}in`, "--live-paper-ratio": `${paperWidth} / ${paperHeight}`, "--live-paper-padding": `${selectedPaperProfile.safeInset}in` } as CSSProperties;
   const sortedCampers = sortedCampersList(campers);
   const selectedBadgeCamper = sortedCampers.find(camper => camper.id === selectedBadgeCamperId) || sortedCampers[0] || null;
   const badgeCampersToPrint = badgePrintScope === "current" && selectedBadgeCamper ? [selectedBadgeCamper] : sortedCampers;
@@ -683,7 +691,7 @@ function PrintContent() {
   });
   const stockTemplates = [...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })), ...starterLibraryTemplates].filter(template => !isCustomBuilder(template));
   const primaryPrintables = [
-    ["Name Badges", "builtin-1"],
+    ["Name Badges", "builtin-13"],
     ["Roster", "library-2"],
     ["Emergency Contact Cards", "library-9"],
     ["Teacher List", "library-3"],
@@ -972,15 +980,14 @@ function PrintContent() {
         .badge-live-preview .badge-card-back { justify-content: flex-start; }
         .badge-live-preview .lanyard-schedule-card { min-height: 420px; max-width: 260px; }
         .studio-workspace { min-height: calc(100vh - 7.5rem); }
-        .studio-canvas { min-height: 680px; overflow: auto; border: 1px solid #dbe3ef; border-radius: 24px; background-color: #eaf0f7; background-image: radial-gradient(#cbd5e1 0.7px, transparent 0.7px); background-size: 14px 14px; padding: 28px; display: flex; align-items: flex-start; justify-content: center; }
+        .studio-canvas { width: 100%; overflow: auto; background-color: #eef3f8; background-image: radial-gradient(#cbd5e1 0.7px, transparent 0.7px); background-size: 14px 14px; padding: 32px; display: flex; align-items: flex-start; justify-content: center; }
         .studio-page-stack { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 28px; }
-        .studio-page-label { align-self: flex-start; margin: 0 auto -18px; width: min(100%, 8.5in); color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-        .studio-paper { width: min(100%, 8.5in); min-height: 10.5in; margin: 0 auto; background: #fff; box-shadow: 0 22px 60px rgba(15,23,42,.18); padding: .6in; color: #111827; transform-origin: top center; }
-        .studio-paper-landscape { width: min(100%, 10.5in); min-height: 8in; }
-        .studio-paper-wide { width: min(100%, 10.5in); }
+        .studio-page-label { align-self: flex-start; margin: 0 auto -18px; width: min(100%, var(--live-paper-width)); color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+        .studio-paper { width: min(100%, var(--live-paper-width)); aspect-ratio: var(--live-paper-ratio); min-height: 0; margin: 0 auto; overflow: auto; background: #fff; box-shadow: 0 22px 60px rgba(15,23,42,.18); padding: var(--live-paper-padding); color: #111827; transform-origin: top center; box-sizing: border-box; }
+        .studio-paper-landscape, .studio-paper-wide { width: min(100%, var(--live-paper-width)); }
         .studio-canvas [data-zoom="75"] .studio-paper { transform: scale(.75); margin-bottom: -25%; }
         .studio-canvas [data-zoom="100"] .studio-paper { transform: scale(1); }
-        .studio-badge-paper { max-width: 8.5in; min-height: auto; }
+        .studio-badge-paper { max-width: none; min-height: 0; }
         .studio-print-surface { cursor: pointer; }
         .studio-print-surface[data-selected-block="table"] table { outline: 3px solid rgba(79,70,229,.58); outline-offset: 4px; }
         .studio-print-surface[data-selected-block="badge"] .badge-card, .studio-print-surface[data-selected-block="badge"] .lanyard-schedule-card { outline: 3px solid rgba(79,70,229,.58); outline-offset: 4px; }
@@ -1016,11 +1023,8 @@ function PrintContent() {
           <div className="flex min-w-0 items-center gap-3"><span className="text-lg font-black text-slate-900">Print Center</span><span className="hidden h-5 w-px bg-slate-200 sm:block" /><input aria-label="Printable name" value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="min-w-0 max-w-xs bg-transparent text-sm font-bold text-slate-600 outline-none placeholder:text-slate-400" /></div>
           <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[draftTemplate.paperSize]}</span><button onClick={saveAsTemplate} disabled={saving} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:opacity-50">Save copy</button><button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white">Print / PDF</button></div>
         </header>
-        <nav aria-label="Print Center editing modes" className="flex items-center gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm lg:hidden">
-          {(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`whitespace-nowrap rounded-xl px-4 py-2 text-xs font-black ${studioTab === tab ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}
-        </nav>
         {loading ? <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" /></div> : (
-          <div className={showTemplateGallery ? "grid gap-5 lg:grid-cols-[300px_340px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]" : "grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]"}>
+          <div className="flex flex-col gap-5">
             {showTemplateGallery && <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm 2xl:sticky 2xl:top-4 2xl:self-start">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Saved printables</p>
@@ -1039,7 +1043,7 @@ function PrintContent() {
               <div className="border-t border-slate-100 pt-4">
                 <p className="mb-1 text-xs font-black uppercase tracking-[0.16em] text-slate-500">What do you want to print?</p>
                 <p className="mb-3 text-xs font-semibold leading-relaxed text-slate-500">Start with the five everyday printables. Everything else is still available below.</p>
-                <div className="grid gap-2">{primaryPrintables.map((template, index) => renderTemplateCard(template, index))}</div>
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">{primaryPrintables.map((template, index) => renderTemplateCard(template, index))}</div>
                 <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
                   <summary className="cursor-pointer text-xs font-black text-slate-700">Browse all templates</summary>
                   <input value={gallerySearch} onChange={e => setGallerySearch(e.target.value)} placeholder="Search all templates…" className="mb-3 mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
@@ -1058,19 +1062,19 @@ function PrintContent() {
               </details>
             </aside>}
 
-            <aside className={`sticky top-4 hidden h-fit rounded-2xl border border-slate-200 bg-white p-2 shadow-sm lg:row-start-1 lg:block ${showTemplateGallery ? "lg:col-start-2" : "lg:col-start-1"}`}><p className="px-2 pb-2 pt-1 text-[10px] font-black uppercase tracking-wide text-slate-400">Edit</p>{(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`mb-1 w-full rounded-xl px-3 py-3 text-left text-xs font-black ${studioTab === tab ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}</aside>
-            <main className={`min-w-0 lg:row-span-2 ${showTemplateGallery ? "lg:col-start-3" : "lg:col-start-2"}`}>
-              <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <aside className="order-2 flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"><p className="mr-2 px-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Edit</p>{(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`rounded-xl px-3 py-3 text-left text-xs font-black ${studioTab === tab ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}</aside>
+            <main className="order-4 min-w-0 w-full">
+              <section className="w-full overflow-hidden bg-white">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
                   <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Live document</p><p className="mt-0.5 text-sm font-black text-slate-900">{selectedMeta.eyebrow} · {draftTemplate.orientation}</p></div>
                   <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1"><span className="px-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Zoom</span>{(["fit", "75", "100"] as const).map(value => <button key={value} onClick={() => setCanvasZoom(value)} className={`rounded-lg px-2.5 py-1.5 text-[11px] font-black ${canvasZoom === value ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{value === "fit" ? "Fit" : `${value}%`}</button>)}</div>
                 </div>
-                <div className="studio-canvas"><div className="studio-page-stack" data-zoom={canvasZoom === "fit" ? undefined : canvasZoom}>{previewPages.length ? previewPages.map((pageHtml, pageIndex) => <div key={pageIndex} className="w-full"><div className="studio-page-label">Page {pageIndex + 1} of {previewPages.length}</div><div className="studio-paper studio-print-surface" data-selected-block={selectedCanvasBlock || undefined} onClick={e => { const target = e.target as HTMLElement; const block: CanvasBlock = target.closest(".badge-card, .lanyard-schedule-card, .pickup-card") ? "badge" : target.closest("table") ? "table" : target.closest("h1, h2, h3, .ops-title") ? "title" : "document"; setSelectedCanvasBlock(block); setStudioTab(block === "table" || block === "badge" ? "content" : "document"); }}><div className="ops-print" dangerouslySetInnerHTML={{ __html: pageHtml }} /></div></div>) : <div className="studio-paper flex flex-col items-center justify-center gap-3 text-center"><p className="text-sm font-semibold text-slate-500">{previewError || "Loading your printable…"}</p>{previewError && <button type="button" onClick={() => { setPreviewError(""); setLivePreviewHtml(""); setActiveDoc(null); setPreviewRevision(value => value + 1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">Try again</button>}</div>}</div></div>
+                <div className="studio-canvas"><div className="studio-page-stack" style={livePaperStyle} data-zoom={canvasZoom === "fit" ? undefined : canvasZoom}>{previewPages.length ? previewPages.map((pageHtml, pageIndex) => <div key={pageIndex} className="w-full"><div className="studio-page-label">Page {pageIndex + 1} of {previewPages.length}</div><div className="studio-paper studio-print-surface" data-selected-block={selectedCanvasBlock || undefined} onClick={e => { const target = e.target as HTMLElement; const block: CanvasBlock = target.closest(".badge-card, .lanyard-schedule-card, .pickup-card") ? "badge" : target.closest("table") ? "table" : target.closest("h1, h2, h3, .ops-title") ? "title" : "document"; setSelectedCanvasBlock(block); setStudioTab(block === "table" || block === "badge" ? "content" : "document"); }}><div className="ops-print" dangerouslySetInnerHTML={{ __html: pageHtml }} /></div></div>) : <div className="studio-paper flex flex-col items-center justify-center gap-3 text-center"><p className="text-sm font-semibold text-slate-500">{previewError || "Loading your printable…"}</p>{previewError && <button type="button" onClick={() => { setPreviewError(""); setLivePreviewHtml(""); setActiveDoc(null); setPreviewRevision(value => value + 1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">Try again</button>}</div>}</div></div>
                 <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500"><span>Preview uses live program data. The final print remains print-safe.</span><button onClick={() => printDoc()} className="font-black text-indigo-700 hover:text-indigo-900">Print / Save as PDF</button></div>
               </section>
             </main>
 
-            <aside className={`rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:row-start-2 lg:sticky 2xl:top-4 2xl:self-start ${showTemplateGallery ? "lg:col-start-2" : "lg:col-start-1"}`}>
+            <aside className="order-3 w-full rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Selected printable</p>
