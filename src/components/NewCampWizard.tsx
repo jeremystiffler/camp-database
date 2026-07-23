@@ -91,9 +91,11 @@ function Step1({
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
+          aria-describedby={!name.trim() ? "program-name-required" : undefined}
           placeholder="e.g. Creator's Program 2027"
-          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400 text-slate-800 placeholder:text-slate-400"
+          className={`w-full px-4 py-2.5 border rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-slate-800 placeholder:text-slate-400 ${name.trim() ? "border-slate-200 focus:border-forest-400" : "border-red-300 focus:border-red-400"}`}
         />
+        {!name.trim() && <p id="program-name-required" className="mt-1.5 text-xs font-semibold text-red-700">Add a program name to continue.</p>}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -655,7 +657,9 @@ export default function NewCampWizard({ onClose, onCreated }: {
               <button
                 onClick={() => setStep(step + 1)}
                 disabled={!canNext()}
-                className="minimal-button-primary disabled:opacity-40"
+                title={!canNext() ? (step === 1 ? "Add a program name to continue." : step === 2 ? "Add at least one age group to continue." : "Add at least one room to continue.") : undefined}
+                aria-describedby={!canNext() ? (step === 1 ? "program-name-required" : undefined) : undefined}
+                className="minimal-button-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Next →
               </button>

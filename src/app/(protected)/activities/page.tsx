@@ -733,6 +733,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
   const [sortDir, setSortDir]                   = useState<"asc" | "desc">("asc");
   const [statusFilter, setStatusFilter]         = useState<"all" | "needs" | "ready">("all");
   const [toolsOpen, setToolsOpen]               = useState(false);
+  const [workspaceTab, setWorkspaceTab]         = useState<"catalog" | "schedule">("catalog");
   const [inlineSaving, setInlineSaving]         = useState<Record<string, boolean>>({});
   const [inlineErrors, setInlineErrors]         = useState<Record<string, string>>({});
   const [inlineConflicts, setInlineConflicts]   = useState<SchedulingConflict[]>([]);
@@ -1032,12 +1033,20 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
         ))}
       </div>
 
+      <div className="flex w-fit gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1" role="tablist" aria-label="Activities workspace">
+        <button type="button" role="tab" aria-selected={workspaceTab === "catalog"} onClick={() => setWorkspaceTab("catalog")} className={`rounded-lg px-4 py-2 text-sm font-black transition ${workspaceTab === "catalog" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Catalog</button>
+        <button type="button" role="tab" aria-selected={workspaceTab === "schedule"} onClick={() => setWorkspaceTab("schedule")} className={`rounded-lg px-4 py-2 text-sm font-black transition ${workspaceTab === "schedule" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Schedule Builder</button>
+      </div>
+
+      {workspaceTab === "schedule" && (
       <div id="activity-schedule-grid" className="scroll-mt-6">
         <TimeslotAssignmentGrid campId={campId} />
       </div>
+      )}
         </>
       )}
 
+      {(simpleCatalog || workspaceTab === "catalog") && (
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="px-5 py-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -1257,6 +1266,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
           )}
         </div>
       </div>
+      )}
 
       {showModal && (
         <CourseModal

@@ -286,6 +286,8 @@ function RegistrationContent() {
   const [saveError, setSaveError]   = useState("");
   const [editingId, setEditingId]   = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [workspaceTab, setWorkspaceTab] = useState<"settings" | "fields">("settings");
+  const [systemFieldsOpen, setSystemFieldsOpen] = useState(false);
   const [settingsPanel, setSettingsPanel] = useState<"publish" | "classes" | "family" | "email">("publish");
   const dragIdx = useRef<number | null>(null);
   const dragOverIdx = useRef<number | null>(null);
@@ -511,6 +513,13 @@ function RegistrationContent() {
         </div>
       </div>
 
+      <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2" role="tablist" aria-label="Registration workspace">
+        <button type="button" role="tab" aria-selected={workspaceTab === "settings"} onClick={() => setWorkspaceTab("settings")} className={`rounded-xl px-4 py-2 text-sm font-black transition ${workspaceTab === "settings" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Form Settings</button>
+        <button type="button" role="tab" aria-selected={workspaceTab === "fields"} onClick={() => setWorkspaceTab("fields")} className={`rounded-xl px-4 py-2 text-sm font-black transition ${workspaceTab === "fields" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Fields</button>
+      </div>
+
+      {workspaceTab === "settings" && (
+      <>
       {/* Minimal form setup workspace */}
       <div className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-5 py-4">
@@ -752,7 +761,10 @@ function RegistrationContent() {
           </div>
         </div>
       </div>
+      </>
+      )}
 
+      {workspaceTab === "fields" && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* LEFT — Field builder */}
         <div>
@@ -789,8 +801,12 @@ function RegistrationContent() {
             </div>
           </div>
 
+          <button type="button" onClick={() => setSystemFieldsOpen(value => !value)} aria-expanded={systemFieldsOpen} className="mb-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-black text-slate-700 hover:bg-slate-100">
+            <span>Required fields ({fields.filter(field => field.system).length})</span><span aria-hidden="true">{systemFieldsOpen ? "▴" : "▾"}</span>
+          </button>
           <div className="space-y-1.5">
-            {fields.map((field, i) => {
+            {fields.filter(field => !field.system || systemFieldsOpen).map((field) => {
+              const i = fields.findIndex(item => item.id === field.id);
               const indentField = !isLayoutField(field);
               return (
               <div key={field.id}
@@ -873,6 +889,7 @@ function RegistrationContent() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
