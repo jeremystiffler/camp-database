@@ -470,8 +470,8 @@ function PrintContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const campIdFromUrl = searchParams.get("campId") || "";
-  const [resolvedCampId, setResolvedCampId] = useState(campIdFromUrl);
-  const campId = campIdFromUrl || resolvedCampId;
+  const [resolvedCampId, setResolvedCampId] = useState("");
+  const campId = resolvedCampId;
   const [campers, setCampers] = useState<Camper[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
@@ -496,54 +496,74 @@ function PrintContent() {
   const [gallerySearch, setGallerySearch] = useState("");
   const [livePreviewHtml, setLivePreviewHtml] = useState("");
   const [previewError, setPreviewError] = useState("");
+  const [accessError, setAccessError] = useState("");
   const [previewRevision, setPreviewRevision] = useState(0);
 
+  // Resolve only to a program returned by /api/camps. This prevents an old URL or
+  // localStorage value from generating a fan of 403s against a program this user cannot access.
   useEffect(() => {
-    if (campIdFromUrl) {
-      setResolvedCampId(campIdFromUrl);
-      return;
-    }
-
-    const savedCampId = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
-    if (savedCampId) {
-      setResolvedCampId(savedCampId);
-      router.replace(`/print?campId=${savedCampId}`);
-      return;
-    }
-
+    let cancelled = false;
     fetch("/api/camps")
       .then(r => r.ok ? r.json() : [])
       .then(camps => {
-        if (Array.isArray(camps) && camps[0]?.id) {
-          setResolvedCampId(camps[0].id);
-          if (typeof window !== "undefined") localStorage.setItem("activeCampId", camps[0].id);
-          router.replace(`/print?campId=${camps[0].id}`);
+        if (cancelled) return;
+        const available = Array.isArray(camps) ? camps : [];
+        const savedCampId = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
+        const requestedId = campIdFromUrl || savedCampId || "";
+        const selected = available.find((camp: CampOption) => camp.id === requestedId) || available[0];
+        if (!selected?.id) {
+          setResolvedCampId("");
+          setAccessError("No program is available to this account. Ask an owner to add you to the program, then return here.");
+          return;
         }
+        setAccessError("");
+        setResolvedCampId(selected.id);
+        if (typeof window !== "undefined") localStorage.setItem("activeCampId", selected.id);
+        if (campIdFromUrl !== selected.id) router.replace(`/print?campId=${selected.id}`);
       })
-      .catch(() => {});
+      .catch(() => !cancelled && setAccessError("We could not confirm which program you can access. Refresh and try again."));
+    return () => { cancelled = true; };
   }, [campIdFromUrl, router]);
 
   useEffect(() => {
     if (!campId) return;
     setLoading(true);
+    setAccessError("");
+    const getJson = async (path: string) => {
+      const response = await fetch(path);
+      const data = await response.json().catch(() => null);
+      return { response, data };
+    };
     Promise.all([
-      fetch(`/api/camps/${campId}/campers`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/courses`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/persons`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/mandatory-sessions`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/print-templates`).then(r => r.ok ? r.json() : []),
-      fetch(`/api/camps`).then(r => r.ok ? r.json() : []),
+      getJson(`/api/camps/${campId}/campers`),
+      getJson(`/api/camps/${campId}/courses`),
+      getJson(`/api/camps/${campId}/persons`),
+      getJson(`/api/camps/${campId}/mandatory-sessions`),
+      getJson(`/api/camps/${campId}/print-templates`),
+      getJson(`/api/camps`),
     ]).then(([c, co, p, ms, templates, camps]) => {
-      setCampers(Array.isArray(c) ? c : []);
-      setCourses(Array.isArray(co) ? co : []);
-      setPersons(Array.isArray(p) ? p : []);
-      setMandatorySessions(Array.isArray(ms) ? ms : []);
-      setSavedTemplates(Array.isArray(templates) ? templates : []);
-      const campList = Array.isArray(camps) ? camps : [];
+      const protectedResponses = [c, co, p, ms, templates];
+      const denied = protectedResponses.find(result => result.response.status === 401 || result.response.status === 403);
+      if (denied) {
+        setAccessError(denied.response.status === 401
+          ? "Your session expired before Print Center could load this program. Sign in again, then return to Print Center."
+          : "You do not have access to this program’s print data. Choose another program or ask its owner to add you as a member.");
+        setCampers([]); setCourses([]); setPersons([]); setMandatorySessions([]); setSavedTemplates([]); setLoading(false);
+        return;
+      }
+      setCampers(Array.isArray(c.data) ? c.data : []);
+      setCourses(Array.isArray(co.data) ? co.data : []);
+      setPersons(Array.isArray(p.data) ? p.data : []);
+      setMandatorySessions(Array.isArray(ms.data) ? ms.data : []);
+      setSavedTemplates(Array.isArray(templates.data) ? templates.data : []);
+      const campList = Array.isArray(camps.data) ? camps.data : [];
       setCampOptions(campList);
       setSourceCampId(campList.find((camp: CampOption) => camp.id !== campId)?.id || "");
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => {
+      setAccessError("Print Center could not load program data. Check your connection and try again.");
+      setLoading(false);
+    });
   }, [campId]);
 
   useEffect(() => {
@@ -874,6 +894,7 @@ function PrintContent() {
     return explicitPages.length ? explicitPages : [livePreviewHtml];
   })();
 
+  if (accessError) return <EmptyState title="Print Center could not load this program" description={accessError} actionHref="/dashboard" actionLabel="Choose a program" />;
   if (!campId) return <EmptyState title="Choose a program first" description="Printable rosters, labels, and schedules are generated for a specific program." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (

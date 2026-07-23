@@ -79,7 +79,11 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const [hasParticipants, setHasParticipants] = useState(false);
   const [campSwitcherOpen, setCampSwitcherOpen] = useState(false);
 
-  const campId = searchParams.get("campId") || activeCamp?.id || lastKnownCampId || "";
+  // Never let a stale bookmarked/local-storage program ID drive protected API calls.
+  // Until the accessible program list has loaded, use the validated active program only.
+  const requestedCampId = searchParams.get("campId") || "";
+  const validatedUrlCampId = camps.some((camp) => camp.id === requestedCampId) ? requestedCampId : "";
+  const campId = validatedUrlCampId || activeCamp?.id || (camps.length ? lastKnownCampId : "");
   const visiblePrimaryNav = hasParticipants ? [...primaryNav, ...moreNav.filter((item) => item.href === "/campers" || item.href === "/check-in")] : primaryNav;
   const visibleMoreNav = hasParticipants ? moreNav.filter((item) => item.href !== "/campers" && item.href !== "/check-in") : moreNav;
 
