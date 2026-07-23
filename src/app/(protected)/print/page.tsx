@@ -859,11 +859,11 @@ function PrintContent() {
     const selected = selectedTemplateKey === key || (!draftTemplate.id && draftTemplate.name === template.name);
     return <button key={key} onClick={() => chooseTemplate(key)} className={`print-template-card tile-button ${printTileClasses[index % printTileClasses.length]} text-left transition ${selected ? "ring-2 ring-[var(--tile-accent)]" : ""}`}>
       <div className="print-visual" data-visual={meta.visual} aria-hidden="true"><span /><span /><span /><span /><span /><span /></div>
-      <div className="mt-3 flex items-center justify-end gap-3">
-        <span className="rounded-full bg-white/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[template.paperSize].split(" ")[0]}</span>
+      <div className="mt-2 flex items-center justify-end gap-2">
+        <span className="rounded-full bg-white/60 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-slate-600">{PAPER_LABELS[template.paperSize].split(" ")[0]}</span>
       </div>
-      <p className="mt-2 text-sm font-black text-slate-900">{template.name}</p>
-      <p className="mt-2 text-xs leading-relaxed text-slate-600">{meta.description}</p>
+      <p className="mt-1 text-xs font-black text-slate-900">{template.name}</p>
+      <p className="print-template-description mt-1 text-[11px] leading-snug text-slate-600">{meta.description}</p>
     </button>;
   };
   const previewPages = (() => {
@@ -1005,8 +1005,9 @@ function PrintContent() {
         .studio-card-preview strong { margin: 18px 0 8px; font-size: 96px; line-height: 1; }
         .studio-card-preview h2 { margin: 0; font-size: 25px; }
         .studio-badge-paper .badge-live-preview { max-width: 720px; margin: 0 auto; }
-        .print-template-card { border-radius: 1rem; padding: 1rem; min-height: 242px; display: flex; flex-direction: column; }
-        .print-visual { height: 116px; border-radius: 14px; border: 1px solid rgba(15, 23, 42, .12); background: rgba(255,255,255,.58); padding: 10px; display: grid; gap: 6px; box-shadow: inset 0 1px 0 rgba(255,255,255,.75); }
+        .print-template-card { border-radius: .9rem; padding: .7rem; min-height: 158px; display: flex; flex-direction: column; }
+        .print-visual { height: 62px; border-radius: 10px; border: 1px solid rgba(15, 23, 42, .12); background: rgba(255,255,255,.58); padding: 7px; display: grid; gap: 4px; box-shadow: inset 0 1px 0 rgba(255,255,255,.75); }
+        .print-template-description { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
         .print-visual span { display: block; border-radius: 7px; background: rgba(15,23,42,.16); }
         .print-visual[data-visual="grid"] { grid-template-columns: repeat(4, 1fr); grid-template-rows: 22px 1fr 1fr; }
         .print-visual[data-visual="grid"] span:first-child { grid-column: 1 / -1; background: rgba(20,184,166,.38); }
@@ -1021,7 +1022,7 @@ function PrintContent() {
       <div className="no-print space-y-4 studio-workspace">
         <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <div className="flex min-w-0 items-center gap-3"><span className="text-lg font-black text-slate-900">Print Center</span><span className="hidden h-5 w-px bg-slate-200 sm:block" /><input aria-label="Printable name" value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="min-w-0 max-w-xs bg-transparent text-sm font-bold text-slate-600 outline-none placeholder:text-slate-400" /></div>
-          <div className="flex flex-wrap items-center gap-2"><label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600"><span className="text-slate-400">Paper size</span><select aria-label="Paper size" value={draftTemplate.paperSize} onChange={e => updateDraft({ paperSize: e.target.value as PaperSize })} className="bg-transparent font-black text-slate-800 outline-none">{Object.entries(PAPER_LABELS).filter(([key]) => key !== "custom").map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button onClick={saveAsTemplate} disabled={saving} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:opacity-50">Save copy</button><button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white">Print / Save as PDF</button></div>
+          <div className="flex flex-wrap items-center gap-2"><button onClick={saveAsTemplate} disabled={saving} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:opacity-50">Save copy</button><button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white">Print / Save as PDF</button></div>
         </header>
         {loading ? <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" /></div> : (
           <div className="flex flex-col gap-5">
@@ -1062,7 +1063,7 @@ function PrintContent() {
               </details>
             </aside>}
 
-            <aside className="order-2 flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"><p className="mr-2 px-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Edit</p>{(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`rounded-xl px-3 py-3 text-left text-xs font-black ${studioTab === tab ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}</aside>
+            <aside className="order-2 flex flex-wrap items-center gap-1 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"><p className="mr-2 px-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Edit</p><label className="mr-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600"><span>Paper</span><select aria-label="Paper size" value={draftTemplate.paperSize} onChange={e => updateDraft({ paperSize: e.target.value as PaperSize })} className="bg-transparent font-black text-slate-800 outline-none">{Object.entries(PAPER_LABELS).filter(([key]) => key !== "custom").map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>{(["document", "content", "page", "layout"] as StudioTab[]).map(tab => <button key={tab} type="button" onClick={() => setStudioTab(tab)} className={`rounded-xl px-3 py-3 text-left text-xs font-black ${studioTab === tab ? "bg-indigo-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>{tab === "document" ? "Document" : tab === "content" ? "Content & fields" : tab === "page" ? "Page & style" : "Layout"}</button>)}</aside>
             <main className="order-4 min-w-0 w-full">
               <section className="w-full overflow-hidden bg-white">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
@@ -1092,7 +1093,7 @@ function PrintContent() {
                       <option value="custom_table">Field builder table</option><option value="principal_schedule">Principal schedule grid</option><option value="teacher_schedules">Teacher packets / schedules</option><option value="class_rosters">Classroom rosters</option><option value="rotation_roster">Custom grid rotation roster</option><option value="camper_choices">Participant class choices</option><option value="camper_roster">Participant roster</option><option value="tshirt_list">T-shirt list</option><option value="pickup_cards">Pickup window cards</option><option value="pickup_roster">Pickup number roster</option><option value="badges">Badges</option>
                     </select></label>}
                     <div className="grid grid-cols-2 gap-3">
-                      <p className="text-xs font-semibold leading-relaxed text-slate-500">Paper size is set in the Print Center header and applies to this live document immediately.</p>
+                      <p className="text-xs font-semibold leading-relaxed text-slate-500">Paper size is set in the Edit bar above and applies to this live document immediately.</p>
                       <label className="block text-xs font-bold text-slate-500">Orientation<select value={draftTemplate.orientation} onChange={e => updateDraft({ orientation: e.target.value as Orientation })} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label>
                     </div>
                     {draftTemplate.paperSize === "custom" && <div className="grid grid-cols-2 gap-3">
