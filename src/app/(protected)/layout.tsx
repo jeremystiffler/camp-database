@@ -248,7 +248,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                 {activeCamp?.name || "Select a program"}
               </p>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500/70 mt-1">
-                {activeCamp?.status || "No active program"} {activeCamp?.myRole ? `• ${activeCamp.myRole}` : ""}
+                {activeCamp?.status || "No active program"}{activeCamp?.myRole ? ` • program access: ${activeCamp.myRole}` : ""}
               </p>
               <button
                 type="button"

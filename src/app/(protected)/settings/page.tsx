@@ -275,7 +275,8 @@ function SettingsContent() {
             <div>
               <p className="font-semibold text-slate-800">{user.name || "—"}</p>
               <p className="text-sm text-slate-500">{user.email}</p>
-              <span className="text-xs bg-berry-100 text-berry-700 border border-berry-200 px-2 py-0.5 rounded-full font-semibold capitalize">{user.role}</span>
+              <span className="text-xs bg-berry-100 text-berry-700 border border-berry-200 px-2 py-0.5 rounded-full font-semibold capitalize">Account role: {user.role}</span>
+              <p className="mt-1 text-[11px] font-medium text-slate-400">This is your account role. Program-specific access is shown in the program switcher.</p>
             </div>
           </div>
         )}
