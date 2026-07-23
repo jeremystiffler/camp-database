@@ -420,12 +420,12 @@ function Step4({
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Add a Time Slot</p>
 
         <div>
-          <label className="block text-xs text-slate-500 mb-1">Label (e.g. "Period 1" or "9:20 Session")</label>
+          <label className="block text-xs text-slate-500 mb-1">Time slot name (e.g. "Morning session")</label>
           <input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="Period 1"
+            placeholder="e.g. Morning session"
             className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
           />
         </div>
@@ -523,6 +523,10 @@ export default function NewCampWizard({ onClose, onCreated }: {
   };
 
   const handleFinish = async () => {
+    if (slots.length === 0) {
+      setError("Add at least one time slot to continue.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -544,7 +548,7 @@ export default function NewCampWizard({ onClose, onCreated }: {
       const campId = camp.id;
 
       // 2. Create age groups
-      await Promise.all(
+      const ageGroupResponses = await Promise.all(
         ageGroups.map((ag, i) =>
           fetch(`/api/camps/${campId}/age-groups`, {
             method: "POST",
@@ -560,8 +564,10 @@ export default function NewCampWizard({ onClose, onCreated }: {
         )
       );
 
+      if (ageGroupResponses.some((response) => !response.ok)) throw new Error("Your program was created, but an age group could not be saved. Please reopen Setup and try again.");
+
       // 3. Create rooms
-      await Promise.all(
+      const roomResponses = await Promise.all(
         rooms.map((r) =>
           fetch(`/api/camps/${campId}/rooms`, {
             method: "POST",
@@ -571,8 +577,10 @@ export default function NewCampWizard({ onClose, onCreated }: {
         )
       );
 
+      if (roomResponses.some((response) => !response.ok)) throw new Error("Your program was created, but a room could not be saved. Please reopen Setup and try again.");
+
       // 4. Create session templates
-      await Promise.all(
+      const timeSlotResponses = await Promise.all(
         slots.map((s) =>
           fetch(`/api/camps/${campId}/session-templates`, {
             method: "POST",
@@ -587,6 +595,8 @@ export default function NewCampWizard({ onClose, onCreated }: {
         )
       );
 
+      if (timeSlotResponses.some((response) => !response.ok)) throw new Error("Your program was created, but a time slot could not be saved. Please reopen Setup and try again.");
+
       onCreated(campId, name.trim());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -600,9 +610,13 @@ export default function NewCampWizard({ onClose, onCreated }: {
         {/* Header */}
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="font-bold text-xl text-slate-800">Create New Program</h1>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Quick Start</p>
+              <h1 className="font-bold text-xl text-slate-800">Create your program</h1>
+            </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 text-sm">✕</button>
           </div>
+          <p className="mb-5 text-sm text-slate-500">Set the essentials now. We’ll continue with staff, activities, scheduling, and registration in full Setup.</p>
           <StepIndicator current={step} />
         </div>
 
@@ -646,13 +660,19 @@ export default function NewCampWizard({ onClose, onCreated }: {
                 Next →
               </button>
             ) : (
+              <div className="text-right">
+                {slots.length === 0 && !loading && (
+                  <p id="time-slot-required" className="mb-1 text-xs font-semibold text-amber-700">Add at least one time slot to continue.</p>
+                )}
               <button
                 onClick={handleFinish}
                 disabled={loading || slots.length === 0}
-                className="minimal-button-primary disabled:opacity-40"
+                aria-describedby={slots.length === 0 ? "time-slot-required" : undefined}
+                className="minimal-button-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {loading ? "Creating..." : "Create Program"}
               </button>
+              </div>
             )}
           </div>
         </div>

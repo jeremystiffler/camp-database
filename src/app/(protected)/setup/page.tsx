@@ -115,6 +115,7 @@ type SetupStep = {
   question: string;
   done: boolean;
   locked?: boolean;
+  lockMessage?: string;
   actionLabel?: string;
 };
 
@@ -207,6 +208,13 @@ function SetupContent() {
   };
 
   useEffect(() => { load(); }, [campId]);
+
+  useEffect(() => {
+    if (searchParams.get("from") === "quick-start") {
+      setActiveTab("teachers");
+      setSetupNotice("Quick Start is complete. Your program details, age groups, rooms, and time slots are ready — next, add your staff.");
+    }
+  }, [searchParams]);
 
   const refreshAndGo = async (tab: SetupTab) => {
     await load();
@@ -709,14 +717,14 @@ function SetupContent() {
 
   const setupSteps: SetupStep[] = [
     { key: "details", label: "Program Info", shortLabel: "Info", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What program am I building?", done: detailsDone, actionLabel: "Set program info" },
-    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this program serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, actionLabel: "Add age groups" },
-    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, actionLabel: "Add rooms" },
-    { key: "times", label: "Time Slots", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, actionLabel: "Build day schedule" },
-    { key: "teachers", label: "Teachers", shortLabel: "Staff", icon: "5", help: "Add staff before assigning classes.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, actionLabel: "Add teachers" },
-    { key: "activities", label: "Activities", shortLabel: "Classes", icon: "6", help: "Create the catalog of classes and activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, actionLabel: "Create activities" },
-    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time slots with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, actionLabel: "Schedule activities" },
-    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, actionLabel: "Prepare registration" },
-    { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before parents see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, actionLabel: registrationOpen ? "Review live program" : "Open registration" },
+    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this program serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Add age groups" },
+    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Add rooms" },
+    { key: "times", label: "Time Slots", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Build day schedule" },
+    { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning activities.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, lockMessage: "Add at least one age group or room before adding teachers.", actionLabel: "Add teachers" },
+    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, lockMessage: "Add an age group, room, and time slot before creating activities.", actionLabel: "Create activities" },
+    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time slots with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, lockMessage: "Create at least one activity before building the schedule.", actionLabel: "Schedule activities" },
+    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, lockMessage: "Schedule every activity before setting up registration.", actionLabel: "Prepare registration" },
+    { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, lockMessage: "Finish program details, staff, activities, schedule, and registration before opening.", actionLabel: registrationOpen ? "Review live program" : "Open registration" },
   ];
   const completedSteps = setupSteps.filter(step => step.done).length;
   const nextStep = setupSteps.find(step => !step.done && !step.locked) || setupSteps.find(step => !step.done) || setupSteps[setupSteps.length - 1];
@@ -761,10 +769,7 @@ function SetupContent() {
           >
             Next: {nextStep.actionLabel || nextStep.label} →
           </button>
-          <Link href={`/import?campId=${campId}`}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-            Bulk import
-          </Link>
+
         </div>
       </div>
 
@@ -797,10 +802,10 @@ function SetupContent() {
                 <button
                   key={step.key}
                   type="button"
-                  disabled={step.locked}
-                  onClick={() => setActiveTab(step.key)}
-                  className={`group relative -ml-3 first:ml-0 flex h-14 flex-1 min-w-[110px] items-center justify-center pl-7 pr-7 text-left transition-all disabled:cursor-not-allowed ${isActive ? "z-30 scale-[1.03]" : step.done ? "z-20" : "z-10 hover:z-20 hover:-translate-y-0.5"}`}
-                  title={`${step.label}: ${stateLabel}`}
+                  aria-disabled={step.locked}
+                  onClick={() => step.locked ? setSetupNotice(step.lockMessage || `${step.label} is locked until earlier setup is complete.`) : setActiveTab(step.key)}
+                  className={`group relative -ml-3 first:ml-0 flex h-14 flex-1 min-w-[110px] items-center justify-center pl-7 pr-7 text-left transition-all ${step.locked ? "cursor-not-allowed" : isActive ? "z-30 scale-[1.03]" : step.done ? "z-20" : "z-10 hover:z-20 hover:-translate-y-0.5"}`}
+                  title={step.locked ? step.lockMessage : `${step.label}: ${stateLabel}`}
                   style={{ clipPath: "polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%)" }}
                 >
                   <span className={`absolute inset-0 shadow-sm transition ${isActive ? "bg-slate-950" : step.done ? "bg-gradient-to-r from-emerald-500 to-sky-500" : step.locked ? "bg-slate-100" : "bg-white group-hover:bg-sky-50"}`} />
@@ -817,7 +822,7 @@ function SetupContent() {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 lg:grid-cols-[1fr_280px] lg:items-center">
+        <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
           <div className="flex items-start gap-3">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white shadow-sm">
               {activeStep.done ? "✓" : activeStepIndex + 1}
@@ -828,34 +833,13 @@ function SetupContent() {
               <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">{activeStep.help}</p>
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-            <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-500">Jump to section</label>
-            <select
-              value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value as SetupTab)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
-            >
-              {setupSteps.map((step, index) => (
-                <option key={step.key} value={step.key} disabled={step.locked}>
-                  {index + 1}. {step.label}{step.locked ? " — locked" : ""}{step.done ? " — done" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          {setupSteps.map((step, index) => (
-            <button
-              key={step.key}
-              type="button"
-              disabled={step.locked}
-              onClick={() => setActiveTab(step.key)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-45 ${activeTab === step.key ? "border-slate-900 bg-slate-900 text-white" : step.done ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"}`}
-            >
-              {index + 1}. {step.label}
-            </button>
-          ))}
+        <div className="mt-3 flex items-center justify-between gap-3 px-1">
+          <p className="text-xs font-semibold text-slate-500">Use the setup path above to move between sections.</p>
+          <Link href={`/import?campId=${campId}`} className="text-xs font-bold text-sky-700 underline decoration-sky-300 underline-offset-4 hover:text-sky-900">
+            Already have a spreadsheet? Import it
+          </Link>
         </div>
       </div>
 
