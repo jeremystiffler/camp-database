@@ -479,8 +479,8 @@ function PrintContent() {
   const [saving, setSaving] = useState(false);
   const [activeDoc, setActiveDoc] = useState<PrintType | null>(null);
   const [printQueued, setPrintQueued] = useState(false);
-  const [selectedTemplateKey, setSelectedTemplateKey] = useState("builtin-0");
-  const [draftTemplate, setDraftTemplate] = useState<PrintTemplate>(BUILTIN_TEMPLATES[0]);
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState("builtin-1");
+  const [draftTemplate, setDraftTemplate] = useState<PrintTemplate>(BUILTIN_TEMPLATES[1]);
   const [message, setMessage] = useState("");
   const [selectedBadgeCamperId, setSelectedBadgeCamperId] = useState("");
   const [selectedStaffId, setSelectedStaffId] = useState("");
@@ -491,6 +491,8 @@ function PrintContent() {
   const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [gallerySearch, setGallerySearch] = useState("");
   const [livePreviewHtml, setLivePreviewHtml] = useState("");
+  const [previewError, setPreviewError] = useState("");
+  const [previewRevision, setPreviewRevision] = useState(0);
 
   useEffect(() => {
     if (campIdFromUrl) {
@@ -563,10 +565,16 @@ function PrintContent() {
     }
     const id = window.setTimeout(() => {
       const source = document.querySelector("#print-source .print-doc");
-      setLivePreviewHtml(source?.innerHTML || "");
-    }, 0);
+      const html = source?.innerHTML || "";
+      if (html.trim()) {
+        setLivePreviewHtml(html);
+        setPreviewError("");
+      } else {
+        setPreviewError("This printable did not load. Try again.");
+      }
+    }, 50);
     return () => window.clearTimeout(id);
-  }, [activeDoc, draftTemplate, campers, courses, persons, mandatorySessions, selectedBadgeCamperId, selectedStaffId, badgePrintScope]);
+  }, [activeDoc, draftTemplate, campers, courses, persons, mandatorySessions, selectedBadgeCamperId, selectedStaffId, badgePrintScope, previewRevision]);
 
   const allTemplates = [...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })), ...savedTemplates];
   const selectedSettings = parseSettings(draftTemplate);
@@ -683,6 +691,10 @@ function PrintContent() {
 
   const chooseTemplate = (key: string) => {
     const template = [...allTemplates, ...starterLibraryTemplates].find(t => t.id === key) || allTemplates[0];
+    setLivePreviewHtml("");
+    setPreviewError("");
+    // Remount the printable source before capture. Non-table templates otherwise retained a stale/null source.
+    setActiveDoc(null);
     setSelectedTemplateKey(key);
     setDraftTemplate(template);
     setShowTemplateGallery(false);
@@ -1044,8 +1056,8 @@ function PrintContent() {
                   <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Live document</p><p className="mt-0.5 text-sm font-black text-slate-900">{selectedMeta.eyebrow} · {draftTemplate.orientation}</p></div>
                   <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1"><span className="px-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Zoom</span>{(["fit", "75", "100"] as const).map(value => <button key={value} onClick={() => setCanvasZoom(value)} className={`rounded-lg px-2.5 py-1.5 text-[11px] font-black ${canvasZoom === value ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{value === "fit" ? "Fit" : `${value}%`}</button>)}</div>
                 </div>
-                <div className="studio-canvas"><div className="studio-page-stack" data-zoom={canvasZoom === "fit" ? undefined : canvasZoom}>{previewPages.length ? previewPages.map((pageHtml, pageIndex) => <div key={pageIndex} className="w-full"><div className="studio-page-label">Page {pageIndex + 1} of {previewPages.length}</div><div className="studio-paper studio-print-surface" data-selected-block={selectedCanvasBlock || undefined} onClick={e => { const target = e.target as HTMLElement; const block: CanvasBlock = target.closest(".badge-card, .lanyard-schedule-card, .pickup-card") ? "badge" : target.closest("table") ? "table" : target.closest("h1, h2, h3, .ops-title") ? "title" : "document"; setSelectedCanvasBlock(block); setStudioTab(block === "table" || block === "badge" ? "content" : "document"); }}><div className="ops-print" dangerouslySetInnerHTML={{ __html: pageHtml }} /></div></div>) : <div className="studio-paper"><p className="text-sm font-semibold text-slate-500">Loading the exact printable…</p></div>}</div></div>
-                <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500"><span>Preview uses live program data. The final print remains print-safe.</span><button onClick={() => printDoc()} className="font-black text-indigo-700 hover:text-indigo-900">Open print preview →</button></div>
+                <div className="studio-canvas"><div className="studio-page-stack" data-zoom={canvasZoom === "fit" ? undefined : canvasZoom}>{previewPages.length ? previewPages.map((pageHtml, pageIndex) => <div key={pageIndex} className="w-full"><div className="studio-page-label">Page {pageIndex + 1} of {previewPages.length}</div><div className="studio-paper studio-print-surface" data-selected-block={selectedCanvasBlock || undefined} onClick={e => { const target = e.target as HTMLElement; const block: CanvasBlock = target.closest(".badge-card, .lanyard-schedule-card, .pickup-card") ? "badge" : target.closest("table") ? "table" : target.closest("h1, h2, h3, .ops-title") ? "title" : "document"; setSelectedCanvasBlock(block); setStudioTab(block === "table" || block === "badge" ? "content" : "document"); }}><div className="ops-print" dangerouslySetInnerHTML={{ __html: pageHtml }} /></div></div>) : <div className="studio-paper flex flex-col items-center justify-center gap-3 text-center"><p className="text-sm font-semibold text-slate-500">{previewError || "Loading your printable…"}</p>{previewError && <button type="button" onClick={() => { setPreviewError(""); setLivePreviewHtml(""); setActiveDoc(null); setPreviewRevision(value => value + 1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">Try again</button>}</div>}</div></div>
+                <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500"><span>Preview uses live program data. The final print remains print-safe.</span><button onClick={() => printDoc()} className="font-black text-indigo-700 hover:text-indigo-900">Print / Save as PDF</button></div>
               </section>
             </main>
 
@@ -1188,7 +1200,7 @@ function PrintContent() {
                 </div>}
 
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                  <button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-bold text-white">Print preview</button>
+                  <button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-bold text-white">Print / Save as PDF</button>
                   <button onClick={updateSavedTemplate} disabled={saving} className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50">{draftTemplate.builtin ? "Save custom copy" : "Update custom"}</button>
                 </div>
                 {message && <p className="text-xs font-semibold text-slate-600">{message}</p>}
