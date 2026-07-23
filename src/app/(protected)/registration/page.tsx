@@ -489,6 +489,17 @@ function RegistrationContent() {
     ? `${window.location.origin}/register/${campId}${formSlug ? `?form=${encodeURIComponent(formSlug)}` : ""}`
     : `/register/${campId}${formSlug ? `?form=${encodeURIComponent(formSlug)}` : ""}`;
 
+  const formIsShareable = formStatus !== "draft";
+  // Effective state requires both a shareable form and the program-level open switch.
+  const formIsAcceptingRegistrations = formIsShareable && regOpen;
+  const registrationStateLabel = !formIsShareable
+    ? "Draft — hidden from families"
+    : !formIsAcceptingRegistrations
+      ? "Program registration closed — families cannot submit yet"
+      : formStatus === "linkOnly"
+        ? "Link-only — accepting registrations with this URL"
+        : "Public — accepting registrations";
+
   if (!campId) return <EmptyState title="Choose a program first" description="Each program has its own registration form and family link." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
@@ -531,6 +542,7 @@ function RegistrationContent() {
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-bold">
               <span className={`rounded-full px-3 py-1 ${formStatus === "draft" ? "bg-slate-100 text-slate-600" : formStatus === "linkOnly" ? "bg-sky-100 text-sky-700" : "bg-forest-100 text-forest-700"}`}>{formStatus === "draft" ? "Draft" : formStatus === "linkOnly" ? "Link only" : "Public"}</span>
+              <span className={`rounded-full px-3 py-1 ${formIsAcceptingRegistrations ? "bg-forest-100 text-forest-700" : "bg-amber-100 text-amber-800"}`}>{formIsAcceptingRegistrations ? "Registration accepting" : "Registration closed"}</span>
               <span className={`rounded-full px-3 py-1 ${classChoicesEnabled ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500"}`}>{classChoicesEnabled ? "Class choices on" : "Simple intake"}</span>
               <span className={`rounded-full px-3 py-1 ${familyRegistrationEnabled ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{familyRegistrationEnabled ? "Family mode" : "One camper"}</span>
             </div>
@@ -540,7 +552,7 @@ function RegistrationContent() {
         <div className="grid gap-0 lg:grid-cols-[260px_1fr]">
           <div className="border-b border-slate-100 bg-slate-50/70 p-3 lg:border-b-0 lg:border-r">
             {[
-              { key: "publish", title: "Basics & link", desc: formStatus === "draft" ? "Not live" : "Ready to share", icon: "🔗" },
+              { key: "publish", title: "Basics & link", desc: registrationStateLabel, icon: "🔗" },
               { key: "classes", title: "Class choices", desc: classChoicesEnabled ? `${mandatoryClassRules.length} required rule${mandatoryClassRules.length === 1 ? "" : "s"}` : "Disabled", icon: "Classes" },
               { key: "family", title: "Family mode", desc: familyRegistrationEnabled ? "Multiple students" : "Single student", icon: "Family" },
               { key: "email", title: "Confirmation email", desc: adminNotificationEmails.trim() ? "Family + admin alerts" : "Subject, intro, sections", icon: "✉️" },
@@ -598,10 +610,10 @@ function RegistrationContent() {
                   </label>
                   <span className="hidden h-5 w-px bg-slate-200 sm:block" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-slate-700">{formStatus === "draft" ? "⚪ Draft — hidden from families" : formStatus === "linkOnly" ? "🔗 Link-only — available only with this URL" : "🟢 Public form — discoverable and shareable"}</p>
-                    {formStatus !== "draft" && <p className="mt-0.5 truncate font-mono text-[11px] text-slate-500">{publicUrl}</p>}
+                    <p className={`text-xs font-bold ${formIsAcceptingRegistrations ? "text-forest-700" : "text-amber-800"}`}>{formIsAcceptingRegistrations ? `🟢 ${registrationStateLabel}` : `🟡 ${registrationStateLabel}`}</p>
+                    {formIsShareable && <p className="mt-0.5 truncate font-mono text-[11px] text-slate-500">{publicUrl}</p>}
                   </div>
-                  {formStatus !== "draft" && <button onClick={() => navigator.clipboard.writeText(publicUrl)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">Copy Link</button>}
+                  {formIsShareable && <button onClick={() => navigator.clipboard.writeText(publicUrl)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">Copy Link</button>}
                 </div>
               </div>
             )}
