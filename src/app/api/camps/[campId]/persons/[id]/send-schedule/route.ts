@@ -192,7 +192,7 @@ function buildEmailHtml(data: ScheduleData, customNote: string): string {
           const day = ts.dayOfWeek != null ? DAYS[ts.dayOfWeek] + " " : "";
           return `<span style="display:inline-block;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:6px;padding:3px 10px;font-size:13px;margin:2px 3px 2px 0;color:#4338ca;">⏰ ${ts.label ? ts.label + " — " : ""}${day}${ts.startTime} – ${ts.endTime}</span>`;
         }).join("")
-      : `<span style="color:#9ca3af;font-size:13px;">No time slots assigned</span>`;
+      : `<span style="color:#9ca3af;font-size:13px;">No time blocks assigned</span>`;
 
     const ageGroupsHtml = course.ageGroups.length
       ? course.ageGroups.map(ag => `<span style="display:inline-block;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:3px 10px;font-size:12px;margin:2px 3px 2px 0;color:#92400e;">${ag}</span>`).join("")

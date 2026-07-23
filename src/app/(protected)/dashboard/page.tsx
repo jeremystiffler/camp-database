@@ -116,7 +116,7 @@ const COPY_OPTIONS: CopyOption[] = [
   { key: "includeAgeGroups",  label: "Age Groups",    desc: "Copy all age group definitions",       default: true  },
   { key: "includeRooms",      label: "Rooms",         desc: "Copy all room / location records",     default: true  },
   { key: "includeTeachers",   label: "Teachers",      desc: "Copy teacher & assistant profiles",    default: true  },
-  { key: "includeTimeSlots",  label: "Time Slots",    desc: "Copy all session templates",           default: true  },
+  { key: "includeTimeSlots",  label: "Time Blocks",   desc: "Copy all time blocks",                 default: true  },
   { key: "includeActivities", label: "Activities",    desc: "Copy all activities with assignments", default: true  },
   { key: "includeRegForm",    label: "Reg. Form",     desc: "Copy the registration form layout",   default: true  },
 ];

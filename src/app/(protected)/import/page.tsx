@@ -322,14 +322,14 @@ function ImportContent() {
 
   const simpleConflictMessage = (conflicts: SchedulingConflict[]): string => {
     const conflict = conflicts.find(c => c.type === "teacher") || conflicts.find(c => c.type === "room") || conflicts[0];
-    if (!conflict) return "That time slot is already taken.";
+    if (!conflict) return "That time block is already taken.";
     if (conflict.type === "teacher") {
       return `${conflict.detail} is already teaching ${conflict.activityName} during this time.`;
     }
     if (conflict.type === "room") {
       return `${conflict.detail} is already booked by ${conflict.activityName} during this time.`;
     }
-    return conflict.detail || "That time slot is already taken.";
+    return conflict.detail || "That time block is already taken.";
   };
 
   // Toggle a session group for a course
@@ -452,7 +452,7 @@ function ImportContent() {
             <h1 className="text-2xl font-bold text-slate-800">Import</h1>
             <span className="text-xs font-semibold px-2.5 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full">BETA</span>
           </div>
-          <p className="text-slate-500 text-sm">Upload a spreadsheet to bulk-create activities and teachers. Assign rooms and time slots from the Activities tab.</p>
+          <p className="text-slate-500 text-sm">Upload a spreadsheet to bulk-create activities and teachers. Assign rooms and time blocks from the Activities tab.</p>
         </div>
         <button
           onClick={async () => { setDlLoading(true); await downloadTemplate(campId); setDlLoading(false); }}
@@ -483,7 +483,7 @@ function ImportContent() {
         </h2>
         <p className="text-xs text-slate-400 mb-5 ml-8">
           Download the template above (pre-filled with your existing activities), fill in new rows, and upload it here.
-          No session columns needed — assign time slots on the Activities tab after upload.
+          No session columns needed — assign time blocks on the Activities tab after upload.
         </p>
 
         {/* Column guide */}
@@ -624,7 +624,7 @@ function ImportContent() {
                 Import Another File
               </button>
             </div>
-            <p className="text-xs text-sky-600 font-medium">Next: open Activities to assign rooms and time slots.</p>
+            <p className="text-xs text-sky-600 font-medium">Next: open Activities to assign rooms and time blocks.</p>
           </div>
         )}
       </div>

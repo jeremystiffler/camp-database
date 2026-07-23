@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const leaderId = cleanString(data.leaderId) || undefined;
 
   if (!title || !ageGroupId || !sessionTemplateId) {
-    return NextResponse.json({ error: "Title, age group, and time slot are required" }, { status: 400 });
+    return NextResponse.json({ error: "Title, age group, and time block are required" }, { status: 400 });
   }
 
   const [ageGroup, template, room, leader] = await Promise.all([
@@ -57,7 +57,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     roomId ? prisma.room.findFirst({ where: { id: roomId, campId }, select: { id: true } }) : Promise.resolve(null),
     leaderId ? prisma.person.findFirst({ where: { id: leaderId, campId }, select: { id: true } }) : Promise.resolve(null),
   ]);
-  if (!ageGroup || !template) return NextResponse.json({ error: "Selected age group or time slot is not available" }, { status: 400 });
+
+  if (!ageGroup || !template) return NextResponse.json({ error: "Selected age group or time block is not available" }, { status: 400 });
   if (roomId && !room) return NextResponse.json({ error: "Selected location is not available" }, { status: 400 });
   if (leaderId && !leader) return NextResponse.json({ error: "Selected leader is not available" }, { status: 400 });
 
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     return NextResponse.json(item, { status: 201 });
   } catch (error: any) {
     if (error?.code === "P2002") {
-      return NextResponse.json({ error: `${ageGroup.name} already has a mandatory session in that time slot` }, { status: 409 });
+      return NextResponse.json({ error: `${ageGroup.name} already has a mandatory session in that time block` }, { status: 409 });
     }
     throw error;
   }

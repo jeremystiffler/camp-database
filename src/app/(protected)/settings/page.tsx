@@ -554,7 +554,7 @@ function SettingsContent() {
             </div>
             <div>
               <p className="font-semibold text-slate-800 text-sm">Bulk Import</p>
-              <p className="text-xs text-slate-500 mt-0.5">Upload a spreadsheet to populate activities, teachers, rooms, and time slots.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Upload a spreadsheet to populate activities, teachers, rooms, and time blocks.</p>
             </div>
           </div>
           <Link href={`/import${campId ? `?campId=${campId}` : ""}`}

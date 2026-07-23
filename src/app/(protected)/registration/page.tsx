@@ -621,7 +621,7 @@ function RegistrationContent() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="max-w-2xl">
                         <p className="text-sm font-black text-indigo-950">Required class choices by age group</p>
-                        <HelpCopy title="Required class choices" className="mt-1 text-sm leading-relaxed text-indigo-800">Use only when an age group must choose a specific class in any available time slot.</HelpCopy>
+                        <HelpCopy title="Required class choices" className="mt-1 text-sm leading-relaxed text-indigo-800">Use only when an age group must choose a specific class in any available time block.</HelpCopy>
                       </div>
                       <button type="button" onClick={addMandatoryRule} disabled={ageGroups.length === 0 || courses.length === 0} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white hover:bg-indigo-700 disabled:opacity-50">+ Add required class</button>
                     </div>

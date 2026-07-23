@@ -74,7 +74,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const VIEW_OPTIONS: { id: ScheduleView; label: string; description: string }[] = [
-  { id: "dayGrid", label: "Day × Time", description: "Pivot grid of each day by time slot." },
+  { id: "dayGrid", label: "Day × Time", description: "Pivot grid of each day by time block." },
   { id: "roomPivot", label: "Room × Time", description: "See room usage and collisions by time." },
   { id: "teacherPivot", label: "Teacher × Time", description: "Teacher assignments across the schedule." },
   { id: "coursePivot", label: "Course Matrix", description: "Courses with times, rooms, teachers, and counts." },

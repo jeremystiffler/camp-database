@@ -45,7 +45,7 @@ async function resolveSessionChoices(campId: string, choices: SessionChoiceInput
     let session = course.sessions[0] || null;
     if (!session) {
       const template = await prisma.sessionTemplate.findFirst({ where: { id: choice.sessionTemplateId, campId }, select: { id: true, label: true, startTime: true, endTime: true, mandatory: true } });
-      if (!template) throw new Error("One or more selected time slots are not available for this program");
+      if (!template) throw new Error("One or more selected time blocks are not available for this program");
       if (template.mandatory) throw new Error(`${template.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.`);
       const created = await prisma.session.create({ data: { campId, courseId: course.id, sessionTemplateId: template.id, roomId: course.roomId, startTime: template.startTime, endTime: template.endTime }, select: { id: true, enrolledCount: true } });
       session = created;

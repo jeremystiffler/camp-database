@@ -262,7 +262,7 @@ function SendScheduleModal({ person, campId, onClose }: {
                   <p className="text-2xl font-bold text-berry-700">
                     {preview.courses.reduce((s, c) => s + c.timeSlots.length, 0)}
                   </p>
-                  <p className="text-xs text-berry-600 mt-0.5">Time Slots</p>
+                  <p className="text-xs text-berry-600 mt-0.5">Time Blocks</p>
                 </div>
               </div>
 

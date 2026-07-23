@@ -116,7 +116,7 @@ function ConflictModal({ conflicts, onClose }: { conflicts: SchedulingConflict[]
 
           <div className="pt-1 border-t border-slate-100">
             <p className="text-xs text-slate-500 leading-relaxed">
-              To fix these conflicts: choose a different room, change the time slots, reassign the teacher, or move the mandatory assembly.
+              To fix these conflicts: choose a different room, change the time blocks, reassign the teacher, or move the mandatory assembly.
             </p>
           </div>
         </div>
@@ -906,10 +906,10 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
     if (slots.length === 0) return "No time assigned";
     if (slots.length === 1) {
       const st = slots[0].sessionTemplate;
-      return st ? `${st.label || `${st.startTime}–${st.endTime}`}` : "1 time slot";
+      return st ? `${st.label || `${st.startTime}–${st.endTime}`}` : "1 time block";
     }
     const first = slots[0].sessionTemplate;
-    return first ? `${slots.length} slots · starts ${first.startTime}` : `${slots.length} time slots`;
+    return first ? `${slots.length} blocks · starts ${first.startTime}` : `${slots.length} time blocks`;
   };
 
   const leadTeacher = (course: Course) =>
