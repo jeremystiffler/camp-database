@@ -590,7 +590,7 @@ function DashboardContent() {
             localStorage.setItem("activeCampId", newCampId);
             window.dispatchEvent(new Event("camp:list-changed"));
             reloadPrograms();
-            router.push(`/setup?campId=${newCampId}&from=quick-start`);
+            router.push(`/setup?campId=${newCampId}&step=details`);
             router.refresh();
           }}
         />

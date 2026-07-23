@@ -713,7 +713,7 @@ function CampersContent() {
           <p className="text-slate-500 text-sm mt-0.5">{campers.length} registered</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-100">Assign Pickup #s</button>
+          <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">Assign Pickup #s</button>
           <button onClick={() => setAddingCamper(true)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800">+ Add Participant</button>
           <button
             onClick={() => {

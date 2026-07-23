@@ -16,8 +16,14 @@ export function HelpModeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const stored = localStorage.getItem("camp-help-mode");
-    // New programs start with guidance visible; an explicit user choice always wins.
+    // An explicit user choice always wins over lifecycle-aware defaults.
+    const applyProgramDefault = (event: Event) => {
+      if (localStorage.getItem("camp-help-mode") !== null) return;
+      setHelpModeState((event as CustomEvent<{ enabled: boolean }>).detail.enabled);
+    };
+    window.addEventListener("camp:help-default", applyProgramDefault);
     setHelpModeState(stored === null ? true : stored === "1");
+    return () => window.removeEventListener("camp:help-default", applyProgramDefault);
   }, []);
 
   useEffect(() => {

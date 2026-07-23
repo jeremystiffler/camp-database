@@ -525,81 +525,24 @@ export default function NewCampWizard({ onClose, onCreated }: {
   };
 
   const handleFinish = async () => {
-    if (slots.length === 0) {
-      setError("Add at least one time block to continue.");
+    if (!name.trim()) {
+      setError("Add a program name to continue.");
       return;
     }
     setLoading(true);
     setError("");
     try {
-      // 1. Create camp
       const campRes = await fetch("/api/camps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-        }),
+        body: JSON.stringify({ name: name.trim(), startDate: startDate || undefined, endDate: endDate || undefined }),
       });
       if (!campRes.ok) {
         const d = await campRes.json();
         throw new Error(d.error || "Failed to create program");
       }
       const camp = await campRes.json();
-      const campId = camp.id;
-
-      // 2. Create age groups
-      const ageGroupResponses = await Promise.all(
-        ageGroups.map((ag, i) =>
-          fetch(`/api/camps/${campId}/age-groups`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: ag.name,
-              minAge: ag.minAge ? parseInt(ag.minAge) : undefined,
-              maxAge: ag.maxAge ? parseInt(ag.maxAge) : undefined,
-              color: ag.color,
-              displayOrder: i,
-            }),
-          })
-        )
-      );
-
-      if (ageGroupResponses.some((response) => !response.ok)) throw new Error("Your program was created, but an age group could not be saved. Please reopen Setup and try again.");
-
-      // 3. Create rooms
-      const roomResponses = await Promise.all(
-        rooms.map((r) =>
-          fetch(`/api/camps/${campId}/rooms`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: r.name, capacity: parseInt(r.capacity) }),
-          })
-        )
-      );
-
-      if (roomResponses.some((response) => !response.ok)) throw new Error("Your program was created, but a room could not be saved. Please reopen Setup and try again.");
-
-      // 4. Create session templates
-      const timeSlotResponses = await Promise.all(
-        slots.map((s) =>
-          fetch(`/api/camps/${campId}/session-templates`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              label: s.label,
-              dayOfWeek: s.dayOfWeek,
-              startTime: s.startTime,
-              endTime: s.endTime,
-            }),
-          })
-        )
-      );
-
-      if (timeSlotResponses.some((response) => !response.ok)) throw new Error("Your program was created, but a time block could not be saved. Please reopen Setup and try again.");
-
-      onCreated(campId, name.trim());
+      onCreated(camp.id, name.trim());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);
@@ -613,21 +556,17 @@ export default function NewCampWizard({ onClose, onCreated }: {
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">Quick Start</p>
-              <h1 className="font-bold text-xl text-slate-800">Create your program</h1>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">New Program</p>
+              <h1 className="font-bold text-xl text-slate-800">Name your program</h1>
             </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 text-sm">✕</button>
           </div>
-          <p className="mb-5 text-sm text-slate-500">Set the essentials now. We’ll continue with staff, activities, scheduling, and registration in full Setup.</p>
-          <StepIndicator current={step} />
+          <p className="mb-5 text-sm text-slate-500">Create the draft now, then complete age groups, rooms, time blocks, staff, activities, and registration in one guided Setup flow.</p>
         </div>
 
         {/* Step content */}
-        <div className="px-6 pb-2 min-h-[320px]">
-          {step === 1 && <Step1 name={name} setName={setName} startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} />}
-          {step === 2 && <Step2 groups={ageGroups} setGroups={setAgeGroups} />}
-          {step === 3 && <Step3 rooms={rooms} setRooms={setRooms} />}
-          {step === 4 && <Step4 slots={slots} setSlots={setSlots} />}
+        <div className="px-6 pb-2 min-h-[220px]">
+          <Step1 name={name} setName={setName} startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} />
         </div>
 
         {/* Error */}
@@ -637,47 +576,12 @@ export default function NewCampWizard({ onClose, onCreated }: {
 
         {/* Footer */}
         <div className="px-6 py-5 border-t border-slate-100 flex items-center justify-between">
-          <div>
-            {step > 1 ? (
-              <button
-                onClick={() => setStep(step - 1)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
-              >
-                ← Back
-              </button>
-            ) : (
-              <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-600">
-                Cancel
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400">Step {step} of {STEPS.length}</span>
-            {step < 4 ? (
-              <button
-                onClick={() => setStep(step + 1)}
-                disabled={!canNext()}
-                title={!canNext() ? (step === 1 ? "Add a program name to continue." : step === 2 ? "Add at least one age group to continue." : "Add at least one room to continue.") : undefined}
-                aria-describedby={!canNext() ? (step === 1 ? "program-name-required" : undefined) : undefined}
-                className="minimal-button-primary disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Next →
-              </button>
-            ) : (
-              <div className="text-right">
-                {slots.length === 0 && !loading && (
-                  <p id="time-slot-required" className="mb-1 text-xs font-semibold text-red-700">Add at least one time block to continue.</p>
-                )}
-              <button
-                onClick={handleFinish}
-                disabled={loading || slots.length === 0}
-                aria-describedby={slots.length === 0 ? "time-slot-required" : undefined}
-                className="minimal-button-primary disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {loading ? "Creating..." : "Create Program"}
-              </button>
-              </div>
-            )}
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-600">Cancel</button>
+          <div className="text-right">
+            {!name.trim() && <p id="program-name-required" className="mb-1 text-xs font-semibold text-red-700">Add a program name to continue.</p>}
+            <button onClick={handleFinish} disabled={loading || !name.trim()} aria-describedby={!name.trim() ? "program-name-required" : undefined} title={!name.trim() ? "Add a program name to create your program." : undefined} className="minimal-button-primary disabled:cursor-not-allowed disabled:opacity-40">
+              {loading ? "Creating..." : "Create & continue to Setup →"}
+            </button>
           </div>
         </div>
       </div>

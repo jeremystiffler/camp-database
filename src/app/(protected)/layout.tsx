@@ -76,9 +76,12 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const [lastKnownCampId, setLastKnownCampId] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [hasParticipants, setHasParticipants] = useState(false);
   const [campSwitcherOpen, setCampSwitcherOpen] = useState(false);
 
   const campId = searchParams.get("campId") || activeCamp?.id || lastKnownCampId || "";
+  const visiblePrimaryNav = hasParticipants ? [...primaryNav, ...moreNav.filter((item) => item.href === "/campers" || item.href === "/check-in")] : primaryNav;
+  const visibleMoreNav = hasParticipants ? moreNav.filter((item) => item.href !== "/campers" && item.href !== "/check-in") : moreNav;
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
@@ -152,6 +155,18 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
       window.removeEventListener("focus", loadPrograms);
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!campId) return;
+    fetch(`/api/camps/${campId}/dashboard`).then((response) => response.ok ? response.json() : null).then((data) => {
+      if (!data?.stats) return;
+      setHasParticipants((data.stats.registeredStudents || 0) > 0);
+      // Help remains opt-out, but begins on only while the program is still early in setup.
+      const setupSignals = [data.stats.rooms, data.stats.teachers, data.stats.classes, data.stats.scheduleBlocks];
+      const readiness = setupSignals.filter((count: number) => count > 0).length / setupSignals.length;
+      window.dispatchEvent(new CustomEvent("camp:help-default", { detail: { enabled: readiness < 0.5 } }));
+    }).catch(() => {});
+  }, [campId]);
 
   const handleCampChange = (camp: Camp) => {
     setActiveCamp(camp);
@@ -265,14 +280,14 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         <nav aria-label="Program navigation" className="flex-1 px-3 py-4 space-y-3 overflow-y-auto">
           <div>
             <p className="minimal-section-title px-3 mb-1.5">Build your program</p>
-            <div className="space-y-1">{primaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
+            <div className="space-y-1">{visiblePrimaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
             })}</div>
           </div>
           <div>
             <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-50 hover:text-slate-900"><span>More</span><span aria-hidden="true">{moreOpen ? "▴" : "▾"}</span></button>
-            {moreOpen && <div className="mt-1 space-y-1 border-l border-slate-200 pl-2">{moreNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
+            {moreOpen && <div className="mt-1 space-y-1 border-l border-slate-200 pl-2">{visibleMoreNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
             })}</div>}
