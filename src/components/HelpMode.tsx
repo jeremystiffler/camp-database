@@ -15,7 +15,9 @@ export function HelpModeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    setHelpModeState(localStorage.getItem("camp-help-mode") === "1");
+    const stored = localStorage.getItem("camp-help-mode");
+    // New programs start with guidance visible; an explicit user choice always wins.
+    setHelpModeState(stored === null ? true : stored === "1");
   }, []);
 
   useEffect(() => {

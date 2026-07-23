@@ -7,24 +7,21 @@ import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
 
-const navGroups = [
-  { label: "Program", items: [
-    { href: "/dashboard", label: "Dashboard", icon: "compass", minRole: "viewer" },
-    { href: "/setup", label: "Setup", icon: "tent", minRole: "editor" },
-    { href: "/activities", label: "Activities", icon: "clipboard", minRole: "viewer" },
-    { href: "/schedule", label: "Schedule", icon: "calendar", minRole: "viewer" },
-    { href: "/registration", label: "Registration", icon: "clipboard", minRole: "editor" },
-  ] },
-  { label: "Operations", items: [
-    { href: "/campers", label: "Participants", icon: "campers", minRole: "viewer" },
-    { href: "/check-in", label: "Check in/out", icon: "check", minRole: "viewer" },
-    { href: "/team", label: "Team", icon: "team", minRole: "viewer" },
-    { href: "/print", label: "Print Center", icon: "printer", minRole: "viewer" },
-  ] },
-  { label: "Manage", items: [
-    { href: "/import", label: "Import", icon: "upload", minRole: "editor" },
-    { href: "/settings", label: "Settings", icon: "gear", minRole: "admin" },
-  ] },
+const primaryNav = [
+  { href: "/dashboard", label: "Home", icon: "compass", minRole: "viewer" },
+  { href: "/setup", label: "Build My Program", icon: "tent", minRole: "editor" },
+  { href: "/activities", label: "Classes & Teachers", icon: "clipboard", minRole: "viewer" },
+  { href: "/schedule", label: "Schedule", icon: "calendar", minRole: "viewer" },
+  { href: "/registration", label: "Registration Form", icon: "clipboard", minRole: "editor" },
+] as const;
+
+const moreNav = [
+  { href: "/campers", label: "Participants", icon: "campers", minRole: "viewer" },
+  { href: "/check-in", label: "Check in/out", icon: "check", minRole: "viewer" },
+  { href: "/team", label: "Team", icon: "team", minRole: "viewer" },
+  { href: "/print", label: "Print Center", icon: "printer", minRole: "viewer" },
+  { href: "/import", label: "Import", icon: "upload", minRole: "editor" },
+  { href: "/settings", label: "Settings", icon: "gear", minRole: "admin" },
 ] as const;
 
 const roleRank = (role?: string) => ({ owner: 4, admin: 3, editor: 2, viewer: 1 }[role || "viewer"] || 1);
@@ -78,6 +75,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const [activeCamp, setActiveCamp] = useState<Camp | null>(null);
   const [lastKnownCampId, setLastKnownCampId] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [campSwitcherOpen, setCampSwitcherOpen] = useState(false);
 
   const campId = searchParams.get("campId") || activeCamp?.id || lastKnownCampId || "";
@@ -255,31 +253,21 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Nav */}
-        <nav aria-label="Program navigation" className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
-          {navGroups.map((group) => <div key={group.label}>
-            <p className="minimal-section-title px-3 mb-1.5">{group.label}</p>
-            <div className="space-y-1">{group.items.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={navHref(item.href)}
-                aria-current={isActive ? "page" : undefined}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
-                  isActive
-                    ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"
-                }`}
-              >
-                <span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
-                  <SidebarIcon name={item.icon} />
-                </span>
-                {item.label}
-              </Link>
-            );
+        <nav aria-label="Program navigation" className="flex-1 px-3 py-4 space-y-3 overflow-y-auto">
+          <div>
+            <p className="minimal-section-title px-3 mb-1.5">Build your program</p>
+            <div className="space-y-1">{primaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
             })}</div>
-          </div>)}
+          </div>
+          <div>
+            <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-50 hover:text-slate-900"><span>More</span><span aria-hidden="true">{moreOpen ? "▴" : "▾"}</span></button>
+            {moreOpen && <div className="mt-1 space-y-1 border-l border-slate-200 pl-2">{moreNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
+            })}</div>}
+          </div>
           {user.isSuperAdmin && <Link href="/super-admin" onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${pathname.startsWith("/super-admin") ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${pathname.startsWith("/super-admin") ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name="gear" /></span>Super Admin</Link>}
         </nav>
 

@@ -101,6 +101,7 @@ function SettingsContent() {
   const [appearanceSaving, setAppearanceSaving] = useState(false);
   const [appearanceMsg,   setAppearanceMsg]   = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [billing, setBilling] = useState<CampBilling>({ billingMode: "campPays", billingStatus: "trial", platformFeeCents: 300, platformFeePercentBps: 300, platformFeeMinCents: 200, platformFeeCapCents: 2500, camperPriceCents: 0, annualSubscriptionCents: 29900 });
+  const [activeTab, setActiveTab] = useState<"profile" | "billing" | "appearance" | "utilities">("profile");
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingMsg, setBillingMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -256,20 +257,15 @@ function SettingsContent() {
         <p className="text-slate-500 text-sm mt-0.5">Profile, billing, appearance, utilities, and program-level actions.</p>
       </div>
 
-      {campId && (
-        <div className="camp-card p-4 mb-5">
-          <p className="minimal-section-title mb-3">Jump to</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <a href="#your-profile" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Profile</a>
-            <a href="#billing" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Billing</a>
-            <a href="#program-appearance" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Appearance</a>
-            <a href="#utilities" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Utilities</a>
-          </div>
+      <div className="mb-6 flex flex-wrap gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-2" role="tablist" aria-label="Settings sections">
+        {([
+          ["profile", "Profile"], ["billing", "Billing"], ["appearance", "Appearance"], ["utilities", "Utilities"],
+        ] as const).map(([tab, label]) => (
+          <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={`rounded-xl px-4 py-2 text-sm font-black transition ${activeTab === tab ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>{label}</button>
+        ))}
+      </div>
 
-        </div>
-      )}
-
-      {/* ── Your Profile ── */}
+      {activeTab === "profile" && (
       <Section title="Your Profile" subtitle="Update your name, email, and password">
         {user && (
           <div className="flex items-center gap-4 mb-5 pb-5 border-b border-slate-100">
@@ -324,9 +320,9 @@ function SettingsContent() {
           </button>
         </div>
       </Section>
+      )}
 
-      {/* ── Camp Billing ── */}
-      {campId && (
+      {activeTab === "billing" && campId && (
         <Section title="Billing" subtitle="Choose who covers the platform cost for this program">
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -435,8 +431,7 @@ function SettingsContent() {
         </Section>
       )}
 
-      {/* ── Program Appearance ── */}
-      {campId && (
+      {activeTab === "appearance" && campId && (
         <Section title="Program Appearance" subtitle={`Customize how ${campName}'s registration page and print materials look`}>
           <div className="space-y-5">
 
@@ -545,7 +540,8 @@ function SettingsContent() {
         </Section>
       )}
 
-      {/* ── Import shortcut ── */}
+      {activeTab === "utilities" && (
+      <>
       <div id="utilities" className="camp-card p-5 border border-slate-200 bg-white mb-5 scroll-mt-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -580,6 +576,8 @@ function SettingsContent() {
             Delete This Program
           </button>
         </Section>
+      )}
+      </>
       )}
     </div>
   );

@@ -210,6 +210,13 @@ function SetupContent() {
   useEffect(() => { load(); }, [campId]);
 
   useEffect(() => {
+    const requestedStep = searchParams.get("step") as SetupTab | null;
+    const validSteps: SetupTab[] = ["details", "ages", "rooms", "times", "teachers", "activities", "schedule", "registration", "review"];
+    if (requestedStep && validSteps.includes(requestedStep)) {
+      setActiveTab(requestedStep);
+      setSetupNotice(`You opened Setup > ${requestedStep === "times" ? "Time Blocks" : requestedStep}. Continue here, or use the stepper to return to any earlier step.`);
+      return;
+    }
     if (searchParams.get("from") === "quick-start") {
       setActiveTab("teachers");
       setSetupNotice("Quick Start is complete. Your program details, age groups, rooms, and time blocks are ready — next, add your staff.");
@@ -758,6 +765,7 @@ function SetupContent() {
     <div>
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
+          {searchParams.get("step") && <p className="mb-1 text-xs font-black uppercase tracking-wide text-sky-700">Setup › {activeStep.label}</p>}
           <h1 className="text-2xl font-bold text-slate-800">Program Setup</h1>
           <p className="text-slate-500 text-sm mt-0.5">Build your program in the order your brain naturally asks the questions.</p>
         </div>
