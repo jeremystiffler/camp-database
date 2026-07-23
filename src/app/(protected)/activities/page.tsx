@@ -712,7 +712,7 @@ function MandatorySessionModal({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: boolean } = {}) {
+export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }: { simpleCatalog?: boolean; onActivitiesChanged?: () => void } = {}) {
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
   const activityId = searchParams.get("activityId") || "";
@@ -1277,7 +1277,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
           persons={persons}
           sessionTemplates={sessionTemplates}
           onClose={() => { setShowModal(false); setEditingCourse(undefined); }}
-          onSaved={load}
+          onSaved={() => { load(); onActivitiesChanged?.(); }}
           onPersonsChanged={setPersons}
         />
       )}

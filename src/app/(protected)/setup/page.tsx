@@ -1399,7 +1399,7 @@ function SetupContent() {
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <ActivitiesContent simpleCatalog />
+            <ActivitiesContent simpleCatalog onActivitiesChanged={load} />
           </div>
           <div className="flex justify-end">
             <button
