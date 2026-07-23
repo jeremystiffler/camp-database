@@ -199,6 +199,8 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     "/campers": { label: "Open check-in", href: "/check-in" },
   };
   const nextStep = nextSteps[pathname] || { label: "Build your program", href: "/setup" };
+  const isPublishedProgram = activeCamp?.status?.toLowerCase() === "published";
+  const showBuildGuidance = !isPublishedProgram && pathname !== "/dashboard";
 
   if (checking) {
     return (
@@ -331,7 +333,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
       </div>}
       <main className={`flex-1 min-h-dvh flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`} style={{ background: "var(--ui-bg)" }}>
         <div className={`w-full min-h-dvh px-3 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>
-          {!isKioskShell && (
+          {!isKioskShell && showBuildGuidance && (
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm">
               <p className="font-semibold text-slate-700"><span className="mr-2 text-xs font-black uppercase tracking-wide text-sky-700">Next step</span>{nextStep.label}</p>
               <Link href={navHref(nextStep.href)} className="rounded-lg bg-white px-3 py-1.5 text-xs font-black text-sky-800 shadow-sm ring-1 ring-sky-100 hover:bg-sky-100">Continue →</Link>

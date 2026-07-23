@@ -245,6 +245,7 @@ function CamperDrawer({
   onClose,
   onSaved,
   onDeleted,
+  canEdit,
 }: {
   camper: Camper;
   campId: string;
@@ -254,8 +255,9 @@ function CamperDrawer({
   onClose: () => void;
   onSaved: (camper: Camper) => void;
   onDeleted: (id: string) => void;
+  canEdit: boolean;
 }) {
-  const [editing, setEditing] = useState(camper.id === "__new__");
+  const [editing, setEditing] = useState(camper.id === "__new__" && canEdit);
   const isNew = camper.id === "__new__";
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -405,8 +407,8 @@ function CamperDrawer({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {!editing && <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100">Edit Participant</button>}
-            {!editing && !isNew && <button onClick={remove} disabled={deleting} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 disabled:opacity-50">{deleting ? "Deleting…" : "Delete"}</button>}
+            {canEdit && !editing && <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100">Edit Participant</button>}
+            {canEdit && !editing && !isNew && <button onClick={remove} disabled={deleting} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 disabled:opacity-50">{deleting ? "Deleting…" : "Delete"}</button>}
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">✕</button>
           </div>
         </div>
@@ -639,6 +641,9 @@ function CampersContent() {
   const [selectedCamper, setSelectedCamper] = useState<Camper | null>(null);
   const [addingCamper, setAddingCamper] = useState(false);
   const [sortField, setSortField] = useState<"lastName" | "createdAt">("lastName");
+  const [myRole, setMyRole] = useState<string | null>(null);
+  const [showExtraColumns, setShowExtraColumns] = useState(false);
+  const canEdit = myRole === "owner" || myRole === "admin" || myRole === "editor";
 
   const load = () => {
     if (!campId) return;
@@ -658,6 +663,13 @@ function CampersContent() {
   };
 
   useEffect(() => { load(); }, [campId]);
+  useEffect(() => {
+    if (!campId) return;
+    fetch("/api/camps").then(r => r.ok ? r.json() : []).then((programs) => {
+      const active = Array.isArray(programs) ? programs.find((program: { id: string; myRole?: string }) => program.id === campId) : null;
+      setMyRole(active?.myRole || "viewer");
+    }).catch(() => setMyRole("viewer"));
+  }, [campId]);
 
   const assignMissingPickupNumbers = async () => {
     if (!campId) return;
@@ -711,10 +723,11 @@ function CampersContent() {
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Participants</h1>
           <p className="text-slate-500 text-sm mt-0.5">{campers.length} registered</p>
+          {myRole === "viewer" && <p className="mt-1 text-xs font-semibold text-slate-500">You have view-only access to this program.</p>}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">Assign Pickup #s</button>
-          <button onClick={() => setAddingCamper(true)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800">+ Add Participant</button>
+          {canEdit && <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">Assign Pickup #s</button>}
+          {canEdit && <button onClick={() => setAddingCamper(true)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800">+ Add Participant</button>}
           <button
             onClick={() => {
               const csv = [
@@ -737,6 +750,9 @@ function CampersContent() {
             className="px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
           >
             ↓ Export CSV
+          </button>
+          <button type="button" onClick={() => setShowExtraColumns(value => !value)} aria-pressed={showExtraColumns} className="px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">
+            Columns {showExtraColumns ? "▴" : "▾"}
           </button>
         </div>
       </div>
@@ -808,10 +824,7 @@ function CampersContent() {
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Age Group</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Guardian</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Choices</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Payment</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">T-Shirt</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Pickup #</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Photo</th>
+                {showExtraColumns && <><th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Payment</th><th className="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">T-Shirt</th><th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Pickup #</th><th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Photo</th></>}
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -843,21 +856,7 @@ function CampersContent() {
                     <div className="text-slate-800">{summarizedEnrollmentChoices(camper.enrollments || []).length} selected</div>
                     <div className="text-slate-400 text-xs max-w-[180px] truncate">{summarizedEnrollmentChoices(camper.enrollments || []).map(choice => choice.title).join(" · ") || "—"}</div>
                   </td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    <div className="text-slate-800">{camper.paymentStatus || "not_required"}</div>
-                    <div className="text-slate-400 text-xs">{cents(camper.totalPaidCents)}</div>
-                  </td>
-                  <td className="px-4 py-3 hidden lg:table-cell">
-                    <span className="text-slate-600">{camper.tshirtSize || "—"}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700">{camper.pickupNumber || "—"}</span>
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <span className={camper.photoConsent ? "text-forest-600" : "text-red-400"}>
-                      {camper.photoConsent ? "✓" : "✗"}
-                    </span>
-                  </td>
+                  {showExtraColumns && <><td className="px-4 py-3 hidden lg:table-cell"><div className="text-slate-800">{camper.paymentStatus || "not_required"}</div><div className="text-slate-400 text-xs">{cents(camper.totalPaidCents)}</div></td><td className="px-4 py-3 hidden lg:table-cell"><span className="text-slate-600">{camper.tshirtSize || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700">{camper.pickupNumber || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className={camper.photoConsent ? "text-forest-600" : "text-red-400"}>{camper.photoConsent ? "✓" : "✗"}</span></td></>}
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
                       <button
@@ -872,7 +871,7 @@ function CampersContent() {
                       >
                         View
                       </button>
-                      <RowDeleteButton onDelete={() => deleteCamper(camper)} label={`${camper.firstName} ${camper.lastName}`} />
+                      {canEdit && <RowDeleteButton onDelete={() => deleteCamper(camper)} label={`${camper.firstName} ${camper.lastName}`} />}
                     </div>
                   </td>
                 </tr>
@@ -908,6 +907,7 @@ function CampersContent() {
             setSelectedCamper(null);
             setAddingCamper(false);
           }}
+          canEdit={canEdit}
         />
       )}
     </div>

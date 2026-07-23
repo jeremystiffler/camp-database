@@ -472,9 +472,10 @@ function DashboardContent() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {needsAttention && <StatCard label="Activities Needing Attention" value={summaryLoading ? "–" : attentionTotal} icon="!" gradient="stat-berry" sub="Teacher, schedule, or capacity issues" />}
             <StatCard label="Registered Participants" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" gradient="stat-forest" />
             <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" gradient="stat-sunset" sub={`${selectedStats?.paidPaymentCount ?? 0} paid • ${selectedStats?.pendingPaymentCount ?? 0} pending`} />
-            <StatCard label="Activities Needing Attention" value={summaryLoading ? "–" : attentionTotal} icon="!" gradient="stat-berry" sub="Teacher, schedule, or capacity issues" />
+            {!needsAttention && <StatCard label="Activities Needing Attention" value={summaryLoading ? "–" : attentionTotal} icon="!" gradient="stat-berry" sub="Teacher, schedule, or capacity issues" />}
           </div>
 
           {summary && (

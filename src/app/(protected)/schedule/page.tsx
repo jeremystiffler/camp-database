@@ -263,7 +263,7 @@ function ScheduleContent() {
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Schedule</p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">Schedule</h1>
           <p className="mt-1 text-sm font-semibold text-slate-500">{scheduleSummary}</p>
-          <HelpCopy title="Schedule views" className="mt-1 text-sm text-slate-500">Use the view buttons below to switch between the schedule grid, room, teacher, course, capacity, and list views.</HelpCopy>
+          <HelpCopy title="Schedule views" className="mt-1 text-sm text-slate-500">Switch views using the View menu below: grid, room, teacher, activity, capacity, or list.</HelpCopy>
         </div>
         <div className="flex flex-col gap-2 xl:items-end">
           <button onClick={() => setShowHealth((value) => !value)} className="w-fit rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50">

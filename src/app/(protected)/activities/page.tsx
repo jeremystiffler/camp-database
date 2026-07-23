@@ -481,7 +481,7 @@ function CourseModal({
           </div>
 
           <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs font-semibold text-sky-700">
-            Time assignment moved to the Schedule Grid tab. This form only saves the activity basics.
+            Time assignment happens in Schedule Builder. This form only saves the activity basics.
           </div>
 
           {/* ── Lead Teachers ── */}
@@ -1052,7 +1052,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-sm font-black uppercase tracking-wide text-slate-700">Activity catalog</h2>
-              <HelpCopy title="Activity catalog" className="mt-1 text-xs text-slate-500">Simple rows only: activity, teacher, room, seats, and age groups. Use the Schedule Grid tab for clickable time-slot assignment.</HelpCopy>
+              <HelpCopy title="Activity catalog" className="mt-1 text-xs text-slate-500">Simple rows only: activity, teacher, room, seats, and age groups. Use Schedule Builder for clickable Time Block assignment.</HelpCopy>
             </div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">{filteredByStatus.length} shown</span>
