@@ -38,7 +38,7 @@ const STEPS = [
   { num: 1, label: "Program Info",   icon: "1" },
   { num: 2, label: "Age Groups",  icon: "2" },
   { num: 3, label: "Rooms",       icon: "3" },
-  { num: 4, label: "Time Slots",  icon: "4" },
+  { num: 4, label: "Time Blocks",  icon: "4" },
 ];
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -337,7 +337,7 @@ function Step3({
   );
 }
 
-// ─── Step 4: Time Slots ───────────────────────────────────────────────────────
+// ─── Step 4: Time Blocks ──────────────────────────────────────────────────────
 
 function Step4({
   slots,
@@ -379,8 +379,8 @@ function Step4({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-bold text-slate-800 mb-1">Time Slots</h2>
-        <p className="text-slate-500 text-sm">Define when activities run each day. You can add multiple slots (e.g. 9:20, 9:45, 10:10...).</p>
+        <h2 className="text-lg font-bold text-slate-800 mb-1">Time Blocks</h2>
+        <p className="text-slate-500 text-sm">Define when activities run each day. You can add multiple time blocks (e.g. 9:20, 9:45, 10:10...).</p>
       </div>
 
       {/* Existing slots grouped */}
@@ -417,10 +417,10 @@ function Step4({
 
       {/* Add form */}
       <div className="bg-slate-50 rounded-2xl p-4 space-y-3">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Add a Time Slot</p>
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Add a Time Block</p>
 
         <div>
-          <label className="block text-xs text-slate-500 mb-1">Time slot name (e.g. "Morning session")</label>
+          <label className="block text-xs text-slate-500 mb-1">Time block name (e.g. "Morning session")</label>
           <input
             type="text"
             value={label}
@@ -477,13 +477,13 @@ function Step4({
           disabled={!label.trim() || !startTime || !endTime || selectedDays.length === 0}
           className="w-full py-2 bg-forest-500 text-white rounded-xl text-sm font-semibold hover:bg-forest-600 transition-colors disabled:opacity-40"
         >
-          + Add Time Slot ({selectedDays.length} {selectedDays.length === 1 ? "day" : "days"})
+          + Add Time Block ({selectedDays.length} {selectedDays.length === 1 ? "day" : "days"})
         </button>
       </div>
 
       {slots.length === 0 && (
-        <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-4 py-3">
-          At least one time slot is required to build your schedule.
+        <p id="time-block-required" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+          Add at least one time block to continue.
         </p>
       )}
     </div>
@@ -524,7 +524,7 @@ export default function NewCampWizard({ onClose, onCreated }: {
 
   const handleFinish = async () => {
     if (slots.length === 0) {
-      setError("Add at least one time slot to continue.");
+      setError("Add at least one time block to continue.");
       return;
     }
     setLoading(true);
@@ -595,7 +595,7 @@ export default function NewCampWizard({ onClose, onCreated }: {
         )
       );
 
-      if (timeSlotResponses.some((response) => !response.ok)) throw new Error("Your program was created, but a time slot could not be saved. Please reopen Setup and try again.");
+      if (timeSlotResponses.some((response) => !response.ok)) throw new Error("Your program was created, but a time block could not be saved. Please reopen Setup and try again.");
 
       onCreated(campId, name.trim());
     } catch (err) {
@@ -662,7 +662,7 @@ export default function NewCampWizard({ onClose, onCreated }: {
             ) : (
               <div className="text-right">
                 {slots.length === 0 && !loading && (
-                  <p id="time-slot-required" className="mb-1 text-xs font-semibold text-amber-700">Add at least one time slot to continue.</p>
+                  <p id="time-slot-required" className="mb-1 text-xs font-semibold text-red-700">Add at least one time block to continue.</p>
                 )}
               <button
                 onClick={handleFinish}

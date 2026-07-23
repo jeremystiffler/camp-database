@@ -212,7 +212,7 @@ function SetupContent() {
   useEffect(() => {
     if (searchParams.get("from") === "quick-start") {
       setActiveTab("teachers");
-      setSetupNotice("Quick Start is complete. Your program details, age groups, rooms, and time slots are ready — next, add your staff.");
+      setSetupNotice("Quick Start is complete. Your program details, age groups, rooms, and time blocks are ready — next, add your staff.");
     }
   }, [searchParams]);
 
@@ -719,10 +719,10 @@ function SetupContent() {
     { key: "details", label: "Program Info", shortLabel: "Info", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What program am I building?", done: detailsDone, actionLabel: "Set program info" },
     { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this program serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Add age groups" },
     { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Add rooms" },
-    { key: "times", label: "Time Slots", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Build day schedule" },
+    { key: "times", label: "Time Blocks", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Build day schedule" },
     { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning activities.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, lockMessage: "Add at least one age group or room before adding teachers.", actionLabel: "Add teachers" },
-    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, lockMessage: "Add an age group, room, and time slot before creating activities.", actionLabel: "Create activities" },
-    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time slots with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, lockMessage: "Create at least one activity before building the schedule.", actionLabel: "Schedule activities" },
+    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, lockMessage: "Add an age group, room, and time block before creating activities.", actionLabel: "Create activities" },
+    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time blocks with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, lockMessage: "Create at least one activity before building the schedule.", actionLabel: "Schedule activities" },
     { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, lockMessage: "Schedule every activity before setting up registration.", actionLabel: "Prepare registration" },
     { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, lockMessage: "Finish program details, staff, activities, schedule, and registration before opening.", actionLabel: registrationOpen ? "Review live program" : "Open registration" },
   ];
@@ -1067,10 +1067,10 @@ function SetupContent() {
       </Section>
       )}
 
-      {/* ── Time Slots ── */}
+      {/* ── Time Blocks ── */}
       {activeTab === "times" && (
-      <Section title="Time Slots">
-        <HelpCopy title="Time slots" className="text-xs text-slate-400 mb-4">
+      <Section title="Time Blocks">
+        <HelpCopy title="Time blocks" className="text-xs text-slate-400 mb-4">
           Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of the program. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
         </HelpCopy>
 
@@ -1412,7 +1412,7 @@ function SetupContent() {
               <div>
                 <p className="text-xs font-black uppercase tracking-wide text-amber-700">Step 7 · Clickable Schedule Grid</p>
                 <h2 className="mt-1 text-lg font-black text-slate-900">Click where each activity belongs.</h2>
-                <HelpCopy title="Clickable schedule grid" className="mt-1 text-sm text-slate-600">Activities are rows. Time slots are columns. Click a cell to add or remove that activity from that slot — simple as setting chairs before service starts.</HelpCopy>
+                <HelpCopy title="Clickable schedule grid" className="mt-1 text-sm text-slate-600">Activities are rows. Time blocks are columns. Click a cell to add or remove that activity from that block — simple as setting chairs before service starts.</HelpCopy>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
                   <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{courses.length} activities</span>
                   <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{scheduledActivities} scheduled</span>

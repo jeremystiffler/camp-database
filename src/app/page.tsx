@@ -58,7 +58,7 @@ const pricingPlans = [
 
 const features = [
   { icon: "👨‍👩‍👧‍👦", title: "Family Registration", desc: "One guardian can register multiple students, choose age groups and classes per participant, and pay once." },
-  { icon: "🗓️", title: "Schedule Builder", desc: "Rooms, teachers, time slots, required blocks, capacity limits, and conflict checks stay tied together." },
+  { icon: "🗓️", title: "Schedule Builder", desc: "Rooms, teachers, time blocks, required blocks, capacity limits, and conflict checks stay tied together." },
   { icon: "🎨", title: "Activity Catalog", desc: "Build classes by age group, location, teacher, capacity, and schedule block without duct-taping spreadsheets." },
   { icon: "✅", title: "Check in/out", desc: "Run day-of operations with QR/name lookup, family pickup numbers, and staff-friendly attendance state." },
   { icon: "🖨️", title: "Print Center", desc: "Generate rosters, teacher packets, participant class choices, pickup cards, and QR schedule lanyards." },
@@ -193,15 +193,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/signup" className="rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-7 py-4 text-center text-base font-black text-white shadow-xl shadow-indigo-200 transition hover:-translate-y-1">Start Free Trial</Link>
-            <a href="#pricing" className="rounded-2xl border border-slate-200 bg-white px-7 py-4 text-center text-base font-black text-slate-700 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">See pricing</a>
-          </div>
-          <div className="mt-8 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur">
-                <p className="text-2xl font-black text-slate-950">{stat.value}</p>
-                <p className="mt-1 text-xs font-bold leading-tight text-slate-500">{stat.label}</p>
-              </div>
-            ))}
+            <a href="#pricing" className="rounded-2xl border border-slate-200 bg-transparent px-7 py-4 text-center text-base font-black text-slate-700 transition hover:border-slate-300 hover:bg-white">See pricing</a>
           </div>
         </div>
         <ProductMockup />
@@ -225,6 +217,14 @@ export default function LandingPage() {
             <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Simple pricing for programs just getting started — and ready to grow.</h2>
           </div>
           <p className="max-w-2xl text-slate-600">Try Simple Schedule Pro free for 14 days, no credit card required. Founding customers get 50% off their first year. Paid registrations include a simple 3% platform fee, usually paid by the registrant.</p>
+        </div>
+        <div className="mb-5 grid gap-2 rounded-2xl border border-slate-200 bg-white p-3 sm:grid-cols-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="px-3 py-2 text-center sm:border-r sm:border-slate-100 last:border-0">
+              <p className="text-lg font-black text-slate-950">{stat.value}</p>
+              <p className="mt-0.5 text-xs font-bold text-slate-500">{stat.label}</p>
+            </div>
+          ))}
         </div>
         <div className="mb-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950 shadow-sm">
           <strong>14-day free trial • no credit card required.</strong> Build your program, test registration, invite your team, and only pay when you are ready to keep going.

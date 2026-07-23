@@ -287,9 +287,9 @@ function ScheduleContent() {
       ) : sessions.length === 0 ? (
         <div className="camp-card p-12 text-center">
           <span className="mb-4 block text-5xl">Date</span>
-          <h3 className="mb-2 font-bold text-slate-700">No sessions scheduled yet</h3>
-          <p className="mb-2 text-sm text-slate-400">Sessions are created from session templates + classes.</p>
-          <p className="text-sm text-slate-400">First, set up <strong>session templates</strong> in Settings, then assign classes to them.</p>
+          <h3 className="mb-2 font-bold text-slate-700">No activities scheduled yet</h3>
+          <p className="mb-5 text-sm text-slate-400">Create Time Blocks in Setup, then assign activities in the Schedule Builder.</p>
+          <Link href={`/setup?campId=${campId}&step=times`} className="minimal-button-primary inline-flex">Set up Time Blocks</Link>
         </div>
       ) : (
         <>
@@ -317,13 +317,14 @@ function ScheduleContent() {
             </div>
           )}
 
-          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-            {VIEW_OPTIONS.map((option) => (
-              <button key={option.id} onClick={() => setView(option.id)} className={`rounded-2xl border p-4 text-left transition ${view === option.id ? "border-slate-900 bg-slate-900 text-white shadow-lg" : "border-slate-200 bg-white text-slate-700 shadow-sm hover:-translate-y-0.5 hover:shadow-md"}`}>
-                <p className="text-sm font-black">{option.label}</p>
-                <p className={`mt-1 text-[11px] leading-relaxed ${view === option.id ? "text-white/70" : "text-slate-400"}`}>{option.description}</p>
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3">
+            <label className="flex items-center gap-2 text-sm font-black text-slate-700">
+              View:
+              <select value={view} onChange={(event) => setView(event.target.value as ScheduleView)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+                {VIEW_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+              </select>
+            </label>
+            <p className="text-xs font-semibold text-slate-500">{VIEW_OPTIONS.find((option) => option.id === view)?.description}</p>
           </div>
 
           {view === "dayGrid" && <DayTimeGrid sessions={filteredDaySessions} displayDayGroups={displayDayGroups} duplicateDayCount={filterDay === "" ? duplicateDayCount : 0} timeSlots={timeSlots} campId={campId} />}

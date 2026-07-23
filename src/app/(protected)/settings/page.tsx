@@ -265,13 +265,7 @@ function SettingsContent() {
             <a href="#program-appearance" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Appearance</a>
             <a href="#utilities" className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:border-slate-400 hover:text-slate-950">Utilities</a>
           </div>
-          <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 border-t border-slate-100 pt-3">
-            <Link href={`/setup?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Setup</Link>
-            <Link href={`/registration?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Registration</Link>
-            <Link href={`/activities?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Activities</Link>
-            <Link href={`/schedule?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Schedule</Link>
-            <Link href={`/print?campId=${campId}`} className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">Print</Link>
-          </div>
+
         </div>
       )}
 

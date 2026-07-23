@@ -331,6 +331,7 @@ function DashboardContent() {
   const [summary,      setSummary]      = useState<DashboardSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [actionsOpen,  setActionsOpen]  = useState(false);
+  const [healthOpen,   setHealthOpen]   = useState(false);
   const [renameValue,  setRenameValue]  = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameMsg,    setRenameMsg]    = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -436,11 +437,7 @@ function DashboardContent() {
                 <p className="mt-1 text-sm font-semibold text-slate-600">{formatCampDateRange(activeCamp)}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-600">{activeCamp.status}</span>
-                <span className={`rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-wide ${activeCamp.registrationOpen ? "border-forest-200 bg-forest-50 text-forest-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
-                  Registration {activeCamp.registrationOpen ? "open" : "closed"}
-                </span>
-                <span className="rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-600">{activeCamp.myRole || "viewer"}</span>
+                <p className="mr-1 text-xs font-black uppercase tracking-wide text-slate-600">Status: {activeCamp.status} · Registration {activeCamp.registrationOpen ? "open" : "closed"}</p>
                 <div className="relative">
                   <button
                     type="button"
@@ -474,31 +471,23 @@ function DashboardContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Registered Students" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" gradient="stat-forest" />
-            <StatCard label="Classes" value={summaryLoading ? "–" : (selectedStats?.classes ?? activeCamp._count?.courses ?? 0)} icon="C" gradient="stat-sky" sub={`${selectedStats?.teachers ?? 0} teachers • ${selectedStats?.rooms ?? 0} rooms`} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard label="Registered Participants" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" gradient="stat-forest" />
             <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" gradient="stat-sunset" sub={`${selectedStats?.paidPaymentCount ?? 0} paid • ${selectedStats?.pendingPaymentCount ?? 0} pending`} />
-            <StatCard label="Classes Needing Attention" value={summaryLoading ? "–" : attentionTotal} icon="!" gradient="stat-berry" sub="Teacher, schedule, or capacity issues" />
+            <StatCard label="Activities Needing Attention" value={summaryLoading ? "–" : attentionTotal} icon="!" gradient="stat-berry" sub="Teacher, schedule, or capacity issues" />
           </div>
 
           {summary && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <p className="text-2xl font-black text-slate-900">{summary.attention.classesWithoutTeachers}</p>
-                <p className="text-xs font-bold text-slate-600">Classes without teachers</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <p className="text-2xl font-black text-slate-900">{summary.attention.unscheduledClasses}</p>
-                <p className="text-xs font-bold text-slate-600">Classes not on schedule</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <p className="text-2xl font-black text-slate-900">{summary.attention.fullOrOverCapacityClasses}</p>
-                <p className="text-xs font-bold text-slate-600">Full or over capacity</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <p className="text-2xl font-black text-slate-900">{summary.attention.classesWithNoEnrollment}</p>
-                <p className="text-xs font-bold text-slate-600">Classes with no enrollments</p>
-              </div>
+            <div className="rounded-2xl border border-slate-200 bg-white">
+              <button type="button" onClick={() => setHealthOpen(value => !value)} aria-expanded={healthOpen} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-black text-slate-800 hover:bg-slate-50">
+                <span>Health details</span><span aria-hidden="true">{healthOpen ? "▴" : "▾"}</span>
+              </button>
+              {healthOpen && <div className="grid grid-cols-1 gap-3 border-t border-slate-100 p-4 md:grid-cols-4">
+                <div><p className="text-2xl font-black text-slate-900">{summary.attention.classesWithoutTeachers}</p><p className="text-xs font-bold text-slate-600">Activities without teachers</p></div>
+                <div><p className="text-2xl font-black text-slate-900">{summary.attention.unscheduledClasses}</p><p className="text-xs font-bold text-slate-600">Activities not on schedule</p></div>
+                <div><p className="text-2xl font-black text-slate-900">{summary.attention.fullOrOverCapacityClasses}</p><p className="text-xs font-bold text-slate-600">Full or over capacity</p></div>
+                <div><p className="text-2xl font-black text-slate-900">{summary.attention.classesWithNoEnrollment}</p><p className="text-xs font-bold text-slate-600">Activities with no enrollments</p></div>
+              </div>}
             </div>
           )}
         </div>
@@ -523,8 +512,8 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* Program switcher */}
-      <div className="mb-8 border-t border-slate-200 pt-8">
+      {camps.length > 1 && (
+        <div className="mb-8 border-t border-slate-200 pt-8">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
             <p className="minimal-section-title">Program switcher</p>
@@ -560,7 +549,8 @@ function DashboardContent() {
             )}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* Core work areas */}
       {activeCamp && (

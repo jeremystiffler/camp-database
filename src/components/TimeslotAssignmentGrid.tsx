@@ -266,10 +266,10 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
   const simpleConflictMessage = (conflicts: SchedulingConflict[]): string => {
     const conflict = conflicts.find(c => c.type === "teacher") || conflicts.find(c => c.type === "room") || conflicts[0];
-    if (!conflict) return "That time slot is already taken.";
+    if (!conflict) return "That time block is already taken.";
     if (conflict.type === "teacher") return `${conflict.detail} is already teaching ${conflict.activityName} during this time.`;
     if (conflict.type === "room") return `${conflict.detail} is already booked by ${conflict.activityName} during this time.`;
-    return conflict.detail || "That time slot is already taken.";
+    return conflict.detail || "That time block is already taken.";
   };
 
   const toggleSlotGroup = async (course: Course, group: SessionGroup, checked: boolean) => {
@@ -309,7 +309,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
 
   const setDefaultForGroup = async (sg: SessionGroup, enable: boolean) => {
     if (enable) {
-      setConflictToast({ courseName: "Locked schedule session", sessionLabel: sg.label, message: "Lock schedule blocks from the Time Slots tab so you can choose the required location first." });
+      setConflictToast({ courseName: "Locked schedule session", sessionLabel: sg.label, message: "Lock schedule blocks from the Time Blocks tab so you can choose the required location first." });
       return;
     }
     setDefaultSaving(prev => ({ ...prev, [sg.key]: true }));
@@ -435,13 +435,6 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
         </span>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs text-slate-600">
-        <span className="font-black uppercase tracking-wide text-slate-500">At a glance</span>
-        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-slate-600 shadow-sm">{teacherOptions.length} teachers</span>
-        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-slate-600 shadow-sm">{sessionGroups.length} time rows</span>
-        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-slate-600 shadow-sm">{courses.length} activities</span>
-        <span className="rounded-full bg-white px-2.5 py-1 font-bold text-slate-600 shadow-sm">{ageGroups.length} age groups</span>
-      </div>
 
       {allSessionGroups.length > 0 && (
         <details className="mb-3 rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2">
@@ -473,7 +466,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       {allSessionGroups.length === 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
           <span className="text-lg"></span>
-          <span>No time slots set up yet. Create the program&apos;s base times in <strong>Program Setup</strong>, then assign activities here.</span>
+          <span>No time blocks set up yet. Create the program&apos;s base times in <strong>Program Setup</strong>, then assign activities here.</span>
         </div>
       )}
 
@@ -487,7 +480,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       {courses.length > 0 && sessionGroups.length === 0 && allSessionGroups.length > 0 && (
         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-500">
           <span className="text-lg"></span>
-          <HelpCopy title="Locked time slots" className="text-sm text-slate-500">All time slots are locked to the schedule. Unlock a row in Time Slots to make that slot assignable to activities.</HelpCopy>
+          <HelpCopy title="Locked time blocks" className="text-sm text-slate-500">All time blocks are locked to the schedule. Unlock a row in Time Blocks to make that block assignable to activities.</HelpCopy>
         </div>
       )}
 

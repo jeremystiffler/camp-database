@@ -1020,10 +1020,9 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
 
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
         {[
-          { label: "Activities", value: courses.length, detail: "in catalog", tone: "text-sky-700", action: () => { setStatusFilter("all"); setSearch(""); } },
-          { label: "Scheduled", value: scheduledCount, detail: "have a time", tone: "text-emerald-700", action: () => document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
-          { label: "Need attention", value: needsCount, detail: needsCount === 0 ? "all clear" : "missing details", tone: "text-amber-700", action: () => setStatusFilter("needs") },
-          { label: "Registration", value: registrationReady ? "Ready" : "Not yet", detail: `${mandatorySessions.length} default block${mandatorySessions.length !== 1 ? "s" : ""}`, tone: registrationReady ? "text-emerald-700" : "text-slate-600", action: () => document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+        { label: "Activities", value: courses.length, detail: "in catalog", tone: "text-sky-700", action: () => { setStatusFilter("all"); setSearch(""); } },
+        { label: "Scheduled", value: scheduledCount, detail: "have a time block", tone: "text-emerald-700", action: () => document.getElementById("activity-schedule-grid")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+        { label: "Need attention", value: needsCount, detail: needsCount === 0 ? "all clear" : "missing details", tone: "text-amber-700", action: () => setStatusFilter("needs") },
         ].map(item => (
           <button key={item.label} onClick={item.action} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-left font-bold text-slate-600 transition hover:border-sky-200 hover:bg-sky-50">
             <span className={`mr-1 ${item.tone}`}>{item.value}</span>
@@ -1048,7 +1047,7 @@ export function ActivitiesContent({ simpleCatalog = false }: { simpleCatalog?: b
             </div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">{filteredByStatus.length} shown</span>
-              <button onClick={() => { setEditingCourse(null); setShowModal(true); }} className="rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 px-4 py-2 text-xs font-black text-white shadow-sm hover:opacity-90">+ Add Activity</button>
+
             </div>
           </div>
         </div>
