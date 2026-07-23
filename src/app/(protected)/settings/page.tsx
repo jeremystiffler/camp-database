@@ -106,6 +106,8 @@ function SettingsContent() {
   const [billingMsg, setBillingMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [couponDraft, setCouponDraft] = useState<Coupon>({ code: "", description: "", discountType: "percent", percentOff: 10, amountOffCents: null, restrictedEmails: "", maxRedemptions: null, active: true, expiresAt: "" });
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
   useEffect(() => {
     // Load user profile
@@ -565,17 +567,23 @@ function SettingsContent() {
       {campId && (
         <Section title="Danger Zone" subtitle="These actions are permanent and cannot be undone">
           <button
-            onClick={() => {
-              if (confirm(`Delete "${campName}" and all its data? This cannot be undone.`)) {
-                fetch(`/api/camps/${campId}`, { method: "DELETE" }).then(() => {
-                  window.location.href = "/dashboard";
-                });
-              }
-            }}
+            onClick={() => { setDeleteConfirmation(""); setDeleteConfirmOpen(true); }}
             className="px-4 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors"
           >
             Delete This Program
           </button>
+          {deleteConfirmOpen && <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-950/40" onClick={() => setDeleteConfirmOpen(false)} />
+            <div role="dialog" aria-modal="true" aria-labelledby="delete-program-title" className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+              <h2 id="delete-program-title" className="text-xl font-black text-slate-900">Delete this program?</h2>
+              <p className="mt-2 text-sm text-slate-600">This permanently removes <strong>{campName}</strong>, its schedule, participants, and settings. Type the program name to continue.</p>
+              <input autoFocus value={deleteConfirmation} onChange={e => setDeleteConfirmation(e.target.value)} placeholder={campName} className="mt-4 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+              <div className="mt-5 flex justify-end gap-3">
+                <button type="button" onClick={() => setDeleteConfirmOpen(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700">Cancel</button>
+                <button type="button" disabled={deleteConfirmation !== campName} onClick={async () => { const response = await fetch(`/api/camps/${campId}`, { method: "DELETE" }); if (response.ok) window.location.href = "/dashboard"; }} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Delete permanently</button>
+              </div>
+            </div>
+          </div>}
         </Section>
       )}
       </>

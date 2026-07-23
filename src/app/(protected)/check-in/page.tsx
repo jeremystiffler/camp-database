@@ -215,6 +215,7 @@ function CheckInContent() {
   const campId = searchParams.get("campId") || "";
   const kioskParam = searchParams.get("kiosk") === "1";
   const [campDate, setCampDate] = useState(todayValue());
+  const [dateInitialized, setDateInitialized] = useState(false);
   const [campers, setCampers] = useState<Camper[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
@@ -238,6 +239,21 @@ function CheckInContent() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanLockRef = useRef(false);
+
+  useEffect(() => { setDateInitialized(false); }, [campId]);
+
+  useEffect(() => {
+    if (!campId || dateInitialized) return;
+    fetch(`/api/camps/${campId}`)
+      .then(response => response.json())
+      .then(camp => {
+        const today = todayValue();
+        const start = typeof camp?.startDate === "string" ? camp.startDate.slice(0, 10) : "";
+        const end = typeof camp?.endDate === "string" ? camp.endDate.slice(0, 10) : "";
+        if (start && end && (today < start || today > end)) setCampDate(start);
+      })
+      .finally(() => setDateInitialized(true));
+  }, [campId, dateInitialized]);
 
   const load = () => {
     if (!campId) return;

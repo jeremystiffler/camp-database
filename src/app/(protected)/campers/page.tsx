@@ -402,7 +402,7 @@ function CamperDrawer({
               {camper.firstName[0]}{camper.lastName[0]}
             </div>
             <div>
-              <h2 className="font-bold text-slate-800">{currentName}</h2>
+              <h2 className="font-bold text-slate-800">{isNew ? "Add Participant" : currentName}</h2>
               <p className="text-xs text-slate-500">Registration submission</p>
             </div>
           </div>
