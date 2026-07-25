@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { id: true, email: true, name: true, role: true, platformRole: true, organizationId: true },
+      select: { id: true, email: true, name: true, role: true, platformRole: true, guidedMode: true, organizationId: true },
     });
     if (!user) return NextResponse.json({ user: null }, { status: 401 });
     return NextResponse.json({ user: { ...user, isSuperAdmin: isRootSuperAdminEmail(user.email) || user.platformRole === "super_admin", isRootSuperAdmin: isRootSuperAdminEmail(user.email) } });
@@ -26,12 +26,13 @@ export async function PATCH(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, email, currentPassword, newPassword } = await req.json();
+  const { name, email, currentPassword, newPassword, guidedMode } = await req.json();
 
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const updates: Record<string, string> = {};
+  const updates: Record<string, string | boolean> = {};
+  if (typeof guidedMode === "boolean") updates.guidedMode = guidedMode;
 
   if (name?.trim()) updates.name = name.trim();
 

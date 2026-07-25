@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
+import { GuidedModeToggle } from "@/components/GuidedMode";
 
 const primaryNav = [
   { href: "/dashboard", label: "Home", icon: "compass", minRole: "viewer" },
@@ -309,7 +310,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-slate-800 truncate">{user.name || user.email}</p>
-              <div className="mt-2"><HelpModeToggle compact /></div>
+              <div className="mt-2 flex flex-wrap gap-2"><GuidedModeToggle compact /><HelpModeToggle compact /></div>
               <button
                 onClick={async () => {
                   await fetch("/api/auth/me", { method: "DELETE" });
