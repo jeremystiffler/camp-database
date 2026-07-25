@@ -74,7 +74,7 @@ export async function POST(
     const slug = invite.email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Date.now();
     const org = await db.organization.create({ data: { name: body.name + "'s Org", slug } });
     const newUser = await db.user.create({
-      data: { email: invite.email, name: body.name, passwordHash, organizationId: org.id, role: "owner" },
+      data: { email: invite.email, name: body.name, passwordHash, organizationId: org.id, role: "owner", guidedMode: true },
     });
     userId = newUser.id;
     userName = newUser.name || invite.email;

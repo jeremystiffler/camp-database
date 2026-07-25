@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import CamperScannableCode from "@/components/CamperScannableCode";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState } from "@/components/OperationalUI";
+import { useGuidedMode } from "@/components/GuidedMode";
 
 interface AgeGroup {
   id: string;
@@ -627,6 +628,7 @@ function Note({ label, value, tone }: { label: string; value: string; tone: "red
 }
 
 function CampersContent() {
+  const { guidedMode } = useGuidedMode();
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
 
@@ -726,9 +728,9 @@ function CampersContent() {
           {myRole === "viewer" && <p className="mt-1 text-xs font-semibold text-slate-500">You have view-only access to this program.</p>}
         </div>
         <div className="flex items-center gap-2">
-          {canEdit && <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">Assign Pickup #s</button>}
+          {!guidedMode && canEdit && <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">Assign Pickup #s</button>}
           {canEdit && <button onClick={() => setAddingCamper(true)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800">+ Add Participant</button>}
-          <button
+          {!guidedMode && <button
             onClick={() => {
               const csv = [
                 ["Last Name", "First Name", "Age Group", "T-Shirt", "Guardian", "Guardian Email", "Guardian Phone", "Emergency", "Photo Consent"].join(","),
@@ -750,7 +752,7 @@ function CampersContent() {
             className="px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
           >
             ↓ Export CSV
-          </button>
+          </button>}
           <button type="button" onClick={() => setShowExtraColumns(value => !value)} aria-pressed={showExtraColumns} className="px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">
             Columns {showExtraColumns ? "▴" : "▾"}
           </button>

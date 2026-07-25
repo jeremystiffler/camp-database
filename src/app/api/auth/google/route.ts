@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
           avatar: googleUser.picture,
           role: "owner",
           organizationId: org.id,
+          guidedMode: true,
         },
       });
 

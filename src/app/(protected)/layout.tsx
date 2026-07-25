@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
-import { GuidedModeToggle } from "@/components/GuidedMode";
+import { GuidedModeToggle, useGuidedMode } from "@/components/GuidedMode";
 
 const primaryNav = [
   { href: "/dashboard", label: "Home", icon: "compass", minRole: "viewer" },
@@ -22,6 +22,25 @@ const moreNav = [
   { href: "/team", label: "Team", icon: "team", minRole: "viewer" },
   { href: "/print", label: "Print Center", icon: "printer", minRole: "viewer" },
   { href: "/import", label: "Import", icon: "upload", minRole: "editor" },
+  { href: "/settings", label: "Settings", icon: "gear", minRole: "admin" },
+] as const;
+
+// Guided Mode is a simpler presentation layer over the same routes and data.
+// Keep this separate from full navigation so a mode switch never removes work.
+const guidedPrimaryNav = [
+  { href: "/dashboard", label: "Home", icon: "compass", minRole: "viewer" },
+  { href: "/setup", label: "Set up my event", icon: "tent", minRole: "editor" },
+  { href: "/activities", label: "Things kids do", icon: "clipboard", minRole: "viewer" },
+  { href: "/registration", label: "Sign-up page", icon: "clipboard", minRole: "editor" },
+  { href: "/print", label: "Print stuff", icon: "printer", minRole: "viewer" },
+] as const;
+
+const guidedMoreNav = [
+  { href: "/campers", label: "Who’s coming", icon: "campers", minRole: "viewer" },
+  { href: "/check-in", label: "Day-of arrivals", icon: "check", minRole: "viewer" },
+  { href: "/schedule", label: "The daily plan", icon: "calendar", minRole: "viewer" },
+  { href: "/teachers", label: "Grown-ups in charge", icon: "team", minRole: "viewer" },
+  { href: "/import", label: "Bring in a list", icon: "upload", minRole: "editor" },
   { href: "/settings", label: "Settings", icon: "gear", minRole: "admin" },
 ] as const;
 
@@ -67,6 +86,7 @@ interface Camp {
 }
 
 function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
+  const { guidedMode } = useGuidedMode();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,8 +105,14 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const requestedCampId = searchParams.get("campId") || "";
   const validatedUrlCampId = camps.some((camp) => camp.id === requestedCampId) ? requestedCampId : "";
   const campId = validatedUrlCampId || activeCamp?.id || (camps.length ? lastKnownCampId : "");
-  const visiblePrimaryNav = hasParticipants ? [...primaryNav, ...moreNav.filter((item) => item.href === "/campers" || item.href === "/check-in")] : primaryNav;
-  const visibleMoreNav = hasParticipants ? moreNav.filter((item) => item.href !== "/campers" && item.href !== "/check-in") : moreNav;
+  const primaryItems = guidedMode ? guidedPrimaryNav : primaryNav;
+  const moreItems = guidedMode ? guidedMoreNav : moreNav;
+  const visiblePrimaryNav = hasParticipants
+    ? [...primaryItems, ...moreItems.filter((item) => item.href === "/campers" || item.href === "/check-in")]
+    : primaryItems;
+  const visibleMoreNav = hasParticipants
+    ? moreItems.filter((item) => item.href !== "/campers" && item.href !== "/check-in")
+    : moreItems;
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
@@ -286,7 +312,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         {/* Nav */}
         <nav aria-label="Program navigation" className="flex-1 px-3 py-4 space-y-3 overflow-y-auto">
           <div>
-            <p className="minimal-section-title px-3 mb-1.5">Build your program</p>
+            <p className="minimal-section-title px-3 mb-1.5">{guidedMode ? "Your event" : "Build your program"}</p>
             <div className="space-y-1">{visiblePrimaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
@@ -331,6 +357,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
           ☰
         </button>
         <span className="ml-3 font-bold text-slate-800">Simple Schedule Pro</span>
+        <div className="ml-auto"><GuidedModeToggle compact /></div>
       </div>}
       <main className={`flex-1 min-h-dvh flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`} style={{ background: "var(--ui-bg)" }}>
         <div className={`w-full min-h-dvh px-3 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>
