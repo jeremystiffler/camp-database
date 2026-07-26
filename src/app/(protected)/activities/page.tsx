@@ -144,6 +144,8 @@ interface Course {
   courseAgeGroups?: { ageGroup: AgeGroup }[];
   courseTeachers?: { person: Person }[];
   courseSessionTemplates?: { sessionTemplate: SessionTemplate }[];
+  sessions?: { enrolledCount: number }[];
+  attentionDismissals?: string[];
 }
 
 interface MandatorySession {
@@ -867,6 +869,10 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
     }
   };
 
+  const dismissWarning = async (course: Course, warning: "teacher" | "schedule" | "capacity") => {
+    await saveInlineCourse(course, "cap", { attentionDismissals: [...new Set([...(course.attentionDismissals || []), warning])] });
+  };
+
   const deleteMandatorySession = async (id: string) => {
     if (!(await confirm({ title: "Delete this required assembly?", description: "Existing automatic enrollments remain until manually adjusted.", confirmLabel: "Delete assembly", destructive: true }))) return;
     await fetch(`/api/camps/${campId}/mandatory-sessions/${id}`, { method: "DELETE" });
@@ -902,6 +908,16 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
     if (!course.courseTeachers || course.courseTeachers.length === 0) return { label: "Needs teacher", tone: "bg-rose-50 text-rose-700 border-rose-200", priority: "needs" };
     if (!course.courseAgeGroups || course.courseAgeGroups.length === 0) return { label: "Needs ages", tone: "bg-sky-50 text-sky-700 border-sky-200", priority: "needs" };
     return { label: "Ready", tone: "bg-emerald-50 text-emerald-700 border-emerald-200", priority: "ready" };
+  };
+
+  const attentionWarnings = (course: Course): { key: "teacher" | "schedule" | "capacity"; label: string }[] => {
+    const dismissed = new Set(course.attentionDismissals || []);
+    const enrolled = (course.sessions || []).reduce((sum, session) => sum + (session.enrolledCount || 0), 0);
+    return [
+      ...(!course.courseTeachers?.length && !dismissed.has("teacher") ? [{ key: "teacher" as const, label: "No teacher assigned" }] : []),
+      ...(!(course.courseSessionTemplates?.length || course.sessions?.length) && !dismissed.has("schedule") ? [{ key: "schedule" as const, label: "Not on the schedule" }] : []),
+      ...(Boolean(course.cap && enrolled >= course.cap) && !dismissed.has("capacity") ? [{ key: "capacity" as const, label: "At capacity" }] : []),
+    ];
   };
 
   const scheduleSummary = (course: Course): string => {
@@ -1157,6 +1173,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
                                 <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${status.tone}`}>{status.label}</span>
                               </div>
                               {course.description && <p className="mt-0.5 line-clamp-1 max-w-sm text-xs text-slate-500">{course.description}</p>}
+                              {attentionWarnings(course).length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{attentionWarnings(course).map(warning => <span key={warning.key} className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-black text-red-700"><span aria-hidden="true">!</span>{warning.label}<button type="button" onClick={() => void dismissWarning(course, warning.key)} className="ml-0.5 rounded px-1 text-[10px] font-black text-red-700 hover:bg-red-100" title="This is intentional — dismiss until the activity changes">Dismiss</button></span>)}</div>}
                             </div>
                           </div>
                         </td>

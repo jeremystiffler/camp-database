@@ -8,7 +8,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
 
-  const { ageGroupIds, teacherIds, sessionTemplateIds, ...data } = await req.json();
+  const { ageGroupIds, teacherIds, sessionTemplateIds, attentionDismissals, ...data } = await req.json();
 
   // ── Load current course state for conflict check ───────────────────────────
   // The caller may only send ONE of {roomId, teacherIds, sessionTemplateIds}.
@@ -67,7 +67,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  await prisma.course.update({ where: { id }, data });
+  // Dismissals are per-warning. A direct change to the related activity data
+  // makes that warning relevant again if it later returns.
+  let nextDismissals = Array.isArray(attentionDismissals)
+    ? attentionDismissals.filter((value): value is string => typeof value === "string" && ["teacher", "schedule", "capacity"].includes(value))
+    : existing.attentionDismissals;
+  if (Array.isArray(teacherIds)) nextDismissals = nextDismissals.filter(value => value !== "teacher");
+  if (Array.isArray(sessionTemplateIds)) nextDismissals = nextDismissals.filter(value => value !== "schedule");
+  if ("cap" in data) nextDismissals = nextDismissals.filter(value => value !== "capacity");
+
+  await prisma.course.update({ where: { id }, data: { ...data, attentionDismissals: nextDismissals } });
 
   if (Array.isArray(ageGroupIds)) {
     await prisma.courseAgeGroup.deleteMany({ where: { courseId: id } });

@@ -178,6 +178,7 @@ model Course {
   cap                    Int?
   color                  String                  @default("#6366f1")
   icon                   String?
+  attentionDismissals    String[]                @default([])
   createdAt              DateTime                @default(now())
   courseTeachers         CourseTeacher[]
   courseAgeGroups        CourseAgeGroup[]

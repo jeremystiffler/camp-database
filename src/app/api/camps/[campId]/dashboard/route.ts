@@ -39,6 +39,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
         id: true,
         name: true,
         cap: true,
+        attentionDismissals: true,
         courseTeachers: { select: { personId: true } },
         courseSessionTemplates: { select: { sessionTemplateId: true } },
         sessions: { select: { id: true, enrolledCount: true } },
@@ -48,12 +49,13 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
 
   if (!camp) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const classesWithoutTeachers = courses.filter((course) => course.courseTeachers.length === 0).length;
-  const unscheduledClasses = courses.filter((course) => course.courseSessionTemplates.length === 0 && course.sessions.length === 0).length;
+  const isDismissed = (course: typeof courses[number], warning: string) => course.attentionDismissals.includes(warning);
+  const classesWithoutTeachers = courses.filter((course) => course.courseTeachers.length === 0 && !isDismissed(course, "teacher")).length;
+  const unscheduledClasses = courses.filter((course) => course.courseSessionTemplates.length === 0 && course.sessions.length === 0 && !isDismissed(course, "schedule")).length;
   const fullOrOverCapacityClasses = courses.filter((course) => {
     if (!course.cap || course.cap <= 0) return false;
     const enrolled = course.sessions.reduce((sum, s) => sum + (s.enrolledCount || 0), 0);
-    return enrolled >= course.cap;
+    return enrolled >= course.cap && !isDismissed(course, "capacity");
   }).length;
   const classesWithNoEnrollment = courses.filter((course) => course.sessions.reduce((sum, s) => sum + (s.enrolledCount || 0), 0) === 0).length;
 

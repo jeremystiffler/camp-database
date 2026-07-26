@@ -402,7 +402,7 @@ function DashboardContent() {
   };
 
   const attentionTotal = summary
-    ? summary.attention.classesWithoutTeachers + summary.attention.unscheduledClasses + summary.attention.fullOrOverCapacityClasses
+    ? summary!.attention.classesWithoutTeachers + summary!.attention.unscheduledClasses + summary!.attention.fullOrOverCapacityClasses
     : 0;
   const selectedStats = summary?.stats;
   const needsAttention = attentionTotal > 0;
@@ -510,10 +510,10 @@ function DashboardContent() {
                 <span>Health details</span><span aria-hidden="true">{healthOpen ? "▴" : "▾"}</span>
               </button>
               {healthOpen && <div className="grid grid-cols-1 gap-3 border-t border-slate-100 p-4 md:grid-cols-4">
-                <div><p className="text-2xl font-black text-slate-900">{summary.attention.classesWithoutTeachers}</p><p className="text-xs font-bold text-slate-600">Activities without teachers</p></div>
-                <div><p className="text-2xl font-black text-slate-900">{summary.attention.unscheduledClasses}</p><p className="text-xs font-bold text-slate-600">Activities not on schedule</p></div>
-                <div><p className="text-2xl font-black text-slate-900">{summary.attention.fullOrOverCapacityClasses}</p><p className="text-xs font-bold text-slate-600">Full or over capacity</p></div>
-                <div><p className="text-2xl font-black text-slate-900">{summary.attention.classesWithNoEnrollment}</p><p className="text-xs font-bold text-slate-600">Activities with no enrollments</p></div>
+                <div><p className="text-2xl font-black text-slate-900">{summary!.attention.classesWithoutTeachers}</p><p className="text-xs font-bold text-slate-600">Activities without teachers</p></div>
+                <div><p className="text-2xl font-black text-slate-900">{summary!.attention.unscheduledClasses}</p><p className="text-xs font-bold text-slate-600">Activities not on schedule</p></div>
+                <div><p className="text-2xl font-black text-slate-900">{summary!.attention.fullOrOverCapacityClasses}</p><p className="text-xs font-bold text-slate-600">Full or over capacity</p></div>
+                <div><p className="text-2xl font-black text-slate-900">{summary!.attention.classesWithNoEnrollment}</p><p className="text-xs font-bold text-slate-600">Activities with no enrollments</p></div>
               </div>}
             </div>
           )}
@@ -526,10 +526,8 @@ function DashboardContent() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className={`mb-2 text-xs font-black uppercase tracking-[0.18em] ${needsAttention ? "text-amber-700" : "text-forest-700"}`}>{needsAttention ? "Needs your attention" : "Program is in good shape"}</p>
-              <h2 className="text-lg font-black text-slate-950">{needsAttention ? `${attentionTotal} class ${attentionTotal === 1 ? "needs" : "need"} a quick look` : "No teacher, schedule, or capacity issues found."}</h2>
-              <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-700">
-                {needsAttention ? "Review teachers, unscheduled activities, and capacity before you open the doors." : canEditCamp(activeCamp) ? "Use the tools below to keep registration, check-in, and printed materials ready." : "You can review the program’s live schedule, rosters, and printable materials."}
-              </p>
+              <h2 className="text-lg font-black text-slate-950">{needsAttention ? "A few activity details need a decision" : "No teacher, schedule, or capacity issues found."}</h2>
+              {needsAttention && summary ? <div className="mt-3 flex flex-wrap gap-2">{summary!.attention.classesWithoutTeachers > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.classesWithoutTeachers} need a teacher</span>}{summary!.attention.unscheduledClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.unscheduledClasses} are not scheduled</span>}{summary!.attention.fullOrOverCapacityClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.fullOrOverCapacityClasses} are at capacity</span>}</div> : <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-700">{canEditCamp(activeCamp) ? "Use the tools below to keep registration, check-in, and printed materials ready." : "You can review the program’s live schedule, rosters, and printable materials."}</p>}
             </div>
             <div className="flex flex-wrap gap-2">
               {canEditCamp(activeCamp) ? <Link href={`/activities?campId=${activeCamp.id}`} className="minimal-button-primary">Review activities</Link> : <Link href={`/schedule?campId=${activeCamp.id}`} className="minimal-button-primary">View schedule</Link>}
