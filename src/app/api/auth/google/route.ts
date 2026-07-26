@@ -27,8 +27,21 @@ export async function POST(req: NextRequest) {
           guidedMode: true,
         },
       });
-      // Do not create a placeholder event: Dashboard will collect the real title and palette.
-      await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [] } });
+      const campSlug = "my-event-" + Date.now();
+      const newCamp = await prisma.camp.create({
+        data: {
+          organizationId: org.id,
+          name: "My Event",
+          slug: campSlug,
+          status: "draft",
+          primaryColor: "#4F46E5",
+          accentColor: "#0EA5E9",
+        },
+      });
+      await prisma.campMember.create({
+        data: { campId: newCamp.id, userId: user.id, role: "admin" },
+      });
+      await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [{ ...newCamp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], campers: [] }] } });
     }
 
     const token = await signToken({

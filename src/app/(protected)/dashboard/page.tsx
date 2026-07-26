@@ -327,7 +327,6 @@ function DashboardContent() {
   const [camps,        setPrograms]        = useState<Camp[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [showNewCamp,  setShowNewCamp]  = useState(false);
-  const [firstProgramPromptHandled, setFirstProgramPromptHandled] = useState(false);
   const [copyingCamp,  setCopyingCamp]  = useState<Camp | null>(null);
   const [summary,      setSummary]      = useState<DashboardSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -355,15 +354,6 @@ function DashboardContent() {
       .then((data) => { if (Array.isArray(data)) setPrograms(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
-
-  // A brand-new account should land directly on the one decision it needs to make.
-  // Closing the prompt leaves the dashboard usable; a later login will ask again until a program exists.
-  useEffect(() => {
-    if (!loading && camps.length === 0 && !firstProgramPromptHandled) {
-      setShowNewCamp(true);
-      setFirstProgramPromptHandled(true);
-    }
-  }, [loading, camps.length, firstProgramPromptHandled]);
 
   useEffect(() => {
     setRenameValue(activeCamp?.name || "");
