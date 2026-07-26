@@ -432,6 +432,7 @@ function DashboardContent() {
 
   return (
     <div>
+      {(camps.length === 0 || canAdminCamp(activeCamp)) && <div className="mb-4 flex justify-end"><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary flex items-center gap-2"><span>+</span> New Program</button></div>}
       {/* Unified program workspace header */}
       <div className="camp-card relative mb-8 overflow-visible border-indigo-100 bg-gradient-to-br from-white via-indigo-50/50 to-sky-50 p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -449,7 +450,7 @@ function DashboardContent() {
                 <div className="grid gap-1">{(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-950">{label}</Link>)}</div>
               </div>}
             </div>}
-            {(camps.length === 0 || canAdminCamp(activeCamp)) && <button onClick={() => setShowNewCamp(true)} className="minimal-button-primary flex items-center gap-2"><span>+</span> New Program</button>}
+
           </div>
         </div>
       </div>
