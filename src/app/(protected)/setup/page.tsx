@@ -7,6 +7,7 @@ import { TeachersContent } from "../teachers/page";
 import { ActivitiesContent } from "../activities/page";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
+import { useGuidedMode } from "@/components/GuidedMode";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState, SaveState } from "@/components/OperationalUI";
 
@@ -132,6 +133,7 @@ function Section({ title, children, action }: { title: string; children: React.R
 }
 
 function SetupContent() {
+  const { guidedMode } = useGuidedMode();
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
 
@@ -736,6 +738,10 @@ function SetupContent() {
   const completedSteps = setupSteps.filter(step => step.done).length;
   const nextStep = setupSteps.find(step => !step.done && !step.locked) || setupSteps.find(step => !step.done) || setupSteps[setupSteps.length - 1];
   const activeStep = setupSteps.find(step => step.key === activeTab) || nextStep;
+  const guidedStepLabels: Record<string, string> = {
+    details: "Name your event", ages: "Who’s it for?", times: "When things happen", activities: "What kids do", registration: "Make your sign-up page", review: "Open for sign-ups", rooms: "Where things happen", teachers: "Grown-ups in charge", schedule: "The daily plan",
+  };
+  const stepLabel = (step: typeof activeStep) => guidedMode ? (guidedStepLabels[step.key] || step.label) : step.label;
   const activeStepIndex = setupSteps.findIndex(step => step.key === activeStep.key);
   const activeStateLabel = activeStep.done ? "Done" : activeStep.locked ? "Locked" : "Open";
   const setupPercent = Math.round((completedSteps / setupSteps.length) * 100);
@@ -765,9 +771,9 @@ function SetupContent() {
     <div>
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          {searchParams.get("step") && <p className="mb-1 text-xs font-black uppercase tracking-wide text-sky-700">Setup › {activeStep.label}</p>}
-          <h1 className="text-2xl font-bold text-slate-800">Program Setup</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Build your program in the order your brain naturally asks the questions.</p>
+          {searchParams.get("step") && <p className="mb-1 text-xs font-black uppercase tracking-wide text-sky-700">Setup › {stepLabel(activeStep)}</p>}
+          <h1 className="text-2xl font-bold text-slate-800">{guidedMode ? "Set up my event" : "Program Setup"}</h1>
+          <p className="text-slate-500 text-sm mt-0.5">{guidedMode ? "Start with the essentials. You can open More options whenever you want the full controls." : "Build your program in the order your brain naturally asks the questions."}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -775,7 +781,7 @@ function SetupContent() {
             onClick={jumpToNextStep}
             className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
           >
-            Next: {nextStep.actionLabel || nextStep.label} →
+            Next: {guidedMode ? stepLabel(nextStep) : (nextStep.actionLabel || nextStep.label)} →
           </button>
 
         </div>
@@ -787,7 +793,7 @@ function SetupContent() {
             <p className="minimal-section-title">Setup progress</p>
             <h2 className="mt-1 text-lg font-black text-slate-900">{completedSteps} of {setupSteps.length} steps complete</h2>
             <p className="mt-1 text-sm font-semibold text-slate-600">
-              Next: <span className="text-slate-950">{nextStep.label}</span> — {nextStep.question}
+              Next: <span className="text-slate-950">{stepLabel(nextStep)}</span> — {nextStep.question}
             </p>
           </div>
           <div className="min-w-[220px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -837,7 +843,7 @@ function SetupContent() {
             </span>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Step {activeStepIndex + 1} of {setupSteps.length} • {activeStateLabel}</p>
-              <h3 className="mt-1 text-xl font-black text-slate-950">{activeStep.label}</h3>
+              <h3 className="mt-1 text-xl font-black text-slate-950">{stepLabel(activeStep)}</h3>
               <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">{activeStep.help}</p>
             </div>
           </div>
