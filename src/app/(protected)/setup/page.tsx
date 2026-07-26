@@ -8,6 +8,7 @@ import { ActivitiesContent } from "../activities/page";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
 import { useGuidedMode } from "@/components/GuidedMode";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState, SaveState } from "@/components/OperationalUI";
 
@@ -152,6 +153,7 @@ function SetupContent() {
   const [requiredRoomDrafts, setRequiredRoomDrafts] = useState<Record<string, string>>({});
   const [overrideDraftRows, setOverrideDraftRows] = useState<Record<string, boolean>>({});
   const [sessionRowDrafts, setSessionRowDrafts] = useState<Record<string, SessionRowEditDraft>>({});
+  const [sessionRowPendingDelete, setSessionRowPendingDelete] = useState<SessionRow | null>(null);
 
   // Camp form state
   const [campName,         setCampName]         = useState("");
@@ -594,10 +596,10 @@ function SetupContent() {
 
   // Delete an entire session row (all its slots)
   const deleteSessionRow = async (row: SessionRow) => {
-    if (!confirm(`Delete "${row.label}" and all its scheduled days?`)) return;
     await Promise.all([...row.slotIds.values()].map(id =>
       fetch(`/api/camps/${campId}/session-templates/${id}`, { method: "DELETE" })
     ));
+    setSessionRowPendingDelete(null);
     load();
   };
 
@@ -1202,7 +1204,7 @@ function SetupContent() {
                                 </div>
                               </div>
                               <button
-                                onClick={() => deleteSessionRow(row)}
+                                onClick={() => setSessionRowPendingDelete(row)}
                                 className="mt-1 text-slate-300 hover:text-red-400 transition-colors flex-shrink-0 text-xs"
                                 title="Delete session"
                               >Delete</button>
@@ -1504,6 +1506,15 @@ function SetupContent() {
           </div>
         </Section>
       )}
+      <ConfirmDialog
+        open={Boolean(sessionRowPendingDelete)}
+        title="Delete this time block?"
+        description={sessionRowPendingDelete ? `This removes “${sessionRowPendingDelete.label}” from every scheduled day. This cannot be undone.` : ""}
+        confirmLabel="Delete time block"
+        destructive
+        onCancel={() => setSessionRowPendingDelete(null)}
+        onConfirm={() => sessionRowPendingDelete && void deleteSessionRow(sessionRowPendingDelete)}
+      />
     </div>
   );
 }
