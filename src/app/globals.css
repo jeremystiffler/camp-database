@@ -364,6 +364,11 @@ a[class*="bg-slate-900"]:hover {
 .text-white\/75 { color: rgba(255, 255, 255, 0.9) !important; }
 .text-indigo-500\/70 { color: #1d4ed8 !important; }
 
+/* Headings must never disappear into a dark banner, action panel, or gradient. */
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-black"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-500"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-amber-500"], [class*="bg-orange-500"], [class*="bg-sunset-500"], [class*="bg-red-500"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]) :is(h1, h2, h3, h4, h5, h6) {
+  color: #ffffff !important;
+}
+
 /* Dark-surface contrast: only foreground inside a genuinely dark utility surface is
    adjusted. This counteracts the palette's global muted-slate overrides without
    changing text on light cards, forms, or tables. */
