@@ -63,19 +63,17 @@ interface StatCardProps {
   value: string | number;
   icon: string;
   gradient: string;
-  sub?: string;
 }
 
-function StatCard({ label, value, icon, gradient, sub }: StatCardProps) {
+function StatCard({ label, value, icon, gradient }: StatCardProps) {
   return (
-    <div className={`${gradient} tile-button p-5`}>
-      <div className="flex items-start justify-between gap-4">
+    <div className={`${gradient} tile-button px-4 py-3`}>
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-3xl font-black tracking-tight text-slate-900 mb-1">{value}</div>
-          <div className="text-sm font-semibold text-slate-700">{label}</div>
-          {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
+          <div className="text-2xl font-black tracking-tight text-slate-900">{value}</div>
+          <div className="text-xs font-semibold text-slate-700">{label}</div>
         </div>
-        <span className="w-10 h-10 rounded-2xl border border-white/70 bg-white/55 flex items-center justify-center text-xs font-black text-slate-700 shadow-sm">{icon}</span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/70 bg-white/55 text-xs font-black text-slate-700 shadow-sm">{icon}</span>
       </div>
     </div>
   );
@@ -501,11 +499,9 @@ function DashboardContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {needsAttention && <StatCard label="Activities Needing Attention" value={summaryLoading ? "–" : attentionTotal} icon="!" gradient="stat-berry" sub="Teacher, schedule, or capacity issues" />}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <StatCard label="Registered Participants" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" gradient="stat-forest" />
-            <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" gradient="stat-sunset" sub={`${selectedStats?.paidPaymentCount ?? 0} paid • ${selectedStats?.pendingPaymentCount ?? 0} pending`} />
-            {!needsAttention && <StatCard label="Activities Needing Attention" value={summaryLoading ? "–" : attentionTotal} icon="!" gradient="stat-berry" sub="Teacher, schedule, or capacity issues" />}
+            <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" gradient="stat-sunset" />
           </div>
 
           {summary && (
