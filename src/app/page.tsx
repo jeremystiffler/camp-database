@@ -249,7 +249,7 @@ export default function LandingPage() {
         <div className="rounded-[2rem] bg-gradient-to-r from-indigo-500 to-sky-500 p-10 text-white shadow-2xl shadow-indigo-200">
           <h2 className="text-4xl font-black tracking-tight">Ready to run your program without the spreadsheet circus?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/85">Start your 14-day no-card trial today. Founding programs get 50% off the first year when they upgrade.</p>
-          <Link href="/signup" className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 text-base font-black text-indigo-600 shadow-lg transition hover:-translate-y-1">Start Free Trial</Link>
+          <Link href="/signup" className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 text-base font-black text-slate-950 shadow-lg transition hover:-translate-y-1">Start Free Trial</Link>
         </div>
       </section>
 
