@@ -189,7 +189,9 @@ function SettingsContent() {
     const data = await res.json();
     setAppearanceSaving(false);
     if (res.ok) {
-      setAppearanceMsg({ type: "success", text: "Appearance saved!" });
+      // Refresh the protected layout's active event immediately so this event—not a later refresh—owns the new palette.
+      window.dispatchEvent(new Event("camp:list-changed"));
+      setAppearanceMsg({ type: "success", text: "Appearance saved and applied to this event." });
     } else {
       setAppearanceMsg({ type: "error", text: data.detail || data.error || "Failed to save appearance" });
     }

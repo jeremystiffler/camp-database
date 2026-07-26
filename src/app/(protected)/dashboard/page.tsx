@@ -12,6 +12,8 @@ interface Camp {
   name: string;
   status: string;
   registrationOpen?: boolean;
+  primaryColor?: string;
+  accentColor?: string;
   myRole?: "owner" | "admin" | "editor" | "viewer";
   startDate?: string;
   endDate?: string;
@@ -260,13 +262,23 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 // ─── Camp Card ────────────────────────────────────────────────────────────────
 
 function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCopy: (camp: Camp) => void }) {
+  const primaryColor = camp.primaryColor || "#2563EB";
+  const accentColor = camp.accentColor || "#0EA5E9";
   const statusColors: Record<string, string> = {
     draft:    "bg-slate-100 text-slate-600",
     published:"bg-forest-100 text-forest-700",
     archived: "bg-slate-100 text-slate-400",
   };
   return (
-    <div className={`camp-card p-5 relative group ${active ? "ring-2 ring-slate-900" : ""}`}>
+    <div
+      className="camp-card relative group overflow-hidden p-5"
+      style={{
+        borderColor: primaryColor,
+        borderWidth: active ? 3 : 2,
+        background: `linear-gradient(135deg, ${primaryColor}12, ${accentColor}0A 48%, var(--ui-surface))`,
+      }}
+    >
+      <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${primaryColor}, ${accentColor})` }} />
 
       <Link
         href={`/activities?campId=${camp.id}`}
@@ -274,7 +286,7 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
         className="block"
       >
         <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 text-xs font-black">
+          <div className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-black shadow-sm" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}>
             CC
           </div>
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full mr-7 ${statusColors[camp.status] || "bg-slate-100 text-slate-600"}`}>
@@ -282,7 +294,7 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
           </span>
         </div>
         <h3 className="font-bold text-slate-800 mb-1">{camp.name}</h3>
-        {active && <p className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-900 mb-1">Active now</p>}
+        {active && <p className="text-[11px] font-black uppercase tracking-[0.16em] mb-1" style={{ color: primaryColor }}>Active now</p>}
         <p className="text-slate-500 text-xs">
           {formatCampDate(camp.startDate)}
         </p>
