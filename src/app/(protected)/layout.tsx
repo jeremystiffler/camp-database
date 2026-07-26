@@ -232,8 +232,8 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const showBuildGuidance = !isPublishedProgram && pathname !== "/dashboard";
   const workspaceStyle = {
     background: "var(--ui-bg)",
-    "--brand-primary": activeCamp?.primaryColor || "#0f172a",
-    "--brand-primary-hover": activeCamp?.primaryColor || "#1e293b",
+    "--brand-primary": activeCamp?.primaryColor || "#2563eb",
+    "--brand-primary-hover": activeCamp?.primaryColor || "#1d4ed8",
     "--accent": activeCamp?.accentColor || "#0ea5e9",
   } as CSSProperties;
 

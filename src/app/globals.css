@@ -250,8 +250,8 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
 /* ===================== Clean Playground Admin Color System ===================== */
 :root {
   /* Product design tokens: semantic roles, not page-specific colors. */
-  --brand-primary: #0f172a;
-  --brand-primary-hover: #1e293b;
+  --brand-primary: #2563eb;
+  --brand-primary-hover: #1d4ed8;
   --accent: #0ea5e9;
   --success: #16a34a;
   --danger: #dc2626;
@@ -276,21 +276,22 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
   --ui-text-muted: var(--text);
   --ui-text-faint: var(--text-muted);
 
-  /* Calm logo-blue banner system: blue surfaces for shared banners, notices, and callouts. */
-  --ui-lavender: #2563eb;
-  --ui-lavender-soft: #dbeafe;
-  --ui-aqua: #0ea5e9;
-  --ui-aqua-soft: #e0f2fe;
+  /* Event palette: every non-semantic banner, callout, gradient, and primary control
+     inherits the selected event's primary and accent colors. */
+  --ui-lavender: var(--brand-primary);
+  --ui-lavender-soft: color-mix(in srgb, var(--brand-primary) 12%, white);
+  --ui-aqua: var(--accent);
+  --ui-aqua-soft: color-mix(in srgb, var(--accent) 12%, white);
   --ui-butter: #b45309;
   --ui-butter-soft: #fef3c7;
   --ui-clay: #be123c;
   --ui-clay-soft: #ffe4e6;
   --ui-berry: var(--brand-primary);
-  --ui-berry-soft: #e2e8f0;
+  --ui-berry-soft: color-mix(in srgb, var(--brand-primary) 12%, white);
   --ui-sage: var(--brand-primary);
-  --ui-sage-soft: #e2e8f0;
-  --ui-denim: var(--brand-primary);
-  --ui-denim-soft: #e2e8f0;
+  --ui-sage-soft: color-mix(in srgb, var(--brand-primary) 10%, white);
+  --ui-denim: var(--accent);
+  --ui-denim-soft: color-mix(in srgb, var(--accent) 12%, white);
   --ui-danger: var(--danger);
   --ui-danger-soft: #fee2e2;
 
@@ -309,13 +310,23 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
   background-image: linear-gradient(135deg, var(--ui-lavender), var(--ui-aqua)) !important;
 }
 
-/* Legacy indigo banner/callout utilities are kept in the same calm blue family. */
-[class*="bg-indigo-50"] { background-color: #eff6ff !important; }
-[class*="bg-indigo-100"] { background-color: #dbeafe !important; }
-[class*="bg-indigo-200"] { background-color: #bfdbfe !important; }
-[class*="bg-indigo-500"], [class*="bg-indigo-600"], [class*="bg-indigo-700"] { background-color: #2563eb !important; }
-[class*="border-indigo-"] { border-color: #bfdbfe !important; }
-[class*="text-indigo-500"], [class*="text-indigo-600"], [class*="text-indigo-700"], [class*="text-indigo-800"] { color: #1d4ed8 !important; }
+/* Primary dark utility controls are event actions, so they follow the event palette too. */
+button[class*="bg-slate-900"],
+a[class*="bg-slate-900"] {
+  background-color: var(--brand-primary) !important;
+}
+button[class*="bg-slate-900"]:hover,
+a[class*="bg-slate-900"]:hover {
+  background-color: var(--accent) !important;
+}
+
+/* Legacy indigo utilities are palette-aware banners and callouts. */
+[class*="bg-indigo-50"] { background-color: color-mix(in srgb, var(--brand-primary) 7%, white) !important; }
+[class*="bg-indigo-100"] { background-color: color-mix(in srgb, var(--brand-primary) 12%, white) !important; }
+[class*="bg-indigo-200"] { background-color: color-mix(in srgb, var(--brand-primary) 22%, white) !important; }
+[class*="bg-indigo-500"], [class*="bg-indigo-600"], [class*="bg-indigo-700"] { background-color: var(--brand-primary) !important; }
+[class*="border-indigo-"] { border-color: color-mix(in srgb, var(--brand-primary) 28%, white) !important; }
+[class*="text-indigo-500"], [class*="text-indigo-600"], [class*="text-indigo-700"], [class*="text-indigo-800"] { color: var(--brand-primary) !important; }
 
 .bg-forest-500, .bg-forest-600 { background-color: var(--brand-primary) !important; }
 .bg-emerald-500, .bg-emerald-600 { background-color: var(--success) !important; }
