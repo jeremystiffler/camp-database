@@ -30,7 +30,7 @@ const moreNav = [
 const guidedPrimaryNav = [
   { href: "/dashboard", label: "Home", icon: "compass", minRole: "viewer" },
   { href: "/setup", label: "Set up my event", icon: "tent", minRole: "editor" },
-  { href: "/activities", label: "Things kids do", icon: "clipboard", minRole: "viewer" },
+  { href: "/activities", label: "Things to do", icon: "clipboard", minRole: "viewer" },
   { href: "/registration", label: "Sign-up page", icon: "clipboard", minRole: "editor" },
   { href: "/print", label: "Print stuff", icon: "printer", minRole: "viewer" },
 ] as const;
