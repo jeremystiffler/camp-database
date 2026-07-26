@@ -266,15 +266,6 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
   };
   return (
     <div className={`camp-card p-5 relative group ${active ? "ring-2 ring-slate-900" : ""}`}>
-      {/* Copy button */}
-      {canEditCamp(camp) && (
-        <button
-          onClick={e => { e.preventDefault(); onCopy(camp); }}
-          title="Copy this program"
-          className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-300 hover:text-sky-500 hover:bg-sky-50 transition-colors opacity-0 group-hover:opacity-100 text-sm z-10">
-          ⧉
-        </button>
-      )}
 
       <Link
         href={`/activities?campId=${camp.id}`}
@@ -305,6 +296,14 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
           </div>
         </div>
       </Link>
+      {canEditCamp(camp) && (
+        <button
+          type="button"
+          onClick={() => onCopy(camp)}
+          className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:border-slate-400 hover:bg-slate-50">
+          Duplicate
+        </button>
+      )}
       {!active && (
         <Link
           href={`/dashboard?campId=${camp.id}`}
@@ -545,7 +544,7 @@ function DashboardContent() {
             <p className="minimal-section-title">Program switcher</p>
             <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Your programs</h2>
           </div>
-          <p className="text-sm font-semibold text-slate-500">Choose a card to make it your active workspace.</p>
+          <div className="flex flex-wrap items-center gap-3"><p className="text-sm font-semibold text-slate-500">Choose a card to make it your active workspace or create a new one.</p>{canAdminCamp(activeCamp) && <button onClick={() => setShowNewCamp(true)} className="minimal-button-primary">+ Add Program</button>}</div>
         </div>
         {loading ? (
           <div className="flex items-center justify-center h-32">
@@ -566,13 +565,7 @@ function DashboardContent() {
             {camps.map((camp) => (
               <CampCard key={camp.id} camp={camp} active={camp.id === activeCamp?.id} onCopy={setCopyingCamp} />
             ))}
-            {canAdminCamp(activeCamp) && (
-              <button onClick={() => setShowNewCamp(true)}
-                className="camp-card p-5 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-forest-600 hover:border-forest-200 transition-colors min-h-[160px] border-dashed">
-                <span className="text-3xl">+</span>
-                <span className="text-sm font-medium">Add Program</span>
-              </button>
-            )}
+
           </div>
         )}
         </div>
