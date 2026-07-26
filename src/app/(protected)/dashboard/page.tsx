@@ -503,7 +503,7 @@ function DashboardContent() {
       {activeCamp ? <><section className="rounded-3xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-sky-50 p-7 shadow-sm"><p className="text-xs font-black uppercase tracking-[.16em] !text-white">👉 Next</p><h2 className="mt-2 text-2xl font-black !text-white">Finish setting up your event</h2><p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed !text-white">{nextProgress.description}</p>{canEditCamp(activeCamp) && <Link href={nextHref} className="minimal-button-primary hero-next-button mt-5 inline-flex">Let’s do it →</Link>}</section>
       <section className="camp-card p-6"><h2 className="text-lg font-black text-slate-900">Your progress</h2><div className="mt-4 space-y-3">{progress.map((item) => <div key={item.step} className="flex items-center gap-3 text-sm font-bold text-slate-700"><span className={item.done ? "text-emerald-600" : "text-slate-400"}>{item.done ? "✓" : "○"}</span>{item.label}{!item.done && item.step === nextProgress.step && <span className="text-xs font-semibold text-indigo-600">up next</span>}</div>)}</div></section>
       <MoreOptions label="More options (stats, all tools)"><div className="grid grid-cols-2 gap-3 text-sm font-bold text-slate-700"><span>{registered} signed up</span><span>{selectedStats?.classes ?? 0} activities</span><span>{selectedStats?.teachers ?? 0} grown-ups</span><span>{summaryLoading ? "Checking details…" : `${attentionTotal} things need attention`}</span></div></MoreOptions>
-      {camps.length >= 2 && <section><h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Switch event</h2><div className="flex flex-wrap gap-2">{camps.map(c => <div key={c.id} className="flex overflow-hidden rounded-xl"><Link href={`/dashboard?campId=${c.id}`} className={`rounded-l-xl border px-3 py-2 text-sm font-bold ${c.id === activeCamp.id ? "border-indigo-300 bg-indigo-50 text-indigo-800" : "border-slate-200 bg-white text-slate-600"}`}>{c.name}</Link>{canAdminCamp(c) && <button type="button" onClick={() => requestDeleteCamp(c)} aria-label={`Delete ${c.name}`} title={`Delete ${c.name}`} className="rounded-r-xl border border-l-0 border-red-200 bg-white px-2 text-sm font-black text-red-600 hover:bg-red-50">×</button>}</div>)}</div></section>}</> : <section className="camp-card p-8 text-center"><h2 className="text-xl font-black text-slate-900">Let’s make your first event</h2><p className="mt-2 text-sm text-slate-600">Name it, add a few activities, and we’ll help you open sign-ups.</p><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary mt-5">Start an event</button></section>}
+      {camps.length >= 1 && <section><h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Switch event</h2><div className="flex flex-wrap gap-2">{camps.map(c => <div key={c.id} className="flex overflow-hidden rounded-xl"><Link href={`/dashboard?campId=${c.id}`} className={`rounded-l-xl border px-3 py-2 text-sm font-bold ${c.id === activeCamp.id ? "border-indigo-300 bg-indigo-50 text-indigo-800" : "border-slate-200 bg-white text-slate-600"}`}>{c.name}</Link>{canAdminCamp(c) && <button type="button" onClick={() => requestDeleteCamp(c)} aria-label={`Delete ${c.name}`} title={`Delete ${c.name}`} className="rounded-r-xl border border-l-0 border-red-200 bg-white px-2 text-sm font-black text-red-600 hover:bg-red-50">×</button>}</div>)}{camps.some(canAdminCamp) && <button type="button" onClick={() => setShowNewCamp(true)} className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-700 hover:border-slate-400 hover:bg-slate-50">+ Add event</button>}</div></section>}</> : <section className="camp-card p-8 text-center"><h2 className="text-xl font-black text-slate-900">Let’s make your first event</h2><p className="mt-2 text-sm text-slate-600">Name it, add a few activities, and we’ll help you open sign-ups.</p><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary mt-5">Start an event</button></section>}
       {showNewCamp && <NewCampWizard firstProgram={camps.length === 0} onClose={() => setShowNewCamp(false)} onCreated={(newCampId) => { setShowNewCamp(false); localStorage.setItem("activeCampId", newCampId); router.push(`/setup?campId=${newCampId}`); }} />}
       {deleteDialog}
     </div>;
@@ -619,7 +619,7 @@ function DashboardContent() {
         </div>
       )}
 
-      {camps.length > 1 && (
+      {camps.length > 0 && (
         <div className="mb-8 border-t border-slate-200 pt-8">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
@@ -647,6 +647,17 @@ function DashboardContent() {
             {camps.map((camp) => (
               <CampCard key={camp.id} camp={camp} active={camp.id === activeCamp?.id} onCopy={setCopyingCamp} onDelete={requestDeleteCamp} />
             ))}
+            {camps.some(canAdminCamp) && (
+              <button
+                type="button"
+                onClick={() => setShowNewCamp(true)}
+                className="flex min-h-72 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/70 p-5 text-center transition hover:border-slate-400 hover:bg-slate-50"
+              >
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-2xl font-black text-white">+</span>
+                <span className="mt-4 text-base font-black text-slate-800">Add a new event</span>
+                <span className="mt-1 text-sm font-semibold text-slate-500">Choose its name, dates, and colors.</span>
+              </button>
+            )}
 
           </div>
         )}
