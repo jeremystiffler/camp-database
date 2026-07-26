@@ -261,7 +261,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 
 // ─── Camp Card ────────────────────────────────────────────────────────────────
 
-function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCopy: (camp: Camp) => void }) {
+function CampCard({ camp, active, onCopy, onDelete }: { camp: Camp; active: boolean; onCopy: (camp: Camp) => void; onDelete: (camp: Camp) => void }) {
   const primaryColor = camp.primaryColor || "#2563EB";
   const accentColor = camp.accentColor || "#0EA5E9";
   const statusColors: Record<string, string> = {
@@ -317,6 +317,15 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
           Duplicate
         </button>
       )}
+      {canAdminCamp(camp) && (
+        <button
+          type="button"
+          onClick={() => onDelete(camp)}
+          className="mt-2 w-full rounded-xl border border-red-200 bg-white/80 px-3 py-2 text-xs font-black text-red-600 transition hover:border-red-300 hover:bg-red-50"
+        >
+          Delete event
+        </button>
+      )}
       {!active && (
         <Link
           href={`/dashboard?campId=${camp.id}`}
@@ -340,6 +349,10 @@ function DashboardContent() {
   const [loading,      setLoading]      = useState(true);
   const [showNewCamp,  setShowNewCamp]  = useState(false);
   const [copyingCamp,  setCopyingCamp]  = useState<Camp | null>(null);
+  const [deletingCamp, setDeletingCamp] = useState<Camp | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [summary,      setSummary]      = useState<DashboardSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [actionsOpen,  setActionsOpen]  = useState(false);
@@ -391,6 +404,57 @@ function DashboardContent() {
     fetch("/api/camps").then(r => r.json()).then(d => { if (Array.isArray(d)) setPrograms(d); });
   };
 
+  const requestDeleteCamp = (camp: Camp) => {
+    setDeleteConfirmation("");
+    setDeleteError("");
+    setDeletingCamp(camp);
+  };
+
+  const deleteCamp = async () => {
+    if (!deletingCamp || deleteConfirmation !== deletingCamp.name) return;
+    setDeleteSaving(true);
+    setDeleteError("");
+    const response = await fetch(`/api/camps/${deletingCamp.id}`, { method: "DELETE" });
+    const data = await response.json().catch(() => ({}));
+    setDeleteSaving(false);
+    if (!response.ok) {
+      setDeleteError(data.detail || data.error || "Could not delete this event.");
+      return;
+    }
+
+    const remaining = camps.filter(camp => camp.id !== deletingCamp.id);
+    setPrograms(remaining);
+    setDeletingCamp(null);
+    window.dispatchEvent(new Event("camp:list-changed"));
+    if (activeCamp?.id === deletingCamp.id) {
+      const nextCamp = remaining[0];
+      if (nextCamp) {
+        localStorage.setItem("activeCampId", nextCamp.id);
+        router.replace(`/dashboard?campId=${nextCamp.id}`);
+      } else {
+        localStorage.removeItem("activeCampId");
+        router.replace("/dashboard");
+      }
+    }
+    router.refresh();
+  };
+
+  const deleteDialog = deletingCamp ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-950/50" onClick={() => !deleteSaving && setDeletingCamp(null)} />
+      <div role="dialog" aria-modal="true" aria-labelledby="delete-switcher-event-title" className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+        <h2 id="delete-switcher-event-title" className="text-xl font-black text-slate-900">Delete this event?</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">This permanently removes <strong>{deletingCamp.name}</strong>, including its schedule, participants, and settings. Type the event name to continue.</p>
+        <input autoFocus value={deleteConfirmation} onChange={event => setDeleteConfirmation(event.target.value)} placeholder={deletingCamp.name} className="mt-4 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />
+        {deleteError && <p className="mt-2 text-sm font-semibold text-red-600">{deleteError}</p>}
+        <div className="mt-5 flex justify-end gap-3">
+          <button type="button" onClick={() => setDeletingCamp(null)} disabled={deleteSaving} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-50">Cancel</button>
+          <button type="button" onClick={deleteCamp} disabled={deleteSaving || deleteConfirmation !== deletingCamp.name} className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40">{deleteSaving ? "Deleting…" : "Delete permanently"}</button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   const saveCampName = async () => {
     if (!activeCamp) return;
     const name = renameValue.trim();
@@ -439,8 +503,9 @@ function DashboardContent() {
       {activeCamp ? <><section className="rounded-3xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-sky-50 p-7 shadow-sm"><p className="text-xs font-black uppercase tracking-[.16em] !text-white">👉 Next</p><h2 className="mt-2 text-2xl font-black !text-white">Finish setting up your event</h2><p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed !text-white">{nextProgress.description}</p>{canEditCamp(activeCamp) && <Link href={nextHref} className="minimal-button-primary hero-next-button mt-5 inline-flex">Let’s do it →</Link>}</section>
       <section className="camp-card p-6"><h2 className="text-lg font-black text-slate-900">Your progress</h2><div className="mt-4 space-y-3">{progress.map((item) => <div key={item.step} className="flex items-center gap-3 text-sm font-bold text-slate-700"><span className={item.done ? "text-emerald-600" : "text-slate-400"}>{item.done ? "✓" : "○"}</span>{item.label}{!item.done && item.step === nextProgress.step && <span className="text-xs font-semibold text-indigo-600">up next</span>}</div>)}</div></section>
       <MoreOptions label="More options (stats, all tools)"><div className="grid grid-cols-2 gap-3 text-sm font-bold text-slate-700"><span>{registered} signed up</span><span>{selectedStats?.classes ?? 0} activities</span><span>{selectedStats?.teachers ?? 0} grown-ups</span><span>{summaryLoading ? "Checking details…" : `${attentionTotal} things need attention`}</span></div></MoreOptions>
-      {camps.length >= 2 && <section><h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Switch event</h2><div className="flex flex-wrap gap-2">{camps.map(c => <Link key={c.id} href={`/dashboard?campId=${c.id}`} className={`rounded-xl border px-3 py-2 text-sm font-bold ${c.id === activeCamp.id ? "border-indigo-300 bg-indigo-50 text-indigo-800" : "border-slate-200 bg-white text-slate-600"}`}>{c.name}</Link>)}</div></section>}</> : <section className="camp-card p-8 text-center"><h2 className="text-xl font-black text-slate-900">Let’s make your first event</h2><p className="mt-2 text-sm text-slate-600">Name it, add a few activities, and we’ll help you open sign-ups.</p><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary mt-5">Start an event</button></section>}
+      {camps.length >= 2 && <section><h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Switch event</h2><div className="flex flex-wrap gap-2">{camps.map(c => <div key={c.id} className="flex overflow-hidden rounded-xl"><Link href={`/dashboard?campId=${c.id}`} className={`rounded-l-xl border px-3 py-2 text-sm font-bold ${c.id === activeCamp.id ? "border-indigo-300 bg-indigo-50 text-indigo-800" : "border-slate-200 bg-white text-slate-600"}`}>{c.name}</Link>{canAdminCamp(c) && <button type="button" onClick={() => requestDeleteCamp(c)} aria-label={`Delete ${c.name}`} title={`Delete ${c.name}`} className="rounded-r-xl border border-l-0 border-red-200 bg-white px-2 text-sm font-black text-red-600 hover:bg-red-50">×</button>}</div>)}</div></section>}</> : <section className="camp-card p-8 text-center"><h2 className="text-xl font-black text-slate-900">Let’s make your first event</h2><p className="mt-2 text-sm text-slate-600">Name it, add a few activities, and we’ll help you open sign-ups.</p><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary mt-5">Start an event</button></section>}
       {showNewCamp && <NewCampWizard firstProgram={camps.length === 0} onClose={() => setShowNewCamp(false)} onCreated={(newCampId) => { setShowNewCamp(false); localStorage.setItem("activeCampId", newCampId); router.push(`/setup?campId=${newCampId}`); }} />}
+      {deleteDialog}
     </div>;
   }
 
@@ -580,7 +645,7 @@ function DashboardContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {camps.map((camp) => (
-              <CampCard key={camp.id} camp={camp} active={camp.id === activeCamp?.id} onCopy={setCopyingCamp} />
+              <CampCard key={camp.id} camp={camp} active={camp.id === activeCamp?.id} onCopy={setCopyingCamp} onDelete={requestDeleteCamp} />
             ))}
 
           </div>
@@ -604,7 +669,7 @@ function DashboardContent() {
         />
       )}
 
-      {copyingCamp && (
+{copyingCamp && (
         <CopyCampModal
           sourceCamp={copyingCamp}
           onClose={() => { setCopyingCamp(null); reloadPrograms(); }}
@@ -618,6 +683,8 @@ function DashboardContent() {
           }}
         />
       )}
+
+      {deleteDialog}
     </div>
   );
 }
