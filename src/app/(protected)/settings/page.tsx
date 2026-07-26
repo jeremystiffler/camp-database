@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { RowDeleteButton } from "@/components/InlineEditing";
+import { PROGRAM_PALETTES } from "@/lib/programPalettes";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -47,14 +48,12 @@ interface Coupon {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const COLOR_THEMES = [
-  { name: "Slate",      primary: "#64748B", accent: "#475569", preview: ["#64748B","#475569"] },
-  { name: "Stone",      primary: "#78716C", accent: "#57534E", preview: ["#78716C","#57534E"] },
-  { name: "Sage",       primary: "#6B7D5F", accent: "#4F6F56", preview: ["#6B7D5F","#4F6F56"] },
-  { name: "Moss",       primary: "#7A8060", accent: "#5F6548", preview: ["#7A8060","#5F6548"] },
-  { name: "Clay",       primary: "#A1624A", accent: "#7C4A3A", preview: ["#A1624A","#7C4A3A"] },
-  { name: "Blue Gray",  primary: "#607A8C", accent: "#465E6F", preview: ["#607A8C","#465E6F"] },
-];
+const COLOR_THEMES = PROGRAM_PALETTES.map(({ name, primaryColor, accentColor, preview }) => ({
+  name,
+  primary: primaryColor,
+  accent: accentColor,
+  preview,
+}));
 
 const FONT_OPTIONS = [
   { id: "Inter",       label: "Inter",        sample: "The quick brown fox",        style: { fontFamily: "Inter, sans-serif" } },
