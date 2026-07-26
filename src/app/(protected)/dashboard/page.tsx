@@ -326,6 +326,7 @@ function DashboardContent() {
   const [camps,        setPrograms]        = useState<Camp[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [showNewCamp,  setShowNewCamp]  = useState(false);
+  const [firstProgramPromptHandled, setFirstProgramPromptHandled] = useState(false);
   const [copyingCamp,  setCopyingCamp]  = useState<Camp | null>(null);
   const [summary,      setSummary]      = useState<DashboardSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -353,6 +354,15 @@ function DashboardContent() {
       .then((data) => { if (Array.isArray(data)) setPrograms(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  // A brand-new account should land directly on the one decision it needs to make.
+  // Closing the prompt leaves the dashboard usable; a later login will ask again until a program exists.
+  useEffect(() => {
+    if (!loading && camps.length === 0 && !firstProgramPromptHandled) {
+      setShowNewCamp(true);
+      setFirstProgramPromptHandled(true);
+    }
+  }, [loading, camps.length, firstProgramPromptHandled]);
 
   useEffect(() => {
     setRenameValue(activeCamp?.name || "");
@@ -423,7 +433,7 @@ function DashboardContent() {
       <section className="camp-card p-6"><h2 className="text-lg font-black text-slate-900">Your progress</h2><div className="mt-4 grid gap-3 sm:grid-cols-2">{progress.map(([done, label]) => <div key={String(label)} className="flex items-center gap-3 text-sm font-bold text-slate-700"><span className={done ? "text-emerald-600" : "text-slate-400"}>{done ? "✓" : "○"}</span>{label}{!done && label === "Things kids do" && <span className="text-xs font-semibold text-indigo-600">up next</span>}</div>)}</div></section>
       <MoreOptions label="More options (stats, all tools)"><div className="grid grid-cols-2 gap-3 text-sm font-bold text-slate-700"><span>{registered} signed up</span><span>{selectedStats?.classes ?? 0} activities</span><span>{selectedStats?.teachers ?? 0} grown-ups</span><span>{summaryLoading ? "Checking details…" : `${attentionTotal} things need attention`}</span></div></MoreOptions>
       {camps.length >= 2 && <section><h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Switch event</h2><div className="flex flex-wrap gap-2">{camps.map(c => <Link key={c.id} href={`/dashboard?campId=${c.id}`} className={`rounded-xl border px-3 py-2 text-sm font-bold ${c.id === activeCamp.id ? "border-indigo-300 bg-indigo-50 text-indigo-800" : "border-slate-200 bg-white text-slate-600"}`}>{c.name}</Link>)}</div></section>}</> : <section className="camp-card p-8 text-center"><h2 className="text-xl font-black text-slate-900">Let’s make your first event</h2><p className="mt-2 text-sm text-slate-600">Name it, add a few activities, and we’ll help you open sign-ups.</p><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary mt-5">Start an event</button></section>}
-      {showNewCamp && <NewCampWizard onClose={() => setShowNewCamp(false)} onCreated={(newCampId) => { setShowNewCamp(false); localStorage.setItem("activeCampId", newCampId); router.push(`/setup?campId=${newCampId}`); }} />}
+      {showNewCamp && <NewCampWizard firstProgram={camps.length === 0} onClose={() => setShowNewCamp(false)} onCreated={(newCampId) => { setShowNewCamp(false); localStorage.setItem("activeCampId", newCampId); router.push(`/setup?campId=${newCampId}`); }} />}
     </div>;
   }
 
@@ -574,6 +584,7 @@ function DashboardContent() {
 
       {showNewCamp && (
         <NewCampWizard
+          firstProgram={camps.length === 0}
           onClose={() => setShowNewCamp(false)}
           onCreated={(newCampId) => {
             setShowNewCamp(false);

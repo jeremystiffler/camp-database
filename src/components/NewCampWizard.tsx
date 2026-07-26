@@ -73,21 +73,24 @@ function Step1({
   name, setName,
   startDate, setStartDate,
   endDate, setEndDate,
+  firstProgram = false,
 }: {
   name: string; setName: (v: string) => void;
   startDate: string; setStartDate: (v: string) => void;
   endDate: string; setEndDate: (v: string) => void;
+  firstProgram?: boolean;
 }) {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-bold text-slate-800 mb-1">Program Details</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-1">{firstProgram ? "What would you like to call your first program?" : "Program Details"}</h2>
         <p className="text-slate-500 text-sm">Give your program a name and set the dates.</p>
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">Program Name *</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">{firstProgram ? "First Program Title *" : "Program Name *"}</label>
         <input
           type="text"
+          autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -494,9 +497,10 @@ function Step4({
 
 // ─── Main Wizard ──────────────────────────────────────────────────────────────
 
-export default function NewCampWizard({ onClose, onCreated }: {
+export default function NewCampWizard({ onClose, onCreated, firstProgram = false }: {
   onClose: () => void;
   onCreated: (campId: string, campName: string) => void;
+  firstProgram?: boolean;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -556,17 +560,17 @@ export default function NewCampWizard({ onClose, onCreated }: {
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">New Program</p>
-              <h1 className="font-bold text-xl text-slate-800">Name your program</h1>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">{firstProgram ? "Welcome" : "New Program"}</p>
+              <h1 className="font-bold text-xl text-slate-800">{firstProgram ? "Name your first program" : "Name your program"}</h1>
             </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 text-sm">✕</button>
           </div>
-          <p className="mb-5 text-sm text-slate-500">Create the draft now, then complete age groups, rooms, time blocks, staff, activities, and registration in one guided Setup flow.</p>
+          <p className="mb-5 text-sm text-slate-500">{firstProgram ? "Start by giving it a title. You can add dates and everything else as you go." : "Create the draft now, then complete age groups, rooms, time blocks, staff, activities, and registration in one guided Setup flow."}</p>
         </div>
 
         {/* Step content */}
         <div className="px-6 pb-2 min-h-[220px]">
-          <Step1 name={name} setName={setName} startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} />
+          <Step1 name={name} setName={setName} startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} firstProgram={firstProgram} />
         </div>
 
         {/* Error */}

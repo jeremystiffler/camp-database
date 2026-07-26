@@ -349,8 +349,8 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
 }
 
 /* The same rule for compact controls where the background and label share one element. */
-:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"]):is([class*="text-slate-"], [class*="text-gray-"], [class*="text-zinc-"], [class*="text-neutral-"]) {
-  color: #f1f5f9 !important;
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-black"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]):is([class*="text-"]) {
+  color: #ffffff !important;
 }
 
 .text-red-800, .text-red-900, .text-orange-800, .text-orange-900, .text-amber-800, .text-amber-900,
