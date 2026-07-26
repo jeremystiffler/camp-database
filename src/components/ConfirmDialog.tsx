@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -46,4 +46,23 @@ export function ConfirmDialog({
       </div>
     </div>
   );
+}
+
+type Confirmation = Pick<ConfirmDialogProps, "title" | "description" | "confirmLabel" | "destructive">;
+
+/** Promise-based confirmation for event handlers; renders the same in-app dialog. */
+export function useConfirmation() {
+  const [pending, setPending] = useState<Confirmation | null>(null);
+  const resolver = useRef<((confirmed: boolean) => void) | null>(null);
+  const confirm = useCallback((options: Confirmation) => new Promise<boolean>(resolve => {
+    resolver.current = resolve;
+    setPending(options);
+  }), []);
+  const resolve = useCallback((confirmed: boolean) => {
+    resolver.current?.(confirmed);
+    resolver.current = null;
+    setPending(null);
+  }, []);
+  const dialog = <ConfirmDialog open={Boolean(pending)} title={pending?.title || "Are you sure?"} description={pending?.description || ""} confirmLabel={pending?.confirmLabel} destructive={pending?.destructive} onCancel={() => resolve(false)} onConfirm={() => resolve(true)} />;
+  return { confirm, dialog };
 }
