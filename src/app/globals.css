@@ -109,7 +109,7 @@ body {
 .camp-card {
   background: var(--ui-surface, #fffdf9);
   border: 1px solid var(--ui-border, #ddd1c3);
-  border-radius: 18px;
+  border-radius: var(--radius-md, 12px);
   box-shadow: 0 1px 2px rgba(31, 35, 38, 0.035);
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
 }
@@ -151,7 +151,7 @@ body {
 .tile-button {
   background: var(--ui-surface, #fffdf9);
   border: 1px solid var(--ui-border, #ddd1c3);
-  border-radius: 16px;
+  border-radius: var(--radius-md, 12px);
   box-shadow: 0 8px 20px rgba(69, 54, 42, 0.055);
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
@@ -170,12 +170,13 @@ body {
 
 .minimal-input {
   width: 100%;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #1e293b;
+  min-height: var(--control-h, 40px);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface, #ffffff);
+  color: var(--text-strong, #0f172a);
   font-size: 0.875rem;
-  padding: 0.625rem 0.875rem;
+  padding: 0.5rem 0.875rem;
   outline: none;
 }
 .minimal-input:focus {
@@ -183,20 +184,30 @@ body {
   box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18);
 }
 
+/* Native controls share the same reliable touch target and input geometry. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+select {
+  min-height: var(--control-h, 40px);
+  border-radius: var(--radius-sm, 8px) !important;
+}
+textarea { border-radius: var(--radius-sm, 8px) !important; }
+
 .minimal-button-primary {
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--ui-sage, #7f956f), var(--ui-aqua, #74a7a2));
+  min-height: var(--control-h, 40px);
+  border-radius: var(--radius-md, 12px);
+  background: var(--brand-primary, #0f172a);
   color: #ffffff;
   font-weight: 700;
   font-size: 0.875rem;
-  padding: 0.625rem 1rem;
-  transition: filter 0.16s ease, opacity 0.16s ease, transform 0.16s ease;
+  padding: 0.5rem 1rem;
+  transition: background-color 0.16s ease, opacity 0.16s ease, transform 0.16s ease;
 }
-.minimal-button-primary:hover { filter: brightness(0.96); transform: translateY(-1px); }
+.minimal-button-primary:hover { background: var(--brand-primary-hover, #1e293b); transform: translateY(-1px); }
 .minimal-button-primary:disabled { opacity: 0.6; }
 
 .minimal-button-secondary {
-  border-radius: 12px;
+  min-height: var(--control-h, 40px);
+  border-radius: var(--radius-md, 12px);
   border: 1px solid #e2e8f0;
   background: #ffffff;
   color: #334155;
@@ -227,33 +238,50 @@ body {
 
 /* ===================== Clean Playground Admin Color System ===================== */
 :root {
+  /* Product design tokens: semantic roles, not page-specific colors. */
+  --brand-primary: #0f172a;
+  --brand-primary-hover: #1e293b;
+  --accent: #0ea5e9;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --text-strong: #0f172a;
+  --text: #334155;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --surface: #ffffff;
+  --surface-alt: #f1f5f9;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-full: 9999px;
+  --control-h: 40px;
+
   --ui-bg: #f8fafc;
-  --ui-surface: #ffffff;
-  --ui-surface-muted: #f1f5f9;
-  --ui-border: #e2e8f0;
+  --ui-surface: var(--surface);
+  --ui-surface-muted: var(--surface-alt);
+  --ui-border: var(--border);
   --ui-border-strong: #cbd5e1;
-  --ui-text: #1e293b;
-  --ui-text-soft: #334155;
-  --ui-text-muted: #334155;
-  --ui-text-faint: #475569;
+  --ui-text: var(--text-strong);
+  --ui-text-soft: var(--text);
+  --ui-text-muted: var(--text);
+  --ui-text-faint: var(--text-muted);
 
   /* Clean Playground: readable brand colors. Button/gradient endpoints are dark
      enough for white text (WCAG AA for normal-sized labels). */
-  --ui-lavender: #4338ca;
+  --ui-lavender: var(--brand-primary);
   --ui-lavender-soft: #e0e7ff;
-  --ui-aqua: #0369a1;
+  --ui-aqua: var(--brand-primary-hover);
   --ui-aqua-soft: #e0f2fe;
   --ui-butter: #b45309;
   --ui-butter-soft: #fef3c7;
   --ui-clay: #be123c;
   --ui-clay-soft: #ffe4e6;
-  --ui-berry: #be123c;
-  --ui-berry-soft: #ffe4e6;
-  --ui-sage: #047857;
-  --ui-sage-soft: #d1fae5;
-  --ui-denim: #4338ca;
-  --ui-denim-soft: #e0e7ff;
-  --ui-danger: #dc2626;
+  --ui-berry: var(--brand-primary);
+  --ui-berry-soft: #e2e8f0;
+  --ui-sage: var(--brand-primary);
+  --ui-sage-soft: #e2e8f0;
+  --ui-denim: var(--brand-primary);
+  --ui-denim-soft: #e2e8f0;
+  --ui-danger: var(--danger);
   --ui-danger-soft: #fee2e2;
 
   --age-slate: #6f7f91;
@@ -271,7 +299,8 @@ body {
   background-image: linear-gradient(135deg, var(--ui-lavender), var(--ui-aqua)) !important;
 }
 
-.bg-forest-500, .bg-forest-600, .bg-emerald-500 { background-color: var(--ui-sage) !important; }
+.bg-forest-500, .bg-forest-600 { background-color: var(--brand-primary) !important; }
+.bg-emerald-500, .bg-emerald-600 { background-color: var(--success) !important; }
 .bg-sky-500, .bg-sky-600 { background-color: var(--ui-denim) !important; }
 .bg-berry-500, .bg-berry-600 { background-color: var(--ui-lavender) !important; }
 .bg-sunset-500, .bg-sunset-600, .bg-orange-500 { background-color: var(--ui-clay) !important; }
@@ -292,7 +321,7 @@ body {
 .bg-amber-100 { background-color: #eee0b7 !important; }
 .bg-rose-100, .bg-red-100 { background-color: #e8cbc8 !important; }
 
-.text-forest-600, .text-forest-700, .text-emerald-600, .text-emerald-700 { color: #047857 !important; }
+.text-forest-600, .text-forest-700, .text-emerald-600, .text-emerald-700 { color: #036b4e !important; }
 .text-sky-600, .text-sky-700 { color: #0369a1 !important; }
 .text-berry-600, .text-berry-700 { color: #4338ca !important; }
 .text-sunset-600, .text-sunset-700, .text-orange-600, .text-orange-700 { color: #be123c !important; }

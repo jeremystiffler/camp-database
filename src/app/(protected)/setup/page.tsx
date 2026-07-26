@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { TeachersContent } from "../teachers/page";
 import { ActivitiesContent } from "../activities/page";
@@ -136,6 +136,7 @@ function Section({ title, children, action }: { title: string; children: React.R
 function SetupContent() {
   const { guidedMode, setGuidedMode } = useGuidedMode();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const campId = searchParams.get("campId") || "";
 
   const [camp,      setCamp]      = useState<Camp | null>(null);
@@ -227,9 +228,16 @@ function SetupContent() {
     }
   }, [searchParams]);
 
+  const goToStep = (tab: SetupTab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("step", tab);
+    router.replace(`/setup?${params.toString()}`, { scroll: false });
+  };
+
   const refreshAndGo = async (tab: SetupTab) => {
     await load();
-    setActiveTab(tab);
+    goToStep(tab);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -746,6 +754,7 @@ function SetupContent() {
     details: "Name your event", ages: "Who’s it for?", times: "When things happen", activities: "What kids do", registration: "Make your sign-up page", review: "Open for sign-ups", rooms: "Where things happen", teachers: "Grown-ups in charge", schedule: "The daily plan",
   };
   const stepLabel = (step: typeof activeStep) => guidedMode ? (guidedStepLabels[step.key] || step.label) : step.label;
+  const nextStepLabel = stepLabel(nextStep).trim() || nextStep.actionLabel || "your next step";
   const activeStepIndex = setupSteps.findIndex(step => step.key === activeStep.key);
   const activeStateLabel = activeStep.done ? "Done" : activeStep.locked ? "Locked" : "Open";
   const setupPercent = Math.round((completedSteps / visibleSetupSteps.length) * 100);
@@ -755,7 +764,7 @@ function SetupContent() {
       const savedDetails = await saveCamp();
       if (!savedDetails) return;
     }
-    setActiveTab(nextStep.key);
+    goToStep(nextStep.key);
   };
 
   const useSampleWeekDates = () => {
@@ -797,7 +806,7 @@ function SetupContent() {
             <p className="minimal-section-title">Setup progress</p>
             <h2 className="mt-1 text-lg font-black text-slate-900">{completedSteps} of {visibleSetupSteps.length} steps complete</h2>
             <p className="mt-1 text-sm font-semibold text-slate-600">
-              Next: <span className="text-slate-950">{stepLabel(nextStep)}</span> — {nextStep.question}
+              Next: <span className="text-slate-950">{nextStepLabel}</span> — {nextStep.question}
             </p>
           </div>
           <div className="min-w-[220px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -821,7 +830,7 @@ function SetupContent() {
                   key={step.key}
                   type="button"
                   aria-disabled={step.locked}
-                  onClick={() => step.locked ? setSetupNotice(step.lockMessage || `${step.label} is locked until earlier setup is complete.`) : setActiveTab(step.key)}
+                  onClick={() => step.locked ? setSetupNotice(step.lockMessage || `${step.label} is locked until earlier setup is complete.`) : goToStep(step.key)}
                   className={`group relative -ml-3 first:ml-0 flex h-14 flex-1 min-w-[110px] items-center justify-center pl-7 pr-7 text-left transition-all ${step.locked ? "cursor-not-allowed" : isActive ? "z-30 scale-[1.03]" : step.done ? "z-20" : "z-10 hover:z-20 hover:-translate-y-0.5"}`}
                   title={step.locked ? step.lockMessage : `${step.label}: ${stateLabel}`}
                   style={{ clipPath: "polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%)" }}
@@ -1485,7 +1494,7 @@ function SetupContent() {
           <div className="space-y-4">
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {setupSteps.slice(0, 8).map(step => (
-                <button key={step.key} type="button" onClick={() => setActiveTab(step.key)} className={`rounded-xl border px-3 py-2 text-left text-sm transition ${step.done ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"}`}>
+                <button key={step.key} type="button" onClick={() => goToStep(step.key)} className={`rounded-xl border px-3 py-2 text-left text-sm transition ${step.done ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"}`}>
                   <span className="font-black">{step.done ? "Done" : "Needs"} {step.label}</span>
                   <span className="mt-0.5 block text-xs opacity-75">{step.done ? "Ready" : step.help}</span>
                 </button>
