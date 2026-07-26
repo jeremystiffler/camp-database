@@ -296,6 +296,24 @@ body {
 .text-white\/75 { color: rgba(255, 255, 255, 0.9) !important; }
 .text-indigo-500\/70 { color: #4338ca !important; }
 
+/* Dark-surface contrast: only foreground inside a genuinely dark utility surface is
+   adjusted. This counteracts the palette's global muted-slate overrides without
+   changing text on light cards, forms, or tables. */
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]) :is(.text-slate-400, .text-slate-500, .text-slate-600, .text-slate-700, .text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700, .text-zinc-400, .text-zinc-500, .text-zinc-600, .text-zinc-700, .text-neutral-400, .text-neutral-500, .text-neutral-600, .text-neutral-700) {
+  color: #e2e8f0 !important;
+}
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]) :is(.text-sky-400, .text-sky-500, .text-sky-600, .text-sky-700) {
+  color: #bae6fd !important;
+}
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]) :is(.text-indigo-400, .text-indigo-500, .text-indigo-600, .text-indigo-700) {
+  color: #c7d2fe !important;
+}
+
+/* The same rule for compact controls where the background and label share one element. */
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"]):is([class*="text-slate-"], [class*="text-gray-"], [class*="text-zinc-"], [class*="text-neutral-"]) {
+  color: #f1f5f9 !important;
+}
+
 .text-red-800, .text-red-900, .text-orange-800, .text-orange-900, .text-amber-800, .text-amber-900,
 .text-emerald-800, .text-sky-800, .text-sky-900, .text-rose-800 {
   color: var(--ui-text) !important;
