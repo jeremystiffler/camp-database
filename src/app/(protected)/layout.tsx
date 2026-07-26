@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SSPLogo } from "@/components/SSPLogo";
@@ -83,6 +83,8 @@ interface Camp {
   name: string;
   status: string;
   myRole?: string;
+  primaryColor?: string;
+  accentColor?: string;
 }
 
 function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
@@ -228,6 +230,12 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const nextStep = nextSteps[pathname] || { label: "Build your program", href: "/setup" };
   const isPublishedProgram = activeCamp?.status?.toLowerCase() === "published";
   const showBuildGuidance = !isPublishedProgram && pathname !== "/dashboard";
+  const workspaceStyle = {
+    background: "var(--ui-bg)",
+    "--brand-primary": activeCamp?.primaryColor || "#0f172a",
+    "--brand-primary-hover": activeCamp?.primaryColor || "#1e293b",
+    "--accent": activeCamp?.accentColor || "#0ea5e9",
+  } as CSSProperties;
 
   if (checking) {
     return (
@@ -243,7 +251,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-dvh w-full flex items-stretch text-slate-900" style={{ background: "var(--ui-bg)" }}>
+    <div className="min-h-dvh w-full flex items-stretch text-slate-900" style={workspaceStyle}>
       {/* Mobile overlay */}
       {sidebarOpen && !isKioskShell && (
         <div
@@ -270,7 +278,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         {camps.length > 0 && (
           <div className="px-3 py-4 border-b border-slate-100">
             <p className="minimal-section-title px-2 mb-2">Current program</p>
-            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-3 shadow-sm">
+            <div className="rounded-2xl border p-3 shadow-sm" style={{ backgroundColor: `${activeCamp?.accentColor || "#0284C7"}14`, borderColor: `${activeCamp?.accentColor || "#0284C7"}33` }}>
               <p className="text-sm font-black text-slate-900 leading-snug break-words">
                 {activeCamp?.name || "Select a program"}
               </p>
@@ -280,7 +288,8 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => setCampSwitcherOpen((open) => !open)}
-                className="mt-3 w-full rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] px-3 py-2 text-xs font-black text-white shadow-sm hover:brightness-105 transition-all"
+                className="mt-3 w-full rounded-xl px-3 py-2 text-xs font-black text-white shadow-sm hover:brightness-105 transition-all"
+                style={{ background: `linear-gradient(135deg, ${activeCamp?.primaryColor || "#075985"}, ${activeCamp?.accentColor || "#0284C7"})` }}
               >
                 Switch programs
               </button>

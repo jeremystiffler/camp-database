@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { DEFAULT_PROGRAM_PALETTE, PROGRAM_PALETTES } from "@/lib/programPalettes";
 
 export async function GET() {
   const session = await getSession();
@@ -26,7 +27,8 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, startDate, endDate } = await req.json();
+  const { name, startDate, endDate, primaryColor, accentColor } = await req.json();
+  const palette = PROGRAM_PALETTES.find((option) => option.primaryColor === primaryColor && option.accentColor === accentColor) || DEFAULT_PROGRAM_PALETTE;
   if (!name) return NextResponse.json({ error: "Name required" }, { status: 400 });
 
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
@@ -43,6 +45,8 @@ export async function POST(req: NextRequest) {
       slug,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
+      primaryColor: palette.primaryColor,
+      accentColor: palette.accentColor,
       billingStatus: "trial",
       trialEndsAt,
     },

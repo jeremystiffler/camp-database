@@ -79,7 +79,7 @@ interface PrintTemplate {
   settings: string;
   builtin?: boolean;
 }
-interface CampOption { id: string; name: string; startDate?: string | null; endDate?: string | null; }
+interface CampOption { id: string; name: string; startDate?: string | null; endDate?: string | null; primaryColor?: string; accentColor?: string; }
 
 type ScheduleCell = { key: string; label: string; sortValue: string };
 type ScheduleSlot = { key: string; label: string; sortValue: string };
@@ -604,6 +604,8 @@ function PrintContent() {
 
   const allTemplates = [...BUILTIN_TEMPLATES.map((template, index) => ({ ...template, id: `builtin-${index}`, builtin: true })), ...savedTemplates];
   const selectedSettings = parseSettings(draftTemplate);
+  const selectedProgram = campOptions.find((camp) => camp.id === campId);
+  const printHeaderColor = selectedProgram?.primaryColor || selectedSettings.headerColor;
   const selectedPaperProfile = PAPER_PROFILES[draftTemplate.paperSize];
   const paperWidth = draftTemplate.orientation === "landscape" ? selectedPaperProfile.height : selectedPaperProfile.width;
   const paperHeight = draftTemplate.orientation === "landscape" ? selectedPaperProfile.width : selectedPaperProfile.height;
@@ -921,7 +923,7 @@ function PrintContent() {
         .ops-print { font-family: Arial, Helvetica, sans-serif; color: #000; }
         .ops-print table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .ops-print th, .ops-print td { border: 1px solid #111; vertical-align: middle; white-space: pre-line; line-height: 1.12; }
-        .ops-print th { background: ${selectedSettings.headerColor}; color: #000; font-size: 10px; font-weight: 800; padding: 4px 3px; text-align: center; }
+        .ops-print th { background: ${printHeaderColor}; color: #fff; font-size: 10px; font-weight: 800; padding: 4px 3px; text-align: center; }
         .ops-print { zoom: ${selectedSettings.printScale}%; }
         .ops-print td { font-size: ${bodyFont}; padding: ${cellPadding}; }
         .ops-print .center td { text-align: center; }
@@ -1021,7 +1023,7 @@ function PrintContent() {
         .studio-doc-subtitle { margin: 0 0 18px; color: #64748b; font-size: 12px; font-weight: 600; }
         .studio-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: Arial, Helvetica, sans-serif; font-size: 11px; }
         .studio-table th, .studio-table td { overflow-wrap: anywhere; border: 1px solid #334155; padding: 7px 6px; vertical-align: top; white-space: pre-line; }
-        .studio-table th { background: ${selectedSettings.headerColor}; color: #0f172a; font-size: 10px; font-weight: 900; text-align: left; }
+        .studio-table th { background: ${printHeaderColor}; color: #fff; font-size: 10px; font-weight: 900; text-align: left; }
         .studio-table tbody tr:nth-child(even) td { background: ${selectedSettings.stripedRows ? "#f0fdfa" : "#fff"}; }
         .studio-card-preview { display: flex; min-height: 4.5in; flex-direction: column; align-items: center; justify-content: center; border: 3px solid #0f172a; border-radius: 20px; text-align: center; }
         .studio-card-preview p { margin: 0; color: #475569; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }

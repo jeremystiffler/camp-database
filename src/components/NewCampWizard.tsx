@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PROGRAM_PALETTES } from "@/lib/programPalettes";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -511,6 +512,7 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [paletteId, setPaletteId] = useState<string | null>(null);
 
   // Step 2
   const [ageGroups, setAgeGroups] = useState<AgeGroupDraft[]>([]);
@@ -533,13 +535,18 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
       setError("Add a program name to continue.");
       return;
     }
+    const palette = PROGRAM_PALETTES.find((option) => option.id === paletteId);
+    if (!palette) {
+      setError("Choose a color palette for this program to continue.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
       const campRes = await fetch("/api/camps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), startDate: startDate || undefined, endDate: endDate || undefined }),
+        body: JSON.stringify({ name: name.trim(), startDate: startDate || undefined, endDate: endDate || undefined, primaryColor: palette.primaryColor, accentColor: palette.accentColor }),
       });
       if (!campRes.ok) {
         const d = await campRes.json();
@@ -571,6 +578,19 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
         {/* Step content */}
         <div className="px-6 pb-2 min-h-[220px]">
           <Step1 name={name} setName={setName} startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} firstProgram={firstProgram} />
+          {name.trim() && <section className="mt-6 border-t border-slate-100 pt-5" aria-labelledby="palette-title">
+            <h2 id="palette-title" className="text-base font-bold text-slate-800">Now choose this program’s color palette</h2>
+            <p className="mt-1 text-sm text-slate-500">This colors your workspace, family sign-up page, and printed headers.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {PROGRAM_PALETTES.map((palette) => {
+                const selected = palette.id === paletteId;
+                return <button key={palette.id} type="button" onClick={() => { setPaletteId(palette.id); setError(""); }} aria-pressed={selected} className={`rounded-xl border-2 p-2 text-left transition ${selected ? "border-slate-900 ring-2 ring-slate-300" : "border-slate-200 hover:border-slate-400"}`}>
+                  <span className="mb-2 block h-7 rounded-lg" style={{ background: `linear-gradient(135deg, ${palette.preview[0]}, ${palette.preview[1]})` }} />
+                  <span className="block text-xs font-bold text-slate-700">{palette.name}</span>
+                </button>;
+              })}
+            </div>
+          </section>}
         </div>
 
         {/* Error */}
@@ -583,7 +603,8 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-600">Cancel</button>
           <div className="text-right">
             {!name.trim() && <p id="program-name-required" className="mb-1 text-xs font-semibold text-red-700">Add a program name to continue.</p>}
-            <button onClick={handleFinish} disabled={loading || !name.trim()} aria-describedby={!name.trim() ? "program-name-required" : undefined} title={!name.trim() ? "Add a program name to create your program." : undefined} className="minimal-button-primary disabled:cursor-not-allowed disabled:opacity-40">
+            {name.trim() && !paletteId && <p id="program-palette-required" className="mb-1 text-xs font-semibold text-red-700">Choose a color palette to continue.</p>}
+            <button onClick={handleFinish} disabled={loading || !name.trim() || !paletteId} aria-describedby={!name.trim() ? "program-name-required" : !paletteId ? "program-palette-required" : undefined} title={!name.trim() ? "Add a program name to create your program." : !paletteId ? "Choose a color palette for your program." : undefined} className="minimal-button-primary disabled:cursor-not-allowed disabled:opacity-40">
               {loading ? "Creating..." : "Create & continue to Setup →"}
             </button>
           </div>
