@@ -432,27 +432,33 @@ function DashboardContent() {
 
   return (
     <div>
-      {/* Program command header */}
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between mb-6">
-        <div>
-          <p className="minimal-section-title">Program workspace</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900">{activeCamp ? activeCamp.name : "Your programs"}</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {activeCamp ? "Your program readiness, next steps, and operating tools in one place." : "Choose a program to manage its setup, people, schedule, and registration."}
-          </p>
+      {/* Unified program workspace header */}
+      <div className="camp-card relative mb-8 overflow-visible border-indigo-100 bg-gradient-to-br from-white via-indigo-50/50 to-sky-50 p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="minimal-section-title mb-2">Program workspace</p>
+            <h1 className="truncate text-3xl font-black tracking-tight text-slate-950">{activeCamp ? activeCamp.name : "Your programs"}</h1>
+            <p className="mt-1 text-sm font-semibold text-slate-600">{activeCamp ? formatCampDateRange(activeCamp) : "Choose a program to manage its setup, people, schedule, and registration."}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {activeCamp && <p className="mr-1 text-xs font-black uppercase tracking-wide text-slate-600">Status: {activeCamp.status} · Registration {activeCamp.registrationOpen ? "open" : "closed"}</p>}
+            {activeCamp && <div className="relative">
+              <button type="button" onClick={() => setActionsOpen(v => !v)} aria-expanded={actionsOpen} className="rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs font-black text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50">Manage ▾</button>
+              {actionsOpen && <div className="absolute right-0 top-10 z-30 w-[min(92vw,340px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+                {canEditCamp(activeCamp) ? <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-600">Rename program</label><div className="flex gap-2"><input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" /><button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button></div>{renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}</div> : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">This shared program is read-only for your account.</p>}
+                <div className="grid gap-1">{(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-950">{label}</Link>)}</div>
+              </div>}
+            </div>}
+            {(camps.length === 0 || canAdminCamp(activeCamp)) && <button onClick={() => setShowNewCamp(true)} className="minimal-button-primary flex items-center gap-2"><span>+</span> New Program</button>}
+          </div>
         </div>
-        {(camps.length === 0 || canAdminCamp(activeCamp)) && (
-          <button onClick={() => setShowNewCamp(true)}
-            className="minimal-button-primary flex items-center gap-2">
-            <span>+</span> New Program
-          </button>
-        )}
       </div>
 
       {/* Selected program stats */}
       {activeCamp && (
         <div className="mb-8 space-y-4">
-          <div className="camp-card relative overflow-visible border-indigo-100 bg-gradient-to-br from-white via-indigo-50/50 to-sky-50 p-5">
+          {/* Program identity, status, dates, and management controls are unified in the header above. */}
+          <div className="hidden">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <p className="minimal-section-title mb-2">Current program</p>
