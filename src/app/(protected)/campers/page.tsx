@@ -6,6 +6,7 @@ import CamperScannableCode from "@/components/CamperScannableCode";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState } from "@/components/OperationalUI";
 import { useGuidedMode } from "@/components/GuidedMode";
+import { useConfirmation } from "@/components/ConfirmDialog";
 
 interface AgeGroup {
   id: string;
@@ -258,6 +259,7 @@ function CamperDrawer({
   onDeleted: (id: string) => void;
   canEdit: boolean;
 }) {
+  const { confirm } = useConfirmation();
   const [editing, setEditing] = useState(camper.id === "__new__" && canEdit);
   const isNew = camper.id === "__new__";
   const [saving, setSaving] = useState(false);
@@ -364,7 +366,7 @@ function CamperDrawer({
   };
 
   const remove = async () => {
-    if (!confirm(`Delete ${camper.firstName} ${camper.lastName}? This removes the participant and their registration choices.`)) return;
+    if (!(await confirm({ title: `Delete ${camper.firstName} ${camper.lastName}?`, description: "This permanently removes the participant and their registration choices.", confirmLabel: "Delete participant", destructive: true }))) return;
     setDeleting(true); setError("");
     const res = await fetch(`/api/camps/${campId}/campers/${camper.id}`, { method: "DELETE" });
     const data = await res.json().catch(() => ({}));

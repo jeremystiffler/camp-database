@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { useConfirmation } from "@/components/ConfirmDialog";
 import * as XLSX from "xlsx";
 import { EmptyState, PageHeader } from "@/components/OperationalUI";
 
@@ -144,6 +145,7 @@ async function downloadTemplate(campId: string) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 function ImportContent() {
+  const { confirm } = useConfirmation();
   const searchParams = useSearchParams();
   const campId       = searchParams.get("campId") || "";
   const fileRef      = useRef<HTMLInputElement>(null);
@@ -216,7 +218,7 @@ function ImportContent() {
   };
 
   const deleteSelected = async () => {
-    if (!confirm(`Delete ${selectedCourseIds.size} activit${selectedCourseIds.size === 1 ? "y" : "ies"}? This cannot be undone.`)) return;
+    if (!(await confirm({ title: "Delete selected activities?", description: `This permanently deletes ${selectedCourseIds.size} selected activit${selectedCourseIds.size === 1 ? "y" : "ies"}.`, confirmLabel: "Delete activities", destructive: true }))) return;
     setDeleting(true);
     await Promise.all([...selectedCourseIds].map(id =>
       fetch(`/api/camps/${campId}/courses/${id}`, { method: "DELETE" })

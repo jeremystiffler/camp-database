@@ -1,6 +1,7 @@
 "use client";
 
 import { KeyboardEvent, useEffect, useState } from "react";
+import { useConfirmation } from "@/components/ConfirmDialog";
 
 type InlineTextProps = {
   value: string | null | undefined;
@@ -41,9 +42,10 @@ export function InlineText({ value, onSave, placeholder = "—", className = "",
 type RowDeleteButtonProps = { onDelete: () => Promise<void> | void; label: string; disabled?: boolean; className?: string };
 /** A uniform destructive action with an explicit confirmation for operational rows. */
 export function RowDeleteButton({ onDelete, label, disabled, className = "" }: RowDeleteButtonProps) {
+  const { confirm } = useConfirmation();
   const [working, setWorking] = useState(false);
   const remove = async () => {
-    if (!confirm(`Delete ${label}? This cannot be undone.`)) return;
+    if (!(await confirm({ title: `Delete ${label}?`, description: "This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     setWorking(true); try { await onDelete(); } catch { alert(`Could not delete ${label}. Please try again.`); } finally { setWorking(false); }
   };
   return <button type="button" onClick={() => void remove()} disabled={disabled || working} aria-label={`Delete ${label}`} title={`Delete ${label}`} className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50 disabled:opacity-50 ${className}`}><span aria-hidden="true">🗑</span></button>;

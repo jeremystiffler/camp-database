@@ -6,6 +6,7 @@ import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState } from "@/components/OperationalUI";
+import { useConfirmation } from "@/components/ConfirmDialog";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -713,6 +714,7 @@ function MandatorySessionModal({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }: { simpleCatalog?: boolean; onActivitiesChanged?: () => void } = {}) {
+  const { confirm } = useConfirmation();
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
   const activityId = searchParams.get("activityId") || "";
@@ -797,7 +799,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
   const deleteSelectedCourses = async () => {
     const ids = [...selectedCourseIds];
     if (ids.length === 0) return;
-    if (!confirm(`Delete ${ids.length} selected activit${ids.length === 1 ? "y" : "ies"}? This cannot be undone.`)) return;
+    if (!(await confirm({ title: "Delete selected activities?", description: `This permanently deletes ${ids.length} selected activit${ids.length === 1 ? "y" : "ies"}.`, confirmLabel: "Delete activities", destructive: true }))) return;
     setBulkWorking(true);
     await Promise.all(ids.map(id => fetch(`/api/camps/${campId}/courses/${id}`, { method: "DELETE" })));
     setSelectedCourseIds(new Set());
@@ -866,7 +868,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
   };
 
   const deleteMandatorySession = async (id: string) => {
-    if (!confirm("Delete this required assembly? Existing automatic enrollments remain until manually adjusted.")) return;
+    if (!(await confirm({ title: "Delete this required assembly?", description: "Existing automatic enrollments remain until manually adjusted.", confirmLabel: "Delete assembly", destructive: true }))) return;
     await fetch(`/api/camps/${campId}/mandatory-sessions/${id}`, { method: "DELETE" });
     load();
   };

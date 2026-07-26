@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ROLE_LABELS, ROLE_DESCRIPTIONS, ROLE_COLORS, ASSIGNABLE_ROLES, type CampRole } from "@/lib/permissions";
 import { EmptyState, PageHeader } from "@/components/OperationalUI";
+import { useConfirmation } from "@/components/ConfirmDialog";
 
 interface TeamMember {
   id: string;
@@ -30,6 +31,7 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 function TeamContent() {
+  const { confirm } = useConfirmation();
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
 
@@ -105,13 +107,13 @@ function TeamContent() {
   };
 
   const removeMember = async (memberId: string) => {
-    if (!confirm("Remove this person from the program?")) return;
+    if (!(await confirm({ title: "Remove this person?", description: "They will lose access to this program.", confirmLabel: "Remove person", destructive: true }))) return;
     await fetch(`/api/camps/${campId}/members/${memberId}`, { method: "DELETE" });
     load();
   };
 
   const cancelInvite = async (inviteId: string) => {
-    if (!confirm("Cancel this invite?")) return;
+    if (!(await confirm({ title: "Cancel this invite?", description: "The invitation link will stop working.", confirmLabel: "Cancel invite", destructive: true }))) return;
     await fetch(`/api/camps/${campId}/members/${inviteId}`, { method: "DELETE" });
     load();
   };

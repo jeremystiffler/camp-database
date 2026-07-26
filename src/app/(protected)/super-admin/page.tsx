@@ -1,12 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { useConfirmation } from "@/components/ConfirmDialog";
 
 type Admin = { id: string; email: string; name: string | null; root: boolean };
 type Promotion = { id: string; code: string; active: boolean; timesRedeemed: number; maxRedemptions: number | null; expiresAt: string | null; firstTimeTransaction: boolean; percentOff: number | null; amountOff: number | null; currency: string | null; duration: string };
 const input = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-forest-500";
 
 export default function SuperAdminPage() {
+  const { confirm } = useConfirmation();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [root, setRoot] = useState(false);
   const [admins, setAdmins] = useState<Admin[]>([]);
@@ -46,7 +48,7 @@ export default function SuperAdminPage() {
     }
   };
   const disable = async (id: string, code: string) => {
-    if (!confirm(`Deactivate ${code}? It can no longer be redeemed.`)) return;
+    if (!(await confirm({ title: `Deactivate ${code}?`, description: "It can no longer be redeemed.", confirmLabel: "Deactivate promotion", destructive: true }))) return;
     const response = await fetch(`/api/platform/promotions?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     const data = await response.json(); setMessage(response.ok ? `${code} deactivated.` : data.error || "Could not deactivate promotion."); load();
   };
@@ -58,7 +60,7 @@ export default function SuperAdminPage() {
     setAdminEmail(""); setMessage(`${data.admin.email} is now a Super Admin.`); load();
   };
   const removeAdmin = async (email: string) => {
-    if (!confirm(`Remove Super Admin access from ${email}?`)) return;
+    if (!(await confirm({ title: "Remove Super Admin access?", description: `${email} will no longer be able to manage the platform.`, confirmLabel: "Remove access", destructive: true }))) return;
     const response = await fetch(`/api/platform/admins?email=${encodeURIComponent(email)}`, { method: "DELETE" });
     const data = await response.json(); setMessage(response.ok ? `${email} no longer has Super Admin access.` : data.error || "Could not remove administrator."); load();
   };
