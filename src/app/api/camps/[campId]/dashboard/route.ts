@@ -54,8 +54,10 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   const unscheduledClasses = courses.filter((course) => course.courseSessionTemplates.length === 0 && course.sessions.length === 0 && !isDismissed(course, "schedule")).length;
   const fullOrOverCapacityClasses = courses.filter((course) => {
     if (!course.cap || course.cap <= 0) return false;
-    const enrolled = course.sessions.reduce((sum, s) => sum + (s.enrolledCount || 0), 0);
-    return enrolled >= course.cap && !isDismissed(course, "capacity");
+    // Capacity is per scheduled instance of the activity. Summing enrollment
+    // across every time block made a five-session activity look full at 5× its
+    // actual per-session roster.
+    return course.sessions.some((session) => (session.enrolledCount || 0) >= course.cap!) && !isDismissed(course, "capacity");
   }).length;
   const classesWithNoEnrollment = courses.filter((course) => course.sessions.reduce((sum, s) => sum + (s.enrolledCount || 0), 0) === 0).length;
 

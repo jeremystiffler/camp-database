@@ -912,11 +912,11 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
 
   const attentionWarnings = (course: Course): { key: "teacher" | "schedule" | "capacity"; label: string }[] => {
     const dismissed = new Set(course.attentionDismissals || []);
-    const enrolled = (course.sessions || []).reduce((sum, session) => sum + (session.enrolledCount || 0), 0);
+    const hasFullSession = Boolean(course.cap && (course.sessions || []).some(session => (session.enrolledCount || 0) >= course.cap!));
     return [
       ...(!course.courseTeachers?.length && !dismissed.has("teacher") ? [{ key: "teacher" as const, label: "No teacher assigned" }] : []),
       ...(!(course.courseSessionTemplates?.length || course.sessions?.length) && !dismissed.has("schedule") ? [{ key: "schedule" as const, label: "Not on the schedule" }] : []),
-      ...(Boolean(course.cap && enrolled >= course.cap) && !dismissed.has("capacity") ? [{ key: "capacity" as const, label: "At capacity" }] : []),
+      ...(hasFullSession && !dismissed.has("capacity") ? [{ key: "capacity" as const, label: "At capacity" }] : []),
     ];
   };
 
