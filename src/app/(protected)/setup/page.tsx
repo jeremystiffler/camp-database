@@ -7,7 +7,7 @@ import { TeachersContent } from "../teachers/page";
 import { ActivitiesContent } from "../activities/page";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
-import { MoreOptions, useGuidedMode } from "@/components/GuidedMode";
+import { useGuidedMode } from "@/components/GuidedMode";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState, SaveState } from "@/components/OperationalUI";
@@ -822,7 +822,7 @@ function SetupContent() {
               <span>{setupPercent}%</span>
             </div>
             <div className="h-2.5 overflow-hidden rounded-full bg-white shadow-inner">
-              <div className="h-full rounded-full bg-gradient-to-r from-sky-500 via-emerald-500 to-amber-500 transition-all" style={{ width: `${setupPercent}%` }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${setupPercent}%`, background: "linear-gradient(90deg, var(--brand-primary), var(--accent))" }} />
             </div>
           </div>
         </div>
@@ -842,10 +842,10 @@ function SetupContent() {
                   title={step.locked ? step.lockMessage : `${step.label}: ${stateLabel}`}
                   style={{ clipPath: "polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%)" }}
                 >
-                  <span className={`absolute inset-0 shadow-sm transition ${isActive ? "bg-slate-950" : step.done ? "bg-gradient-to-r from-emerald-500 to-sky-500" : step.locked ? "bg-slate-100" : "bg-white group-hover:bg-sky-50"}`} />
-                  <span className={`absolute inset-[2px] transition ${isActive ? "bg-slate-900" : step.done ? "bg-gradient-to-r from-emerald-500 to-sky-500" : step.locked ? "bg-slate-50" : "bg-white"}`} style={{ clipPath: "polygon(0 0, calc(100% - 17px) 0, 100% 50%, calc(100% - 17px) 100%, 0 100%, 17px 50%)" }} />
+                  <span className={`absolute inset-0 shadow-sm transition ${step.locked ? "bg-slate-100" : ""}`} style={isActive ? { background: "var(--brand-primary)" } : step.done ? { background: "linear-gradient(90deg, var(--brand-primary), var(--accent))" } : undefined} />
+                  <span className={`absolute inset-[2px] transition ${step.locked ? "bg-slate-50" : "bg-white"}`} style={{ clipPath: "polygon(0 0, calc(100% - 17px) 0, 100% 50%, calc(100% - 17px) 100%, 0 100%, 17px 50%)", ...(isActive ? { background: "var(--brand-primary)" } : step.done ? { background: "linear-gradient(90deg, var(--brand-primary), var(--accent))" } : {}) }} />
                   <span className="relative flex items-center gap-2 min-w-0">
-                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isActive ? "bg-white text-slate-950" : step.done ? "bg-white/95 text-emerald-700" : step.locked ? "bg-slate-200 text-slate-400" : "bg-sky-100 text-sky-700"}`}>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isActive ? "bg-white text-slate-950" : step.done ? "bg-white/95" : step.locked ? "bg-slate-200 text-slate-400" : "bg-sky-100 text-sky-700"}`} style={step.done && !isActive ? { color: "var(--brand-primary)" } : undefined}>
                       {step.done ? "✓" : index + 1}
                     </span>
                     <span className={`block truncate text-[11px] font-black uppercase tracking-wide ${isActive || step.done ? "text-white" : step.locked ? "text-slate-400" : "text-slate-800"}`}>{step.shortLabel}</span>
@@ -858,7 +858,7 @@ function SetupContent() {
 
         <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
           <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white shadow-sm">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-black text-white shadow-sm" style={{ background: "linear-gradient(135deg, var(--brand-primary), var(--accent))" }}>
               {activeStep.done ? "✓" : activeStepIndex + 1}
             </span>
             <div>
@@ -875,7 +875,7 @@ function SetupContent() {
             Already have a spreadsheet? Import it
           </Link>
         </div>
-        {guidedMode && <MoreOptions label="More setup options" className="mt-4"><p className="text-sm text-slate-600">Rooms, staff, and detailed scheduling are still available when you need them.</p><button type="button" onClick={() => setGuidedMode(false)} className="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-700">Show advanced setup</button></MoreOptions>}
+        {guidedMode && <div className="mt-4 flex justify-end"><button type="button" onClick={() => setGuidedMode(false)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50">Show advanced options</button></div>}
       </div>
 
       {/* ── Program Details ── */}
