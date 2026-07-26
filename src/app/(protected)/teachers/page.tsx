@@ -499,7 +499,7 @@ export function TeachersContent() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Teachers</h1>
+          <h1 className="page-title">Teachers</h1>
           <p className="text-slate-500 text-sm mt-0.5">{persons.length} {persons.length === 1 ? "person" : "people"}</p>
         </div>
         <div className="flex flex-wrap gap-2">

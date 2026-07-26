@@ -451,7 +451,7 @@ function ImportContent() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-slate-800">Import</h1>
+            <h1 className="page-title">Import</h1>
             <span className="text-xs font-semibold px-2.5 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full">BETA</span>
           </div>
           <p className="text-slate-500 text-sm">Upload a spreadsheet to bulk-create activities and teachers. Assign rooms and time blocks from the Activities tab.</p>

@@ -262,7 +262,7 @@ function ScheduleContent() {
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Schedule</p>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">Schedule</h1>
+          <h1 className="page-title">Schedule</h1>
           <p className="mt-1 text-sm font-semibold text-slate-500">{scheduleSummary}</p>
           <HelpCopy title="Schedule views" className="mt-1 text-sm text-slate-500">Switch views using the View menu below: grid, room, teacher, activity, capacity, or list.</HelpCopy>
         </div>

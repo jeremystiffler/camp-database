@@ -255,7 +255,7 @@ function SettingsContent() {
     <div className="max-w-5xl">
       <div className="mb-6">
         <p className="minimal-section-title mb-2">Program administration</p>
-        <h1 className="text-2xl font-black tracking-tight text-slate-900">Settings</h1>
+        <h1 className="page-title">Settings</h1>
         <p className="text-slate-500 text-sm mt-0.5">Profile, billing, appearance, utilities, and program-level actions.</p>
       </div>
 

@@ -776,7 +776,7 @@ function SetupContent() {
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           {searchParams.get("step") && <p className="mb-1 text-xs font-black uppercase tracking-wide text-sky-700">Setup › {stepLabel(activeStep)}</p>}
-          <h1 className="text-2xl font-bold text-slate-800">{guidedMode ? "Set up my event" : "Program Setup"}</h1>
+          <h1 className="page-title">{guidedMode ? "Set up my event" : "Program Setup"}</h1>
           <p className="text-slate-500 text-sm mt-0.5">{guidedMode ? "Start with the essentials. You can open More options whenever you want the full controls." : "Build your program in the order your brain naturally asks the questions."}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

@@ -725,7 +725,7 @@ function CampersContent() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Participants</h1>
+          <h1 className="page-title">Participants</h1>
           <p className="text-slate-500 text-sm mt-0.5">{campers.length} registered</p>
           {myRole === "viewer" && <p className="mt-1 text-xs font-semibold text-slate-500">You have view-only access to this program.</p>}
         </div>

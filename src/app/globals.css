@@ -215,6 +215,16 @@ body {
   color: #737373;
 }
 
+/* Shared top-level heading for sidebar workspaces. */
+.page-title {
+  margin-top: 0.25rem;
+  color: #0f172a;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
 /* ===================== Clean Playground Admin Color System ===================== */
 :root {
   --ui-bg: #f8fafc;

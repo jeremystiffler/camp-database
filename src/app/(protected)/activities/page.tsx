@@ -1010,7 +1010,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-sky-700 shadow-sm">
               Activity command center
             </div>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Classes & Teachers</h1>
+            <h1 className="page-title mt-3">Classes & Teachers</h1>
             <HelpCopy title="Activities workflow" className="mt-1 max-w-2xl text-sm text-slate-600">
               Manage activities from one working sheet: default program blocks at the top, then activity rows with room, teacher, capacity, and click-to-schedule cells.
             </HelpCopy>

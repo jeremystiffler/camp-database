@@ -537,7 +537,7 @@ function RegistrationContent() {
     <div className="max-w-5xl">
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Registration Form</h1>
+          <h1 className="page-title">Registration Form</h1>
           <HelpCopy title="Form builder" className="text-slate-500 text-sm mt-0.5">Drag fields to reorder. Click a field to edit it. Required system fields stay locked; custom fields can be deleted with confirmation.</HelpCopy>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
