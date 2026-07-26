@@ -121,7 +121,7 @@ type SetupStep = {
   actionLabel?: string;
 };
 
-function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
+function Section({ title, children, action, footer }: { title: string; children: React.ReactNode; action?: React.ReactNode; footer?: React.ReactNode }) {
   return (
     <div className="camp-card p-6 mb-5">
       <div className="flex items-center justify-between mb-4">
@@ -129,6 +129,7 @@ function Section({ title, children, action }: { title: string; children: React.R
         {action}
       </div>
       {children}
+      {footer && <div className="mt-6 flex justify-end border-t border-slate-100 pt-4">{footer}</div>}
     </div>
   );
 }
@@ -756,16 +757,32 @@ function SetupContent() {
   const stepLabel = (step: typeof activeStep) => guidedMode ? (guidedStepLabels[step.key] || step.label) : step.label;
   const nextStepLabel = stepLabel(nextStep).trim() || nextStep.actionLabel || "your next step";
   const activeStepIndex = setupSteps.findIndex(step => step.key === activeStep.key);
+  const followingStep = visibleSetupSteps[visibleSetupSteps.findIndex(step => step.key === activeStep.key) + 1];
   const activeStateLabel = activeStep.done ? "Done" : activeStep.locked ? "Locked" : "Open";
   const setupPercent = Math.round((completedSteps / visibleSetupSteps.length) * 100);
 
-  const jumpToNextStep = async () => {
-    if (activeTab === "details" || nextStep.key === "details") {
+  const advanceToFollowingStep = async () => {
+    // Event details are the only card with unsaved local form state.
+    if (activeTab === "details") {
       const savedDetails = await saveCamp();
       if (!savedDetails) return;
+    } else {
+      await load();
     }
-    goToStep(nextStep.key);
+    if (!followingStep) return;
+    goToStep(followingStep.key);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const nextCardButton = followingStep ? (
+    <button
+      type="button"
+      onClick={advanceToFollowingStep}
+      className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-slate-700"
+    >
+      Next: {stepLabel(followingStep)} →
+    </button>
+  ) : null;
 
   const useSampleWeekDates = () => {
     const today = new Date();
@@ -787,16 +804,6 @@ function SetupContent() {
           {searchParams.get("step") && <p className="mb-1 text-xs font-black uppercase tracking-wide text-sky-700">Setup › {stepLabel(activeStep)}</p>}
           <h1 className="page-title">{guidedMode ? "Set up my event" : "Event Setup"}</h1>
           <p className="text-slate-500 text-sm mt-0.5">{guidedMode ? "Start with the essentials. You can open More options whenever you want the full controls." : "Build your event in the order your brain naturally asks the questions."}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={jumpToNextStep}
-            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
-          >
-            Next: {guidedMode ? stepLabel(nextStep) : (nextStep.actionLabel || nextStep.label)} →
-          </button>
-
         </div>
       </div>
 
@@ -873,7 +880,7 @@ function SetupContent() {
 
       {/* ── Program Details ── */}
       {activeTab === "details" && (
-      <Section title="Event Details">
+      <Section title="Event Details" footer={nextCardButton}>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Event Name</label>
@@ -929,7 +936,7 @@ function SetupContent() {
 
       {/* ── Rooms ── */}
       {activeTab === "rooms" && (
-      <Section title="Rooms & Locations">
+      <Section title="Rooms & Locations" footer={nextCardButton}>
         <div className="space-y-3 mb-4">
           {rooms.length === 0 && <p className="text-slate-400 text-sm">No rooms yet. Add your first room below.</p>}
           {rooms.map(room => (
@@ -1000,7 +1007,7 @@ function SetupContent() {
 
       {/* ── Age Groups ── */}
       {activeTab === "ages" && (
-      <Section title="Age Groups">
+      <Section title="Age Groups" footer={nextCardButton}>
         <div className="space-y-3 mb-4">
           {ageGroups.length === 0 && <p className="text-slate-400 text-sm">No age groups yet. Add your first group below.</p>}
           {ageGroups
@@ -1097,7 +1104,7 @@ function SetupContent() {
 
       {/* ── Time Blocks ── */}
       {activeTab === "times" && (
-      <Section title="Time Blocks">
+      <Section title="Time Blocks" footer={nextCardButton}>
         <HelpCopy title="Time blocks" className="text-xs text-slate-400 mb-4">
           Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of the event. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
         </HelpCopy>
@@ -1397,6 +1404,7 @@ function SetupContent() {
       {activeTab === "teachers" && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <TeachersContent />
+          {nextCardButton && <div className="mt-6 flex justify-end border-t border-slate-100 pt-4">{nextCardButton}</div>}
         </div>
       )}
 
@@ -1472,7 +1480,7 @@ function SetupContent() {
       )}
 
       {activeTab === "registration" && (
-        <Section title="Registration">
+        <Section title="Registration" footer={nextCardButton}>
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
               <HelpCopy title="Registration preview" className="text-sm text-slate-600">Once the schedule is sane, preview what families will see. Participants will only see eligible, non-mandatory activity choices, and full classes stay protected by capacity rules.</HelpCopy>
@@ -1490,7 +1498,7 @@ function SetupContent() {
       )}
 
       {activeTab === "review" && (
-        <Section title="Review & Open">
+        <Section title="Review & Open" footer={nextCardButton}>
           <div className="space-y-4">
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {setupSteps.slice(0, 8).map(step => (
