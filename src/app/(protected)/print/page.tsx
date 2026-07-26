@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/OperationalUI";
 import CamperScannableCode from "@/components/CamperScannableCode";
 import { HelpCopy } from "@/components/HelpMode";
+import { useGuidedMode } from "@/components/GuidedMode";
 
 type PrintType = "principal_schedule" | "teacher_schedules" | "class_rosters" | "rotation_roster" | "camper_choices" | "camper_roster" | "tshirt_list" | "badges" | "pickup_cards" | "pickup_roster" | "custom_table";
 type CustomDataSource = "participants" | "people" | "activities";
@@ -467,6 +468,7 @@ function teacherRows(person: Person, courses: Course[], mandatorySessions: Manda
 }
 
 function PrintContent() {
+  const { guidedMode } = useGuidedMode();
   const router = useRouter();
   const searchParams = useSearchParams();
   const campIdFromUrl = searchParams.get("campId") || "";
@@ -1042,7 +1044,7 @@ function PrintContent() {
 
       <div className="no-print space-y-4 studio-workspace">
         <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <div className="flex min-w-0 items-center gap-3"><span className="text-lg font-black text-slate-900">Print Center</span><span className="hidden h-5 w-px bg-slate-200 sm:block" /><input aria-label="Printable name" value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="min-w-0 max-w-xs bg-transparent text-sm font-bold text-slate-600 outline-none placeholder:text-slate-400" /></div>
+          <div className="flex min-w-0 items-center gap-3"><span className="text-lg font-black text-slate-900">{guidedMode ? "Print stuff" : "Print Center"}</span><span className="hidden h-5 w-px bg-slate-200 sm:block" /><input aria-label="Printable name" value={draftTemplate.name} onChange={e => updateDraft({ name: e.target.value })} className="min-w-0 max-w-xs bg-transparent text-sm font-bold text-slate-600 outline-none placeholder:text-slate-400" /></div>
           <div className="flex flex-wrap items-center gap-2"><button onClick={saveAsTemplate} disabled={saving} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:opacity-50">Save copy</button><button onClick={() => printDoc()} className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white">Print / Save as PDF</button></div>
         </header>
         {loading ? <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" /></div> : (
