@@ -23,6 +23,7 @@ interface DashboardSummary {
     registeredStudents: number;
     classes: number;
     teachers: number;
+    ageGroups: number;
     rooms: number;
     scheduleBlocks: number;
     paymentCollectedCents: number;
@@ -418,19 +419,23 @@ function DashboardContent() {
 
   if (guidedMode) {
     const registered = selectedStats?.registeredStudents ?? activeCamp?._count?.campers ?? 0;
-    const nextHref = activeCamp ? `/setup?campId=${activeCamp.id}` : "/dashboard";
     const progress = [
-      [Boolean(activeCamp?.name), "Named your event"],
-      [Boolean(activeCamp?.startDate && activeCamp?.endDate), "Set the dates"],
-      [Boolean(summary?.stats?.classes), "Things to do"],
-      [Boolean(summary?.stats?.scheduleBlocks), "When things happen"],
-      [Boolean(activeCamp?.registrationOpen), "Open for sign-ups"],
-      [registered > 0, "Families are signed up"],
+      { done: Boolean(activeCamp?.name && activeCamp?.startDate && activeCamp?.endDate), label: "Name your event and set the dates", step: "details", description: "Give your event a name and choose its start and end dates." },
+      { done: (selectedStats?.ageGroups ?? 0) > 0, label: "Who’s it for?", step: "ages", description: "Add an age group so every activity is built for the right kids." },
+      { done: (selectedStats?.rooms ?? 0) > 0, label: "Where things happen", step: "rooms", description: "Add at least one room or location." },
+      { done: (selectedStats?.scheduleBlocks ?? 0) > 0, label: "When things happen", step: "times", description: "Create the time blocks that shape each day." },
+      { done: (selectedStats?.teachers ?? 0) > 0, label: "Grown-ups in charge", step: "teachers", description: "Add the teachers and helpers who will lead the activities." },
+      { done: (selectedStats?.classes ?? 0) > 0, label: "Things to do", step: "activities", description: "Create the activities participants can choose from." },
+      { done: (selectedStats?.classes ?? 0) > 0 && (summary?.attention.unscheduledClasses ?? 1) === 0, label: "Make the daily plan", step: "schedule", description: "Put every activity into its time block." },
+      { done: Boolean(activeCamp?.registrationOpen), label: "Open for sign-ups", step: "registration", description: "Review your sign-up page, then open registration for families." },
+      { done: registered > 0, label: "Families are signed up", step: "campers", description: "You’re ready to welcome your first participant." },
     ];
+    const nextProgress = progress.find((item) => !item.done) || progress[progress.length - 1];
+    const nextHref = activeCamp ? `/${nextProgress.step === "campers" ? "campers" : "setup"}?campId=${activeCamp.id}${nextProgress.step === "campers" ? "" : `&step=${nextProgress.step}`}` : "/dashboard";
     return <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.16em] text-indigo-600">Home</p><h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900">{activeCamp ? `Your event: ${activeCamp.name}` : "Start your event"}</h1><p className="mt-2 text-sm font-semibold text-slate-600">{activeCamp ? `${activeCamp.status === "draft" ? "Draft" : activeCamp.status} · ${activeCamp.registrationOpen ? "open for sign-ups" : "not open for sign-ups yet"} · ${registered} signed up` : "Create your first event when you’re ready."}</p></div>{(camps.length === 0 || canAdminCamp(activeCamp)) && <button onClick={() => setShowNewCamp(true)} className="minimal-button-primary whitespace-nowrap">+ Start a new event</button>}</div>
-      {activeCamp ? <><section className="rounded-3xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-sky-50 p-7 shadow-sm"><p className="text-xs font-black uppercase tracking-[.16em] text-indigo-700">👉 Next</p><h2 className="mt-2 text-2xl font-black text-slate-950">Finish setting up your event</h2><p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed text-slate-700">{summary?.stats?.classes ? "Add a time block, then we’ll make your sign-up page ready." : "Add the things kids will do. You can fill in rooms and grown-ups later."}</p>{canEditCamp(activeCamp) && <Link href={nextHref} className="minimal-button-primary mt-5 inline-flex">Let’s do it →</Link>}</section>
-      <section className="camp-card p-6"><h2 className="text-lg font-black text-slate-900">Your progress</h2><div className="mt-4 space-y-3">{progress.map(([done, label]) => <div key={String(label)} className="flex items-center gap-3 text-sm font-bold text-slate-700"><span className={done ? "text-emerald-600" : "text-slate-400"}>{done ? "✓" : "○"}</span>{label}{!done && label === "Things to do" && <span className="text-xs font-semibold text-indigo-600">up next</span>}</div>)}</div></section>
+      {activeCamp ? <><section className="rounded-3xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-sky-50 p-7 shadow-sm"><p className="text-xs font-black uppercase tracking-[.16em] !text-white">👉 Next</p><h2 className="mt-2 text-2xl font-black !text-white">Finish setting up your event</h2><p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed !text-white">{nextProgress.description}</p>{canEditCamp(activeCamp) && <Link href={nextHref} className="minimal-button-primary mt-5 inline-flex">Let’s do it →</Link>}</section>
+      <section className="camp-card p-6"><h2 className="text-lg font-black text-slate-900">Your progress</h2><div className="mt-4 space-y-3">{progress.map((item) => <div key={item.step} className="flex items-center gap-3 text-sm font-bold text-slate-700"><span className={item.done ? "text-emerald-600" : "text-slate-400"}>{item.done ? "✓" : "○"}</span>{item.label}{!item.done && item.step === nextProgress.step && <span className="text-xs font-semibold text-indigo-600">up next</span>}</div>)}</div></section>
       <MoreOptions label="More options (stats, all tools)"><div className="grid grid-cols-2 gap-3 text-sm font-bold text-slate-700"><span>{registered} signed up</span><span>{selectedStats?.classes ?? 0} activities</span><span>{selectedStats?.teachers ?? 0} grown-ups</span><span>{summaryLoading ? "Checking details…" : `${attentionTotal} things need attention`}</span></div></MoreOptions>
       {camps.length >= 2 && <section><h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Switch event</h2><div className="flex flex-wrap gap-2">{camps.map(c => <Link key={c.id} href={`/dashboard?campId=${c.id}`} className={`rounded-xl border px-3 py-2 text-sm font-bold ${c.id === activeCamp.id ? "border-indigo-300 bg-indigo-50 text-indigo-800" : "border-slate-200 bg-white text-slate-600"}`}>{c.name}</Link>)}</div></section>}</> : <section className="camp-card p-8 text-center"><h2 className="text-xl font-black text-slate-900">Let’s make your first event</h2><p className="mt-2 text-sm text-slate-600">Name it, add a few activities, and we’ll help you open sign-ups.</p><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary mt-5">Start an event</button></section>}
       {showNewCamp && <NewCampWizard firstProgram={camps.length === 0} onClose={() => setShowNewCamp(false)} onCreated={(newCampId) => { setShowNewCamp(false); localStorage.setItem("activeCampId", newCampId); router.push(`/setup?campId=${newCampId}`); }} />}

@@ -24,7 +24,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
         registrationOpen: true,
         startDate: true,
         endDate: true,
-        _count: { select: { campers: true, courses: true, persons: true, rooms: true, sessionTemplates: true } },
+        _count: { select: { campers: true, courses: true, persons: true, rooms: true, ageGroups: true, sessionTemplates: true } },
       },
     }),
     prisma.registrationPayment.aggregate({
@@ -67,6 +67,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       registeredStudents: camp._count.campers,
       classes: camp._count.courses,
       teachers: camp._count.persons,
+      ageGroups: camp._count.ageGroups,
       rooms: camp._count.rooms,
       scheduleBlocks: camp._count.sessionTemplates,
       paymentCollectedCents: paidPayments._sum.amountCents || 0,
