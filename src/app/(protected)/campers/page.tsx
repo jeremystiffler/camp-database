@@ -586,7 +586,7 @@ function CamperDrawer({
               <div className="grid gap-3 sm:grid-cols-2">
                 <input className={inputCls} placeholder="Coupon code" value={form.couponCode} onChange={e => update("couponCode", e.target.value)} />
                 <select className={inputCls} value={form.paymentStatus} onChange={e => update("paymentStatus", e.target.value)}>{PAYMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select>
-                <input className={inputCls} type="number" placeholder="Program price cents" value={form.campPriceCents} onChange={e => update("campPriceCents", e.target.value)} />
+                <input className={inputCls} type="number" placeholder="Event price cents" value={form.campPriceCents} onChange={e => update("campPriceCents", e.target.value)} />
                 <input className={inputCls} type="number" placeholder="Discount cents" value={form.discountCents} onChange={e => update("discountCents", e.target.value)} />
                 <input className={inputCls} type="number" placeholder="Platform fee cents" value={form.platformFeeCents} onChange={e => update("platformFeeCents", e.target.value)} />
                 <input className={inputCls} type="number" placeholder="Total paid cents" value={form.totalPaidCents} onChange={e => update("totalPaidCents", e.target.value)} />
@@ -597,7 +597,7 @@ function CamperDrawer({
                 <div className="grid sm:grid-cols-2 gap-2.5">
                   <Info label="Status" value={camper.paymentStatus || "not_required"} />
                   <Info label="Coupon" value={camper.couponCode || "—"} />
-                  <Info label="Program price" value={cents(camper.campPriceCents)} />
+                  <Info label="Event price" value={cents(camper.campPriceCents)} />
                   <Info label="Discount" value={cents(camper.discountCents)} />
                   <Info label="Platform fee" value={cents(camper.platformFeeCents)} />
                   <Info label="Total paid" value={cents(camper.totalPaidCents)} />
@@ -719,7 +719,7 @@ function CampersContent() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  if (!campId) return <EmptyState title="Choose a program first" description="Participants are organized by program. Choose one from the dashboard to view its roster." actionHref="/dashboard" actionLabel="Go to dashboard" />;
+  if (!campId) return <EmptyState title="Choose an event first" description="Participants are organized by event. Choose one from the dashboard to view its roster." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <div>
@@ -727,7 +727,7 @@ function CampersContent() {
         <div>
           <h1 className="page-title">Participants</h1>
           <p className="text-slate-500 text-sm mt-0.5">{campers.length} registered</p>
-          {myRole === "viewer" && <p className="mt-1 text-xs font-semibold text-slate-500">You have view-only access to this program.</p>}
+          {myRole === "viewer" && <p className="mt-1 text-xs font-semibold text-slate-500">You have view-only access to this event.</p>}
         </div>
         <div className="flex items-center gap-2">
           {!guidedMode && canEdit && <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">Assign Pickup #s</button>}

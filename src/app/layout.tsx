@@ -17,9 +17,9 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Simple Schedule Pro — Program Management Platform",
+  title: "Simple Schedule Pro — Event Management Platform",
   description:
-    "Simple Schedule Pro — registrations, scheduling, check-in, and print materials for youth programs, workshops, leagues, and classes.",
+    "Simple Schedule Pro — registrations, scheduling, check-in, and print materials for youth events, workshops, leagues, and classes.",
 };
 
 export default function RootLayout({

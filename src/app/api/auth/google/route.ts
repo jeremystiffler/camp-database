@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
       const slug = googleUser.name.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Date.now();
       const org = await prisma.organization.create({ data: { name: googleUser.name, slug } });
 
-      const campSlug = "my-program-" + Date.now();
       user = await prisma.user.create({
         data: {
           email: googleUser.email,
@@ -28,19 +27,8 @@ export async function POST(req: NextRequest) {
           guidedMode: true,
         },
       });
-
-      const newCamp = await prisma.camp.create({
-        data: {
-          organizationId: org.id,
-          name: "My Program",
-          slug: campSlug,
-          status: "draft",
-        },
-      });
-      await prisma.campMember.create({
-        data: { campId: newCamp.id, userId: user.id, role: "admin" },
-      });
-      await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [{ ...newCamp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], campers: [] }] } });
+      // Do not create a placeholder event: Dashboard will collect the real title and palette.
+      await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [] } });
     }
 
     const token = await signToken({

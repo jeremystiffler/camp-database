@@ -139,7 +139,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
   const toggle = (key: string) => setOptions(prev => ({ ...prev, [key]: !prev[key] }));
 
   const handleCopy = async () => {
-    if (!name.trim()) { setError("Program name is required"); return; }
+    if (!name.trim()) { setError("Event name is required"); return; }
     setCopying(true); setError("");
     try {
       const res  = await fetch(`/api/camps/${sourceCamp.id}/copy`, {
@@ -160,7 +160,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100">
-          <h2 className="font-bold text-lg text-slate-800">Copy Program</h2>
+          <h2 className="font-bold text-lg text-slate-800">Copy Event</h2>
           <p className="text-sm text-slate-500 mt-0.5">Copying from <strong>{sourceCamp.name}</strong></p>
         </div>
 
@@ -171,7 +171,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 
               {/* New camp name */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">New Program Name *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">New Event Name *</label>
                 <input type="text" value={name} onChange={e => setName(e.target.value)}
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
               </div>
@@ -207,7 +207,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
                   ))}
                 </div>
                 <p className="text-xs text-slate-400 mt-2 pl-1">
-                  💡 Participants & enrollments are never copied — those are specific to each program run.
+                  💡 Participants & enrollments are never copied — those are specific to each event run.
                 </p>
               </div>
             </div>
@@ -221,7 +221,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
                 {copying
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Copying…</>
-                  : "Copy Program"}
+                  : "Copy Event"}
               </button>
             </div>
           </>
@@ -247,7 +247,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
               </button>
               <button onClick={() => onCopied(result.campId)}
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
-                Open New Program →
+                Open New Event →
               </button>
             </div>
           </>
@@ -311,7 +311,7 @@ function CampCard({ camp, active, onCopy }: { camp: Camp; active: boolean; onCop
           onClick={() => localStorage.setItem("activeCampId", camp.id)}
           className="mt-4 block w-full rounded-xl bg-slate-900 px-3 py-2 text-center text-xs font-black text-white hover:bg-slate-700 transition-colors"
         >
-          Switch to this program
+          Switch to this event
         </Link>
       )}
     </div>
@@ -392,8 +392,8 @@ function DashboardContent() {
   const saveCampName = async () => {
     if (!activeCamp) return;
     const name = renameValue.trim();
-    if (!name) { setRenameMsg({ type: "error", text: "Program name cannot be blank." }); return; }
-    if (name === activeCamp.name) { setRenameMsg({ type: "error", text: "No rename needed — that is already the program name." }); return; }
+    if (!name) { setRenameMsg({ type: "error", text: "Event name cannot be blank." }); return; }
+    if (name === activeCamp.name) { setRenameMsg({ type: "error", text: "No rename needed — that is already the event name." }); return; }
     setRenameSaving(true); setRenameMsg(null);
     const res = await fetch(`/api/camps/${activeCamp.id}`, {
       method: "PATCH",
@@ -405,9 +405,9 @@ function DashboardContent() {
     if (res.ok) {
       setPrograms(prev => prev.map(c => c.id === activeCamp.id ? { ...c, name } : c));
       window.dispatchEvent(new Event("camp:list-changed"));
-      setRenameMsg({ type: "success", text: "Program renamed." });
+      setRenameMsg({ type: "success", text: "Event renamed." });
     } else {
-      setRenameMsg({ type: "error", text: data.detail || data.error || "Could not rename program." });
+      setRenameMsg({ type: "error", text: data.detail || data.error || "Could not rename event." });
     }
   };
 
@@ -434,7 +434,7 @@ function DashboardContent() {
     const nextHref = activeCamp ? `/${nextProgress.step === "campers" ? "campers" : "setup"}?campId=${activeCamp.id}${nextProgress.step === "campers" ? "" : `&step=${nextProgress.step}`}` : "/dashboard";
     return <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[.16em] text-indigo-600">Home</p><h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900">{activeCamp ? `Your event: ${activeCamp.name}` : "Start your event"}</h1><p className="mt-2 text-sm font-semibold text-slate-600">{activeCamp ? `${activeCamp.status === "draft" ? "Draft" : activeCamp.status} · ${activeCamp.registrationOpen ? "open for sign-ups" : "not open for sign-ups yet"} · ${registered} signed up` : "Create your first event when you’re ready."}</p></div>{(camps.length === 0 || canAdminCamp(activeCamp)) && <button onClick={() => setShowNewCamp(true)} className="minimal-button-primary whitespace-nowrap">+ Start a new event</button>}</div>
-      {activeCamp ? <><section className="rounded-3xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-sky-50 p-7 shadow-sm"><p className="text-xs font-black uppercase tracking-[.16em] !text-white">👉 Next</p><h2 className="mt-2 text-2xl font-black !text-white">Finish setting up your event</h2><p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed !text-white">{nextProgress.description}</p>{canEditCamp(activeCamp) && <Link href={nextHref} className="minimal-button-primary mt-5 inline-flex">Let’s do it →</Link>}</section>
+      {activeCamp ? <><section className="rounded-3xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-sky-50 p-7 shadow-sm"><p className="text-xs font-black uppercase tracking-[.16em] !text-white">👉 Next</p><h2 className="mt-2 text-2xl font-black !text-white">Finish setting up your event</h2><p className="mt-2 max-w-xl text-sm font-semibold leading-relaxed !text-white">{nextProgress.description}</p>{canEditCamp(activeCamp) && <Link href={nextHref} className="minimal-button-primary hero-next-button mt-5 inline-flex">Let’s do it →</Link>}</section>
       <section className="camp-card p-6"><h2 className="text-lg font-black text-slate-900">Your progress</h2><div className="mt-4 space-y-3">{progress.map((item) => <div key={item.step} className="flex items-center gap-3 text-sm font-bold text-slate-700"><span className={item.done ? "text-emerald-600" : "text-slate-400"}>{item.done ? "✓" : "○"}</span>{item.label}{!item.done && item.step === nextProgress.step && <span className="text-xs font-semibold text-indigo-600">up next</span>}</div>)}</div></section>
       <MoreOptions label="More options (stats, all tools)"><div className="grid grid-cols-2 gap-3 text-sm font-bold text-slate-700"><span>{registered} signed up</span><span>{selectedStats?.classes ?? 0} activities</span><span>{selectedStats?.teachers ?? 0} grown-ups</span><span>{summaryLoading ? "Checking details…" : `${attentionTotal} things need attention`}</span></div></MoreOptions>
       {camps.length >= 2 && <section><h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-500">Switch event</h2><div className="flex flex-wrap gap-2">{camps.map(c => <Link key={c.id} href={`/dashboard?campId=${c.id}`} className={`rounded-xl border px-3 py-2 text-sm font-bold ${c.id === activeCamp.id ? "border-indigo-300 bg-indigo-50 text-indigo-800" : "border-slate-200 bg-white text-slate-600"}`}>{c.name}</Link>)}</div></section>}</> : <section className="camp-card p-8 text-center"><h2 className="text-xl font-black text-slate-900">Let’s make your first event</h2><p className="mt-2 text-sm text-slate-600">Name it, add a few activities, and we’ll help you open sign-ups.</p><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary mt-5">Start an event</button></section>}
@@ -444,21 +444,21 @@ function DashboardContent() {
 
   return (
     <div>
-      {(camps.length === 0 || canAdminCamp(activeCamp)) && <div className="mb-4 flex justify-end"><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary flex items-center gap-2"><span>+</span> New Program</button></div>}
+      {(camps.length === 0 || canAdminCamp(activeCamp)) && <div className="mb-4 flex justify-end"><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary flex items-center gap-2"><span>+</span> New Event</button></div>}
       {/* Unified program workspace header */}
       <div className="camp-card relative mb-8 overflow-visible border-indigo-100 bg-gradient-to-br from-white via-indigo-50/50 to-sky-50 p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <p className="minimal-section-title mb-2 !text-white">Program workspace</p>
-            <h1 className="truncate text-3xl font-black tracking-tight text-white">{activeCamp ? activeCamp.name : "Your programs"}</h1>
-            <p className="mt-1 text-sm font-semibold !text-white">{activeCamp ? formatCampDateRange(activeCamp) : "Choose a program to manage its setup, people, schedule, and registration."}</p>
+            <p className="minimal-section-title mb-2 !text-white">Event workspace</p>
+            <h1 className="truncate text-3xl font-black tracking-tight text-white">{activeCamp ? activeCamp.name : "Your events"}</h1>
+            <p className="mt-1 text-sm font-semibold !text-white">{activeCamp ? formatCampDateRange(activeCamp) : "Choose an event to manage its setup, people, schedule, and registration."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {activeCamp && <p className="mr-1 text-xs font-black uppercase tracking-wide !text-white">Status: {activeCamp.status} · Registration {activeCamp.registrationOpen ? "open" : "closed"}</p>}
             {activeCamp && <div className="relative">
               <button type="button" onClick={() => setActionsOpen(v => !v)} aria-expanded={actionsOpen} className="rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs font-black !text-slate-950 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50">Manage ▾</button>
               {actionsOpen && <div className="absolute right-0 top-10 z-30 w-[min(92vw,340px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
-                {canEditCamp(activeCamp) ? <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="mb-1.5 block text-xs font-black uppercase tracking-wide !text-slate-800">Rename program</label><div className="flex gap-2"><input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" /><button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button></div>{renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}</div> : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold !text-slate-800">This shared program is read-only for your account.</p>}
+                {canEditCamp(activeCamp) ? <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="mb-1.5 block text-xs font-black uppercase tracking-wide !text-slate-800">Rename event</label><div className="flex gap-2"><input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" /><button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button></div>{renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}</div> : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold !text-slate-800">This shared event is read-only for your account.</p>}
                 <div className="grid gap-1">{(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold !text-slate-800 hover:bg-slate-50 hover:!text-slate-950">{label}</Link>)}</div>
                 {activeCamp && <div className="mt-2 border-t border-slate-200 pt-2"><button type="button" onClick={() => { setActionsOpen(false); setCopyingCamp(activeCamp); }} className="w-full rounded-xl px-3 py-2 text-left text-sm font-black !text-slate-800 hover:bg-slate-50">Duplicate</button></div>}
               </div>}
@@ -475,7 +475,7 @@ function DashboardContent() {
           <div className="hidden">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <p className="minimal-section-title mb-2">Current program</p>
+                <p className="minimal-section-title mb-2">Current event</p>
                 <h2 className="truncate text-2xl font-black tracking-tight text-slate-950">{activeCamp.name}</h2>
                 <p className="mt-1 text-sm font-semibold text-slate-600">{formatCampDateRange(activeCamp)}</p>
               </div>
@@ -494,14 +494,14 @@ function DashboardContent() {
                     <div className="absolute right-0 top-10 z-30 w-[min(92vw,340px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
                       {canEditCamp(activeCamp) ? (
                         <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                          <label className="mb-1.5 block text-xs font-black uppercase tracking-wide !text-slate-800">Rename program</label>
+                          <label className="mb-1.5 block text-xs font-black uppercase tracking-wide !text-slate-800">Rename event</label>
                           <div className="flex gap-2">
                             <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" />
                             <button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button>
                           </div>
                           {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}
                         </div>
-                      ) : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold !text-slate-800">This shared program is read-only for your account.</p>}
+                      ) : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold !text-slate-800">This shared event is read-only for your account.</p>}
                       <div className="grid gap-1">
                         {(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => (
                           <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-950">{label}</Link>
@@ -540,9 +540,9 @@ function DashboardContent() {
         <div className={`camp-card mb-8 p-5 ${needsAttention ? "border-amber-200 bg-amber-50/60" : "border-forest-200 bg-forest-50/60"}`}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className={`mb-2 text-xs font-black uppercase tracking-[0.18em] ${needsAttention ? "text-amber-700" : "text-forest-700"}`}>{needsAttention ? "Needs your attention" : "Program is in good shape"}</p>
+              <p className={`mb-2 text-xs font-black uppercase tracking-[0.18em] ${needsAttention ? "text-amber-700" : "text-forest-700"}`}>{needsAttention ? "Needs your attention" : "Event is in good shape"}</p>
               <h2 className="text-lg font-black text-slate-950">{needsAttention ? "A few activity details need a decision" : "No teacher, schedule, or capacity issues found."}</h2>
-              {needsAttention && summary ? <div className="mt-3 flex flex-wrap gap-2">{summary!.attention.classesWithoutTeachers > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.classesWithoutTeachers} need a teacher</span>}{summary!.attention.unscheduledClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.unscheduledClasses} are not scheduled</span>}{summary!.attention.fullOrOverCapacityClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.fullOrOverCapacityClasses} are at capacity</span>}</div> : <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-700">{canEditCamp(activeCamp) ? "Use the tools below to keep registration, check-in, and printed materials ready." : "You can review the program’s live schedule, rosters, and printable materials."}</p>}
+              {needsAttention && summary ? <div className="mt-3 flex flex-wrap gap-2">{summary!.attention.classesWithoutTeachers > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.classesWithoutTeachers} need a teacher</span>}{summary!.attention.unscheduledClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.unscheduledClasses} are not scheduled</span>}{summary!.attention.fullOrOverCapacityClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.fullOrOverCapacityClasses} are at capacity</span>}</div> : <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-700">{canEditCamp(activeCamp) ? "Use the tools below to keep registration, check-in, and printed materials ready." : "You can review the event’s live schedule, rosters, and printable materials."}</p>}
             </div>
             <div className="flex flex-wrap gap-2">
               {canEditCamp(activeCamp) ? <Link href={`/activities?campId=${activeCamp.id}`} className="minimal-button-primary">Review activities</Link> : <Link href={`/schedule?campId=${activeCamp.id}`} className="minimal-button-primary">View schedule</Link>}
@@ -556,10 +556,10 @@ function DashboardContent() {
         <div className="mb-8 border-t border-slate-200 pt-8">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <p className="minimal-section-title">Program switcher</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Your programs</h2>
+            <p className="minimal-section-title">Event switcher</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Your events</h2>
           </div>
-          <div className="flex flex-wrap items-center gap-3"><p className="text-sm font-semibold text-slate-500">Choose a card to make it your active workspace or create a new one.</p>{canAdminCamp(activeCamp) && <button onClick={() => setShowNewCamp(true)} className="minimal-button-primary">+ Add Program</button>}</div>
+          <div className="flex flex-wrap items-center gap-3"><p className="text-sm font-semibold text-slate-500">Choose a card to make it your active workspace or create a new one.</p>{canAdminCamp(activeCamp) && <button onClick={() => setShowNewCamp(true)} className="minimal-button-primary">+ Add Event</button>}</div>
         </div>
         {loading ? (
           <div className="flex items-center justify-center h-32">
@@ -568,11 +568,11 @@ function DashboardContent() {
         ) : camps.length === 0 ? (
           <div className="camp-card p-12 text-center">
             <span className="text-5xl mb-4 block"></span>
-            <h3 className="font-bold text-slate-700 mb-2">No programs yet</h3>
-            <p className="text-slate-400 text-sm mb-5">Create your first program to get started.</p>
+            <h3 className="font-bold text-slate-700 mb-2">No events yet</h3>
+            <p className="text-slate-400 text-sm mb-5">Create your first event to get started.</p>
             <button onClick={() => setShowNewCamp(true)}
               className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
-              + Create Your First Program
+              + Create Your First Event
             </button>
           </div>
         ) : (

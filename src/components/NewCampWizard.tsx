@@ -36,7 +36,7 @@ const AGE_COLORS = [
 ];
 
 const STEPS = [
-  { num: 1, label: "Program Info",   icon: "1" },
+  { num: 1, label: "Event Info",   icon: "1" },
   { num: 2, label: "Age Groups",  icon: "2" },
   { num: 3, label: "Rooms",       icon: "3" },
   { num: 4, label: "Time Blocks",  icon: "4" },
@@ -84,22 +84,22 @@ function Step1({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-bold text-slate-800 mb-1">{firstProgram ? "What would you like to call your first program?" : "Program Details"}</h2>
-        <p className="text-slate-500 text-sm">Give your program a name and set the dates.</p>
+        <h2 className="text-lg font-bold text-slate-800 mb-1">{firstProgram ? "What would you like to call your first event?" : "Event Details"}</h2>
+        <p className="text-slate-500 text-sm">Give your event a name and set the dates.</p>
       </div>
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1.5">{firstProgram ? "First Program Title *" : "Program Name *"}</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">{firstProgram ? "First Event Title *" : "Event Name *"}</label>
         <input
           type="text"
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          aria-describedby={!name.trim() ? "program-name-required" : undefined}
-          placeholder="e.g. Creator's Program 2027"
+          aria-describedby={!name.trim() ? "event-name-required" : undefined}
+          placeholder="e.g. Creator's Event 2027"
           className={`w-full px-4 py-2.5 border rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-slate-800 placeholder:text-slate-400 ${name.trim() ? "border-slate-200 focus:border-forest-400" : "border-red-300 focus:border-red-400"}`}
         />
-        {!name.trim() && <p id="program-name-required" className="mt-1.5 text-xs font-semibold text-red-700">Add a program name to continue.</p>}
+        {!name.trim() && <p id="event-name-required" className="mt-1.5 text-xs font-semibold text-red-700">Add an event name to continue.</p>}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -154,7 +154,7 @@ function Step2({
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-bold text-slate-800 mb-1">Age Groups</h2>
-        <p className="text-slate-500 text-sm">Define the age groups for your program (e.g. Younger Participants 6–9, Older Participants 10–13).</p>
+        <p className="text-slate-500 text-sm">Define the age groups for your event (e.g. Younger Participants 6–9, Older Participants 10–13).</p>
       </div>
 
       {/* Existing groups */}
@@ -272,7 +272,7 @@ function Step3({
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-bold text-slate-800 mb-1">Rooms & Locations</h2>
-        <p className="text-slate-500 text-sm">Where will activities be held? Add every room or location your program uses.</p>
+        <p className="text-slate-500 text-sm">Where will activities be held? Add every room or location your event uses.</p>
       </div>
 
       {rooms.length > 0 && (
@@ -532,12 +532,12 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
 
   const handleFinish = async () => {
     if (!name.trim()) {
-      setError("Add a program name to continue.");
+      setError("Add an event name to continue.");
       return;
     }
     const palette = PROGRAM_PALETTES.find((option) => option.id === paletteId);
     if (!palette) {
-      setError("Choose a color palette for this program to continue.");
+      setError("Choose a color palette for this event to continue.");
       return;
     }
     setLoading(true);
@@ -550,7 +550,7 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
       });
       if (!campRes.ok) {
         const d = await campRes.json();
-        throw new Error(d.error || "Failed to create program");
+        throw new Error(d.error || "Failed to create event");
       }
       const camp = await campRes.json();
       onCreated(camp.id, name.trim());
@@ -567,8 +567,8 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">{firstProgram ? "Welcome" : "New Program"}</p>
-              <h1 className="font-bold text-xl text-slate-800">{firstProgram ? "Name your first program" : "Name your program"}</h1>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">{firstProgram ? "Welcome" : "New Event"}</p>
+              <h1 className="font-bold text-xl text-slate-800">{firstProgram ? "Name your first event" : "Name your event"}</h1>
             </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 text-sm">✕</button>
           </div>
@@ -579,7 +579,7 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
         <div className="px-6 pb-2 min-h-[220px]">
           <Step1 name={name} setName={setName} startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate} firstProgram={firstProgram} />
           {name.trim() && <section className="mt-6 border-t border-slate-100 pt-5" aria-labelledby="palette-title">
-            <h2 id="palette-title" className="text-base font-bold text-slate-800">Now choose this program’s color palette</h2>
+            <h2 id="palette-title" className="text-base font-bold text-slate-800">Now choose this event’s color palette</h2>
             <p className="mt-1 text-sm text-slate-500">This colors your workspace, family sign-up page, and printed headers.</p>
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
               {PROGRAM_PALETTES.map((palette) => {
@@ -602,9 +602,9 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
         <div className="px-6 py-5 border-t border-slate-100 flex items-center justify-between">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-600">Cancel</button>
           <div className="text-right">
-            {!name.trim() && <p id="program-name-required" className="mb-1 text-xs font-semibold text-red-700">Add a program name to continue.</p>}
-            {name.trim() && !paletteId && <p id="program-palette-required" className="mb-1 text-xs font-semibold text-red-700">Choose a color palette to continue.</p>}
-            <button onClick={handleFinish} disabled={loading || !name.trim() || !paletteId} aria-describedby={!name.trim() ? "program-name-required" : !paletteId ? "program-palette-required" : undefined} title={!name.trim() ? "Add a program name to create your program." : !paletteId ? "Choose a color palette for your program." : undefined} className="minimal-button-primary disabled:cursor-not-allowed disabled:opacity-40">
+            {!name.trim() && <p id="event-name-required" className="mb-1 text-xs font-semibold text-red-700">Add an event name to continue.</p>}
+            {name.trim() && !paletteId && <p id="event-palette-required" className="mb-1 text-xs font-semibold text-red-700">Choose a color palette to continue.</p>}
+            <button onClick={handleFinish} disabled={loading || !name.trim() || !paletteId} aria-describedby={!name.trim() ? "event-name-required" : !paletteId ? "event-palette-required" : undefined} title={!name.trim() ? "Add an event name to create your event." : !paletteId ? "Choose a color palette for your event." : undefined} className="minimal-button-primary disabled:cursor-not-allowed disabled:opacity-40">
               {loading ? "Creating..." : "Create & continue to Setup →"}
             </button>
           </div>

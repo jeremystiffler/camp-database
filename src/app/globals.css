@@ -205,6 +205,17 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
 .minimal-button-primary:hover { background: var(--brand-primary-hover, #1e293b); transform: translateY(-1px); }
 .minimal-button-primary:disabled { opacity: 0.6; }
 
+/* On the dark guided Next panel, the call to action needs a bright, unmistakable surface. */
+.minimal-button-primary.hero-next-button {
+  background: #ffffff !important;
+  color: var(--brand-primary, #0f172a) !important;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+}
+.minimal-button-primary.hero-next-button:hover {
+  background: #f8fafc !important;
+  filter: none;
+}
+
 .minimal-button-secondary {
   min-height: var(--control-h, 40px);
   border-radius: var(--radius-md, 12px);

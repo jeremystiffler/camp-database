@@ -466,7 +466,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
       {allSessionGroups.length === 0 && (
         <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
           <span className="text-lg"></span>
-          <span>No time blocks set up yet. Create the program&apos;s base times in <strong>Program Setup</strong>, then assign activities here.</span>
+          <span>No time blocks set up yet. Create the event&apos;s base times in <strong>Event Setup</strong>, then assign activities here.</span>
         </div>
       )}
 

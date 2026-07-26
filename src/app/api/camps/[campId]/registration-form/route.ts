@@ -185,7 +185,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
       },
     },
   });
-  if (!camp) return NextResponse.json({ error: "Program not found" }, { status: 404 });
+  if (!camp) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   let forms = camp.registrationForms;
   if (member && forms.length === 0) {
@@ -353,7 +353,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
     console.error("Failed to save registration form", error);
     const duplicateSlug = error instanceof Error && error.message.includes("Unique constraint");
     const message = duplicateSlug
-      ? "That form link slug is already in use for this program."
+      ? "That form link slug is already in use for this event."
       : error instanceof Error
         ? error.message
         : "Could not save this form.";

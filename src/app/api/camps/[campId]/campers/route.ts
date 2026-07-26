@@ -41,11 +41,11 @@ async function resolveSessionChoices(campId: string, choices: SessionChoiceInput
       where: { id: choice.courseId, campId, courseSessionTemplates: { some: { sessionTemplateId: choice.sessionTemplateId } } },
       include: { sessions: { where: { campId, sessionTemplateId: choice.sessionTemplateId }, select: { id: true, enrolledCount: true } } },
     }).catch(() => null);
-    if (!course) throw new Error("One or more selected classes are not available for this program");
+    if (!course) throw new Error("One or more selected classes are not available for this event");
     let session = course.sessions[0] || null;
     if (!session) {
       const template = await prisma.sessionTemplate.findFirst({ where: { id: choice.sessionTemplateId, campId }, select: { id: true, label: true, startTime: true, endTime: true, mandatory: true } });
-      if (!template) throw new Error("One or more selected time blocks are not available for this program");
+      if (!template) throw new Error("One or more selected time blocks are not available for this event");
       if (template.mandatory) throw new Error(`${template.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.`);
       const created = await prisma.session.create({ data: { campId, courseId: course.id, sessionTemplateId: template.id, roomId: course.roomId, startTime: template.startTime, endTime: template.endTime }, select: { id: true, enrolledCount: true } });
       session = created;
@@ -68,7 +68,7 @@ async function replaceEnrollments(campId: string, camperId: string, nextSessionI
     const validSessions = await prisma.session.findMany({ where: { campId, id: { in: toAdd } }, select: { id: true, enrolledCount: true, course: { select: { name: true, cap: true } } } });
     const validIds = new Set(validSessions.map((s) => s.id));
     const invalid = toAdd.filter((id) => !validIds.has(id));
-    if (invalid.length) throw new Error("One or more selected sessions do not belong to this program");
+    if (invalid.length) throw new Error("One or more selected sessions do not belong to this event");
     for (const session of validSessions) {
       if (session.course?.cap !== null && session.course?.cap !== undefined && session.enrolledCount >= session.course.cap) throw new Error(`${session.course.name} is full. Choose a different class.`);
     }
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     const ageGroupId = nullableString(data.ageGroupId);
     if (ageGroupId) {
       const ageGroup = await prisma.ageGroup.findFirst({ where: { id: ageGroupId, campId }, select: { id: true } });
-      if (!ageGroup) return NextResponse.json({ error: "Selected age group does not belong to this program" }, { status: 400 });
+      if (!ageGroup) return NextResponse.json({ error: "Selected age group does not belong to this event" }, { status: 400 });
     }
 
     // Keep this as a single plain insert. Prisma's HTTP adapter (Neon/Vercel)

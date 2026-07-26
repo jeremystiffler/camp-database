@@ -114,7 +114,7 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <span className="mb-4 block"><SSPLogo size={48} /></span>
           <h1 className="font-heading font-bold text-2xl text-cream mb-2">Create your account</h1>
-          <p className="text-muted">Start managing your program today</p>
+          <p className="text-muted">Start managing your event today</p>
           {inviteNext?.startsWith("/invite/") && (
             <p className="mt-3 rounded-xl border border-ember-500/30 bg-ember-500/10 px-4 py-2 text-sm text-cream">
               Create your account, then we’ll bring you back to accept the invitation.

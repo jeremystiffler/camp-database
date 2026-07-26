@@ -17,9 +17,9 @@ const pricingPlans = [
     monthly: "$29/mo",
     yearly: "$299/yr",
     founding: "$149.50 first year",
-    desc: "For small programs, VBS, and first-time online registration.",
+    desc: "For small events, VBS, and first-time online registration.",
     checks: [
-      "1 active program",
+      "1 active event",
       "Up to 100 paid registrations/year",
       "Unlimited free registrations",
       "Forms, payments, coupons, schedules, check-in, and basic print tools",
@@ -27,16 +27,16 @@ const pricingPlans = [
   },
   {
     eyebrow: "Most popular",
-    title: "Program Pro",
+    title: "Event Pro",
     monthly: "$79/mo",
     yearly: "$799/yr",
     founding: "$399.50 first year",
-    desc: "For multi-week programs that want smoother setup and operations.",
+    desc: "For multi-week events that want smoother setup and operations.",
     highlighted: true,
     checks: [
-      "Up to 3 active programs",
+      "Up to 3 active events",
       "Up to 500 paid registrations/year",
-      "Program copy/templates, advanced scheduling, class choices, and age rules",
+      "Event copy/templates, advanced scheduling, class choices, and age rules",
       "Team members, admin notifications, advanced print tools, and priority support",
     ],
   },
@@ -46,11 +46,11 @@ const pricingPlans = [
     monthly: "$149/mo",
     yearly: "$1,499/yr",
     founding: "$749.50 first year",
-    desc: "For schools, churches, and larger organizations running multiple programs.",
+    desc: "For schools, churches, and larger organizations running multiple events.",
     checks: [
-      "Unlimited active programs",
+      "Unlimited active events",
       "Up to 2,000 paid registrations/year",
-      "Reusable registration templates and cross-program setup patterns",
+      "Reusable registration templates and cross-event setup patterns",
       "Advanced team permissions, premium print center, and priority onboarding",
     ],
   },
@@ -62,7 +62,7 @@ const features = [
   { icon: "🎨", title: "Activity Catalog", desc: "Build classes by age group, location, teacher, capacity, and schedule block without duct-taping spreadsheets." },
   { icon: "✅", title: "Check in/out", desc: "Run day-of operations with QR/name lookup, family pickup numbers, and staff-friendly attendance state." },
   { icon: "🖨️", title: "Print Center", desc: "Generate rosters, teacher packets, participant class choices, pickup cards, and QR schedule lanyards." },
-  { icon: "💳", title: "Payments", desc: "Choose whether your program pays the platform or families pay registration plus a transparent platform fee." },
+  { icon: "💳", title: "Payments", desc: "Choose whether your event pays the platform or families pay registration plus a transparent platform fee." },
 ];
 
 const timeline = [
@@ -128,7 +128,7 @@ function ProductMockup() {
       <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">Today's program</p>
+            <p className="text-xs font-black uppercase tracking-wide text-slate-400">Today's event</p>
             <h3 className="text-lg font-black text-slate-900">Daily schedule</h3>
           </div>
           <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">Ready</span>
@@ -189,7 +189,7 @@ export default function LandingPage() {
             Registration, scheduling, and check-in — finally in one place.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl">
-            Simple Schedule Pro gives youth programs, workshops, leagues, and classes a single command center for family sign-ups, class choices, conflict-safe schedules, rosters, badges, pickup cards, and payments — no spreadsheet required.
+            Simple Schedule Pro gives youth events, workshops, leagues, and classes a single command center for family sign-ups, class choices, conflict-safe schedules, rosters, badges, pickup cards, and payments — no spreadsheet required.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/signup" className="rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-7 py-4 text-center text-base font-black text-white shadow-xl shadow-indigo-200 transition hover:-translate-y-1">Start Free Trial</Link>
@@ -214,7 +214,7 @@ export default function LandingPage() {
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.22em] text-indigo-500">Pricing</p>
-            <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Simple pricing for programs just getting started — and ready to grow.</h2>
+            <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Simple pricing for events just getting started — and ready to grow.</h2>
           </div>
           <p className="max-w-2xl text-slate-600">Try Simple Schedule Pro free for 14 days, no credit card required. Founding customers get 50% off their first year. Paid registrations include a simple 3% platform fee, usually paid by the registrant.</p>
         </div>
@@ -227,7 +227,7 @@ export default function LandingPage() {
           ))}
         </div>
         <div className="mb-5 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950 shadow-sm">
-          <strong>14-day free trial • no credit card required.</strong> Build your program, test registration, invite your team, and only pay when you are ready to keep going.
+          <strong>14-day free trial • no credit card required.</strong> Build your event, test registration, invite your team, and only pay when you are ready to keep going.
         </div>
         <div className="grid gap-5 lg:grid-cols-3">
           {pricingPlans.map((plan) => (
@@ -239,7 +239,7 @@ export default function LandingPage() {
         <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-4 text-sm text-slate-600 md:grid-cols-3">
             <div className="rounded-2xl bg-indigo-50 p-4"><strong className="text-slate-950">Founding customers</strong><br />Get 50% off the first year on any paid plan.</div>
-            <div className="rounded-2xl bg-sky-50 p-4"><strong className="text-slate-950">3% paid-registration fee</strong><br />Usually passed to registrants. Programs can choose to absorb it.</div>
+            <div className="rounded-2xl bg-sky-50 p-4"><strong className="text-slate-950">3% paid-registration fee</strong><br />Usually passed to registrants. Events can choose to absorb it.</div>
             <div className="rounded-2xl bg-emerald-50 p-4"><strong className="text-slate-950">Free stays free</strong><br />Free registrations and scholarship-only registrations have no platform fee.</div>
           </div>
         </div>
@@ -247,14 +247,14 @@ export default function LandingPage() {
 
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-20 text-center">
         <div className="rounded-[2rem] bg-gradient-to-r from-indigo-500 to-sky-500 p-10 text-white shadow-2xl shadow-indigo-200">
-          <h2 className="text-4xl font-black tracking-tight">Ready to run your program without the spreadsheet circus?</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-white/85">Start your 14-day no-card trial today. Founding programs get 50% off the first year when they upgrade.</p>
+          <h2 className="text-4xl font-black tracking-tight">Ready to run your event without the spreadsheet circus?</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-white/85">Start your 14-day no-card trial today. Founding events get 50% off the first year when they upgrade.</p>
           <Link href="/signup" className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 text-base font-black text-slate-950 shadow-lg transition hover:-translate-y-1">Start Free Trial</Link>
         </div>
       </section>
 
       <footer className="relative z-10 border-t border-slate-200 bg-white px-6 py-8 text-center text-sm font-semibold text-slate-500">
-        <p>Simple Schedule Pro — Built for program directors, volunteers, and the blessed souls who used to own the spreadsheet.</p>
+        <p>Simple Schedule Pro — Built for event directors, volunteers, and the blessed souls who used to own the spreadsheet.</p>
       </footer>
     </div>
   );

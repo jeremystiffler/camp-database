@@ -127,7 +127,7 @@ function SettingsContent() {
       .then(r => r.json())
       .then(d => {
         if (d && !d.error) {
-          setCampName(d.name || "this program");
+          setCampName(d.name || "this event");
           setAppearance({
             primaryColor: d.primaryColor || "#64748B",
             accentColor:  d.accentColor  || "#475569",
@@ -254,9 +254,9 @@ function SettingsContent() {
   return (
     <div className="max-w-5xl">
       <div className="mb-6">
-        <p className="minimal-section-title mb-2">Program administration</p>
+        <p className="minimal-section-title mb-2">Event administration</p>
         <h1 className="page-title">Settings</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Profile, billing, appearance, utilities, and program-level actions.</p>
+        <p className="text-slate-500 text-sm mt-0.5">Profile, billing, appearance, utilities, and event-level actions.</p>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-2" role="tablist" aria-label="Settings sections">
@@ -278,7 +278,7 @@ function SettingsContent() {
               <p className="font-semibold text-slate-800">{user.name || "—"}</p>
               <p className="text-sm text-slate-500">{user.email}</p>
               <span className="text-xs bg-berry-100 text-berry-700 border border-berry-200 px-2 py-0.5 rounded-full font-semibold capitalize">Platform role: {user.role}</span>
-              <p className="mt-1 text-[11px] font-medium text-slate-400">Your program access level is shown in the program switcher.</p>
+              <p className="mt-1 text-[11px] font-medium text-slate-400">Your event access level is shown in the event switcher.</p>
             </div>
           </div>
         )}
@@ -326,20 +326,20 @@ function SettingsContent() {
       )}
 
       {activeTab === "billing" && campId && (
-        <Section title="Billing" subtitle="Choose who covers the platform cost for this program">
+        <Section title="Billing" subtitle="Choose who covers the platform cost for this event">
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "campPays" }))}
                 className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "campPays" ? "border-forest-400 bg-forest-50" : "border-slate-200 hover:border-slate-300"}`}>
-                <p className="text-sm font-bold text-slate-800">Program pays yearly</p>
+                <p className="text-sm font-bold text-slate-800">Event pays yearly</p>
                 <p className="mt-1 text-2xl font-black text-forest-700">{money(billing.annualSubscriptionCents)}<span className="text-xs font-semibold text-slate-500">/year</span></p>
-                <p className="mt-2 text-xs text-slate-500">Best when your program wants registration to feel completely free for families.</p>
+                <p className="mt-2 text-xs text-slate-500">Best when your event wants registration to feel completely free for families.</p>
               </button>
               <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "camperFee" }))}
                 className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "camperFee" ? "border-sky-400 bg-sky-50" : "border-slate-200 hover:border-slate-300"}`}>
                 <p className="text-sm font-bold text-slate-800">Participants pay registration</p>
                 <p className="mt-1 text-2xl font-black text-sky-700">{money(billing.camperPriceCents + platformEstimate)}<span className="text-xs font-semibold text-slate-500">/participant</span></p>
-                <p className="mt-2 text-xs text-slate-500">Families pay the program price plus our 3% platform fee, capped at {money(billing.platformFeeCapCents)}.</p>
+                <p className="mt-2 text-xs text-slate-500">Families pay the event price plus our 3% platform fee, capped at {money(billing.platformFeeCapCents)}.</p>
               </button>
             </div>
 
@@ -347,7 +347,7 @@ function SettingsContent() {
               <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label className="block">
-                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Program price per participant</span>
+                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Event price per participant</span>
                     <input type="number" min="0" step="1" value={billing.camperPriceCents / 100} onChange={e => setBilling(prev => ({ ...prev, camperPriceCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
                   </label>
                   <label className="block">
@@ -364,13 +364,13 @@ function SettingsContent() {
                   </label>
                 </div>
                 <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 text-sm text-sky-900">
-                  Example checkout today: program price <strong>{money(billing.camperPriceCents)}</strong> + platform fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.camperPriceCents + platformEstimate)}</strong>.
+                  Example checkout today: event price <strong>{money(billing.camperPriceCents)}</strong> + platform fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.camperPriceCents + platformEstimate)}</strong>.
                 </div>
               </div>
             )}
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              Current status: <span className="font-bold capitalize text-slate-800">{billing.billingStatus.replace(/_/g, " ")}</span>. Registration pages will show the {billing.billingMode === "camperFee" ? `${money(billing.camperPriceCents)} program price + platform fee` : "program-paid plan"} messaging.
+              Current status: <span className="font-bold capitalize text-slate-800">{billing.billingStatus.replace(/_/g, " ")}</span>. Registration pages will show the {billing.billingMode === "camperFee" ? `${money(billing.camperPriceCents)} event price + platform fee` : "event-paid plan"} messaging.
             </div>
 
             {billing.billingMode === "camperFee" && (
@@ -435,7 +435,7 @@ function SettingsContent() {
       )}
 
       {activeTab === "appearance" && campId && (
-        <Section title="Program Appearance" subtitle={`Customize how ${campName}'s registration page and print materials look`}>
+        <Section title="Event Appearance" subtitle={`Customize how ${campName}'s registration page and print materials look`}>
           <div className="space-y-5">
 
             {/* Color themes */}
@@ -570,13 +570,13 @@ function SettingsContent() {
             onClick={() => { setDeleteConfirmation(""); setDeleteConfirmOpen(true); }}
             className="px-4 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold hover:bg-red-50 transition-colors"
           >
-            Delete This Program
+            Delete This Event
           </button>
           {deleteConfirmOpen && <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-950/40" onClick={() => setDeleteConfirmOpen(false)} />
-            <div role="dialog" aria-modal="true" aria-labelledby="delete-program-title" className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-              <h2 id="delete-program-title" className="text-xl font-black text-slate-900">Delete this program?</h2>
-              <p className="mt-2 text-sm text-slate-600">This permanently removes <strong>{campName}</strong>, its schedule, participants, and settings. Type the program name to continue.</p>
+            <div role="dialog" aria-modal="true" aria-labelledby="delete-event-title" className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+              <h2 id="delete-event-title" className="text-xl font-black text-slate-900">Delete this event?</h2>
+              <p className="mt-2 text-sm text-slate-600">This permanently removes <strong>{campName}</strong>, its schedule, participants, and settings. Type the event name to continue.</p>
               <input autoFocus value={deleteConfirmation} onChange={e => setDeleteConfirmation(e.target.value)} placeholder={campName} className="mt-4 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
               <div className="mt-5 flex justify-end gap-3">
                 <button type="button" onClick={() => setDeleteConfirmOpen(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700">Cancel</button>

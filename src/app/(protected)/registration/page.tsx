@@ -56,7 +56,7 @@ const FIELD_ICONS: Record<string, string> = {
   text: "Aa", email: "@", tel: "📞", date: "Date", number: "#", url: "🔗", select: "▾", textarea: "¶", checkbox: "☑", heading: "H", subheading: "ℹ", divider: "—", pageBreak: "↧",
 };
 
-type AddFieldCategory = "Basic" | "Contact" | "Choice" | "Program" | "Consent" | "Layout";
+type AddFieldCategory = "Basic" | "Contact" | "Choice" | "Event" | "Consent" | "Layout";
 type AddFieldItem = {
   type: FormField["type"];
   label: string;
@@ -88,25 +88,25 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
   { category: "Choice", type: "checkbox", label: "Multiple checkboxes", icon: "☑☑", description: "Select all that apply", defaults: { label: "Select all that apply", options: ["Option 1", "Option 2", "Option 3"] } },
   { category: "Choice", type: "select", label: "Yes / No", icon: "Y/N", description: "Simple yes/no choice", defaults: { label: "Yes or no?", options: ["Yes", "No"] } },
 
-  { category: "Program", type: "text", label: "Preferred name", icon: "🏷️", description: "Participant nickname", defaults: { label: "Preferred name", placeholder: "What should we call your participant?" } },
-  { category: "Program", type: "text", label: "Grade / school", icon: "🎒", description: "Grade and school", defaults: { label: "Grade entering / school", placeholder: "Example: 4th grade, Liberty Elementary" } },
-  { category: "Program", type: "select", label: "T-shirt size", icon: "👕", description: "Common shirt sizes", defaults: { label: "T-shirt size", options: ["Youth XS", "Youth S", "Youth M", "Youth L", "Youth XL", "Adult S", "Adult M", "Adult L", "Adult XL", "Adult 2XL"] } },
-  { category: "Program", type: "textarea", label: "Allergies", icon: "⚕️", description: "Health safety", defaults: { label: "Allergies", placeholder: "Food, medication, insect, or environmental allergies" } },
-  { category: "Program", type: "textarea", label: "Medications", icon: "💊", description: "Medication details", defaults: { label: "Medications", placeholder: "Medication name, dosage, schedule, and instructions" } },
-  { category: "Program", type: "textarea", label: "Dietary needs", icon: "🥪", description: "Meal restrictions", defaults: { label: "Dietary restrictions or meal notes", placeholder: "Vegetarian, gluten-free, no pork, etc." } },
-  { category: "Program", type: "textarea", label: "Accommodations", icon: "🤝", description: "Learning/access needs", defaults: { label: "Learning, behavioral, sensory, or accessibility needs", placeholder: "Anything that helps us serve your participant well" } },
-  { category: "Program", type: "text", label: "Authorized pickup", icon: "🚗", description: "Approved adults", defaults: { label: "Authorized pickup people", placeholder: "Names of adults allowed to pick up this participant" } },
-  { category: "Program", type: "text", label: "Not authorized pickup", icon: "🚫", description: "Restricted pickup", defaults: { label: "People not authorized for pickup", placeholder: "Optional" } },
-  { category: "Program", type: "tel", label: "Emergency backup phone", icon: "☎️", description: "Backup contact", defaults: { label: "Backup emergency phone", placeholder: "If guardian cannot be reached" } },
-  { category: "Program", type: "text", label: "Physician / clinic", icon: "🩺", description: "Medical contact", defaults: { label: "Physician or clinic", placeholder: "Doctor/clinic name and phone" } },
-  { category: "Program", type: "text", label: "Insurance info", icon: "🛡️", description: "Policy details", defaults: { label: "Insurance provider / policy", placeholder: "Optional, if your program collects it" } },
+  { category: "Event", type: "text", label: "Preferred name", icon: "🏷️", description: "Participant nickname", defaults: { label: "Preferred name", placeholder: "What should we call your participant?" } },
+  { category: "Event", type: "text", label: "Grade / school", icon: "🎒", description: "Grade and school", defaults: { label: "Grade entering / school", placeholder: "Example: 4th grade, Liberty Elementary" } },
+  { category: "Event", type: "select", label: "T-shirt size", icon: "👕", description: "Common shirt sizes", defaults: { label: "T-shirt size", options: ["Youth XS", "Youth S", "Youth M", "Youth L", "Youth XL", "Adult S", "Adult M", "Adult L", "Adult XL", "Adult 2XL"] } },
+  { category: "Event", type: "textarea", label: "Allergies", icon: "⚕️", description: "Health safety", defaults: { label: "Allergies", placeholder: "Food, medication, insect, or environmental allergies" } },
+  { category: "Event", type: "textarea", label: "Medications", icon: "💊", description: "Medication details", defaults: { label: "Medications", placeholder: "Medication name, dosage, schedule, and instructions" } },
+  { category: "Event", type: "textarea", label: "Dietary needs", icon: "🥪", description: "Meal restrictions", defaults: { label: "Dietary restrictions or meal notes", placeholder: "Vegetarian, gluten-free, no pork, etc." } },
+  { category: "Event", type: "textarea", label: "Accommodations", icon: "🤝", description: "Learning/access needs", defaults: { label: "Learning, behavioral, sensory, or accessibility needs", placeholder: "Anything that helps us serve your participant well" } },
+  { category: "Event", type: "text", label: "Authorized pickup", icon: "🚗", description: "Approved adults", defaults: { label: "Authorized pickup people", placeholder: "Names of adults allowed to pick up this participant" } },
+  { category: "Event", type: "text", label: "Not authorized pickup", icon: "🚫", description: "Restricted pickup", defaults: { label: "People not authorized for pickup", placeholder: "Optional" } },
+  { category: "Event", type: "tel", label: "Emergency backup phone", icon: "☎️", description: "Backup contact", defaults: { label: "Backup emergency phone", placeholder: "If guardian cannot be reached" } },
+  { category: "Event", type: "text", label: "Physician / clinic", icon: "🩺", description: "Medical contact", defaults: { label: "Physician or clinic", placeholder: "Doctor/clinic name and phone" } },
+  { category: "Event", type: "text", label: "Insurance info", icon: "🛡️", description: "Policy details", defaults: { label: "Insurance provider / policy", placeholder: "Optional, if your event collects it" } },
 
-  { category: "Consent", type: "checkbox", label: "Transportation permission", icon: "🚌", description: "Travel consent", defaults: { label: "Transportation permission", checkboxDescription: "I give permission for program-provided transportation when applicable." } },
-  { category: "Consent", type: "checkbox", label: "Medical consent", icon: "Required", description: "Emergency care", defaults: { label: "Medical consent", checkboxDescription: "I authorize program staff to seek emergency medical care if needed.", required: true } },
-  { category: "Consent", type: "checkbox", label: "Code of conduct", icon: "🤝", description: "Behavior agreement", defaults: { label: "Code of conduct", checkboxDescription: "I have reviewed the program expectations with my camper and agree to support them.", required: true } },
+  { category: "Consent", type: "checkbox", label: "Transportation permission", icon: "🚌", description: "Travel consent", defaults: { label: "Transportation permission", checkboxDescription: "I give permission for event-provided transportation when applicable." } },
+  { category: "Consent", type: "checkbox", label: "Medical consent", icon: "Required", description: "Emergency care", defaults: { label: "Medical consent", checkboxDescription: "I authorize event staff to seek emergency medical care if needed.", required: true } },
+  { category: "Consent", type: "checkbox", label: "Code of conduct", icon: "🤝", description: "Behavior agreement", defaults: { label: "Code of conduct", checkboxDescription: "I have reviewed the event expectations with my camper and agree to support them.", required: true } },
 ];
 
-const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", "Program", "Consent", "Layout"];
+const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", "Event", "Consent", "Layout"];
 
 const DEFAULT_EMAIL_BLOCKS: EmailTemplateBlock[] = [
   { id: "hero", type: "hero", title: "{{updateStatus}}", content: "Thanks for registering for {{campName}}. Below is the information we received.", enabled: true },
@@ -115,7 +115,7 @@ const DEFAULT_EMAIL_BLOCKS: EmailTemplateBlock[] = [
   { id: "emergency", type: "emergency", title: "Emergency Information", enabled: true },
   { id: "additional", type: "additionalInfo", title: "Additional Student Information", enabled: true },
   { id: "payment", type: "payment", title: "Payment Summary", enabled: true },
-  { id: "footer", type: "footer", content: "Need to change something? Contact the program office, or return to the registration form and submit updated information.", enabled: true },
+  { id: "footer", type: "footer", content: "Need to change something? Contact the event office, or return to the registration form and submit updated information.", enabled: true },
 ];
 
 const EMAIL_BLOCK_LABELS: Record<EmailBlockType, string> = {
@@ -504,12 +504,12 @@ function RegistrationContent() {
   const registrationStateLabel = !formIsShareable
     ? "Draft — hidden from families"
     : !formIsAcceptingRegistrations
-      ? "Program registration closed — families cannot submit yet"
+      ? "Event registration closed — families cannot submit yet"
       : formStatus === "linkOnly"
         ? "Link-only — accepting registrations with this URL"
         : "Public — accepting registrations";
 
-  if (!campId) return <EmptyState title="Choose a program first" description="Each program has its own registration form and family link." actionHref="/dashboard" actionLabel="Go to dashboard" />;
+  if (!campId) return <EmptyState title="Choose an event first" description="Each event has its own registration form and family link." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   if (guidedMode) return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -732,7 +732,7 @@ function RegistrationContent() {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm font-black text-berry-950">Confirmation email builder</p>
-                  <HelpCopy title="Confirmation email" className="mt-1 text-sm text-berry-800">Drag sections into the order you want. Use tokens from program data, guardian data, student data, and your form fields.</HelpCopy>
+                  <HelpCopy title="Confirmation email" className="mt-1 text-sm text-berry-800">Drag sections into the order you want. Use tokens from event data, guardian data, student data, and your form fields.</HelpCopy>
                 </div>
                 <div className="grid gap-3">
                   <label className="block">
@@ -870,10 +870,10 @@ function RegistrationContent() {
                   <span className={`flex-1 text-sm truncate ${indentField ? "font-medium text-slate-800" : "font-black text-slate-700"}`}>{field.type === "pageBreak" ? sectionBreakLabel(field) : field.label}</span>
                   {indentField && <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wide text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">field</span>}
                   {field.required && <span className="text-red-400 text-xs">*</span>}
-                  {field.system && <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-1.5 rounded border border-slate-200">Required program field · locked</span>}
+                  {field.system && <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-1.5 rounded border border-slate-200">Required event field · locked</span>}
                   {field.type === "pageBreak" && <button type="button" onClick={e => { e.stopPropagation(); }} className="text-xs font-bold text-amber-700">Section divider</button>}
                   <span className="text-slate-400 text-xs">{editingId === field.id ? "▲" : "▼"}</span>
-                  {field.system ? <span title="Required program fields cannot be deleted" className="text-slate-300 text-sm px-1" aria-label="Required program field is locked">🔒</span> : <button aria-label={`Delete custom field ${field.label || "Untitled field"}`} onClick={e => { e.stopPropagation(); removeField(field.id); }} className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>}
+                  {field.system ? <span title="Required event fields cannot be deleted" className="text-slate-300 text-sm px-1" aria-label="Required event field is locked">🔒</span> : <button aria-label={`Delete custom field ${field.label || "Untitled field"}`} onClick={e => { e.stopPropagation(); removeField(field.id); }} className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>}
                 </div>
                 {editingId === field.id && field.type !== "divider" && field.type !== "pageBreak" && (
                   <FieldEditor field={field} onChange={updated => updateField(field.id, updated)} />

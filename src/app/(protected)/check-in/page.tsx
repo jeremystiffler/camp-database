@@ -561,7 +561,7 @@ function CheckInContent() {
     setScanMessage(kioskNameMatches.length > 1 ? "Choose the matching child below." : "No match found. Please ask a staff member for help.");
   };
 
-  if (!campId) return <EmptyState title="Choose a program first" description="Check in and check out are recorded for one program at a time." actionHref="/dashboard" actionLabel="Go to dashboard" />;
+  if (!campId) return <EmptyState title="Choose an event first" description="Check in and check out are recorded for one event at a time." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   if (kioskMode) {
     return (

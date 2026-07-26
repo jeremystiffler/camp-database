@@ -10,7 +10,7 @@ import { GuidedModeToggle, useGuidedMode } from "@/components/GuidedMode";
 
 const primaryNav = [
   { href: "/dashboard", label: "Home", icon: "compass", minRole: "viewer" },
-  { href: "/setup", label: "Build My Program", icon: "tent", minRole: "editor" },
+  { href: "/setup", label: "Build My Event", icon: "tent", minRole: "editor" },
   { href: "/activities", label: "Classes & Teachers", icon: "clipboard", minRole: "viewer" },
   { href: "/schedule", label: "Schedule", icon: "calendar", minRole: "viewer" },
   { href: "/registration", label: "Registration Form", icon: "clipboard", minRole: "editor" },
@@ -220,14 +220,14 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
   const isKioskShell = pathname.startsWith("/check-in") && searchParams.get("kiosk") === "1";
   const nextSteps: Record<string, { label: string; href: string }> = {
-    "/dashboard": { label: "Build your program", href: "/setup" },
+    "/dashboard": { label: "Build your event", href: "/setup" },
     "/setup": { label: "Add activities and teachers", href: "/activities" },
     "/activities": { label: "Build your schedule", href: "/schedule" },
     "/schedule": { label: "Prepare registration", href: "/registration" },
     "/registration": { label: "Manage participants", href: "/campers" },
     "/campers": { label: "Open check-in", href: "/check-in" },
   };
-  const nextStep = nextSteps[pathname] || { label: "Build your program", href: "/setup" };
+  const nextStep = nextSteps[pathname] || { label: "Build your event", href: "/setup" };
   const isPublishedProgram = activeCamp?.status?.toLowerCase() === "published";
   const showBuildGuidance = !isPublishedProgram && pathname !== "/dashboard";
   const workspaceStyle = {
@@ -277,13 +277,13 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         {/* Camp switcher */}
         {camps.length > 0 && (
           <div className="px-3 py-4 border-b border-slate-100">
-            <p className="minimal-section-title px-2 mb-2">Current program</p>
+            <p className="minimal-section-title px-2 mb-2">Current event</p>
             <div className="rounded-2xl border p-3 shadow-sm" style={{ backgroundColor: `${activeCamp?.accentColor || "#0284C7"}14`, borderColor: `${activeCamp?.accentColor || "#0284C7"}33` }}>
               <p className="text-sm font-black text-slate-900 leading-snug break-words">
-                {activeCamp?.name || "Select a program"}
+                {activeCamp?.name || "Select an event"}
               </p>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500/70 mt-1">
-                {activeCamp?.status || "No active program"}{activeCamp?.myRole ? ` • program access: ${activeCamp.myRole}` : ""}
+                {activeCamp?.status || "No active event"}{activeCamp?.myRole ? ` • event access: ${activeCamp.myRole}` : ""}
               </p>
               <button
                 type="button"
@@ -291,7 +291,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                 className="mt-3 w-full rounded-xl px-3 py-2 text-xs font-black text-white shadow-sm hover:brightness-105 transition-all"
                 style={{ background: `linear-gradient(135deg, ${activeCamp?.primaryColor || "#075985"}, ${activeCamp?.accentColor || "#0284C7"})` }}
               >
-                Switch programs
+                Switch events
               </button>
             </div>
 
@@ -319,9 +319,9 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Nav */}
-        <nav aria-label="Program navigation" className="flex-1 px-3 py-4 space-y-3 overflow-y-auto">
+        <nav aria-label="Event navigation" className="flex-1 px-3 py-4 space-y-3 overflow-y-auto">
           <div>
-            <p className="minimal-section-title px-3 mb-1.5">{guidedMode ? "Your event" : "Build your program"}</p>
+            <p className="minimal-section-title px-3 mb-1.5">{guidedMode ? "Your event" : "Build your event"}</p>
             <div className="space-y-1">{visiblePrimaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;

@@ -28,21 +28,9 @@ export async function POST(req: NextRequest) {
       data: { email, name, passwordHash, role: "owner", organizationId: org.id, guidedMode: true },
     });
 
-    const campSlug = "my-program-" + Date.now();
-    const camp = await prisma.camp.create({
-      data: {
-        organizationId: org.id,
-        name: "My Program",
-        slug: campSlug,
-        status: "draft",
-      },
-    });
-    // Separate create — nested creates use implicit transactions (not supported in HTTP mode)
-    await prisma.campMember.create({
-      data: { campId: camp.id, userId: user.id, role: "owner" },
-    });
-
-    await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [{ ...camp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], campers: [] }] } });
+    // A new account deliberately starts without an event. The Dashboard opens the
+    // title-and-palette prompt immediately after sign-in, rather than creating a generic draft.
+    await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [] } });
 
     const token = await signToken({
       userId: user.id,

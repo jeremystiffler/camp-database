@@ -107,7 +107,7 @@ function TeamContent() {
   };
 
   const removeMember = async (memberId: string) => {
-    if (!(await confirm({ title: "Remove this person?", description: "They will lose access to this program.", confirmLabel: "Remove person", destructive: true }))) return;
+    if (!(await confirm({ title: "Remove this person?", description: "They will lose access to this event.", confirmLabel: "Remove person", destructive: true }))) return;
     await fetch(`/api/camps/${campId}/members/${memberId}`, { method: "DELETE" });
     load();
   };
@@ -118,11 +118,11 @@ function TeamContent() {
     load();
   };
 
-  if (!campId) return <EmptyState title="Choose a program first" description="Team access is managed separately for each program." actionHref="/dashboard" actionLabel="Go to dashboard" />;
+  if (!campId) return <EmptyState title="Choose an event first" description="Team access is managed separately for each event." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Team" description="Manage who has access to this program and their permissions." />
+      <PageHeader title="Team" description="Manage who has access to this event and their permissions." />
 
       {/* Role legend */}
       <div className="camp-card p-5 mb-6">

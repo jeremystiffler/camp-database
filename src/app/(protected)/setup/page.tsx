@@ -224,7 +224,7 @@ function SetupContent() {
     }
     if (searchParams.get("from") === "quick-start") {
       setActiveTab("teachers");
-      setSetupNotice("Quick Start is complete. Your program details, age groups, rooms, and time blocks are ready — next, add your staff.");
+      setSetupNotice("Quick Start is complete. Your event details, age groups, rooms, and time blocks are ready — next, add your staff.");
     }
   }, [searchParams]);
 
@@ -405,7 +405,7 @@ function SetupContent() {
   const saveCamp = async (override?: Partial<{ registrationOpen: boolean; status: string }>) => {
     setSetupNotice("");
     if (!campName.trim()) {
-      setSetupNotice("Give the program a name before moving on.");
+      setSetupNotice("Give the event a name before moving on.");
       setActiveTab("details");
       return false;
     }
@@ -436,7 +436,7 @@ function SetupContent() {
       load();
       return true;
     }
-    setSetupNotice("Could not save the program details. Please try again.");
+    setSetupNotice("Could not save the event details. Please try again.");
     return false;
   };
 
@@ -717,7 +717,7 @@ function SetupContent() {
     load();
   };
 
-  if (!campId) return <EmptyState title="Choose a program first" description="Setup is saved per program. Choose a program from the dashboard to continue." actionHref="/dashboard" actionLabel="Go to dashboard" />;
+  if (!campId) return <EmptyState title="Choose an event first" description="Setup is saved per event. Choose an event from the dashboard to continue." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -735,15 +735,15 @@ function SetupContent() {
   const registrationReady = detailsDone && ageGroups.length > 0 && rooms.length > 0 && sessionRows.length > 0 && teachersDone && activitiesDone && scheduleDone;
 
   const setupSteps: SetupStep[] = [
-    { key: "details", label: "Program Info", shortLabel: "Info", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What program am I building?", done: detailsDone, actionLabel: "Set program info" },
-    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this program serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Add age groups" },
-    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Add rooms" },
-    { key: "times", label: "Time Blocks", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, lockMessage: "Save a program name and valid start/end dates first.", actionLabel: "Build day schedule" },
+    { key: "details", label: "Event Info", shortLabel: "Info", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What event am I building?", done: detailsDone, actionLabel: "Set event info" },
+    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this event serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, lockMessage: "Save an event name and valid start/end dates first.", actionLabel: "Add age groups" },
+    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, lockMessage: "Save an event name and valid start/end dates first.", actionLabel: "Add rooms" },
+    { key: "times", label: "Time Blocks", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, lockMessage: "Save an event name and valid start/end dates first.", actionLabel: "Build day schedule" },
     { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning activities.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, lockMessage: "Add at least one age group or room before adding teachers.", actionLabel: "Add teachers" },
     { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, lockMessage: "Add an age group, room, and time block before creating activities.", actionLabel: "Create activities" },
     { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time blocks with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, lockMessage: "Create at least one activity before building the schedule.", actionLabel: "Schedule activities" },
     { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, lockMessage: "Schedule every activity before setting up registration.", actionLabel: "Prepare registration" },
-    { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, lockMessage: "Finish program details, staff, activities, schedule, and registration before opening.", actionLabel: registrationOpen ? "Review live program" : "Open registration" },
+    { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, lockMessage: "Finish event details, staff, activities, schedule, and registration before opening.", actionLabel: registrationOpen ? "Review live event" : "Open registration" },
   ];
   const guidedStepKeys = new Set<SetupTab>(["details", "ages", "times", "activities", "registration", "review"]);
   const visibleSetupSteps = guidedMode ? setupSteps.filter(step => guidedStepKeys.has(step.key)) : setupSteps;
@@ -785,8 +785,8 @@ function SetupContent() {
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           {searchParams.get("step") && <p className="mb-1 text-xs font-black uppercase tracking-wide text-sky-700">Setup › {stepLabel(activeStep)}</p>}
-          <h1 className="page-title">{guidedMode ? "Set up my event" : "Program Setup"}</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{guidedMode ? "Start with the essentials. You can open More options whenever you want the full controls." : "Build your program in the order your brain naturally asks the questions."}</p>
+          <h1 className="page-title">{guidedMode ? "Set up my event" : "Event Setup"}</h1>
+          <p className="text-slate-500 text-sm mt-0.5">{guidedMode ? "Start with the essentials. You can open More options whenever you want the full controls." : "Build your event in the order your brain naturally asks the questions."}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -873,10 +873,10 @@ function SetupContent() {
 
       {/* ── Program Details ── */}
       {activeTab === "details" && (
-      <Section title="Program Details">
+      <Section title="Event Details">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Program Name</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Event Name</label>
             <input type="text" value={campName} onChange={e => setCampName(e.target.value)}
               className="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400" />
           </div>
@@ -1099,14 +1099,14 @@ function SetupContent() {
       {activeTab === "times" && (
       <Section title="Time Blocks">
         <HelpCopy title="Time blocks" className="text-xs text-slate-400 mb-4">
-          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of the program. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
+          Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of the event. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
         </HelpCopy>
 
         {/* No dates warning */}
         {campDates.length === 0 && (
           <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 mb-4">
             <span className="text-lg"></span>
-            <span>Set your program <strong>Start Date</strong> and <strong>End Date</strong> above to use the schedule grid.</span>
+            <span>Set your event <strong>Start Date</strong> and <strong>End Date</strong> above to use the schedule grid.</span>
           </div>
         )}
 
@@ -1260,7 +1260,7 @@ function SetupContent() {
                             type="checkbox"
                             checked={everyDay}
                             onChange={() => setEveryDayForRow(row, !everyDay)}
-                            title={everyDay ? "Clear every day" : "Use every day of the program"}
+                            title={everyDay ? "Clear every day" : "Use every day of the event"}
                             className="w-4 h-4 rounded cursor-pointer accent-sky-500"
                           />
                         </td>
@@ -1339,7 +1339,7 @@ function SetupContent() {
                             disabled={!valid}
                             checked={draftEveryDay}
                             onChange={() => setDraftEveryDay(draft.id, !draftEveryDay)}
-                            title="Use every day of the program"
+                            title="Use every day of the event"
                             className="w-4 h-4 rounded cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed accent-sky-500"
                           />
                         </td>
@@ -1386,7 +1386,7 @@ function SetupContent() {
 
             {/* Legend */}
             <p className="text-xs text-slate-400 mt-3 flex items-center gap-4">
-              <span><strong>All</strong> = every day of the program</span>
+              <span><strong>All</strong> = every day of the event</span>
               <span>day checkboxes save instantly</span>
             </p>
           </>

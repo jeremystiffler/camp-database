@@ -227,7 +227,7 @@ function ScheduleContent() {
     }).catch(() => setLoading(false));
   }, [campId]);
 
-  if (!campId) return <EmptyState title="Choose a program first" description="Schedules are built for one program at a time." actionHref="/dashboard" actionLabel="Go to dashboard" />;
+  if (!campId) return <EmptyState title="Choose an event first" description="Schedules are built for one event at a time." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   const sortedSessions = [...sessions].sort(sessionSort);
   const displaySessions = dedupeSessions(sortedSessions);

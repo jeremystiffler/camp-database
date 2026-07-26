@@ -15,10 +15,10 @@ const IMPORT_HEADERS = [
 ];
 
 const COLUMN_NOTES: Record<string, string> = {
-  activity_name:      "Required. Unique per program. Existing names update the activity.",
+  activity_name:      "Required. Unique per event. Existing names update the activity.",
   activity_capacity:  "Number e.g. 20",
-  room_name:          "Must match a room in Program Setup (or will be created)",
-  age_group_name:     "Must match an age group in Program Setup (see Reference tab)",
+  room_name:          "Must match a room in Event Setup (or will be created)",
+  age_group_name:     "Must match an age group in Event Setup (see Reference tab)",
   teacher_role:       "teacher  or  director",
   teacher_email:      "Optional — can add later",
   assistant_email:    "Optional — can add later",
@@ -122,7 +122,7 @@ async function downloadTemplate(campId: string) {
     ["=== TEACHER ROLES ==="],
     ["Role", "Description"],
     ["teacher",   "Lead teacher for the activity"],
-    ["director",  "Program director also teaching"],
+    ["director",  "Event director also teaching"],
     ["assistant", "Teaching assistant"],
     ["staff",     "General staff helper"],
   ];
@@ -138,7 +138,7 @@ async function downloadTemplate(campId: string) {
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href = url; a.download = "program-activities-import.xlsx";
+  a.href = url; a.download = "event-activities-import.xlsx";
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
@@ -443,7 +443,7 @@ function ImportContent() {
   const validRows   = rows.filter(r => r.activity_name?.trim());
   const invalidRows = rows.filter(r => !r.activity_name?.trim());
 
-  if (!campId) return <EmptyState title="Choose a program first" description="Imported data must be attached to the right program." actionHref="/dashboard" actionLabel="Go to dashboard" />;
+  if (!campId) return <EmptyState title="Choose an event first" description="Imported data must be attached to the right event." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <div className="max-w-5xl">

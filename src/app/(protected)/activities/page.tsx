@@ -997,7 +997,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
   const scheduledCount = courses.filter(c => (c.courseSessionTemplates || []).length > 0).length;
   const registrationReady = courses.length > 0 && needsCount === 0;
 
-  if (!campId) return <EmptyState title="Choose a program first" description="Activities belong to a specific program. Choose one from the dashboard, then return here." actionHref="/dashboard" actionLabel="Go to dashboard" />;
+  if (!campId) return <EmptyState title="Choose an event first" description="Activities belong to a specific event. Choose one from the dashboard, then return here." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <div className="space-y-6">
@@ -1012,7 +1012,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
             </div>
             <h1 className="page-title mt-3">Classes & Teachers</h1>
             <HelpCopy title="Activities workflow" className="mt-1 max-w-2xl text-sm text-slate-600">
-              Manage activities from one working sheet: default program blocks at the top, then activity rows with room, teacher, capacity, and click-to-schedule cells.
+              Manage activities from one working sheet: default event blocks at the top, then activity rows with room, teacher, capacity, and click-to-schedule cells.
             </HelpCopy>
           </div>
           <div className="flex flex-wrap items-center gap-2">

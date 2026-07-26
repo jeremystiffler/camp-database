@@ -111,9 +111,9 @@ const PAPER_PROFILES: Record<PaperSize, { width: number; height: number; safeIns
 const DEFAULT_SETTINGS = { density: "compact" as Density, headerColor: "#55c7c7", stripedRows: true, showEmergency: true, showMedical: true, showStudents: true, groupByPage: true, badgeRows: 4, badgeCols: 3, badgeLayout: "standard", lanyardTheme: "aquaSheet", customBlockOrder: [] as string[], badgeContentBlocks: [] as string[], badgeBackEnabled: false, badgeBackContentBlocks: [] as string[], showSchedule: false, showGuardian: false, showAgeGroup: true, showRoom: true, showTeacher: true, rotationColumns: 5, customPageWidth: "36in", customPageHeight: "8.5in", rotationTimeFilter: "", rotationBandColor: "#f8dfe6", rotationBandMode: "color", showFooterLabel: true, rotationHeaderHeight: "0.70in", rotationBandHeight: "0.36in", rotationTeacherHeight: "0.32in", rotationFooterHeight: "0.45in", rotationStudentFont: 11, rotationStudentAlign: "center", rotationHeaderFont: 10, rotationTeacherFont: 10, rotationFooterFont: 9, customDataSource: "participants" as CustomDataSource, customFields: ["fullName", "ageGroup", "guardianName", "guardianPhone", "classChoices"] as string[], customGroupBy: "", customSortBy: "lastName", customFieldFontSizes: {} as Record<string, number>, pageMargin: "0.5in", printScale: 100 };
 const PRINTABLE_LIBRARY_STARTERS = [
   "Participant Schedule Lanyard — 3×5", "Pickup / Car-Window Card — 4×6", "Classroom Roster with Attendance", "Teacher Packet", "Room / Door Schedule Sign", "Check-in Roster", "Check-out / Pickup Roster", "Participant Class-Choices Sheet", "Staff / Volunteer Badge — 5×3", "Emergency Contact Card — 4×6",
-  "Registration Confirmation Sheet", "Welcome Packet / Program Guide", "First-Day Handout", "Emergency Contacts Wallet Card", "Medication Handoff Sheet", "Payment Receipt / Balance Statement", "Late Arrival / Early Release Log", "Walk-up Registration Sheet", "Attendance Exception Sheet",
+  "Registration Confirmation Sheet", "Welcome Packet / Event Guide", "First-Day Handout", "Emergency Contacts Wallet Card", "Medication Handoff Sheet", "Payment Receipt / Balance Statement", "Late Arrival / Early Release Log", "Walk-up Registration Sheet", "Attendance Exception Sheet",
   "Participant Identity Card", "Field-Trip Lanyard", "Team-Color Lanyard", "Teacher Badge", "Volunteer Badge", "Medical / Safety Team Badge", "Parent Visitor Badge", "Photo / Media Badge",
-  "Master Program Schedule", "Daily Director Run Sheet", "Weekly Overview Schedule", "Program-at-a-Glance", "Room-by-Room Schedule", "Staff Shift Schedule", "Setup / Teardown Schedule", "Transportation Schedule", "Meal / Snack Schedule", "Rain Plan Schedule", "Individual Participant Schedule", "Team Rotation Schedule", "Pocket Schedule Card",
+  "Master Event Schedule", "Daily Director Run Sheet", "Weekly Overview Schedule", "Event-at-a-Glance", "Room-by-Room Schedule", "Staff Shift Schedule", "Setup / Teardown Schedule", "Transportation Schedule", "Meal / Snack Schedule", "Rain Plan Schedule", "Individual Participant Schedule", "Team Rotation Schedule", "Pocket Schedule Card",
   "Classroom Roster", "Assistant Roster", "Room Capacity Roster", "Age-Group Roster", "Team / Small-Group Roster", "Waitlist Roster", "Alphabetical Directory", "Pickup-Number Roster", "T-Shirt Size Roster", "Birthday / Age Roster", "Allergy / Dietary Roster", "Photo-Consent Roster",
   "Activity Lesson Plan", "Class Supply Checklist", "Station Instruction Sheet", "Activity Setup Card", "Cleanup Checklist", "Room Turnover Checklist", "Equipment Checkout Sheet",
   "Room Sign", "Class / Station Sign", "Registration Help Sign", "Medical Station Sign", "Visitor Check-in Sign", "Lost and Found Sign", "Drop-off Traffic Sign", "Table Tent", "Directional Arrow Card",
@@ -515,7 +515,7 @@ function PrintContent() {
         const selected = available.find((camp: CampOption) => camp.id === requestedId) || available[0];
         if (!selected?.id) {
           setResolvedCampId("");
-          setAccessError("No program is available to this account. Ask an owner to add you to the program, then return here.");
+          setAccessError("No event is available to this account. Ask an owner to add you to the event, then return here.");
           return;
         }
         setAccessError("");
@@ -523,7 +523,7 @@ function PrintContent() {
         if (typeof window !== "undefined") localStorage.setItem("activeCampId", selected.id);
         if (campIdFromUrl !== selected.id) router.replace(`/print?campId=${selected.id}`);
       })
-      .catch(() => !cancelled && setAccessError("We could not confirm which program you can access. Refresh and try again."));
+      .catch(() => !cancelled && setAccessError("We could not confirm which event you can access. Refresh and try again."));
     return () => { cancelled = true; };
   }, [campIdFromUrl, router]);
 
@@ -548,8 +548,8 @@ function PrintContent() {
       const denied = protectedResponses.find(result => result.response.status === 401 || result.response.status === 403);
       if (denied) {
         setAccessError(denied.response.status === 401
-          ? "Your session expired before Print Center could load this program. Sign in again, then return to Print Center."
-          : "You do not have access to this program’s print data. Choose another program or ask its owner to add you as a member.");
+          ? "Your session expired before Print Center could load this event. Sign in again, then return to Print Center."
+          : "You do not have access to this event’s print data. Choose another event or ask its owner to add you as a member.");
         setCampers([]); setCourses([]); setPersons([]); setMandatorySessions([]); setSavedTemplates([]); setLoading(false);
         return;
       }
@@ -563,7 +563,7 @@ function PrintContent() {
       setSourceCampId(campList.find((camp: CampOption) => camp.id !== campId)?.id || "");
       setLoading(false);
     }).catch(() => {
-      setAccessError("Print Center could not load program data. Check your connection and try again.");
+      setAccessError("Print Center could not load event data. Check your connection and try again.");
       setLoading(false);
     });
   }, [campId]);
@@ -770,7 +770,7 @@ function PrintContent() {
     });
     const data = await res.json().catch(() => ({}));
     setSaving(false);
-    if (res.ok) { setSavedTemplates(prev => [...prev, data]); setSelectedTemplateKey(data.id); setDraftTemplate(data); setMessage("Template saved for this program."); }
+    if (res.ok) { setSavedTemplates(prev => [...prev, data]); setSelectedTemplateKey(data.id); setDraftTemplate(data); setMessage("Template saved for this event."); }
     else setMessage(data.detail || data.error || "Could not save template.");
   };
   const updateSavedTemplate = async () => {
@@ -793,7 +793,7 @@ function PrintContent() {
       const sourceRes = await fetch(`/api/camps/${sourceCampId}/print-templates`);
       const sourceTemplates = await sourceRes.json().catch(() => []);
       if (!sourceRes.ok || !Array.isArray(sourceTemplates) || sourceTemplates.length === 0) {
-        setMessage("No saved templates found in that program yet.");
+        setMessage("No saved templates found in that event yet.");
         setSaving(false);
         return;
       }
@@ -808,8 +808,8 @@ function PrintContent() {
       }
       if (copied.length) {
         setSavedTemplates(prev => [...prev, ...copied]);
-        setMessage(`Copied ${copied.length} template${copied.length === 1 ? "" : "s"} from ${campOptions.find(c => c.id === sourceCampId)?.name || "that program"}.`);
-      } else setMessage("Could not copy templates from that program.");
+        setMessage(`Copied ${copied.length} template${copied.length === 1 ? "" : "s"} from ${campOptions.find(c => c.id === sourceCampId)?.name || "that event"}.`);
+      } else setMessage("Could not copy templates from that event.");
     } finally {
       setSaving(false);
     }
@@ -873,7 +873,7 @@ function PrintContent() {
     if (draftTemplate.type === "teacher_schedules") { const person = operationalPeople[0]; const rows = person ? teacherRows(person, courses, mandatorySessions, campers) : []; return <div className={paperClass}><div className="studio-doc-title">{person ? `${fullName(person)} — Teacher Packet` : draftTemplate.name}</div><p className="studio-doc-subtitle">{person?.role || "Teacher schedule"}</p><table className="studio-table"><thead><tr><th>Time</th><th>Assignment</th>{selectedSettings.showRoom && <th>Room</th>}{selectedSettings.showStudents && <th>Students</th>}</tr></thead><tbody>{rows.slice(0, 7).map((row, index) => <tr key={index}><td>{row.time}</td><td>{row.title}</td>{selectedSettings.showRoom && <td>{row.room}</td>}{selectedSettings.showStudents && <td>{row.students.map(fullName).join(", ") || "—"}</td>}</tr>)}</tbody></table></div>; }
     if (draftTemplate.type === "class_rosters") { const group = rosterPackets[0]; return <div className={paperClass}><div className="studio-doc-title">{group?.title || draftTemplate.name}</div><p className="studio-doc-subtitle">{group ? `${group.time} · ${group.room}` : "Class roster"}</p><table className="studio-table"><thead><tr><th>Participant</th><th>Age group</th><th>Guardian</th>{selectedSettings.showEmergency && <th>Emergency</th>}</tr></thead><tbody>{(group?.campers || previewRows).slice(0, 8).map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{camper.guardianName || "—"}</td>{selectedSettings.showEmergency && <td>{camper.emergencyPhone || "—"}</td>}</tr>)}</tbody></table></div>; }
     if (draftTemplate.type === "camper_choices") return <div className={paperClass}><div className="studio-doc-title">Participant Class Choices</div><table className="studio-table"><thead><tr><th>Participant</th><th>Age group</th><th>Class choices</th></tr></thead><tbody>{previewRows.map(camper => <tr key={camper.id}><td>{fullName(camper)}</td><td>{camper.ageGroup?.name || "—"}</td><td>{classChoicesForCamper(camper, courses).map(choice => choice.label).join("\n") || "—"}</td></tr>)}</tbody></table></div>;
-    if (draftTemplate.type === "pickup_cards") return <div className={`${paperClass} studio-card-preview`}><p>Program pickup</p><strong>{selectedBadgeCamper?.pickupNumber || "—"}</strong><h2>{selectedBadgeCamper ? `${selectedBadgeCamper.lastName} Family` : "Family pickup card"}</h2><p>QR and staff lookup print on the final card.</p></div>;
+    if (draftTemplate.type === "pickup_cards") return <div className={`${paperClass} studio-card-preview`}><p>Event pickup</p><strong>{selectedBadgeCamper?.pickupNumber || "—"}</strong><h2>{selectedBadgeCamper ? `${selectedBadgeCamper.lastName} Family` : "Family pickup card"}</h2><p>QR and staff lookup print on the final card.</p></div>;
     const rows = draftTemplate.type === "tshirt_list" ? tshirtOrder.filter(size => sizeGroups[size]?.length).map(size => ({ left: size, right: sizeGroups[size].map(fullName).join(", ") })) : draftTemplate.type === "pickup_roster" ? previewRows.map(camper => ({ left: camper.pickupNumber || "—", right: `${camper.lastName} Family — ${fullName(camper)}` })) : previewRows.map(camper => ({ left: `${camper.lastName}, ${camper.firstName}`, right: `${camper.ageGroup?.name || "—"} · ${camper.guardianName || "No guardian listed"}` }));
     return <div className={paperClass}><div className="studio-doc-title">{draftTemplate.name}</div><table className="studio-table"><tbody>{rows.slice(0, 8).map((row, index) => <tr key={index}><td>{row.left}</td><td>{row.right}</td></tr>)}</tbody></table></div>;
   };
@@ -898,8 +898,8 @@ function PrintContent() {
     return explicitPages.length ? explicitPages : [livePreviewHtml];
   })();
 
-  if (accessError) return <EmptyState title="Print Center could not load this program" description={accessError} actionHref="/dashboard" actionLabel="Choose a program" />;
-  if (!campId) return <EmptyState title="Choose a program first" description="Printable rosters, labels, and schedules are generated for a specific program." actionHref="/dashboard" actionLabel="Go to dashboard" />;
+  if (accessError) return <EmptyState title="Print Center could not load this event" description={accessError} actionHref="/dashboard" actionLabel="Choose an event" />;
+  if (!campId) return <EmptyState title="Choose an event first" description="Printable rosters, labels, and schedules are generated for a specific event." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
   return (
     <>
@@ -1077,10 +1077,10 @@ function PrintContent() {
                 </details>
               </div>
               <details className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
-                <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-600">Import from another program</summary>
+                <summary className="cursor-pointer text-xs font-black uppercase tracking-wide text-slate-600">Import from another event</summary>
                 <div className="mt-3 space-y-2">
                   <select value={sourceCampId} onChange={e => setSourceCampId(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                    <option value="">Choose a program…</option>
+                    <option value="">Choose an event…</option>
                     {campOptions.filter(camp => camp.id !== campId).map(camp => <option key={camp.id} value={camp.id}>{camp.name}</option>)}
                   </select>
                   <button onClick={importTemplatesFromCamp} disabled={saving || !sourceCampId} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50">Copy saved printables in</button>
@@ -1096,7 +1096,7 @@ function PrintContent() {
                   <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1"><span className="px-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Zoom</span>{(["fit", "75", "100"] as const).map(value => <button key={value} onClick={() => setCanvasZoom(value)} className={`rounded-lg px-2.5 py-1.5 text-[11px] font-black ${canvasZoom === value ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{value === "fit" ? "Fit" : `${value}%`}</button>)}</div>
                 </div>
                 <div className="studio-canvas"><div className="studio-page-stack" style={livePaperStyle} data-zoom={canvasZoom === "fit" ? undefined : canvasZoom}>{previewPages.length ? previewPages.map((pageHtml, pageIndex) => <div key={pageIndex} className="w-full"><div className="studio-page-label">Page {pageIndex + 1} of {previewPages.length}</div><div className="studio-paper studio-print-surface" data-selected-block={selectedCanvasBlock || undefined} onClick={e => { const target = e.target as HTMLElement; const block: CanvasBlock = target.closest(".badge-card, .lanyard-schedule-card, .pickup-card") ? "badge" : target.closest("table") ? "table" : target.closest("h1, h2, h3, .ops-title") ? "title" : "document"; setSelectedCanvasBlock(block); setStudioTab(block === "table" || block === "badge" ? "content" : "document"); }}><div className="ops-print" dangerouslySetInnerHTML={{ __html: pageHtml }} /></div></div>) : <div className="studio-paper flex flex-col items-center justify-center gap-3 text-center"><p className="text-sm font-semibold text-slate-500">{previewError || "Loading your printable…"}</p>{previewError && <button type="button" onClick={() => { setPreviewError(""); setLivePreviewHtml(""); setActiveDoc(null); setPreviewRevision(value => value + 1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">Try again</button>}</div>}</div></div>
-                <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500"><span>Preview uses live program data. The final print remains print-safe.</span><button onClick={() => printDoc()} className="font-black text-indigo-700 hover:text-indigo-900">Print / Save as PDF</button></div>
+                <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs font-semibold text-slate-500"><span>Preview uses live event data. The final print remains print-safe.</span><button onClick={() => printDoc()} className="font-black text-indigo-700 hover:text-indigo-900">Print / Save as PDF</button></div>
               </section>
             </main>
 
@@ -1295,7 +1295,7 @@ function PrintContent() {
 
       {activeDoc === "tshirt_list" && <div className="print-doc ops-print"><h1 className="ops-title">T-Shirt Sizes</h1>{tshirtOrder.filter(s => sizeGroups[s]?.length).map(size => <section key={size} style={{marginBottom:18}}><h2 style={{fontSize:16, margin:"0 0 6px"}}>{size} ({sizeGroups[size].length})</h2><table><tbody>{sortedCampersList(sizeGroups[size]).map(c => <tr key={c.id}><td>{c.lastName}, {c.firstName}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></section>)}</div>}
 
-      {activeDoc === "pickup_cards" && <div className="print-doc ops-print">{sortedCampers.map(c => <section key={c.id} className="page-break" style={{minHeight:"calc(100vh - 0.5in)", display:"flex", alignItems:"center", justifyContent:"center"}}><div style={{width:"100%", maxWidth:"5.4in", border:"4px solid #111", borderRadius:"18px", padding:"0.28in", textAlign:"center"}}><div style={{fontSize:18, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase"}}>Creator&apos;s Program Pickup</div><div style={{fontSize:96, lineHeight:1, fontWeight:900, margin:"0.18in 0 0.08in"}}>{c.pickupNumber || "—"}</div><div style={{fontSize:24, fontWeight:900, letterSpacing:"0.08em", textTransform:"uppercase"}}>{c.lastName} Family</div><div style={{marginTop:"0.18in", display:"flex", justifyContent:"center"}}><CamperScannableCode value={c.scanCode} label="Scan for check-in" size={132} /></div><div style={{marginTop:"0.12in", fontSize:12, fontWeight:700, color:"#444"}}>Staff: scan QR or search pickup #{c.pickupNumber || "—"}</div></div></section>)}</div>}
+      {activeDoc === "pickup_cards" && <div className="print-doc ops-print">{sortedCampers.map(c => <section key={c.id} className="page-break" style={{minHeight:"calc(100vh - 0.5in)", display:"flex", alignItems:"center", justifyContent:"center"}}><div style={{width:"100%", maxWidth:"5.4in", border:"4px solid #111", borderRadius:"18px", padding:"0.28in", textAlign:"center"}}><div style={{fontSize:18, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase"}}>Creator&apos;s Event Pickup</div><div style={{fontSize:96, lineHeight:1, fontWeight:900, margin:"0.18in 0 0.08in"}}>{c.pickupNumber || "—"}</div><div style={{fontSize:24, fontWeight:900, letterSpacing:"0.08em", textTransform:"uppercase"}}>{c.lastName} Family</div><div style={{marginTop:"0.18in", display:"flex", justifyContent:"center"}}><CamperScannableCode value={c.scanCode} label="Scan for check-in" size={132} /></div><div style={{marginTop:"0.12in", fontSize:12, fontWeight:700, color:"#444"}}>Staff: scan QR or search pickup #{c.pickupNumber || "—"}</div></div></section>)}</div>}
 
       {activeDoc === "pickup_roster" && (isCheckInRoster(draftTemplate) ? <div className="print-doc ops-print">{chunkItems(sortedCampers, 24).map((page, pageIndex) => <section key={pageIndex} className="page-break"><h1 className="ops-title">Check-in Roster</h1><p className="ops-subtitle">Arrival status, time, and staff initials · Page {pageIndex + 1}</p><table><thead><tr><th style={{width:"28px"}}>#</th><th>Participant</th><th style={{width:"95px"}}>Arrival</th><th style={{width:"110px"}}>Status</th><th style={{width:"85px"}}>Staff initials</th></tr></thead><tbody>{page.map((camper, index) => <tr key={camper.id}><td>{pageIndex * 24 + index + 1}</td><td><strong>{fullName(camper)}</strong><br />{camper.ageGroup?.name || "—"}</td><td className="roster-write-line">&nbsp;</td><td className="roster-status-boxes">☐ Here&nbsp;&nbsp; ☐ Late&nbsp;&nbsp; ☐ Absent</td><td className="roster-write-line">&nbsp;</td></tr>)}</tbody></table></section>)}</div> : isCheckOutRoster(draftTemplate) ? <div className="print-doc ops-print">{chunkItems([...sortedCampers].sort((a, b) => String(a.pickupNumber || "999999").localeCompare(String(b.pickupNumber || "999999"), undefined, { numeric: true })), 20).map((page, pageIndex) => <section key={pageIndex} className="page-break"><h1 className="ops-title">Check-out / Pickup Roster</h1><p className="ops-subtitle">Verify approved pickup before departure · Page {pageIndex + 1}</p><table><thead><tr><th style={{width:"66px"}}>Pickup #</th><th>Participant</th><th>Approved pickup / verification</th><th style={{width:"84px"}}>Departure</th><th style={{width:"70px"}}>Initials</th></tr></thead><tbody>{page.map(camper => <tr key={camper.id}><td style={{fontSize:16, fontWeight:900, textAlign:"center"}}>{camper.pickupNumber || "—"}</td><td><strong>{fullName(camper)}</strong><br />Guardian: {camper.guardianName || "—"}</td><td>{camper.guardianName || "________________"}<br /><span className="roster-status-boxes">☐ ID checked &nbsp; ☐ Approved</span></td><td className="roster-write-line">&nbsp;</td><td className="roster-write-line">&nbsp;</td></tr>)}</tbody></table></section>)}</div> : <div className="print-doc ops-print"><h1 className="ops-title">Pickup Number Roster</h1><p className="ops-subtitle">Backup car-line lookup. Pickup numbers can be shared by siblings/family groups.</p><table><thead><tr><th style={{width:"80px"}}>Pickup #</th><th>Family / Participant</th><th>Guardian</th><th>Phone</th><th>Age Group</th></tr></thead><tbody>{[...sortedCampers].sort((a,b) => String(a.pickupNumber || "999999").localeCompare(String(b.pickupNumber || "999999"), undefined, { numeric: true })).map(c => <tr key={c.id}><td style={{fontSize:16, fontWeight:900, textAlign:"center"}}>{c.pickupNumber || "—"}</td><td>{c.lastName.toUpperCase()} FAMILY<br />{fullName(c)}</td><td>{c.guardianName || "—"}</td><td>{c.guardianPhone || c.guardianEmail || "—"}</td><td>{c.ageGroup?.name || "—"}</td></tr>)}</tbody></table></div>)}
 
