@@ -7,7 +7,7 @@ import { TeachersContent } from "../teachers/page";
 import { ActivitiesContent } from "../activities/page";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
-import { useGuidedMode } from "@/components/GuidedMode";
+import { MoreOptions, useGuidedMode } from "@/components/GuidedMode";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState, SaveState } from "@/components/OperationalUI";
@@ -134,7 +134,7 @@ function Section({ title, children, action }: { title: string; children: React.R
 }
 
 function SetupContent() {
-  const { guidedMode } = useGuidedMode();
+  const { guidedMode, setGuidedMode } = useGuidedMode();
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
 
@@ -737,16 +737,18 @@ function SetupContent() {
     { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, lockMessage: "Schedule every activity before setting up registration.", actionLabel: "Prepare registration" },
     { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, lockMessage: "Finish program details, staff, activities, schedule, and registration before opening.", actionLabel: registrationOpen ? "Review live program" : "Open registration" },
   ];
-  const completedSteps = setupSteps.filter(step => step.done).length;
-  const nextStep = setupSteps.find(step => !step.done && !step.locked) || setupSteps.find(step => !step.done) || setupSteps[setupSteps.length - 1];
-  const activeStep = setupSteps.find(step => step.key === activeTab) || nextStep;
+  const guidedStepKeys = new Set<SetupTab>(["details", "ages", "times", "activities", "registration", "review"]);
+  const visibleSetupSteps = guidedMode ? setupSteps.filter(step => guidedStepKeys.has(step.key)) : setupSteps;
+  const completedSteps = visibleSetupSteps.filter(step => step.done).length;
+  const nextStep = visibleSetupSteps.find(step => !step.done && !step.locked) || visibleSetupSteps.find(step => !step.done) || visibleSetupSteps[visibleSetupSteps.length - 1];
+  const activeStep = visibleSetupSteps.find(step => step.key === activeTab) || nextStep;
   const guidedStepLabels: Record<string, string> = {
     details: "Name your event", ages: "Who’s it for?", times: "When things happen", activities: "What kids do", registration: "Make your sign-up page", review: "Open for sign-ups", rooms: "Where things happen", teachers: "Grown-ups in charge", schedule: "The daily plan",
   };
   const stepLabel = (step: typeof activeStep) => guidedMode ? (guidedStepLabels[step.key] || step.label) : step.label;
   const activeStepIndex = setupSteps.findIndex(step => step.key === activeStep.key);
   const activeStateLabel = activeStep.done ? "Done" : activeStep.locked ? "Locked" : "Open";
-  const setupPercent = Math.round((completedSteps / setupSteps.length) * 100);
+  const setupPercent = Math.round((completedSteps / visibleSetupSteps.length) * 100);
 
   const jumpToNextStep = async () => {
     if (activeTab === "details" || nextStep.key === "details") {
@@ -793,7 +795,7 @@ function SetupContent() {
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="minimal-section-title">Setup progress</p>
-            <h2 className="mt-1 text-lg font-black text-slate-900">{completedSteps} of {setupSteps.length} steps complete</h2>
+            <h2 className="mt-1 text-lg font-black text-slate-900">{completedSteps} of {visibleSetupSteps.length} steps complete</h2>
             <p className="mt-1 text-sm font-semibold text-slate-600">
               Next: <span className="text-slate-950">{stepLabel(nextStep)}</span> — {nextStep.question}
             </p>
@@ -810,8 +812,8 @@ function SetupContent() {
         </div>
 
         <div className="overflow-x-auto pb-2">
-          <div className="flex min-w-[980px] items-stretch px-1 pt-2">
-            {setupSteps.map((step, index) => {
+          <div className={`flex items-stretch px-1 pt-2 ${guidedMode ? "min-w-[660px]" : "min-w-[980px]"}`}>
+            {visibleSetupSteps.map((step, index) => {
               const isActive = activeTab === step.key;
               const stateLabel = step.done ? "Done" : step.locked ? "Locked" : "Open";
               return (
@@ -844,7 +846,7 @@ function SetupContent() {
               {activeStep.done ? "✓" : activeStepIndex + 1}
             </span>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Step {activeStepIndex + 1} of {setupSteps.length} • {activeStateLabel}</p>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Step {guidedMode ? visibleSetupSteps.findIndex(step => step.key === activeStep.key) + 1 : activeStepIndex + 1} of {visibleSetupSteps.length} • {activeStateLabel}</p>
               <h3 className="mt-1 text-xl font-black text-slate-950">{stepLabel(activeStep)}</h3>
               <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">{activeStep.help}</p>
             </div>
@@ -857,6 +859,7 @@ function SetupContent() {
             Already have a spreadsheet? Import it
           </Link>
         </div>
+        {guidedMode && <MoreOptions label="More setup options" className="mt-4"><p className="text-sm text-slate-600">Rooms, staff, and detailed scheduling are still available when you need them.</p><button type="button" onClick={() => setGuidedMode(false)} className="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-700">Show advanced setup</button></MoreOptions>}
       </div>
 
       {/* ── Program Details ── */}
