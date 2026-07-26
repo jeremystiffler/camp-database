@@ -437,8 +437,8 @@ function DashboardContent() {
       <div className="camp-card relative mb-8 overflow-visible border-indigo-100 bg-gradient-to-br from-white via-indigo-50/50 to-sky-50 p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <p className="minimal-section-title mb-2">Program workspace</p>
-            <h1 className="truncate text-3xl font-black tracking-tight text-slate-950">{activeCamp ? activeCamp.name : "Your programs"}</h1>
+            <p className="minimal-section-title mb-2 !text-white">Program workspace</p>
+            <h1 className="truncate text-3xl font-black tracking-tight text-white">{activeCamp ? activeCamp.name : "Your programs"}</h1>
             <p className="mt-1 text-sm font-semibold text-slate-600">{activeCamp ? formatCampDateRange(activeCamp) : "Choose a program to manage its setup, people, schedule, and registration."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
