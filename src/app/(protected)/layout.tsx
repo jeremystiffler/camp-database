@@ -262,7 +262,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       {!isKioskShell && <aside
-        className={`fixed top-0 left-0 h-full w-64 border-r border-slate-200 bg-white/95 text-slate-900 shadow-xl shadow-slate-200/50 backdrop-blur flex flex-col z-30 transition-transform duration-200 ${
+        className={`fixed top-0 left-0 h-full w-64 border-r border-slate-200 bg-slate-50/95 text-slate-900 shadow-xl shadow-slate-200/50 backdrop-blur flex flex-col z-30 transition-transform duration-200 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -278,11 +278,11 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         {camps.length > 0 && (
           <div className="px-3 py-4 border-b border-slate-100">
             <p className="minimal-section-title px-2 mb-2">Current event</p>
-            <div className="rounded-2xl border p-3 shadow-sm" style={{ backgroundColor: `${activeCamp?.accentColor || "#0284C7"}14`, borderColor: `${activeCamp?.accentColor || "#0284C7"}33` }}>
+            <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 shadow-sm">
               <p className="text-sm font-black text-slate-900 leading-snug break-words">
                 {activeCamp?.name || "Select an event"}
               </p>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500/70 mt-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 mt-1">
                 {activeCamp?.status || "No active event"}{activeCamp?.myRole ? ` • event access: ${activeCamp.myRole}` : ""}
               </p>
               <button
@@ -304,10 +304,10 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                       key={camp.id}
                       type="button"
                       onClick={() => handleCampChange(camp)}
-                      className={`w-full text-left rounded-xl px-3 py-2.5 transition-colors ${selected ? "bg-indigo-600 text-white" : "text-slate-700 hover:bg-indigo-50"}`}
+                      className={`w-full text-left rounded-xl px-3 py-2.5 transition-colors ${selected ? "bg-slate-200 text-slate-900" : "text-slate-700 hover:bg-slate-100"}`}
                     >
                       <span className="block text-sm font-black leading-tight">{camp.name}</span>
-                      <span className={`block text-[11px] mt-0.5 ${selected ? "text-white/75" : "text-slate-400"}`}>
+                      <span className={`block text-[11px] mt-0.5 ${selected ? "text-slate-600" : "text-slate-400"}`}>
                         {selected ? `Active now • ${camp.myRole || "viewer"}` : `Switch to ${camp.status} • ${camp.myRole || "viewer"}`}
                       </span>
                     </button>
@@ -324,17 +324,17 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             <p className="minimal-section-title px-3 mb-1.5">{guidedMode ? "Your event" : "Build your event"}</p>
             <div className="space-y-1">{visiblePrimaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
-              return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
+              return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
             })}</div>
           </div>
           <div>
             <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-50 hover:text-slate-900"><span>More</span><span aria-hidden="true">{moreOpen ? "▴" : "▾"}</span></button>
             {moreOpen && <div className="mt-1 space-y-1 border-l border-slate-200 pl-2">{visibleMoreNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
-              return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
+              return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
             })}</div>}
           </div>
-          {user.isSuperAdmin && <Link href="/super-admin" onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${pathname.startsWith("/super-admin") ? "bg-gradient-to-r from-[#4F46E5] to-[#0EA5E9] text-white shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-indigo-50"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${pathname.startsWith("/super-admin") ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name="gear" /></span>Super Admin</Link>}
+          {user.isSuperAdmin && <Link href="/super-admin" onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${pathname.startsWith("/super-admin") ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${pathname.startsWith("/super-admin") ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name="gear" /></span>Super Admin</Link>}
         </nav>
 
         {/* User footer */}
