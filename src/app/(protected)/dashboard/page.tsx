@@ -437,15 +437,16 @@ function DashboardContent() {
           <div className="min-w-0">
             <p className="minimal-section-title mb-2 !text-white">Program workspace</p>
             <h1 className="truncate text-3xl font-black tracking-tight text-white">{activeCamp ? activeCamp.name : "Your programs"}</h1>
-            <p className="mt-1 text-sm font-semibold text-slate-600">{activeCamp ? formatCampDateRange(activeCamp) : "Choose a program to manage its setup, people, schedule, and registration."}</p>
+            <p className="mt-1 text-sm font-semibold !text-white">{activeCamp ? formatCampDateRange(activeCamp) : "Choose a program to manage its setup, people, schedule, and registration."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {activeCamp && <p className="mr-1 text-xs font-black uppercase tracking-wide text-slate-600">Status: {activeCamp.status} · Registration {activeCamp.registrationOpen ? "open" : "closed"}</p>}
+            {activeCamp && <p className="mr-1 text-xs font-black uppercase tracking-wide !text-white">Status: {activeCamp.status} · Registration {activeCamp.registrationOpen ? "open" : "closed"}</p>}
             {activeCamp && <div className="relative">
-              <button type="button" onClick={() => setActionsOpen(v => !v)} aria-expanded={actionsOpen} className="rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs font-black text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50">Manage ▾</button>
+              <button type="button" onClick={() => setActionsOpen(v => !v)} aria-expanded={actionsOpen} className="rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs font-black !text-slate-950 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50">Manage ▾</button>
               {actionsOpen && <div className="absolute right-0 top-10 z-30 w-[min(92vw,340px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
                 {canEditCamp(activeCamp) ? <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-slate-600">Rename program</label><div className="flex gap-2"><input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" /><button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button></div>{renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}</div> : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">This shared program is read-only for your account.</p>}
                 <div className="grid gap-1">{(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-950">{label}</Link>)}</div>
+                {canEditCamp(activeCamp) && <div className="mt-2 border-t border-slate-200 pt-2"><button type="button" onClick={() => { setActionsOpen(false); setCopyingCamp(activeCamp); }} className="w-full rounded-xl px-3 py-2 text-left text-sm font-black text-slate-900 hover:bg-slate-50">Duplicate</button></div>}
               </div>}
             </div>}
 
@@ -577,35 +578,6 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* Core work areas */}
-      {activeCamp && (
-        <div>
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <p className="minimal-section-title">Run this program</p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Daily work areas</h2>
-            </div>
-            <p className="text-sm font-semibold text-slate-500">Everything below stays scoped to {activeCamp.name}.</p>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {canEditCamp(activeCamp) && <QuickAction href={`/setup?campId=${activeCamp.id}`} icon="1" title="Setup" desc="Program dates, age groups, rooms, time blocks, and readiness" iconClass="icon-badge-forest" />}
-            <QuickAction href={`/registration?campId=${activeCamp.id}`} icon="R" title="Registration" desc="Form settings, public link, family choices, and confirmation" iconClass="icon-badge-berry" />
-            <QuickAction href={`/campers?campId=${activeCamp.id}`} icon="P" title="Participants" desc="Registrations, families, and selected class choices" iconClass="icon-badge-sky" />
-            <QuickAction href={`/check-in?campId=${activeCamp.id}`} icon="✓" title="Check in/out" desc="Live attendance, pickup, and QR scanning" iconClass="icon-badge-forest" />
-            <QuickAction href={`/schedule?campId=${activeCamp.id}`} icon="S" title="Schedule" desc="Time blocks, activity assignments, and schedule health" iconClass="icon-badge-sunset" />
-            <QuickAction href={`/print?campId=${activeCamp.id}`} icon="P" title="Print Center" desc="Rosters, schedules, badges, and operational printouts" iconClass="icon-badge-berry" />
-            {canEditCamp(activeCamp) && <QuickAction href={`/activities?campId=${activeCamp.id}`} icon="A" title="Activities" desc="Classes, teachers, rooms, capacity, and assignments" iconClass="icon-badge-sky" />}
-            <QuickAction href={`/team?campId=${activeCamp.id}`} icon="T" title="Team" desc="People, access levels, and invitations" iconClass="icon-badge-forest" />
-            {canAdminCamp(activeCamp) && <QuickAction href={`/settings?campId=${activeCamp.id}`} icon="⚙" title="Settings" desc="Appearance, billing, and protected program settings" iconClass="icon-badge-sunset" />}
-            {canEditCamp(activeCamp) && (
-              <button onClick={() => setCopyingCamp(activeCamp)} className="camp-card flex items-start gap-3 p-4 text-left transition hover:border-indigo-200 hover:shadow-sm">
-                <div className="icon-badge-sky flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-xs font-black">Cp</div>
-                <div><h3 className="text-sm font-black text-slate-900">Copy program</h3><p className="mt-1 text-xs leading-relaxed text-slate-600">Clone this structure for a new season.</p></div>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {showNewCamp && (
         <NewCampWizard
