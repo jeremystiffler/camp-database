@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
 import { MoreOptions, useGuidedMode } from "@/components/GuidedMode";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, SaveState } from "@/components/OperationalUI";
 
 interface FormField {
@@ -287,6 +288,7 @@ function RegistrationContent() {
   const [saved, setSaved]           = useState(false);
   const [saveError, setSaveError]   = useState("");
   const [editingId, setEditingId]   = useState<string | null>(null);
+  const [fieldPendingDelete, setFieldPendingDelete] = useState<FormField | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<"settings" | "fields">("settings");
   const [systemFieldsOpen, setSystemFieldsOpen] = useState(false);
@@ -427,8 +429,13 @@ function RegistrationContent() {
   const removeField = (id: string) => {
     const field = fields.find(item => item.id === id);
     if (!field || field.system) return;
-    if (!confirm(`Delete the custom field “${field.label || "Untitled field"}”? This change will be saved when you save the form.`)) return;
-    setFields(prev => prev.filter(item => item.id !== id));
+    setFieldPendingDelete(field);
+  };
+  const confirmFieldDelete = () => {
+    if (!fieldPendingDelete) return;
+    setFields(prev => prev.filter(item => item.id !== fieldPendingDelete.id));
+    setEditingId(current => current === fieldPendingDelete.id ? null : current);
+    setFieldPendingDelete(null);
   };
 
   const onDragStart = (i: number) => { dragIdx.current = i; };
@@ -926,6 +933,15 @@ function RegistrationContent() {
         </div>
       </div>
       )}
+      <ConfirmDialog
+        open={Boolean(fieldPendingDelete)}
+        title="Delete this question?"
+        description={fieldPendingDelete ? `“${fieldPendingDelete.label || "Untitled field"}” will be removed when you save the form.` : ""}
+        confirmLabel="Delete question"
+        destructive
+        onCancel={() => setFieldPendingDelete(null)}
+        onConfirm={confirmFieldDelete}
+      />
     </div>
   );
 }
