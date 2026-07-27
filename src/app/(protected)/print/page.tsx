@@ -339,9 +339,9 @@ function PrintContent() {
     teacherPackets: { primary: `${teachers.length} teachers`, sheets: teachers.length },
     emergencyCards: { primary: `${sortedCampers.length} participants`, sheets: Math.ceil(sortedCampers.length / 22) },
     pickupCards: { primary: `${families.length} families`, sheets: families.length },
-    roomSigns: { primary: `${rosters.length || roomsWithSchedule.length} signs`, sheets: rosters.length + roomsWithSchedule.filter(room => !rosters.some(g => g.room === room.name)).length },
+    roomSigns: { primary: `${roomsWithSchedule.length} rooms`, sheets: roomsWithSchedule.length },
   };
-  const packetSheets = (Object.keys(jobCounts) as JobId[]).reduce((sum, job) => sum + jobCounts[job].sheets, 0) + 6;
+  const packetSheets = (Object.keys(jobCounts) as JobId[]).reduce((sum, job) => sum + jobCounts[job].sheets, 0) + 5;
 
   const exportCsv = () => {
     const slotSet = new Map<string, string>();
@@ -532,33 +532,33 @@ function PrintContent() {
   });
 
   const renderRoomSigns = () => {
-    // One sign per class: class name is the headline, room name sits under it.
-    const signs: { key: string; title: string; roomName: string; time?: string; teacherList?: string; students?: Camper[] }[] = [];
-    for (const room of roomsWithSchedule) {
+    // One page per room: every class held in the room, in time order,
+    // each with its student roster underneath.
+    return roomsWithSchedule.map((room, index) => {
       const groups = rosters.filter(group => group.room === room.name);
-      if (!groups.length) { signs.push({ key: `room-${room.id}`, title: room.name, roomName: room.description || "" }); continue; }
-      for (const group of groups) {
-        const course = courses.find(c => c.id === group.courseId);
-        const teacherList = course?.courseTeachers?.map(ct => `${fullName(ct.person)}${ct.person.role && ct.person.role !== "teacher" ? ` (${ct.person.role})` : ""}`).join(", ") || "—";
-        signs.push({ key: group.key, title: group.title, roomName: room.name, time: group.time, teacherList, students: group.campers });
-      }
-    }
-    return signs.map((sign, index) => (
-      <article key={sign.key} className="print-page doc-page" data-last={index === signs.length - 1 || undefined}>
-        <div className="room-sign">
-          <div className="room-sign-name">{sign.title}</div>
-          {sign.roomName && <div className="room-sign-room">{sign.roomName}</div>}
-          {sign.time && <div className="room-sign-desc">{sign.time}</div>}
-          {sign.teacherList && <div className="room-sign-teacher-hero">Led by: {sign.teacherList}</div>}
-          {sign.students && (
+      return (
+        <article key={room.id} className="print-page doc-page" data-last={index === roomsWithSchedule.length - 1 || undefined}>
+          <div className="room-sign">
+            <div className="room-sign-kicker">Room</div>
+            <div className="room-sign-name">{room.name}</div>
+            {room.description && <div className="room-sign-room">{room.description}</div>}
             <div className="room-sign-schedule">
-              <div className="room-sign-students-title">Class list</div>
-              <div className="room-sign-students">{sign.students.length ? sign.students.map(fullName).join(" · ") : "No participants registered yet"}</div>
+              {groups.length ? groups.map(group => {
+                const course = courses.find(c => c.id === group.courseId);
+                const teacherList = course?.courseTeachers?.map(ct => `${fullName(ct.person)}${ct.person.role && ct.person.role !== "teacher" ? ` (${ct.person.role})` : ""}`).join(", ") || "—";
+                return (
+                  <div key={group.key} className="room-sign-class">
+                    <div className="room-sign-row"><span className="room-sign-time">{group.time}</span><span className="room-sign-class-name">{group.title}</span></div>
+                    <div className="room-sign-teacher">Led by: {teacherList}</div>
+                    <div className="room-sign-students">{group.campers.length ? group.campers.map(fullName).join(" · ") : "No participants registered yet"}</div>
+                  </div>
+                );
+              }) : <div className="room-sign-class"><div className="room-sign-row"><span>No classes scheduled in this room.</span></div></div>}
             </div>
-          )}
-        </div>
-      </article>
-    ));
+          </div>
+        </article>
+      );
+    });
   };
 
   const divider = (label: string, sheets: number, key: string) => (
@@ -655,13 +655,16 @@ function PrintContent() {
         .pickup-family { font-size: 40px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; margin-top: 0.15in; }
         .pickup-members { margin-top: 0.1in; font-size: 16px; font-weight: 600; color: #444; }
         .room-sign { border: 5px solid #111; min-height: 9in; display: flex; flex-direction: column; align-items: center; padding: 0.4in; box-sizing: border-box; text-align: center; }
-        .room-sign-name { margin-top: 0.1in; font-size: 46px; font-weight: 900; line-height: 1.05; }
-        .room-sign-room { margin-top: 0.08in; font-size: 18px; font-weight: 700; color: #555; }
-        .room-sign-desc { margin-top: 0.14in; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
-        .room-sign-teacher-hero { margin-top: 0.08in; font-size: 15px; font-weight: 800; color: #333; }
-        .room-sign-schedule { margin-top: 0.3in; width: 100%; text-align: left; border-top: 2px solid #111; padding-top: 0.15in; }
-        .room-sign-students-title { font-size: 12px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 6px; }
-        .room-sign-students { font-size: 13px; font-weight: 600; line-height: 1.6; color: #333; }
+        .room-sign-kicker { font-size: 14px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
+        .room-sign-name { margin-top: 0.1in; font-size: 44px; font-weight: 900; line-height: 1.05; }
+        .room-sign-room { margin-top: 0.06in; font-size: 15px; font-weight: 700; color: #555; }
+        .room-sign-schedule { margin-top: 0.25in; width: 100%; text-align: left; }
+        .room-sign-class { border-top: 2px solid #111; padding: 0.12in 0.05in; }
+        .room-sign-row { display: flex; gap: 14px; font-size: 18px; font-weight: 900; align-items: baseline; }
+        .room-sign-class-name { flex: 1; }
+        .room-sign-time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .room-sign-teacher { margin-top: 3px; font-size: 12px; font-weight: 800; color: #333; }
+        .room-sign-students { margin-top: 4px; font-size: 11.5px; font-weight: 600; line-height: 1.5; color: #444; }
         .packet-divider { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 9.5in; text-align: center; }
         .packet-divider-label { font-size: 56px; font-weight: 900; letter-spacing: .04em; }
         .packet-divider-count { margin-top: 12px; font-size: 16px; font-weight: 700; color: #444; }
