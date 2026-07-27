@@ -128,23 +128,8 @@ body {
 .camp-card:hover {
   transform: translateY(-1px);
   border-color: var(--ui-border-strong, #c9b8a5);
-  box-shadow: 0 10px 26px rgba(69, 54, 42, 0.075);
+  box-shadow: var(--shadow-lift, 0 8px 24px rgba(11,18,32,.10));
 }
-
-.stat-forest,
-.stat-sky,
-.stat-sunset,
-.stat-berry,
-.stat-earth {
-  color: var(--ui-text, #1f2326);
-  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
-  box-shadow: 0 10px 26px rgba(69, 54, 42, 0.06);
-}
-.stat-forest { background: linear-gradient(135deg, #e8eee2, #fffdf9); }
-.stat-sky { background: linear-gradient(135deg, #e5edf3, #fffdf9); }
-.stat-sunset { background: linear-gradient(135deg, var(--ui-clay-soft, #f3e3dc), #fffdf9); }
-.stat-berry { background: linear-gradient(135deg, #ece8f4, #fffdf9); }
-.stat-earth { background: linear-gradient(135deg, var(--ui-butter-soft, #f5ecd1), #fffdf9); }
 
 .icon-badge-forest,
 .icon-badge-sky,
@@ -164,13 +149,13 @@ body {
   background: var(--ui-surface, #fffdf9);
   border: 1px solid var(--ui-border, #ddd1c3);
   border-radius: var(--radius-md, 12px);
-  box-shadow: 0 8px 20px rgba(69, 54, 42, 0.055);
+  box-shadow: var(--shadow-md, 0 2px 8px rgba(11,18,32,.06));
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 .tile-button:hover {
   transform: translateY(-2px);
   border-color: var(--tile-accent, #74a7a2);
-  box-shadow: 0 14px 30px rgba(69, 54, 42, 0.095);
+  box-shadow: var(--shadow-lift, 0 8px 24px rgba(11,18,32,.10));
 }
 .tile-sage { --tile-accent: #758966; background: linear-gradient(135deg, #e8eee2, #fffdf9); }
 .tile-denim { --tile-accent: #6f8da8; background: linear-gradient(135deg, #e5edf3, #fffdf9); }
@@ -305,15 +290,6 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
   --brand-strong: #2F6FB8;
   --brand-accent: #7FB6D4;
   --brand-onstrong: #FFFFFF;
-
-  --age-slate: #6f7f91;
-  --age-stone: #8b7e70;
-  --age-sage: #758966;
-  --age-moss: #8b9368;
-  --age-clay: #b67862;
-  --age-ochre: #ad8d4a;
-  --age-blue: #6f8da8;
-  --age-plum: #92799a;
 }
 
 /* ===================== Page banner (banner-theming-fix §5) =====================
@@ -435,25 +411,25 @@ a[class*="bg-slate-900"]:hover {
 .text-indigo-500\/70 { color: #1d4ed8 !important; }
 
 /* Headings must never disappear into a dark banner, action panel, or gradient. */
-:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-black"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-500"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-amber-500"], [class*="bg-orange-500"], [class*="bg-sunset-500"], [class*="bg-red-500"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]) :is(h1, h2, h3, h4, h5, h6) {
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-black"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-500"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-amber-500"], [class*="bg-orange-500"], [class*="bg-sunset-500"], [class*="bg-red-500"], [class*="bg-red-600"], [class*="bg-red-700"]) :is(h1, h2, h3, h4, h5, h6) {
   color: #ffffff !important;
 }
 
 /* Dark-surface contrast: only foreground inside a genuinely dark utility surface is
    adjusted. This counteracts the palette's global muted-slate overrides without
    changing text on light cards, forms, or tables. */
-:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]) :is(.text-slate-400, .text-slate-500, .text-slate-600, .text-slate-700, .text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700, .text-zinc-400, .text-zinc-500, .text-zinc-600, .text-zinc-700, .text-neutral-400, .text-neutral-500, .text-neutral-600, .text-neutral-700) {
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"]) :is(.text-slate-400, .text-slate-500, .text-slate-600, .text-slate-700, .text-gray-400, .text-gray-500, .text-gray-600, .text-gray-700, .text-zinc-400, .text-zinc-500, .text-zinc-600, .text-zinc-700, .text-neutral-400, .text-neutral-500, .text-neutral-600, .text-neutral-700) {
   color: #e2e8f0 !important;
 }
-:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]) :is(.text-sky-400, .text-sky-500, .text-sky-600, .text-sky-700) {
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"]) :is(.text-sky-400, .text-sky-500, .text-sky-600, .text-sky-700) {
   color: #bae6fd !important;
 }
-:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]) :is(.text-indigo-400, .text-indigo-500, .text-indigo-600, .text-indigo-700) {
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"]) :is(.text-indigo-400, .text-indigo-500, .text-indigo-600, .text-indigo-700) {
   color: #c7d2fe !important;
 }
 
 /* The same rule for compact controls where the background and label share one element. */
-:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-black"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"], [class*="bg-gradient-to-r"], [class*="bg-gradient-to-br"]):is([class*="text-"]) {
+:is([class*="bg-slate-800"], [class*="bg-slate-900"], [class*="bg-slate-950"], [class*="bg-gray-800"], [class*="bg-gray-900"], [class*="bg-gray-950"], [class*="bg-zinc-800"], [class*="bg-zinc-900"], [class*="bg-zinc-950"], [class*="bg-neutral-800"], [class*="bg-neutral-900"], [class*="bg-neutral-950"], [class*="bg-black"], [class*="bg-forest-500"], [class*="bg-forest-600"], [class*="bg-emerald-500"], [class*="bg-sky-500"], [class*="bg-sky-600"], [class*="bg-indigo-600"], [class*="bg-indigo-700"], [class*="bg-red-600"], [class*="bg-red-700"]):is([class*="text-"]) {
   color: #ffffff !important;
 }
 
