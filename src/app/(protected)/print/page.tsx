@@ -382,11 +382,15 @@ function PrintContent() {
         <div className="badge-body badge-body-schedule">
           <div className="badge-schedule">
             {rows.length ? rows.map((row, idx) => (
-              <div key={idx} className="badge-schedule-row">
-                <span className="badge-schedule-time">{row.time}</span>
-                <span className="badge-schedule-activity">{row.activity}{row.room ? ` · ${row.room}` : ""}</span>
+              <div key={idx} className="badge-schedule-entry">
+                {idx > 0 && <hr className="badge-schedule-hr" />}
+                <div className="badge-schedule-row">
+                  <span className="badge-schedule-time">{row.time}</span>
+                  <span className="badge-schedule-activity">{row.activity}</span>
+                </div>
+                {row.room && <div className="badge-schedule-location">{row.room}</div>}
               </div>
-            )) : <div className="badge-schedule-row"><span className="badge-schedule-time">—</span><span className="badge-schedule-activity">No schedule assigned</span></div>}
+            )) : <div className="badge-schedule-entry"><div className="badge-schedule-row"><span className="badge-schedule-time">—</span><span className="badge-schedule-activity">No schedule assigned</span></div></div>}
           </div>
         </div>
       </div>
@@ -633,10 +637,13 @@ function PrintContent() {
         .badge-age { font-size: 9pt; color: #555; font-weight: 600; }
         .badge-foot { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 3px; }
         .badge-role-label { font-size: 7pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #444; }
-        .badge-schedule { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-        .badge-schedule-row { display: flex; gap: 6px; border-bottom: 0.5px solid #bbb; padding: 2.5px 0; align-items: baseline; }
-        .badge-schedule-time { font-family: "DM Mono", ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-size: 8pt; font-weight: 700; min-width: 0.62in; }
-        .badge-schedule-activity { font-size: 8pt; line-height: 1.15; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .badge-schedule { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; min-height: 0; overflow: hidden; }
+        .badge-schedule-entry { display: flex; flex-direction: column; }
+        .badge-schedule-hr { border: none; border-top: 1px solid #cbd2da; margin: 0 0 5px; }
+        .badge-schedule-row { display: flex; gap: 8px; align-items: baseline; }
+        .badge-schedule-time { font-family: "Space Grotesk", Arial, Helvetica, sans-serif; font-variant-numeric: tabular-nums; font-size: 10pt; font-weight: 700; min-width: 0.7in; white-space: nowrap; }
+        .badge-schedule-activity { font-family: "Space Grotesk", Arial, Helvetica, sans-serif; font-size: 10pt; font-weight: 700; line-height: 1.15; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex: 1; }
+        .badge-schedule-location { font-family: "Space Grotesk", Arial, Helvetica, sans-serif; font-size: 7.5pt; font-weight: 500; color: #555; margin-left: calc(0.7in + 8px); line-height: 1.1; margin-top: 1px; }
         .crop { position: absolute; background: #9AA4B2; }
         .crop-h { width: 0.12in; height: 0.25pt; }
         .crop-v { width: 0.25pt; height: 0.12in; }
