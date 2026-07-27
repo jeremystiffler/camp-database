@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import NewCampWizard from "@/components/NewCampWizard";
 import { HelpCopy } from "@/components/HelpMode";
 import { MoreOptions, useGuidedMode } from "@/components/GuidedMode";
+import { PROGRAM_PALETTES } from "@/lib/programPalettes";
 
 interface Camp {
   id: string;
@@ -266,13 +267,22 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 
 // ─── Camp Card ────────────────────────────────────────────────────────────────
 
-function CampCard({ camp, active, onCopy, onDelete }: { camp: Camp; active: boolean; onCopy: (camp: Camp) => void; onDelete: (camp: Camp) => void }) {
+function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Camp; active: boolean; onCopy: (camp: Camp) => void; onDelete: (camp: Camp) => void; onColorChange: (camp: Camp, primaryColor: string, accentColor: string) => Promise<boolean> }) {
   const primaryColor = camp.primaryColor || "#2563EB";
   const accentColor = camp.accentColor || "#0EA5E9";
+  const [colorOpen, setColorOpen] = useState(false);
+  const [colorSaving, setColorSaving] = useState(false);
   const statusColors: Record<string, string> = {
     draft:    "bg-slate-100 text-slate-600",
     published:"bg-forest-100 text-forest-700",
     archived: "bg-slate-100 text-slate-400",
+  };
+  const pickColor = async (nextPrimary: string, nextAccent: string) => {
+    if (colorSaving) return;
+    setColorSaving(true);
+    const ok = await onColorChange(camp, nextPrimary, nextAccent);
+    setColorSaving(false);
+    if (ok) setColorOpen(false);
   };
   return (
     <div
@@ -315,12 +325,43 @@ function CampCard({ camp, active, onCopy, onDelete }: { camp: Camp; active: bool
         </div>
       </Link>
       {canEditCamp(camp) && (
-        <button
-          type="button"
-          onClick={() => onCopy(camp)}
-          className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:border-slate-400 hover:bg-slate-50">
-          Duplicate
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => setColorOpen(open => !open)}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:border-slate-400 hover:bg-slate-50"
+          >
+            <span className="inline-block h-3.5 w-3.5 rounded-full border border-slate-200" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }} />
+            {colorOpen ? "Close colors" : "Change color"}
+          </button>
+          {colorOpen && (
+            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className="grid grid-cols-8 gap-2">
+                {PROGRAM_PALETTES.map(palette => {
+                  const selected = palette.primaryColor === primaryColor && palette.accentColor === accentColor;
+                  return (
+                    <button
+                      key={palette.id}
+                      type="button"
+                      title={palette.name}
+                      disabled={colorSaving}
+                      onClick={() => pickColor(palette.primaryColor, palette.accentColor)}
+                      className={`h-7 w-7 rounded-full border-2 transition ${selected ? "border-slate-900 scale-110" : "border-white hover:scale-110"} ${colorSaving ? "opacity-50" : ""}`}
+                      style={{ background: `linear-gradient(135deg, ${palette.preview[0]}, ${palette.preview[1]})` }}
+                    />
+                  );
+                })}
+              </div>
+              {colorSaving && <p className="mt-2 text-[10px] font-bold text-slate-500">Saving…</p>}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => onCopy(camp)}
+            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:border-slate-400 hover:bg-slate-50">
+            Duplicate
+          </button>
+        </>
       )}
       {canAdminCamp(camp) && (
         <button
@@ -413,6 +454,19 @@ function DashboardContent() {
     setDeleteConfirmation("");
     setDeleteError("");
     setDeletingCamp(camp);
+  };
+
+  const changeCampColor = async (camp: Camp, primaryColor: string, accentColor: string) => {
+    const response = await fetch(`/api/camps/${camp.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ primaryColor, accentColor }),
+    });
+    if (!response.ok) return false;
+    // Update the card immediately and let the layout (sidebar, header) pick up the change.
+    setPrograms(prev => prev.map(c => c.id === camp.id ? { ...c, primaryColor, accentColor } : c));
+    window.dispatchEvent(new Event("camp:list-changed"));
+    return true;
   };
 
   const deleteCamp = async () => {
@@ -650,7 +704,7 @@ function DashboardContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {camps.map((camp) => (
-              <CampCard key={camp.id} camp={camp} active={camp.id === activeCamp?.id} onCopy={setCopyingCamp} onDelete={requestDeleteCamp} />
+              <CampCard key={camp.id} camp={camp} active={camp.id === activeCamp?.id} onCopy={setCopyingCamp} onDelete={requestDeleteCamp} onColorChange={changeCampColor} />
             ))}
             {camps.some(canAdminCamp) && (
               <button
