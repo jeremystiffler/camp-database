@@ -1003,22 +1003,19 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
     <div className="space-y-6">
       {!simpleCatalog && (
         <>
-          <div className="relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-amber-50 p-6 shadow-sm">
-        <div className="absolute right-6 top-6 hidden h-24 w-24 rounded-full bg-amber-200/30 blur-2xl md:block" />
+          <div className="page-banner">
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-wide text-sky-700 shadow-sm">
-              Activity command center
-            </div>
-            <h1 className="page-title mt-3">Classes & Teachers</h1>
-            <HelpCopy title="Activities workflow" className="mt-1 max-w-2xl text-sm text-slate-600">
+            <p className="page-banner__eyebrow">Activity command center</p>
+            <h1 className="page-banner__title">Classes & teachers</h1>
+            <HelpCopy title="Activities workflow" className="page-banner__desc">
               Manage activities from one working sheet: default event blocks at the top, then activity rows with room, teacher, capacity, and click-to-schedule cells.
             </HelpCopy>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative">
               <button onClick={() => setToolsOpen(v => !v)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">
+                className="page-banner__action page-banner__action--quiet">
                 Tools ▾
               </button>
               {toolsOpen && (
@@ -1029,11 +1026,11 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
                 </div>
               )}
             </div>
-            <a href={`/teachers?campId=${campId}`} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-50">
+            <a href={`/teachers?campId=${campId}`} className="page-banner__action page-banner__action--quiet">
               Teacher directory →
             </a>
             <button onClick={() => { setEditingCourse(null); setShowModal(true); }}
-              className="rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:opacity-90">
+              className="page-banner__action">
               + New Activity
             </button>
           </div>

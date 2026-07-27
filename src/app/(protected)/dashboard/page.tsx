@@ -300,9 +300,7 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
         className="block"
       >
         <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-black shadow-sm" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}>
-            {campInitials(camp.name)}
-          </div>
+          <div className="w-10 h-10" aria-hidden />
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full mr-7 ${statusColors[camp.status] || "bg-slate-100 text-slate-600"}`}>
             {camp.status}
           </span>
@@ -323,44 +321,56 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
           </div>
         </div>
       </Link>
-      {canEditCamp(camp) && (
-        <>
+      {/* Initials chip doubles as the event color chooser (editors and up). */}
+      <div className="absolute left-5 top-[25px]">
+        {canEditCamp(camp) ? (
           <button
             type="button"
             onClick={() => setColorOpen(open => !open)}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:border-slate-400 hover:bg-slate-50"
+            title="Change event color"
+            aria-expanded={colorOpen}
+            className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-black shadow-sm transition hover:scale-105 hover:ring-2 hover:ring-slate-300"
+            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
           >
-            <span className="inline-block h-3.5 w-3.5 rounded-full border border-slate-200" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }} />
-            {colorOpen ? "Close colors" : "Change color"}
+            {campInitials(camp.name)}
           </button>
-          {colorOpen && (
-            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <div className="grid grid-cols-8 gap-2">
-                {PROGRAM_PALETTES.map(palette => {
-                  const selected = palette.primaryColor === primaryColor && palette.accentColor === accentColor;
-                  return (
-                    <button
-                      key={palette.id}
-                      type="button"
-                      title={palette.name}
-                      disabled={colorSaving}
-                      onClick={() => pickColor(palette.primaryColor, palette.accentColor)}
-                      className={`h-7 w-7 rounded-full border-2 transition ${selected ? "border-slate-900 scale-110" : "border-white hover:scale-110"} ${colorSaving ? "opacity-50" : ""}`}
-                      style={{ background: `linear-gradient(135deg, ${palette.preview[0]}, ${palette.preview[1]})` }}
-                    />
-                  );
-                })}
-              </div>
-              {colorSaving && <p className="mt-2 text-[10px] font-bold text-slate-500">Saving…</p>}
+        ) : (
+          <div className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-black shadow-sm" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}>
+            {campInitials(camp.name)}
+          </div>
+        )}
+        {colorOpen && (
+          <div className="absolute left-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-[.1em] text-slate-500">Event color</p>
+            <div className="grid grid-cols-3 gap-2">
+              {PROGRAM_PALETTES.map(palette => {
+                const selected = palette.primaryColor === primaryColor && palette.accentColor === accentColor;
+                return (
+                  <button
+                    key={palette.id}
+                    type="button"
+                    title={palette.name}
+                    disabled={colorSaving}
+                    onClick={() => pickColor(palette.primaryColor, palette.accentColor)}
+                    className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition ${selected ? "border-slate-900 bg-slate-50" : "border-transparent hover:border-slate-300"} ${colorSaving ? "opacity-50" : ""}`}
+                  >
+                    <span className="h-6 w-6 rounded-full" style={{ background: `linear-gradient(135deg, ${palette.preview[0]}, ${palette.preview[1]})` }} />
+                    <span className="text-[10px] font-bold text-slate-600">{palette.name}</span>
+                  </button>
+                );
+              })}
             </div>
-          )}
-          <button
-            type="button"
-            onClick={() => onCopy(camp)}
-            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:border-slate-400 hover:bg-slate-50">
-            Duplicate
-          </button>
-        </>
+            {colorSaving && <p className="mt-2 text-[10px] font-bold text-slate-500">Saving…</p>}
+          </div>
+        )}
+      </div>
+      {canEditCamp(camp) && (
+        <button
+          type="button"
+          onClick={() => onCopy(camp)}
+          className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:border-slate-400 hover:bg-slate-50">
+          Duplicate
+        </button>
       )}
       {canAdminCamp(camp) && (
         <button
@@ -544,17 +554,17 @@ function DashboardContent() {
     <div>
       {(camps.length === 0 || canAdminCamp(activeCamp)) && <div className="mb-4 flex justify-end"><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary flex items-center gap-2"><span>+</span> New Event</button></div>}
       {/* Unified program workspace header */}
-      <div className="camp-card relative mb-8 overflow-visible border-indigo-100 bg-gradient-to-br from-white via-indigo-50/50 to-sky-50 p-5">
+      <div className="page-banner mb-8 overflow-visible">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <p className="minimal-section-title mb-2 !text-white">Event workspace</p>
-            <h1 className="truncate text-3xl font-black tracking-tight text-white">{activeCamp ? activeCamp.name : "Your events"}</h1>
-            <p className="mt-1 text-sm font-semibold !text-white">{activeCamp ? formatCampDateRange(activeCamp) : "Choose an event to manage its setup, people, schedule, and registration."}</p>
+            <p className="page-banner__eyebrow">Event workspace</p>
+            <h1 className="page-banner__title truncate">{activeCamp ? activeCamp.name : "Your events"}</h1>
+            <p className="page-banner__desc">{activeCamp ? formatCampDateRange(activeCamp) : "Choose an event to manage its setup, people, schedule, and registration."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {activeCamp && <p className="mr-1 text-xs font-black uppercase tracking-wide !text-white">Status: {activeCamp.status} · Registration {activeCamp.registrationOpen ? "open" : "closed"}</p>}
+            {activeCamp && <p className="page-banner__eyebrow mr-1">Status: {activeCamp.status} · Registration {activeCamp.registrationOpen ? "open" : "closed"}</p>}
             {activeCamp && <div className="relative">
-              <button type="button" onClick={() => setActionsOpen(v => !v)} aria-expanded={actionsOpen} className="rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs font-black !text-slate-950 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50">Manage ▾</button>
+              <button type="button" onClick={() => setActionsOpen(v => !v)} aria-expanded={actionsOpen} className="page-banner__action page-banner__action--quiet text-xs">Manage ▾</button>
               {actionsOpen && <div className="absolute right-0 top-10 z-30 w-[min(92vw,340px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
                 {canEditCamp(activeCamp) ? <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="mb-1.5 block text-xs font-black uppercase tracking-wide !text-slate-800">Rename event</label><div className="flex gap-2"><input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" /><button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button></div>{renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}</div> : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold !text-slate-800">This shared event is read-only for your account.</p>}
                 <div className="grid gap-1">{(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold !text-slate-800 hover:bg-slate-50 hover:!text-slate-950">{label}</Link>)}</div>

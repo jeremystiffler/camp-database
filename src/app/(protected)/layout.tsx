@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
+import { themeTokens } from "@/lib/programPalettes";
 
 // Navigation vocabulary is frozen: one name per route, sentence case, no
 // preference-driven variants. See simpleschedulepro-nav-and-toggle-removal.md.
@@ -210,9 +211,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const showBuildGuidance = !isPublishedProgram && pathname !== "/dashboard";
   const workspaceStyle = {
     background: "var(--ui-bg)",
-    "--brand-primary": activeCamp?.primaryColor || "#2563eb",
-    "--brand-primary-hover": activeCamp?.primaryColor || "#1d4ed8",
-    "--accent": activeCamp?.accentColor || "#0ea5e9",
+    ...themeTokens(activeCamp?.primaryColor, activeCamp?.accentColor),
   } as CSSProperties;
 
   if (checking) {

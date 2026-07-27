@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { RowDeleteButton } from "@/components/InlineEditing";
-import { PROGRAM_PALETTES } from "@/lib/programPalettes";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -47,13 +46,6 @@ interface Coupon {
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const COLOR_THEMES = PROGRAM_PALETTES.map(({ name, primaryColor, accentColor, preview }) => ({
-  name,
-  primary: primaryColor,
-  accent: accentColor,
-  preview,
-}));
 
 const FONT_OPTIONS = [
   { id: "Inter",       label: "Inter",        sample: "The quick brown fox",        style: { fontFamily: "Inter, sans-serif" } },
@@ -183,7 +175,7 @@ function SettingsContent() {
     const res = await fetch(`/api/camps/${campId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ primaryColor: appearance.primaryColor, accentColor: appearance.accentColor, fontFamily: appearance.fontFamily }),
+      body: JSON.stringify({ fontFamily: appearance.fontFamily }),
     });
     const data = await res.json();
     setAppearanceSaving(false);
@@ -439,60 +431,7 @@ function SettingsContent() {
         <Section title="Event Appearance" subtitle={`Customize how ${campName}'s registration page and print materials look`}>
           <div className="space-y-5">
 
-            {/* Color themes */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Color Theme</label>
-              <div className="grid grid-cols-3 gap-2">
-                {COLOR_THEMES.map(theme => {
-                  const active = appearance.primaryColor === theme.primary && appearance.accentColor === theme.accent;
-                  return (
-                    <button key={theme.name} type="button"
-                      onClick={() => setAppearance(prev => ({ ...prev, primaryColor: theme.primary, accentColor: theme.accent }))}
-                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 transition-all text-left ${active ? "border-slate-800 shadow-sm bg-slate-50" : "border-slate-200 hover:border-slate-300"}`}>
-                      <div className="flex gap-1 flex-shrink-0">
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.preview[0] }} />
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.preview[1] }} />
-                      </div>
-                      <span className="text-xs font-medium text-slate-700 truncate">{theme.name}</span>
-                      {active && <span className="ml-auto text-xs">✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Custom colors */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Custom Colors</label>
-              <div className="flex items-center gap-4 flex-wrap">
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input type="color" value={appearance.primaryColor}
-                    onChange={e => setAppearance(prev => ({ ...prev, primaryColor: e.target.value }))}
-                    className="w-10 h-10 border border-slate-200 rounded-xl cursor-pointer p-0.5" />
-                  <div>
-                    <p className="text-xs font-medium text-slate-700">Primary</p>
-                    <p className="text-xs text-slate-400 font-mono">{appearance.primaryColor}</p>
-                  </div>
-                </label>
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input type="color" value={appearance.accentColor}
-                    onChange={e => setAppearance(prev => ({ ...prev, accentColor: e.target.value }))}
-                    className="w-10 h-10 border border-slate-200 rounded-xl cursor-pointer p-0.5" />
-                  <div>
-                    <p className="text-xs font-medium text-slate-700">Accent</p>
-                    <p className="text-xs text-slate-400 font-mono">{appearance.accentColor}</p>
-                  </div>
-                </label>
-                {/* Live preview swatch */}
-                <div className="flex items-center gap-2 ml-2">
-                  <div className="h-10 w-24 rounded-xl flex items-center justify-center text-white text-xs font-semibold shadow-sm"
-                    style={{ background: `linear-gradient(135deg, ${appearance.primaryColor}, ${appearance.accentColor})` }}>
-                    Preview
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">Event colors are chosen from the event card on the Home page — click the event&rsquo;s initials chip to pick a palette.</p>
             {/* Font family */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Font Family</label>

@@ -1,34 +1,69 @@
 export type ProgramPalette = {
   id: string;
   name: string;
+  /** Filled buttons / chips with white text (≥4.5:1 vs white). Stored as camp.primaryColor. */
   primaryColor: string;
+  /** Complementary secondary highlight, never behind text. Stored as camp.accentColor. */
   accentColor: string;
+  /** Banner and panel backgrounds — very pale; ink reaches ≥7:1. */
+  wash: string;
+  /** Banner headings and body text — ≥7:1 on wash. */
+  ink: string;
+  /** 3–4px rails, underlines, dividers, active nav. Decorative only. */
+  rail: string;
+  /** Text on primaryColor surfaces. */
+  onStrong: string;
   preview: readonly [string, string];
 };
 
-// Dark, saturated primaries keep white text readable across the workspace,
-// public registration, and print headers.
+// Six softened presets (simpleschedulepro-banner-theming-fix.md §4).
+// Every preset clears AAA (7:1) for ink-on-wash and AA (4.5:1) for white-on-strong.
+// No free hex input anywhere: arbitrary colors cannot guarantee these ratios.
 export const PROGRAM_PALETTES: readonly ProgramPalette[] = [
-  { id: "ocean", name: "Ocean", primaryColor: "#075985", accentColor: "#0284C7", preview: ["#075985", "#38BDF8"] },
-  { id: "forest", name: "Forest", primaryColor: "#166534", accentColor: "#16A34A", preview: ["#166534", "#4ADE80"] },
-  { id: "sunset", name: "Sunset", primaryColor: "#C2410C", accentColor: "#EA580C", preview: ["#C2410C", "#FB923C"] },
-  { id: "violet", name: "Violet", primaryColor: "#5B21B6", accentColor: "#7C3AED", preview: ["#5B21B6", "#A78BFA"] },
-  { id: "rose", name: "Rose", primaryColor: "#BE123C", accentColor: "#E11D48", preview: ["#BE123C", "#FB7185"] },
-  { id: "amber", name: "Amber", primaryColor: "#A16207", accentColor: "#D97706", preview: ["#A16207", "#FBBF24"] },
-  { id: "teal", name: "Teal", primaryColor: "#0F766E", accentColor: "#0D9488", preview: ["#0F766E", "#2DD4BF"] },
-  { id: "berry", name: "Berry", primaryColor: "#9D174D", accentColor: "#DB2777", preview: ["#9D174D", "#F472B6"] },
-  { id: "slate", name: "Slate", primaryColor: "#334155", accentColor: "#475569", preview: ["#334155", "#94A3B8"] },
-  { id: "midnight", name: "Midnight", primaryColor: "#1E3A8A", accentColor: "#2563EB", preview: ["#1E3A8A", "#60A5FA"] },
-  { id: "ruby", name: "Ruby", primaryColor: "#991B1B", accentColor: "#DC2626", preview: ["#991B1B", "#F87171"] },
-  { id: "plum", name: "Plum", primaryColor: "#701A75", accentColor: "#A21CAF", preview: ["#701A75", "#E879F9"] },
-  { id: "cobalt", name: "Cobalt", primaryColor: "#1E40AF", accentColor: "#3B82F6", preview: ["#1E40AF", "#60A5FA"] },
-  { id: "copper", name: "Copper", primaryColor: "#9A3412", accentColor: "#C2410C", preview: ["#9A3412", "#FB923C"] },
-  { id: "lagoon", name: "Lagoon", primaryColor: "#155E75", accentColor: "#0891B2", preview: ["#155E75", "#22D3EE"] },
-  { id: "charcoal", name: "Charcoal", primaryColor: "#1F2937", accentColor: "#4B5563", preview: ["#1F2937", "#9CA3AF"] },
+  { id: "harbor", name: "Harbor", primaryColor: "#2F6FB8", accentColor: "#7FB6D4", wash: "#EEF4FA", ink: "#1B4470", rail: "#4F8CC9", onStrong: "#FFFFFF", preview: ["#2F6FB8", "#7FB6D4"] },
+  { id: "evergreen", name: "Evergreen", primaryColor: "#2E7D63", accentColor: "#8CC0AB", wash: "#EDF5F1", ink: "#1B4A3A", rail: "#4E9B7E", onStrong: "#FFFFFF", preview: ["#2E7D63", "#8CC0AB"] },
+  { id: "plum", name: "Plum", primaryColor: "#6B4E9E", accentColor: "#B3A0D8", wash: "#F2EFF8", ink: "#402E63", rail: "#8A6DBF", onStrong: "#FFFFFF", preview: ["#6B4E9E", "#B3A0D8"] },
+  { id: "ember", name: "Ember", primaryColor: "#A85832", accentColor: "#E0A87C", wash: "#FBF1EA", ink: "#7A3D1F", rail: "#C2683C", onStrong: "#FFFFFF", preview: ["#A85832", "#E0A87C"] },
+  { id: "rose", name: "Rose", primaryColor: "#A34862", accentColor: "#D99BAF", wash: "#FAEFF2", ink: "#6E2A42", rail: "#B05070", onStrong: "#FFFFFF", preview: ["#A34862", "#D99BAF"] },
+  { id: "slate", name: "Slate", primaryColor: "#4A6580", accentColor: "#A3B8CB", wash: "#EFF3F7", ink: "#2E4257", rail: "#6D8AA6", onStrong: "#FFFFFF", preview: ["#4A6580", "#A3B8CB"] },
 ] as const;
 
 export const DEFAULT_PROGRAM_PALETTE = PROGRAM_PALETTES[0];
 
+// Legacy saved colors (pre-preset) map to the nearest softened preset by hue family
+// (§4.7 migration table plus the retired 16-palette set).
+const LEGACY_PRESET_MAP: Record<string, string> = {
+  "#075985": "harbor", "#1E3A8A": "harbor", "#1E40AF": "harbor", "#2563EB": "harbor", "#155E75": "harbor",
+  "#166534": "evergreen", "#0F766E": "evergreen",
+  "#5B21B6": "plum", "#701A75": "plum", "#9D174D": "plum",
+  "#C2410C": "ember", "#A16207": "ember", "#9A3412": "ember", "#F0894A": "ember",
+  "#BE123C": "rose", "#991B1B": "rose",
+  "#334155": "slate", "#1F2937": "slate",
+};
+
 export function paletteForColors(primaryColor?: string, accentColor?: string): ProgramPalette {
-  return PROGRAM_PALETTES.find((palette) => palette.primaryColor === primaryColor && palette.accentColor === accentColor) || DEFAULT_PROGRAM_PALETTE;
+  const direct = PROGRAM_PALETTES.find((palette) => palette.primaryColor.toLowerCase() === (primaryColor || "").toLowerCase());
+  if (direct) return direct;
+  const legacy = LEGACY_PRESET_MAP[(primaryColor || "").toUpperCase()];
+  if (legacy) return PROGRAM_PALETTES.find((palette) => palette.id === legacy) || DEFAULT_PROGRAM_PALETTE;
+  void accentColor;
+  return DEFAULT_PROGRAM_PALETTE;
+}
+
+/** Literal-hex CSS custom properties for the theme wrapper. No var() indirection —
+ *  literals are what make the override work at every depth (§3.1). */
+export function themeTokens(primaryColor?: string, accentColor?: string): Record<string, string> {
+  const palette = paletteForColors(primaryColor, accentColor);
+  return {
+    "--brand-wash": palette.wash,
+    "--brand-ink": palette.ink,
+    "--brand-rail": palette.rail,
+    "--brand-strong": palette.primaryColor,
+    "--brand-accent": palette.accentColor,
+    "--brand-onstrong": palette.onStrong,
+    // Back-compat aliases, emitted as literals on the same wrapper.
+    "--brand-primary": palette.primaryColor,
+    "--brand-primary-hover": palette.ink,
+    "--accent": palette.accentColor,
+  };
 }

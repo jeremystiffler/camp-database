@@ -140,10 +140,10 @@ body {
   border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
   box-shadow: 0 10px 26px rgba(69, 54, 42, 0.06);
 }
-.stat-forest { background: linear-gradient(135deg, var(--ui-sage-soft, #e8eee2), #fffdf9); }
-.stat-sky { background: linear-gradient(135deg, var(--ui-denim-soft, #e5edf3), #fffdf9); }
+.stat-forest { background: linear-gradient(135deg, #e8eee2, #fffdf9); }
+.stat-sky { background: linear-gradient(135deg, #e5edf3, #fffdf9); }
 .stat-sunset { background: linear-gradient(135deg, var(--ui-clay-soft, #f3e3dc), #fffdf9); }
-.stat-berry { background: linear-gradient(135deg, var(--ui-lavender-soft, #ece8f4), #fffdf9); }
+.stat-berry { background: linear-gradient(135deg, #ece8f4, #fffdf9); }
 .stat-earth { background: linear-gradient(135deg, var(--ui-butter-soft, #f5ecd1), #fffdf9); }
 
 .icon-badge-forest,
@@ -154,10 +154,10 @@ body {
   border: 1px solid rgba(31,35,38,0.08);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
 }
-.icon-badge-forest { background: var(--ui-sage-soft, #e8eee2); color: #637a55; }
-.icon-badge-sky { background: var(--ui-denim-soft, #e5edf3); color: #5f7e99; }
+.icon-badge-forest { background: #e8eee2; color: #637a55; }
+.icon-badge-sky { background: #e5edf3; color: #5f7e99; }
 .icon-badge-sunset { background: var(--ui-clay-soft, #f3e3dc); color: #9b624f; }
-.icon-badge-berry { background: var(--ui-lavender-soft, #ece8f4); color: #796fa4; }
+.icon-badge-berry { background: #ece8f4; color: #796fa4; }
 .icon-badge-earth { background: var(--ui-butter-soft, #f5ecd1); color: #92743a; }
 
 .tile-button {
@@ -169,16 +169,16 @@ body {
 }
 .tile-button:hover {
   transform: translateY(-2px);
-  border-color: var(--tile-accent, var(--ui-aqua, #74a7a2));
+  border-color: var(--tile-accent, #74a7a2);
   box-shadow: 0 14px 30px rgba(69, 54, 42, 0.095);
 }
-.tile-sage { --tile-accent: var(--ui-sage); background: linear-gradient(135deg, var(--ui-sage-soft), #fffdf9); }
-.tile-denim { --tile-accent: var(--ui-denim); background: linear-gradient(135deg, var(--ui-denim-soft), #fffdf9); }
+.tile-sage { --tile-accent: #758966; background: linear-gradient(135deg, #e8eee2, #fffdf9); }
+.tile-denim { --tile-accent: #6f8da8; background: linear-gradient(135deg, #e5edf3, #fffdf9); }
 .tile-clay { --tile-accent: var(--ui-clay); background: linear-gradient(135deg, var(--ui-clay-soft), #fffdf9); }
-.tile-lavender { --tile-accent: var(--ui-lavender); background: linear-gradient(135deg, var(--ui-lavender-soft), #fffdf9); }
+.tile-lavender { --tile-accent: #796fa4; background: linear-gradient(135deg, #ece8f4, #fffdf9); }
 .tile-butter { --tile-accent: var(--ui-butter); background: linear-gradient(135deg, var(--ui-butter-soft), #fffdf9); }
-.tile-aqua { --tile-accent: var(--ui-aqua); background: linear-gradient(135deg, var(--ui-aqua-soft), #fffdf9); }
-.tile-berry { --tile-accent: var(--ui-berry); background: linear-gradient(135deg, var(--ui-berry-soft), #fffdf9); }
+.tile-aqua { --tile-accent: #74a7a2; background: linear-gradient(135deg, #e3efee, #fffdf9); }
+.tile-berry { --tile-accent: #a4708e; background: linear-gradient(135deg, #f0e4ec, #fffdf9); }
 
 .minimal-input {
   width: 100%;
@@ -288,24 +288,23 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
   --ui-text-muted: var(--text);
   --ui-text-faint: var(--text-muted);
 
-  /* Event palette: every non-semantic banner, callout, gradient, and primary control
-     inherits the selected event's primary and accent colors. */
-  --ui-lavender: var(--brand-primary);
-  --ui-lavender-soft: color-mix(in srgb, var(--brand-primary) 12%, white);
-  --ui-aqua: var(--accent);
-  --ui-aqua-soft: color-mix(in srgb, var(--accent) 12%, white);
+  /* Neutral tint tokens (fixed, not theme-driven — decorative chips and stats only). */
   --ui-butter: #b45309;
   --ui-butter-soft: #fef3c7;
   --ui-clay: #be123c;
   --ui-clay-soft: #ffe4e6;
-  --ui-berry: var(--brand-primary);
-  --ui-berry-soft: color-mix(in srgb, var(--brand-primary) 12%, white);
-  --ui-sage: var(--brand-primary);
-  --ui-sage-soft: color-mix(in srgb, var(--brand-primary) 10%, white);
-  --ui-denim: var(--accent);
-  --ui-denim-soft: color-mix(in srgb, var(--accent) 12%, white);
   --ui-danger: var(--danger);
   --ui-danger-soft: #fee2e2;
+
+  /* Brand tokens: defaults only. The theme wrapper overrides all of these with
+     literal hex values per event (programPalettes.themeTokens). Never alias
+     these into other :root variables — aliases freeze at :root and go stale. */
+  --brand-wash: #EEF4FA;
+  --brand-ink: #1B4470;
+  --brand-rail: #4F8CC9;
+  --brand-strong: #2F6FB8;
+  --brand-accent: #7FB6D4;
+  --brand-onstrong: #FFFFFF;
 
   --age-slate: #6f7f91;
   --age-stone: #8b7e70;
@@ -317,9 +316,68 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
   --age-plum: #92799a;
 }
 
-.bg-gradient-to-r,
-.bg-gradient-to-br {
-  background-image: linear-gradient(135deg, var(--ui-lavender), var(--ui-aqua)) !important;
+/* ===================== Page banner (banner-theming-fix §5) =====================
+   One component, every page. Flat wash — one background color, one provable
+   contrast ratio. No gradient may carry text anywhere in the app. */
+.page-banner {
+  position: relative;
+  background: var(--brand-wash);
+  border: 1px solid color-mix(in srgb, var(--brand-rail) 24%, transparent);
+  border-radius: 1.5rem;
+  padding: 20px 24px;
+  overflow: hidden;
+}
+.page-banner::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 4px;
+  background: var(--brand-rail);
+}
+.page-banner__eyebrow {
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+  color: var(--brand-ink);
+  opacity: .75; /* still ≥4.5:1 on wash — base ratio ≥7.5:1. Do not lower. */
+}
+.page-banner__title {
+  font-size: 28px;
+  line-height: 1.16;
+  font-weight: 600;
+  letter-spacing: -.018em;
+  color: var(--brand-ink);
+  margin: 4px 0 0;
+}
+.page-banner__desc {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text); /* neutral, not tinted */
+  max-width: 68ch;
+  margin: 6px 0 0;
+}
+.page-banner__action {
+  background: var(--brand-strong);
+  color: var(--brand-onstrong);
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 600;
+  height: var(--control-h);
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.page-banner__action--quiet {
+  background: transparent;
+  color: var(--brand-ink);
+  border: 1px solid color-mix(in srgb, var(--brand-rail) 40%, transparent);
 }
 
 /* Primary dark utility controls are event actions, so they follow the event palette too. */
@@ -342,15 +400,15 @@ a[class*="bg-slate-900"]:hover {
 
 .bg-forest-500, .bg-forest-600 { background-color: var(--brand-primary) !important; }
 .bg-emerald-500, .bg-emerald-600 { background-color: var(--success) !important; }
-.bg-sky-500, .bg-sky-600 { background-color: var(--ui-denim) !important; }
-.bg-berry-500, .bg-berry-600 { background-color: var(--ui-lavender) !important; }
+.bg-sky-500, .bg-sky-600 { background-color: #6f8da8 !important; }
+.bg-berry-500, .bg-berry-600 { background-color: #796fa4 !important; }
 .bg-sunset-500, .bg-sunset-600, .bg-orange-500 { background-color: var(--ui-clay) !important; }
 .bg-amber-500 { background-color: var(--ui-butter) !important; }
 .bg-red-500, .bg-red-600 { background-color: var(--ui-danger) !important; }
 
-.bg-forest-50, .bg-emerald-50 { background-color: var(--ui-sage-soft) !important; }
-.bg-sky-50 { background-color: var(--ui-denim-soft) !important; }
-.bg-berry-50 { background-color: var(--ui-lavender-soft) !important; }
+.bg-forest-50, .bg-emerald-50 { background-color: #e8eee2 !important; }
+.bg-sky-50 { background-color: #e5edf3 !important; }
+.bg-berry-50 { background-color: #ece8f4 !important; }
 .bg-sunset-50, .bg-orange-50 { background-color: var(--ui-clay-soft) !important; }
 .bg-amber-50 { background-color: var(--ui-butter-soft) !important; }
 .bg-rose-50, .bg-red-50 { background-color: var(--ui-danger-soft) !important; }
@@ -421,11 +479,11 @@ a[class*="bg-slate-900"]:hover {
 }
 
 .focus\:border-forest-400:focus, .focus\:border-sky-400:focus, .focus\:border-berry-400:focus {
-  border-color: var(--ui-aqua) !important;
+  border-color: #74a7a2 !important;
 }
 
 .accent-forest-500, .accent-sky-500, .accent-sky-600, .accent-berry-500 {
-  accent-color: var(--ui-aqua) !important;
+  accent-color: #74a7a2 !important;
 }
 
 .ui-age-dot {
