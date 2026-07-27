@@ -89,9 +89,9 @@ const PAPER_LABELS: Record<PaperSize, string> = {
   legal: "Legal 8.5×14",
   tabloid: "Tabloid 11×17",
   a4: "A4",
-  "4x6": "4×6 Card",
-  "5x3": "5×3 Badge",
-  "3x5": "3×5 Lanyard",
+  "4x6": "6×4 portrait",
+  "5x3": "5×3 landscape (legacy)",
+  "3x5": "5×3 portrait",
   custom: "Custom size",
 };
 const PAPER_CSS: Record<PaperSize, string> = {
@@ -99,7 +99,7 @@ const PAPER_CSS: Record<PaperSize, string> = {
   legal: "legal",
   tabloid: "ledger",
   a4: "A4",
-  "4x6": "6in 4in",
+  "4x6": "4in 6in",
   "5x3": "5in 3in",
   "3x5": "3in 5in",
   custom: "var(--custom-print-size)",
@@ -590,7 +590,7 @@ function PrintContent() {
       return;
     }
     const id = window.setTimeout(() => {
-      const source = document.querySelector("#print-source .print-doc");
+      const source = document.querySelector("#print-root .print-doc");
       const html = source?.innerHTML || "";
       if (html.trim()) {
         setLivePreviewHtml(html);
@@ -905,21 +905,21 @@ function PrintContent() {
     <>
       <style>{`
         @media print {
-          @page { size: ${printPageSizeCss}; margin: ${selectedSettings.pageMargin}; }
+          @page { size: ${printPageSizeCss}; margin: ${draftTemplate.paperSize === "3x5" ? "0.15in" : draftTemplate.paperSize === "4x6" ? "0.18in" : selectedSettings.pageMargin}; }
           body { background: white !important; }
           body * { visibility: hidden !important; }
           aside, nav, .no-print { display: none !important; }
           main { margin: 0 !important; padding: 0 !important; display: block !important; min-height: 0 !important; }
           main > div { margin: 0 !important; padding: 0 !important; max-width: none !important; width: 100% !important; }
-          .print-doc { display: block !important; visibility: visible !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; }
-          .print-doc * { visibility: visible !important; }
-          #print-source { display: block !important; }
-          #print-source .print-doc { display: block !important; }
-          .page-break { page-break-after: always; }
-          .page-break:last-child { page-break-after: auto; }
+          #print-root { display: block !important; visibility: visible !important; position: static !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+          #print-root * { visibility: visible !important; }
+          #print-root .print-doc { display: block !important; visibility: visible !important; position: static !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; }
+          #print-root, #print-root * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .print-page, .page-break { break-after: page; page-break-after: always; break-inside: avoid; page-break-inside: avoid; overflow: hidden; }
+          .print-page:last-child, .page-break:last-child { break-after: auto; page-break-after: auto; }
         }
         .print-doc { display: ${activeDoc ? "block" : "none"}; margin-top: ${activeDoc ? "24px" : "0"}; background: white; padding: ${activeDoc ? "16px" : "0"}; border: ${activeDoc ? "1px solid #e2e8f0" : "0"}; border-radius: ${activeDoc ? "16px" : "0"}; }
-        #print-source { display: none; }
+        #print-root { display: none; }
         .ops-print { font-family: Arial, Helvetica, sans-serif; color: #000; }
         .ops-print table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .ops-print th, .ops-print td { border: 1px solid #111; vertical-align: middle; white-space: pre-line; line-height: 1.12; }
@@ -1249,7 +1249,7 @@ function PrintContent() {
         )}
       </div>
 
-      <div id="print-source" aria-hidden="true">
+      <div id="print-root" aria-hidden="true">
       {activeDoc === "custom_table" && <div className="print-doc ops-print">
         <h1 className="ops-title">{draftTemplate.name}</h1>
         <p className="ops-subtitle">{customDataSource === "participants" ? "Participants" : customDataSource === "people" ? "People / staff" : "Activities"} • {selectedCustomFields.length} column{selectedCustomFields.length === 1 ? "" : "s"} • {sortedCustomItems.length} row{sortedCustomItems.length === 1 ? "" : "s"}</p>
