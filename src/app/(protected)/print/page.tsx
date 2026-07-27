@@ -136,7 +136,7 @@ function rosterGroups(campers: Camper[]) {
   return [...groups.values()].map(group => ({ ...group, campers: sortedCampersList(group.campers) })).sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 }
 
-function teacherRows(person: Person, courses: Course[], mandatorySessions: MandatorySession[], campers: Camper[]) {
+function teacherRows(person: Person, courses: Course[], mandatorySessions: MandatorySession[], campers: Camper[], allSlots: SessionTemplate[] = []) {
   const rows = new Map<string, { time: string; title: string; room: string; age: string; sortValue: string; students: Camper[] }>();
   const campersForCourseSlot = (courseId: string, start: string, end: string, roomName?: string | null) => {
     const matches = new Map<string, Camper>();
@@ -163,6 +163,19 @@ function teacherRows(person: Person, courses: Course[], mandatorySessions: Manda
     const end = assignment.sessionTemplate.endTime || "";
     const key = `mandatory|${assignment.title}|${start}|${end}`;
     if (!rows.has(key)) rows.set(key, { time: formatRange(start, end), title: assignment.title, room: assignment.room?.name || "—", age: assignment.ageGroup?.name || "Required", sortValue: `${start || "99:99"}|${assignment.title}`, students: [] });
+  }
+  // Fill the rest of the day: any time block where this teacher has nothing
+  // assigned appears as "No Assigned Class" so breaks are visible.
+  const occupiedStarts = new Set([...rows.values()].map(row => row.sortValue.split("|")[0]));
+  const seenSlotTimes = new Set<string>();
+  for (const slot of allSlots) {
+    const start = slot.startTime || "";
+    const end = slot.endTime || "";
+    const timeKey = `${start}|${end}`;
+    if (!start || seenSlotTimes.has(timeKey)) continue;
+    seenSlotTimes.add(timeKey);
+    if (occupiedStarts.has(start)) continue;
+    rows.set(`free|${timeKey}`, { time: formatRange(start, end), title: "No Assigned Class", room: "—", age: "—", sortValue: `${start}|zzz`, students: [] });
   }
   return [...rows.values()].sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 }
@@ -194,6 +207,7 @@ function PrintContent() {
   const [persons, setPersons] = useState<Person[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [mandatorySessions, setMandatorySessions] = useState<MandatorySession[]>([]);
+  const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [accessError, setAccessError] = useState("");
   const [task, setTask] = useState<PrintTask | null>(null);
@@ -243,7 +257,8 @@ function PrintContent() {
       getJson(`/api/camps/${campId}/persons`),
       getJson(`/api/camps/${campId}/mandatory-sessions`),
       getJson(`/api/camps/${campId}/rooms`),
-    ]).then(([c, co, p, ms, r]) => {
+      getJson(`/api/camps/${campId}/session-templates`),
+    ]).then(([c, co, p, ms, r, st]) => {
       const denied = [c, co, p, ms, r].find(result => result.response.status === 401 || result.response.status === 403);
       if (denied) {
         setAccessError(denied.response.status === 401
@@ -257,6 +272,7 @@ function PrintContent() {
       setPersons(Array.isArray(p.data) ? p.data : []);
       setMandatorySessions(Array.isArray(ms.data) ? ms.data : []);
       setRooms(Array.isArray(r.data) ? r.data : []);
+      setSessionTemplates(Array.isArray(st.data) ? st.data : []);
       setPrintLog(readPrintLog(campId));
       setLoading(false);
     }).catch(() => {
@@ -485,7 +501,7 @@ function PrintContent() {
   ));
 
   const renderTeacherPackets = () => teachers.map((person, index) => {
-    const rows = teacherRows(person, courses, mandatorySessions, campers);
+    const rows = teacherRows(person, courses, mandatorySessions, campers, sessionTemplates);
     return (
       <article key={person.id} className="print-page doc-page" data-last={index === teachers.length - 1 || undefined}>
         <h1 className="doc-title">{fullName(person)}</h1>
@@ -493,7 +509,7 @@ function PrintContent() {
         <table className="doc-table">
           <thead><tr><th style={{ width: "110px" }}>Time</th><th>Assignment</th><th style={{ width: "110px" }}>Room</th><th style={{ width: "110px" }}>Group</th><th>Students</th></tr></thead>
           <tbody>{rows.length ? rows.map((row, idx) => (
-            <tr key={idx}><td>{row.time}</td><td>{row.title}</td><td>{row.room}</td><td>{row.age}</td><td>{row.students.map(fullName).join(", ") || "—"}</td></tr>
+            <tr key={idx} className={row.title === "No Assigned Class" ? "teacher-free-row" : undefined}><td>{row.time}</td><td>{row.title}</td><td>{row.room}</td><td>{row.age}</td><td>{row.students.map(fullName).join(", ") || "—"}</td></tr>
           )) : <tr><td colSpan={5}>No assignments yet.</td></tr>}</tbody>
         </table>
       </article>
@@ -624,6 +640,7 @@ function PrintContent() {
         .doc-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         .doc-table th, .doc-table td { border: 1px solid #111; padding: 5px 4px; font-size: 9.5px; vertical-align: top; white-space: pre-line; line-height: 1.2; overflow-wrap: anywhere; }
         .doc-table th { background: ${eventColor}; color: #fff; font-size: 9px; font-weight: 800; text-align: left; }
+        .teacher-free-row td { color: #777; font-style: italic; background: #f5f6f8; }
         .badge-single { display: flex; align-items: center; justify-content: center; }
         .badge-sheet-v2 { position: relative; width: 8.5in; height: 11in; }
         .badge-slot { position: absolute; }
