@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { effectiveCapacity } from "@/lib/capacity-rules";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -39,6 +40,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
         id: true,
         name: true,
         cap: true,
+        heldSeats: true,
+        room: { select: { name: true, capacity: true } },
         attentionDismissals: true,
         courseTeachers: { select: { personId: true } },
         courseSessionTemplates: { select: { sessionTemplateId: true } },
@@ -53,12 +56,26 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   const classesWithoutTeachers = courses.filter((course) => course.courseTeachers.length === 0 && !isDismissed(course, "teacher")).length;
   const unscheduledClasses = courses.filter((course) => course.courseSessionTemplates.length === 0 && course.sessions.length === 0 && !isDismissed(course, "schedule")).length;
   const fullOrOverCapacityClasses = courses.filter((course) => {
-    if (!course.cap || course.cap <= 0) return false;
+    const effective = effectiveCapacity(course, course.room);
+    if (effective <= 0) return false;
     // Capacity is per scheduled instance of the activity. Summing enrollment
     // across every time block made a five-session activity look full at 5× its
     // actual per-session roster.
-    return course.sessions.some((session) => (session.enrolledCount || 0) >= course.cap!) && !isDismissed(course, "capacity");
+    return course.sessions.some((session) => (session.enrolledCount || 0) >= effective) && !isDismissed(course, "capacity");
   }).length;
+  // §8.4 — a room reassignment can leave a class cap above the room's hard limit.
+  const capsAboveRoomCapacity = courses
+    .filter((course) => course.room?.capacity != null && course.cap != null && course.cap > course.room.capacity)
+    .map((course) => ({
+      courseId: course.id,
+      message: `${course.name} allows ${course.cap} but ${course.room!.name} holds ${course.room!.capacity}`,
+    }));
+  const classesWithNoRoom = courses
+    .filter((course) => !course.room)
+    .map((course) => ({
+      courseId: course.id,
+      message: `${course.name} has no room assigned and cannot accept enrollment`,
+    }));
   const classesWithNoEnrollment = courses.filter((course) => course.sessions.reduce((sum, s) => sum + (s.enrolledCount || 0), 0) === 0).length;
 
   return NextResponse.json({
@@ -79,6 +96,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       unscheduledClasses,
       fullOrOverCapacityClasses,
       classesWithNoEnrollment,
+      capsAboveRoomCapacity,
+      classesWithNoRoom,
     },
   });
 }

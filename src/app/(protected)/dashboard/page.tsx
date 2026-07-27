@@ -37,6 +37,8 @@ interface DashboardSummary {
     unscheduledClasses: number;
     fullOrOverCapacityClasses: number;
     classesWithNoEnrollment: number;
+    capsAboveRoomCapacity?: { courseId: string; message: string }[];
+    classesWithNoRoom?: { courseId: string; message: string }[];
   };
 }
 
@@ -544,8 +546,11 @@ function DashboardContent() {
     }
   };
 
+  const capacityBlockers = summary
+    ? [...(summary.attention.capsAboveRoomCapacity || []), ...(summary.attention.classesWithNoRoom || [])]
+    : [];
   const attentionTotal = summary
-    ? summary!.attention.classesWithoutTeachers + summary!.attention.unscheduledClasses + summary!.attention.fullOrOverCapacityClasses
+    ? summary!.attention.classesWithoutTeachers + summary!.attention.unscheduledClasses + summary!.attention.fullOrOverCapacityClasses + capacityBlockers.length
     : 0;
   const selectedStats = summary?.stats;
   const needsAttention = attentionTotal > 0;
@@ -650,7 +655,7 @@ function DashboardContent() {
             <div>
               <p className={`mb-2 text-xs font-black uppercase tracking-[0.18em] ${needsAttention ? "text-amber-700" : "text-forest-700"}`}>{needsAttention ? "Needs your attention" : "Event is in good shape"}</p>
               <h2 className="text-lg font-black text-slate-950">{needsAttention ? "A few activity details need a decision" : "No teacher, schedule, or capacity issues found."}</h2>
-              {needsAttention && summary ? <div className="mt-3 flex flex-wrap gap-2">{summary!.attention.classesWithoutTeachers > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.classesWithoutTeachers} need a teacher</span>}{summary!.attention.unscheduledClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.unscheduledClasses} are not scheduled</span>}{summary!.attention.fullOrOverCapacityClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.fullOrOverCapacityClasses} are at capacity</span>}</div> : <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-700">{canEditCamp(activeCamp) ? "Use the tools below to keep registration, check-in, and printed materials ready." : "You can review the event’s live schedule, rosters, and printable materials."}</p>}
+              {needsAttention && summary ? <div className="mt-3 flex flex-wrap gap-2">{summary!.attention.classesWithoutTeachers > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.classesWithoutTeachers} need a teacher</span>}{summary!.attention.unscheduledClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.unscheduledClasses} are not scheduled</span>}{summary!.attention.fullOrOverCapacityClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.fullOrOverCapacityClasses} are at capacity</span>}{capacityBlockers.map((issue) => <button key={issue.courseId} type="button" onClick={() => router.push(`/activities?activityId=${issue.courseId}`)} className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-left text-xs font-black text-red-800 transition hover:bg-red-100">{issue.message}</button>)}</div> : <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-700">{canEditCamp(activeCamp) ? "Use the tools below to keep registration, check-in, and printed materials ready." : "You can review the event’s live schedule, rosters, and printable materials."}</p>}
             </div>
             <div className="flex flex-wrap gap-2">
               {canEditCamp(activeCamp) ? <Link href={`/activities?campId=${activeCamp.id}`} className="minimal-button-primary">Review activities</Link> : <Link href={`/schedule?campId=${activeCamp.id}`} className="minimal-button-primary">View schedule</Link>}
