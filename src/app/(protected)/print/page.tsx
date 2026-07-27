@@ -10,7 +10,7 @@ import CamperScannableCode from "@/components/CamperScannableCode";
 // (badges only), a day packet, and a CSV export. There is no template editor.
 // ─────────────────────────────────────────────────────────────────────────────
 
-type JobId = "badges" | "rosters" | "teacherPackets" | "emergencyCards" | "pickupCards" | "roomSigns";
+type JobId = "badges" | "teacherPackets" | "emergencyCards" | "pickupCards" | "roomSigns";
 type PrintTask = { job: JobId | "dayPacket"; testPage?: boolean };
 type BadgeRole = "participant" | "teacher" | "volunteer" | "staff" | "medical" | "visitor" | "media" | "crew";
 type BadgeSize = "5x3" | "6x4";
@@ -96,7 +96,6 @@ function sessionStart(session?: CampSession | null) { return session?.startTime 
 function sessionEnd(session?: CampSession | null) { return session?.endTime || session?.sessionTemplate?.endTime || ""; }
 function scheduleTitle(session?: CampSession | null) { return session?.mandatorySession?.title || session?.course?.name || session?.sessionTemplate?.label || "Session"; }
 function sortedCampersList(campers: Camper[]) { return [...campers].sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName)); }
-function courseTeacherNames(course?: Course) { return course?.courseTeachers?.map(ct => fullName(ct.person)).filter(Boolean).join(" / ") || "—"; }
 function courseAgeLabel(course: Course) { return course.courseAgeGroups?.map(cag => cag.ageGroup.name).join(", ") || course.ageGroup?.name || "All groups"; }
 function chunkItems<T>(items: T[], size: number) {
   const chunks: T[][] = [];
@@ -337,7 +336,6 @@ function PrintContent() {
 
   const jobCounts: Record<JobId, { primary: string; sheets: number }> = {
     badges: { primary: `${badgeRecipients.length} badges`, sheets: badgeSheetCount },
-    rosters: { primary: `${rosters.length} classes`, sheets: rosters.length },
     teacherPackets: { primary: `${teachers.length} teachers`, sheets: teachers.length },
     emergencyCards: { primary: `${sortedCampers.length} participants`, sheets: Math.ceil(sortedCampers.length / 22) },
     pickupCards: { primary: `${families.length} families`, sheets: families.length },
@@ -481,25 +479,6 @@ function PrintContent() {
     ]);
   };
 
-  const renderRosters = () => rosters.map((group, index) => (
-    <article key={group.key} className="print-page doc-page" data-last={index === rosters.length - 1 || undefined}>
-      <h1 className="doc-title">{group.title}</h1>
-      <p className="doc-subtitle">{group.time} · {group.room} · Teacher: {courseTeacherNames(courses.find(c => c.id === group.courseId))} · {group.campers.length} participant{group.campers.length === 1 ? "" : "s"}</p>
-      <table className="doc-table">
-        <thead><tr><th>Participant</th><th>Age group</th><th>Guardian</th><th>Emergency</th><th>Medical / dietary</th></tr></thead>
-        <tbody>{group.campers.map(camper => (
-          <tr key={camper.id}>
-            <td>{fullName(camper)}</td>
-            <td>{camper.ageGroup?.name || "—"}</td>
-            <td>{camper.guardianName || "—"}{camper.guardianPhone ? ` · ${camper.guardianPhone}` : ""}</td>
-            <td>{camper.emergencyPhone || camper.guardianPhone || "—"}</td>
-            <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>
-          </tr>
-        ))}</tbody>
-      </table>
-    </article>
-  ));
-
   const renderTeacherPackets = () => teachers.map((person, index) => {
     const rows = teacherRows(person, courses, mandatorySessions, campers, sessionTemplates);
     return (
@@ -592,19 +571,17 @@ function PrintContent() {
   const renderTask = () => {
     if (!task) return null;
     if (task.job === "badges") return renderBadges(task.testPage ? badgeRecipients.slice(0, badgeTarget === "sheet" ? geometry.perSheet : 1) : badgeRecipients);
-    if (task.job === "rosters") return renderRosters();
     if (task.job === "teacherPackets") return renderTeacherPackets();
     if (task.job === "emergencyCards") return renderEmergencyCards();
     if (task.job === "pickupCards") return renderPickupCards();
     if (task.job === "roomSigns") return renderRoomSigns();
     // Day packet: every section in run order, with dividers.
     return [
-      divider("ROSTERS", jobCounts.rosters.sheets, "d1"), ...renderRosters(),
-      divider("BADGES", jobCounts.badges.sheets, "d2"), ...renderBadges(badgeRecipients),
-      divider("EMERGENCY", jobCounts.emergencyCards.sheets, "d3"), ...renderEmergencyCards(),
-      divider("TEACHERS", jobCounts.teacherPackets.sheets, "d4"), ...renderTeacherPackets(),
-      divider("ROOM SIGNS", jobCounts.roomSigns.sheets, "d5"), ...renderRoomSigns(),
-      divider("PICKUP", jobCounts.pickupCards.sheets, "d6"), ...renderPickupCards(),
+      divider("BADGES", jobCounts.badges.sheets, "d1"), ...renderBadges(badgeRecipients),
+      divider("EMERGENCY", jobCounts.emergencyCards.sheets, "d2"), ...renderEmergencyCards(),
+      divider("TEACHERS", jobCounts.teacherPackets.sheets, "d3"), ...renderTeacherPackets(),
+      divider("ROOM SIGNS", jobCounts.roomSigns.sheets, "d4"), ...renderRoomSigns(),
+      divider("PICKUP", jobCounts.pickupCards.sheets, "d5"), ...renderPickupCards(),
     ];
   };
 
@@ -613,7 +590,6 @@ function PrintContent() {
 
   const jobs: { id: JobId; title: string; hasOptions?: boolean }[] = [
     { id: "badges", title: "Badges & lanyards", hasOptions: true },
-    { id: "rosters", title: "Rosters" },
     { id: "teacherPackets", title: "Teacher packets" },
     { id: "emergencyCards", title: "Emergency list" },
     { id: "pickupCards", title: "Pickup cards" },
@@ -700,7 +676,7 @@ function PrintContent() {
         <div className="camp-card flex flex-wrap items-center justify-between gap-4 p-5">
           <div>
             <p className="text-base font-black text-slate-900">Print everything for opening day</p>
-            <p className="mt-0.5 text-sm text-[var(--text-muted)]"><span className="t-data">6 documents · {packetSheets} sheets</span>{printLog.dayPacket ? ` · Last printed ${formatLogTime(printLog.dayPacket)}` : ""}</p>
+            <p className="mt-0.5 text-sm text-[var(--text-muted)]"><span className="t-data">5 documents · {packetSheets} sheets</span>{printLog.dayPacket ? ` · Last printed ${formatLogTime(printLog.dayPacket)}` : ""}</p>
           </div>
           <button type="button" onClick={() => setTask({ job: "dayPacket" })} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-700">Print</button>
         </div>

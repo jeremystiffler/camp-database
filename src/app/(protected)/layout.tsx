@@ -14,13 +14,13 @@ const primaryNav = [
   { href: "/activities", label: "Classes & Teachers", icon: "clipboard", minRole: "viewer" },
   { href: "/schedule", label: "Schedule", icon: "calendar", minRole: "viewer" },
   { href: "/registration", label: "Registration Form", icon: "clipboard", minRole: "editor" },
+  { href: "/print", label: "Print Center", icon: "printer", minRole: "viewer" },
 ] as const;
 
 const moreNav = [
   { href: "/campers", label: "Participants", icon: "campers", minRole: "viewer" },
   { href: "/check-in", label: "Check in/out", icon: "check", minRole: "viewer" },
   { href: "/team", label: "Team", icon: "team", minRole: "viewer" },
-  { href: "/print", label: "Print Center", icon: "printer", minRole: "viewer" },
   { href: "/import", label: "Import", icon: "upload", minRole: "editor" },
   { href: "/settings", label: "Settings", icon: "gear", minRole: "admin" },
 ] as const;
