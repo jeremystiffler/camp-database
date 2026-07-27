@@ -151,6 +151,7 @@ function SetupContent() {
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
   const [setupNotice, setSetupNotice] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [activeTab, setActiveTab]  = useState<SetupTab>("details");
   const [requiredRoomDrafts, setRequiredRoomDrafts] = useState<Record<string, string>>({});
   const [overrideDraftRows, setOverrideDraftRows] = useState<Record<string, boolean>>({});
@@ -405,6 +406,7 @@ function SetupContent() {
 
   const saveCamp = async (override?: Partial<{ registrationOpen: boolean; status: string }>) => {
     setSetupNotice("");
+    setSaveError("");
     if (!campName.trim()) {
       setSetupNotice("Give the event a name before moving on.");
       setActiveTab("details");
@@ -437,7 +439,7 @@ function SetupContent() {
       load();
       return true;
     }
-    setSetupNotice("Could not save the event details. Please try again.");
+    setSaveError("Could not save the event details. Please try again.");
     return false;
   };
 
@@ -929,7 +931,7 @@ function SetupContent() {
             className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-slate-900 text-white" : "bg-slate-900 text-white hover:bg-slate-800"} disabled:opacity-60`}>
             {saved ? "Saved" : saving ? "Saving..." : "Save Changes"}
           </button>
-          <SaveState saving={saving} saved={saved} error={setupNotice} />
+          <SaveState saving={saving} saved={saved} error={saveError} />
         </div>
       </Section>
       )}
