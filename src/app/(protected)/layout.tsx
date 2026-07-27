@@ -32,7 +32,7 @@ const guidedPrimaryNav = [
   { href: "/setup", label: "Set up my event", icon: "tent", minRole: "editor" },
   { href: "/activities", label: "Things to do", icon: "clipboard", minRole: "viewer" },
   { href: "/registration", label: "Sign-up page", icon: "clipboard", minRole: "editor" },
-  { href: "/print", label: "Print stuff", icon: "printer", minRole: "viewer" },
+  { href: "/print", label: "Print center", icon: "printer", minRole: "viewer" },
 ] as const;
 
 const guidedMoreNav = [
