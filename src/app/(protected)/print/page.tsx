@@ -15,7 +15,6 @@ type PrintTask = { job: JobId | "dayPacket"; testPage?: boolean };
 type BadgeRole = "participant" | "teacher" | "volunteer" | "staff" | "medical" | "visitor" | "media" | "crew";
 type BadgeSize = "5x3" | "6x4";
 type BadgeTarget = "sheet" | "card";
-type BadgeLayout = "name" | "schedule";
 
 interface CampSession {
   id: string;
@@ -205,7 +204,6 @@ function PrintContent() {
   const [badgeRole, setBadgeRole] = useState<BadgeRole>("participant");
   const [badgeSize, setBadgeSize] = useState<BadgeSize>("5x3");
   const [badgeTarget, setBadgeTarget] = useState<BadgeTarget>("sheet");
-  const [badgeLayout, setBadgeLayout] = useState<BadgeLayout>("name");
   const [badgeScopeAgeGroupId, setBadgeScopeAgeGroupId] = useState("");
 
   useEffect(() => {
@@ -317,14 +315,15 @@ function PrintContent() {
   }, [badgeRole, badgeScopeAgeGroupId, sortedCampers, persons]);
 
   const geometry = BADGE_GEOMETRY[badgeSize];
-  const badgeSheetCount = badgeTarget === "sheet" ? Math.ceil(badgeRecipients.length / geometry.perSheet) : badgeRecipients.length;
+  // Fronts + backs: sheet mode prints a back sheet per front sheet; card mode prints two pages per badge.
+  const badgeSheetCount = badgeTarget === "sheet" ? Math.ceil(badgeRecipients.length / geometry.perSheet) * 2 : badgeRecipients.length * 2;
   const badgeMinutes = Math.max(1, Math.round(badgeSheetCount / 6));
 
   const jobCounts: Record<JobId, { primary: string; sheets: number }> = {
     badges: { primary: `${badgeRecipients.length} badges`, sheets: badgeSheetCount },
     rosters: { primary: `${rosters.length} classes`, sheets: rosters.length },
     teacherPackets: { primary: `${teachers.length} teachers`, sheets: teachers.length },
-    emergencyCards: { primary: `${sortedCampers.length} cards`, sheets: sortedCampers.length },
+    emergencyCards: { primary: `${sortedCampers.length} participants`, sheets: Math.ceil(sortedCampers.length / 22) },
     pickupCards: { primary: `${families.length} families`, sheets: families.length },
     roomSigns: { primary: `${roomsWithSchedule.length} rooms`, sheets: roomsWithSchedule.length },
   };
@@ -364,6 +363,7 @@ function PrintContent() {
       const g = BADGE_GEOMETRY[badgeSize];
       return `@page { size: ${g.w}in ${g.h}in; margin: ${g.margin}; }`;
     }
+    if (task?.job === "pickupCards") return `@page { size: letter landscape; margin: 0.3in; }`;
     return `@page { size: letter; margin: ${isBadgeJob ? "0" : "0.5in"}; }`;
   }, [task, badgeTarget, badgeSize]);
 
@@ -371,48 +371,46 @@ function PrintContent() {
   const roleMeta = BADGE_ROLES.find(role => role.id === badgeRole) || BADGE_ROLES[0];
   const bandColor = badgeRole === "participant" ? eventColor : roleMeta.band;
 
-  const nameFontSize = (name: string) => {
-    const max = badgeSize === "5x3" ? 34 : 42;
-    const shrink = Math.max(0, name.length - 9) * 2;
-    return Math.max(18, max - shrink);
-  };
-
   const badgeCard = (record: Camper, key: string) => {
-    const rows = badgeLayout === "schedule" ? scheduleRows(record) : [];
+    const rows = scheduleRows(record);
     return (
       <div key={key} className="badge-card-v2" style={{ width: `${geometry.w}in`, height: `${geometry.h}in` }}>
         <div className="badge-band" style={{ background: bandColor }}>
-          {badgeLayout === "schedule" ? <span className="badge-band-name">{fullName(record)}</span> : (roleMeta.printedLabel || "\u00A0")}
+          <span className="badge-band-name">{fullName(record)}</span>
         </div>
-        {badgeLayout === "name" ? (
-          <div className="badge-body">
-            <div className="badge-first" style={{ fontSize: `${nameFontSize(record.firstName)}pt` }}>{record.firstName}</div>
-            <div className="badge-last" style={{ fontSize: `${Math.round(nameFontSize(record.firstName) * 0.6)}pt` }}>{record.lastName}</div>
-            {record.ageGroup?.name && <div className="badge-age">{record.ageGroup.name}</div>}
-            <div className="badge-foot">
-              <CamperScannableCode value={record.scanCode} label="" size={78} />
-              <span className="badge-role-label">{roleMeta.printedLabel || "Participant"}</span>
-            </div>
+        {roleMeta.printedLabel && <div className="badge-role-strip">{roleMeta.printedLabel}</div>}
+        <div className="badge-body badge-body-schedule">
+          <div className="badge-schedule">
+            {rows.length ? rows.map((row, idx) => (
+              <div key={idx} className="badge-schedule-row">
+                <span className="badge-schedule-time">{row.time}</span>
+                <span className="badge-schedule-activity">{row.activity}{row.room ? ` · ${row.room}` : ""}</span>
+              </div>
+            )) : <div className="badge-schedule-row"><span className="badge-schedule-time">—</span><span className="badge-schedule-activity">No schedule assigned</span></div>}
           </div>
-        ) : (
-          <div className="badge-body badge-body-schedule">
-            <div className="badge-schedule">
-              {rows.length ? rows.map((row, idx) => (
-                <div key={idx} className="badge-schedule-row">
-                  <span className="badge-schedule-time">{row.time}</span>
-                  <span className="badge-schedule-activity">{row.activity}{row.room ? ` · ${row.room}` : ""}</span>
-                </div>
-              )) : <div className="badge-schedule-row"><span className="badge-schedule-time">—</span><span className="badge-schedule-activity">No schedule assigned</span></div>}
-            </div>
-            <div className="badge-foot">
-              <CamperScannableCode value={record.scanCode} label="" size={64} />
-              <span className="badge-role-label">Scan for check-in</span>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     );
   };
+
+  const badgeBackCard = (record: Camper, key: string) => (
+    <div key={key} className="badge-card-v2 badge-card-back" style={{ width: `${geometry.w}in`, height: `${geometry.h}in` }}>
+      <div className="badge-band" style={{ background: bandColor }}>
+        <span className="badge-band-name">{fullName(record)}</span>
+      </div>
+      <div className="badge-body">
+        <div className="badge-back-block">
+          <span className="badge-back-label">Emergency contact</span>
+          <span className="badge-back-value">{record.guardianName || "—"}</span>
+          <span className="badge-back-value badge-back-phone">{record.emergencyPhone || record.guardianPhone || "—"}</span>
+        </div>
+        <div className="badge-foot">
+          <CamperScannableCode value={record.scanCode} label="" size={96} />
+          <span className="badge-role-label">Scan for check-in / checkout</span>
+        </div>
+      </div>
+    </div>
+  );
 
   const cropMark = (x: number, y: number) => (
     <span key={`${x}-${y}`}>
@@ -425,15 +423,18 @@ function PrintContent() {
 
   const renderBadges = (records: Camper[]) => {
     if (badgeTarget === "card") {
-      return records.map((record, index) => (
-        <article key={record.id} className="print-page badge-single" data-last={index === records.length - 1 || undefined}>
+      return records.flatMap((record, index) => [
+        <article key={`${record.id}-f`} className="print-page badge-single">
           {badgeCard(record, `${record.id}-card`)}
-        </article>
-      ));
+        </article>,
+        <article key={`${record.id}-b`} className="print-page badge-single" data-last={index === records.length - 1 || undefined}>
+          {badgeBackCard(record, `${record.id}-back`)}
+        </article>,
+      ]);
     }
     const sheets = chunkItems(records, geometry.perSheet);
-    return sheets.map((sheetRecords, sheetIndex) => (
-      <article key={`sheet-${sheetIndex}`} className="print-page badge-sheet-v2" data-last={sheetIndex === sheets.length - 1 || undefined}>
+    const layoutSheet = (sheetRecords: Camper[], back: boolean, sheetKey: string, isLast: boolean) => (
+      <article key={sheetKey} className="print-page badge-sheet-v2" data-last={isLast || undefined}>
         {sheetRecords.map((record, cardIndex) => {
           const col = cardIndex % geometry.cols;
           const rowIndex = Math.floor(cardIndex / geometry.cols);
@@ -441,7 +442,7 @@ function PrintContent() {
           const y = geometry.offsetY + rowIndex * geometry.h;
           return (
             <div key={record.id} className="badge-slot" style={{ left: `${x}in`, top: `${y}in` }}>
-              {badgeCard(record, `${record.id}-sheet`)}
+              {back ? badgeBackCard(record, `${record.id}-sheet-back`) : badgeCard(record, `${record.id}-sheet`)}
             </div>
           );
         })}
@@ -453,7 +454,11 @@ function PrintContent() {
           return [cropMark(x, y), cropMark(x + geometry.w, y), cropMark(x, y + geometry.h), cropMark(x + geometry.w, y + geometry.h)];
         })}
       </article>
-    ));
+    );
+    return sheets.flatMap((sheetRecords, sheetIndex) => [
+      layoutSheet(sheetRecords, false, `sheet-${sheetIndex}-front`, false),
+      layoutSheet(sheetRecords, true, `sheet-${sheetIndex}-back`, sheetIndex === sheets.length - 1),
+    ]);
   };
 
   const renderRosters = () => rosters.map((group, index) => (
@@ -491,33 +496,37 @@ function PrintContent() {
     );
   });
 
-  const renderEmergencyCards = () => sortedCampers.map((camper, index) => (
-    <article key={camper.id} className="print-page doc-page" data-last={index === sortedCampers.length - 1 || undefined}>
-      <div className="emergency-card">
-        <div className="emergency-heading">Emergency contact card</div>
-        <div className="emergency-name">{fullName(camper)}</div>
-        <div className="emergency-group">{camper.ageGroup?.name || "Age group not set"}</div>
-        <div className="emergency-grid">
-          <div><strong>Guardian</strong>{camper.guardianName || "—"}<br />{camper.guardianPhone || camper.guardianEmail || "—"}</div>
-          <div><strong>Emergency phone</strong>{camper.emergencyPhone || camper.guardianPhone || "—"}</div>
-          <div><strong>Medical</strong>{camper.medicalNotes || "None listed"}</div>
-          <div><strong>Dietary</strong>{camper.dietaryNotes || "None listed"}</div>
-        </div>
-        <div className="emergency-foot">Keep with participant during activities, transport, and evacuation.</div>
-      </div>
-    </article>
-  ));
+  const renderEmergencyCards = () => {
+    const byFirstName = [...campers].sort((a, b) => a.firstName.localeCompare(b.firstName) || a.lastName.localeCompare(b.lastName));
+    const pages = chunkItems(byFirstName, 22);
+    return pages.map((page, pageIndex) => (
+      <article key={`emergency-${pageIndex}`} className="print-page doc-page" data-last={pageIndex === pages.length - 1 || undefined}>
+        <h1 className="doc-title">Emergency information</h1>
+        <p className="doc-subtitle">Alphabetical by first name · Page {pageIndex + 1} of {pages.length}</p>
+        <table className="doc-table">
+          <thead><tr><th style={{ width: "150px" }}>Participant</th><th style={{ width: "90px" }}>Age group</th><th>Guardian</th><th style={{ width: "110px" }}>Emergency phone</th><th>Medical / dietary</th></tr></thead>
+          <tbody>{page.map(camper => (
+            <tr key={camper.id}>
+              <td><strong>{camper.firstName} {camper.lastName}</strong></td>
+              <td>{camper.ageGroup?.name || "—"}</td>
+              <td>{camper.guardianName || "—"}{camper.guardianPhone ? `\n${camper.guardianPhone}` : ""}</td>
+              <td>{camper.emergencyPhone || camper.guardianPhone || "—"}</td>
+              <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </article>
+    ));
+  };
 
   const renderPickupCards = () => families.map((family, index) => {
     const lead = family.members[0];
     return (
       <article key={family.key} className="print-page doc-page" data-last={index === families.length - 1 || undefined}>
-        <div className="pickup-card">
-          <div className="pickup-kicker">Event pickup</div>
-          <div className="pickup-number">{lead.pickupNumber || "—"}</div>
+        <div className="pickup-card-landscape">
+          <div className="pickup-number-giant">{lead.pickupNumber || "—"}</div>
           <div className="pickup-family">{lead.lastName} Family</div>
           <div className="pickup-members">{family.members.map(fullName).join(" · ")}</div>
-          <div className="pickup-qr"><CamperScannableCode value={lead.scanCode} label="Scan for check-in" size={120} /></div>
         </div>
       </article>
     );
@@ -532,9 +541,17 @@ function PrintContent() {
           <div className="room-sign-name">{room.name}</div>
           {room.description && <div className="room-sign-desc">{room.description}</div>}
           <div className="room-sign-schedule">
-            {groups.length ? groups.map(group => (
-              <div key={group.key} className="room-sign-row"><span className="room-sign-time">{group.time}</span><span>{group.title}</span></div>
-            )) : <div className="room-sign-row"><span>No classes scheduled in this room.</span></div>}
+            {groups.length ? groups.map(group => {
+              const course = courses.find(c => c.id === group.courseId);
+              const teacherList = course?.courseTeachers?.map(ct => `${fullName(ct.person)}${ct.person.role && ct.person.role !== "teacher" ? ` (${ct.person.role})` : ""}`).join(", ") || "—";
+              return (
+                <div key={group.key} className="room-sign-class">
+                  <div className="room-sign-row"><span className="room-sign-time">{group.time}</span><span className="room-sign-class-name">{group.title}</span></div>
+                  <div className="room-sign-teacher">Led by: {teacherList}</div>
+                  <div className="room-sign-students">{group.campers.length ? group.campers.map(fullName).join(" · ") : "No participants registered yet"}</div>
+                </div>
+              );
+            }) : <div className="room-sign-class"><div className="room-sign-row"><span>No classes scheduled in this room.</span></div></div>}
           </div>
         </div>
       </article>
@@ -574,7 +591,7 @@ function PrintContent() {
     { id: "badges", title: "Badges & lanyards", hasOptions: true },
     { id: "rosters", title: "Rosters" },
     { id: "teacherPackets", title: "Teacher packets" },
-    { id: "emergencyCards", title: "Emergency cards" },
+    { id: "emergencyCards", title: "Emergency list" },
     { id: "pickupCards", title: "Pickup cards" },
     { id: "roomSigns", title: "Room signs" },
   ];
@@ -623,27 +640,27 @@ function PrintContent() {
         .crop { position: absolute; background: #9AA4B2; }
         .crop-h { width: 0.12in; height: 0.25pt; }
         .crop-v { width: 0.25pt; height: 0.12in; }
-        .emergency-card { border: 3px solid #991b1b; border-radius: 12px; padding: 0.24in; max-width: 5.6in; margin: 0 auto; }
-        .emergency-heading { color: #991b1b; border-bottom: 2px solid #991b1b; padding-bottom: 0.08in; font-size: 12px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
-        .emergency-name { margin-top: 0.12in; font-size: 26px; font-weight: 900; line-height: 1; }
-        .emergency-group { margin-top: 0.05in; font-size: 12px; font-weight: 700; color: #475569; }
-        .emergency-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.1in; margin-top: 0.16in; }
-        .emergency-grid > div { min-height: 0.6in; border: 1px solid #475569; padding: 0.08in; font-size: 10px; line-height: 1.25; white-space: pre-line; }
-        .emergency-grid strong { display: block; margin-bottom: 2px; font-size: 7px; letter-spacing: .08em; text-transform: uppercase; color: #991b1b; }
-        .emergency-foot { margin-top: 0.14in; font-size: 8px; font-weight: 700; color: #475569; }
-        .pickup-card { border: 4px solid #111; border-radius: 16px; padding: 0.28in; max-width: 5.4in; margin: 0 auto; text-align: center; }
-        .pickup-kicker { font-size: 15px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
-        .pickup-number { font-size: 88px; line-height: 1; font-weight: 900; margin: 0.14in 0 0.06in; }
-        .pickup-family { font-size: 22px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
-        .pickup-members { margin-top: 0.06in; font-size: 11px; font-weight: 600; color: #444; }
-        .pickup-qr { margin-top: 0.14in; display: flex; justify-content: center; }
-        .room-sign { border: 5px solid #111; min-height: 9in; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0.4in; box-sizing: border-box; }
+        .badge-role-strip { background: #f1f3f6; text-align: center; font-size: 7pt; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: 2px 0; border-bottom: 0.5px solid #bbb; }
+        .badge-card-back .badge-body { justify-content: center; gap: 0.16in; }
+        .badge-back-block { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
+        .badge-back-label { font-size: 7pt; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #666; }
+        .badge-back-value { font-size: 12pt; font-weight: 800; line-height: 1.15; }
+        .badge-back-phone { font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-size: 14pt; }
+        .pickup-card-landscape { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 7.4in; text-align: center; }
+        .pickup-number-giant { font-size: 420pt; line-height: 0.9; font-weight: 900; letter-spacing: -0.02em; }
+        .pickup-family { font-size: 40px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; margin-top: 0.15in; }
+        .pickup-members { margin-top: 0.1in; font-size: 16px; font-weight: 600; color: #444; }
+        .room-sign { border: 5px solid #111; min-height: 9in; display: flex; flex-direction: column; align-items: center; padding: 0.4in; box-sizing: border-box; text-align: center; }
         .room-sign-kicker { font-size: 14px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; }
-        .room-sign-name { margin-top: 0.1in; font-size: 52px; font-weight: 900; line-height: 1; }
-        .room-sign-desc { margin-top: 0.12in; font-size: 16px; font-weight: 700; color: #444; }
-        .room-sign-schedule { margin-top: 0.3in; width: 100%; max-width: 6in; }
-        .room-sign-row { display: flex; justify-content: space-between; gap: 12px; border-top: 2px solid #111; padding: 0.1in 0.05in; font-size: 15px; font-weight: 800; }
-        .room-sign-time { font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+        .room-sign-name { margin-top: 0.1in; font-size: 46px; font-weight: 900; line-height: 1; }
+        .room-sign-desc { margin-top: 0.1in; font-size: 15px; font-weight: 700; color: #444; }
+        .room-sign-schedule { margin-top: 0.25in; width: 100%; text-align: left; }
+        .room-sign-class { border-top: 2px solid #111; padding: 0.12in 0.05in; }
+        .room-sign-row { display: flex; gap: 14px; font-size: 17px; font-weight: 900; align-items: baseline; }
+        .room-sign-class-name { flex: 1; }
+        .room-sign-time { font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .room-sign-teacher { margin-top: 3px; font-size: 12px; font-weight: 800; color: #333; }
+        .room-sign-students { margin-top: 4px; font-size: 11px; font-weight: 600; line-height: 1.45; color: #444; }
         .packet-divider { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 9.5in; text-align: center; }
         .packet-divider-label { font-size: 56px; font-weight: 900; letter-spacing: .04em; }
         .packet-divider-count { margin-top: 12px; font-size: 16px; font-weight: 700; color: #444; }
@@ -721,12 +738,8 @@ function PrintContent() {
                   <option value="card">Card stock (one card per page)</option>
                 </select>
               </label>
-              <div className="text-xs font-bold text-slate-600">Layout
-                <div className="mt-1 flex rounded-xl border border-[var(--border)] bg-[var(--canvas-sunk)] p-1">
-                  {(["name", "schedule"] as BadgeLayout[]).map(layout => (
-                    <button key={layout} type="button" onClick={() => setBadgeLayout(layout)} className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-bold capitalize ${badgeLayout === layout ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{layout}</button>
-                  ))}
-                </div>
+              <div className="text-xs font-bold text-slate-600">Card contents
+                <p className="mt-1 rounded-xl border border-[var(--border)] bg-[var(--canvas-sunk)] px-3 py-2 text-xs font-semibold text-[var(--text-muted)]">Front: name + full schedule (including required classes). Back: emergency contact + check-in QR. Backs print as a separate stack after the fronts.</p>
               </div>
               {badgeRole === "participant" && (
                 <label className="block text-xs font-bold text-slate-600">Who gets one
@@ -741,23 +754,14 @@ function PrintContent() {
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-[.1em] text-[var(--text-faint)]">Preview</p>
                 <div className="mx-auto overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm" style={{ width: 168, height: badgeSize === "5x3" ? 280 : 252 }}>
                   <div className="flex h-8 items-center justify-center text-[10px] font-black tracking-widest text-white" style={{ background: bandColor }}>
-                    {badgeLayout === "schedule" ? (badgeRecipients[0] ? fullName(badgeRecipients[0]) : "Name") : (roleMeta.printedLabel || "\u00A0")}
+                    {badgeRecipients[0] ? fullName(badgeRecipients[0]) : "Name"}
                   </div>
                   <div className="flex flex-col items-center justify-center gap-1 p-3 text-center">
-                    {badgeLayout === "name" ? (
-                      <>
-                        <span className="text-lg font-black leading-none text-slate-900">{badgeRecipients[0]?.firstName || "First"}</span>
-                        <span className="text-xs font-semibold text-slate-700">{badgeRecipients[0]?.lastName || "Last"}</span>
-                        <span className="text-[10px] text-slate-400">{badgeRecipients[0]?.ageGroup?.name || ""}</span>
-                        <span className="mt-2 inline-block h-10 w-10 rounded bg-slate-200" aria-hidden />
-                      </>
-                    ) : (
-                      <div className="w-full space-y-1 text-left">
-                        {(badgeRecipients[0] ? scheduleRows(badgeRecipients[0]).slice(0, 5) : []).map((row, idx) => (
-                          <div key={idx} className="flex gap-1 border-b border-slate-100 pb-0.5 text-[9px]"><span className="t-data font-bold">{row.time}</span><span className="truncate">{row.activity}</span></div>
-                        ))}
-                      </div>
-                    )}
+                    <div className="w-full space-y-1 text-left">
+                      {(badgeRecipients[0] ? scheduleRows(badgeRecipients[0]).slice(0, 7) : []).map((row, idx) => (
+                        <div key={idx} className="flex gap-1 border-b border-slate-100 pb-0.5 text-[9px]"><span className="t-data font-bold">{row.time}</span><span className="truncate">{row.activity}</span></div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
