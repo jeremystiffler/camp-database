@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.create({
       // New accounts begin in Guided Mode; existing accounts retain the schema default.
-      data: { email, name, passwordHash, role: "owner", organizationId: org.id, guidedMode: true },
+      data: { email, name, passwordHash, role: "owner", organizationId: org.id },
     });
 
     const campSlug = "my-event-" + Date.now();

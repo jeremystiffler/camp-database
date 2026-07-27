@@ -24,8 +24,7 @@ export async function POST(req: NextRequest) {
           avatar: googleUser.picture,
           role: "owner",
           organizationId: org.id,
-          guidedMode: true,
-        },
+                  },
       });
       const campSlug = "my-event-" + Date.now();
       const newCamp = await prisma.camp.create({

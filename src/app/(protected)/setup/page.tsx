@@ -7,7 +7,6 @@ import { TeachersContent } from "../teachers/page";
 import { ActivitiesContent } from "../activities/page";
 import TimeslotAssignmentGrid from "@/components/TimeslotAssignmentGrid";
 import { HelpCopy } from "@/components/HelpMode";
-import { useGuidedMode } from "@/components/GuidedMode";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState, SaveState } from "@/components/OperationalUI";
@@ -135,7 +134,6 @@ function Section({ title, children, action, footer }: { title: string; children:
 }
 
 function SetupContent() {
-  const { guidedMode, setGuidedMode } = useGuidedMode();
   const searchParams = useSearchParams();
   const router = useRouter();
   const campId = searchParams.get("campId") || "";
@@ -748,15 +746,11 @@ function SetupContent() {
     { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, lockMessage: "Schedule every activity before setting up registration.", actionLabel: "Prepare registration" },
     { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, lockMessage: "Finish event details, staff, activities, schedule, and registration before opening.", actionLabel: registrationOpen ? "Review live event" : "Open registration" },
   ];
-  const guidedStepKeys = new Set<SetupTab>(["details", "ages", "times", "activities", "registration", "review"]);
-  const visibleSetupSteps = guidedMode ? setupSteps.filter(step => guidedStepKeys.has(step.key)) : setupSteps;
+  const visibleSetupSteps = setupSteps;
   const completedSteps = visibleSetupSteps.filter(step => step.done).length;
   const nextStep = visibleSetupSteps.find(step => !step.done && !step.locked) || visibleSetupSteps.find(step => !step.done) || visibleSetupSteps[visibleSetupSteps.length - 1];
   const activeStep = visibleSetupSteps.find(step => step.key === activeTab) || nextStep;
-  const guidedStepLabels: Record<string, string> = {
-    details: "Name your event", ages: "Who’s it for?", times: "When things happen", activities: "What kids do", registration: "Make your sign-up page", review: "Open for sign-ups", rooms: "Where things happen", teachers: "Grown-ups in charge", schedule: "The daily plan",
-  };
-  const stepLabel = (step: typeof activeStep) => guidedMode ? (guidedStepLabels[step.key] || step.label) : step.label;
+  const stepLabel = (step: typeof activeStep) => step.label;
   const nextStepLabel = stepLabel(nextStep).trim() || nextStep.actionLabel || "your next step";
   const activeStepIndex = setupSteps.findIndex(step => step.key === activeStep.key);
   const followingStep = visibleSetupSteps[visibleSetupSteps.findIndex(step => step.key === activeStep.key) + 1];
@@ -804,8 +798,8 @@ function SetupContent() {
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           {searchParams.get("step") && <p className="mb-1 text-xs font-black uppercase tracking-wide text-sky-700">Setup › {stepLabel(activeStep)}</p>}
-          <h1 className="page-title">{guidedMode ? "Set up my event" : "Event Setup"}</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{guidedMode ? "Start with the essentials. You can open More options whenever you want the full controls." : "Build your event in the order your brain naturally asks the questions."}</p>
+          <h1 className="page-title">{"Event Setup"}</h1>
+          <p className="text-slate-500 text-sm mt-0.5">{"Build your event in the order your brain naturally asks the questions."}</p>
         </div>
       </div>
 
@@ -830,7 +824,7 @@ function SetupContent() {
         </div>
 
         <div className="overflow-x-auto pb-2">
-          <div className={`flex items-stretch px-1 pt-2 ${guidedMode ? "min-w-[660px]" : "min-w-[980px]"}`}>
+          <div className={`flex items-stretch px-1 pt-2 ${"min-w-[980px]"}`}>
             {visibleSetupSteps.map((step, index) => {
               const isActive = activeTab === step.key;
               const stateLabel = step.done ? "Done" : step.locked ? "Locked" : "Open";
@@ -864,7 +858,7 @@ function SetupContent() {
               {activeStep.done ? "✓" : activeStepIndex + 1}
             </span>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Step {guidedMode ? visibleSetupSteps.findIndex(step => step.key === activeStep.key) + 1 : activeStepIndex + 1} of {visibleSetupSteps.length} • {activeStateLabel}</p>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Step {activeStepIndex + 1} of {visibleSetupSteps.length} • {activeStateLabel}</p>
               <h3 className="mt-1 text-xl font-black text-slate-950">{stepLabel(activeStep)}</h3>
               <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">{activeStep.help}</p>
             </div>
@@ -877,7 +871,6 @@ function SetupContent() {
             Already have a spreadsheet? Import it
           </Link>
         </div>
-        {guidedMode && <div className="mt-4 flex justify-end"><button type="button" onClick={() => setGuidedMode(false)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50">Show advanced options</button></div>}
       </div>
 
       {/* ── Program Details ── */}

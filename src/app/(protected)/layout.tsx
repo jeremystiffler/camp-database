@@ -6,41 +6,23 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
-import { GuidedModeToggle, useGuidedMode } from "@/components/GuidedMode";
 
+// Navigation vocabulary is frozen: one name per route, sentence case, no
+// preference-driven variants. See simpleschedulepro-nav-and-toggle-removal.md.
 const primaryNav = [
   { href: "/dashboard", label: "Home", icon: "compass", minRole: "viewer" },
-  { href: "/setup", label: "Build My Event", icon: "tent", minRole: "editor" },
-  { href: "/activities", label: "Classes & Teachers", icon: "clipboard", minRole: "viewer" },
+  { href: "/setup", label: "Event setup", icon: "tent", minRole: "editor" },
+  { href: "/activities", label: "Classes & teachers", icon: "clipboard", minRole: "viewer" },
   { href: "/schedule", label: "Schedule", icon: "calendar", minRole: "viewer" },
-  { href: "/registration", label: "Registration Form", icon: "clipboard", minRole: "editor" },
-  { href: "/print", label: "Print Center", icon: "printer", minRole: "viewer" },
-] as const;
-
-const moreNav = [
+  { href: "/registration", label: "Registration form", icon: "clipboard", minRole: "editor" },
   { href: "/campers", label: "Participants", icon: "campers", minRole: "viewer" },
   { href: "/check-in", label: "Check in/out", icon: "check", minRole: "viewer" },
-  { href: "/team", label: "Team", icon: "team", minRole: "viewer" },
-  { href: "/import", label: "Import", icon: "upload", minRole: "editor" },
-  { href: "/settings", label: "Settings", icon: "gear", minRole: "admin" },
-] as const;
-
-// Guided Mode is a simpler presentation layer over the same routes and data.
-// Keep this separate from full navigation so a mode switch never removes work.
-const guidedPrimaryNav = [
-  { href: "/dashboard", label: "Home", icon: "compass", minRole: "viewer" },
-  { href: "/setup", label: "Set up my event", icon: "tent", minRole: "editor" },
-  { href: "/activities", label: "Things to do", icon: "clipboard", minRole: "viewer" },
-  { href: "/registration", label: "Sign-up page", icon: "clipboard", minRole: "editor" },
   { href: "/print", label: "Print center", icon: "printer", minRole: "viewer" },
 ] as const;
 
-const guidedMoreNav = [
-  { href: "/campers", label: "Who’s coming", icon: "campers", minRole: "viewer" },
-  { href: "/check-in", label: "Day-of arrivals", icon: "check", minRole: "viewer" },
-  { href: "/schedule", label: "The daily plan", icon: "calendar", minRole: "viewer" },
-  { href: "/teachers", label: "Grown-ups in charge", icon: "team", minRole: "viewer" },
-  { href: "/import", label: "Bring in a list", icon: "upload", minRole: "editor" },
+const moreNav = [
+  { href: "/team", label: "Team", icon: "team", minRole: "viewer" },
+  { href: "/import", label: "Import", icon: "upload", minRole: "editor" },
   { href: "/settings", label: "Settings", icon: "gear", minRole: "admin" },
 ] as const;
 
@@ -88,7 +70,6 @@ interface Camp {
 }
 
 function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
-  const { guidedMode } = useGuidedMode();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -99,7 +80,6 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const [lastKnownCampId, setLastKnownCampId] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [hasParticipants, setHasParticipants] = useState(false);
   const [campSwitcherOpen, setCampSwitcherOpen] = useState(false);
 
   // Never let a stale bookmarked/local-storage program ID drive protected API calls.
@@ -107,14 +87,13 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const requestedCampId = searchParams.get("campId") || "";
   const validatedUrlCampId = camps.some((camp) => camp.id === requestedCampId) ? requestedCampId : "";
   const campId = validatedUrlCampId || activeCamp?.id || (camps.length ? lastKnownCampId : "");
-  const primaryItems = guidedMode ? guidedPrimaryNav : primaryNav;
-  const moreItems = guidedMode ? guidedMoreNav : moreNav;
-  const visiblePrimaryNav = hasParticipants
-    ? [...primaryItems, ...moreItems.filter((item) => item.href === "/campers" || item.href === "/check-in")]
-    : primaryItems;
-  const visibleMoreNav = hasParticipants
-    ? moreItems.filter((item) => item.href !== "/campers" && item.href !== "/check-in")
-    : moreItems;
+  const visiblePrimaryNav = primaryNav;
+  const visibleMoreNav = moreNav;
+
+  // Migration: guided mode was removed; clear its stale preference key once.
+  useEffect(() => {
+    try { localStorage.removeItem("ssp-guided-mode"); } catch { /* storage unavailable */ }
+  }, []);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
@@ -193,7 +172,6 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     if (!campId) return;
     fetch(`/api/camps/${campId}/dashboard`).then((response) => response.ok ? response.json() : null).then((data) => {
       if (!data?.stats) return;
-      setHasParticipants((data.stats.registeredStudents || 0) > 0);
       // Help remains opt-out, but begins on only while the program is still early in setup.
       const setupSignals = [data.stats.rooms, data.stats.teachers, data.stats.classes, data.stats.scheduleBlocks];
       const readiness = setupSignals.filter((count: number) => count > 0).length / setupSignals.length;
@@ -321,7 +299,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         {/* Nav */}
         <nav aria-label="Event navigation" className="flex-1 px-3 py-4 space-y-3 overflow-y-auto">
           <div>
-            <p className="minimal-section-title px-3 mb-1.5">{guidedMode ? "Your event" : "Build your event"}</p>
+            <p className="minimal-section-title px-3 mb-1.5">Build your event</p>
             <div className="space-y-1">{visiblePrimaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
@@ -334,7 +312,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
             })}</div>}
           </div>
-          {user.isSuperAdmin && <Link href="/super-admin" onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${pathname.startsWith("/super-admin") ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${pathname.startsWith("/super-admin") ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name="gear" /></span>Super Admin</Link>}
+          {user.isSuperAdmin && <Link href="/super-admin" onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${pathname.startsWith("/super-admin") ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${pathname.startsWith("/super-admin") ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name="gear" /></span>Super admin</Link>}
         </nav>
 
         {/* User footer */}
@@ -345,7 +323,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-slate-800 truncate">{user.name || user.email}</p>
-              <div className="mt-2 flex flex-wrap gap-2"><GuidedModeToggle compact /><HelpModeToggle compact /></div>
+              <div className="mt-2 flex flex-wrap gap-2"><HelpModeToggle compact /></div>
               <button
                 onClick={async () => {
                   await fetch("/api/auth/me", { method: "DELETE" });
@@ -366,7 +344,6 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
           ☰
         </button>
         <span className="ml-3 font-bold text-slate-800">Simple Schedule Pro</span>
-        <div className="ml-auto"><GuidedModeToggle compact /></div>
       </div>}
       <main className={`flex-1 min-h-dvh flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`} style={{ background: "var(--ui-bg)" }}>
         <div className={`w-full min-h-dvh px-3 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>

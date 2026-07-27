@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, DM_Sans, DM_Mono } from "next/font/google";
 import { HelpModeProvider } from "@/components/HelpMode";
-import { GuidedModeProvider } from "@/components/GuidedMode";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -35,7 +34,7 @@ export default function RootLayout({
       <body
         className={`${dmSans.className} min-h-screen bg-[#0B1622] text-[#F4E9D6] selection:bg-[#F0894A]/30 selection:text-[#F4E9D6]`}
       >
-        <GuidedModeProvider><HelpModeProvider>{children}</HelpModeProvider></GuidedModeProvider>
+        <HelpModeProvider>{children}</HelpModeProvider>
       </body>
     </html>
   );

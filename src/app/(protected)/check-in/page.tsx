@@ -7,7 +7,7 @@ import jsQR from "jsqr";
 import CamperScannableCode from "@/components/CamperScannableCode";
 import { HelpCopy } from "@/components/HelpMode";
 import { EmptyState } from "@/components/OperationalUI";
-import { MoreOptions, useGuidedMode } from "@/components/GuidedMode";
+import { MoreOptions } from "@/components/GuidedMode";
 
 interface AgeGroup { id: string; name: string; }
 interface Attendance {
@@ -211,7 +211,6 @@ function nextScanAction(camper: Camper) {
 }
 
 function CheckInContent() {
-  const { guidedMode } = useGuidedMode();
   const searchParams = useSearchParams();
   const router = useRouter();
   const campId = searchParams.get("campId") || "";
@@ -667,10 +666,10 @@ function CheckInContent() {
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Day-of operations</p>
-          <h1 className="page-title">{guidedMode ? "Day-of arrivals" : "Fast Check-In / Check-Out"}</h1>
+          <h1 className="page-title">Fast Check-In / Check-Out</h1>
           <HelpCopy title="Check in/out workflow" className="mt-1 text-sm text-slate-500">Use Check In for arrivals. Once a child is checked in, they immediately move to Check Out so staff can release them from the still-on-campus list.</HelpCopy>
         </div>
-        {guidedMode ? <MoreOptions label="Change day or use kiosk mode" className="w-full xl:w-auto"><div className="flex flex-wrap gap-2"><input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700" /><button onClick={load} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700">Refresh</button><button onClick={startKioskSetup} className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-black text-white">Kiosk mode</button></div></MoreOptions> : <div className="flex flex-wrap gap-2"><input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" /><button onClick={load} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50">Refresh</button><button onClick={startKioskSetup} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-slate-800">Kiosk mode</button></div>}
+        <div className="flex flex-wrap gap-2"><input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" /><button onClick={load} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50">Refresh</button><button onClick={startKioskSetup} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-slate-800">Kiosk mode</button></div>
       </div>
 
       {settingKioskPassword && (

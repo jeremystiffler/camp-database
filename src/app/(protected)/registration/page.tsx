@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
-import { MoreOptions, useGuidedMode } from "@/components/GuidedMode";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, SaveState } from "@/components/OperationalUI";
 
@@ -256,7 +255,6 @@ function FieldEditor({ field, onChange }: { field: FormField; onChange: (f: Form
 }
 
 function RegistrationContent() {
-  const { guidedMode, setGuidedMode } = useGuidedMode();
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
 
@@ -510,28 +508,6 @@ function RegistrationContent() {
         : "Public — accepting registrations";
 
   if (!campId) return <EmptyState title="Choose an event first" description="Each event has its own registration form and family link." actionHref="/dashboard" actionLabel="Go to dashboard" />;
-
-  if (guidedMode) return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <p className="text-xs font-black uppercase tracking-[.16em] text-indigo-600">Sign-up page</p>
-        <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900">Your sign-up page is ready</h1>
-        <p className="mt-2 text-sm font-semibold text-slate-600">Share this link with families when you are ready. Your existing fields and settings stay intact.</p>
-      </div>
-      <section className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-sky-50 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-wide text-indigo-700">{registrationStateLabel}</p>
-        <label className="mt-4 block text-sm font-black text-slate-800">Family sign-up link
-          <input readOnly value={publicUrl} className="mt-2 w-full rounded-xl border border-indigo-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700" />
-        </label>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button type="button" onClick={() => navigator.clipboard.writeText(publicUrl)} className="minimal-button-primary">Copy link</button>
-          <Link href={publicUrl} target="_blank" className="rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-black text-indigo-700 hover:bg-indigo-50">Preview page</Link>
-        </div>
-      </section>
-      <section className="camp-card p-5"><h2 className="text-lg font-black text-slate-900">What should families tell you?</h2><p className="mt-1 text-sm text-slate-600">The current form includes the essentials. You can add shirts, allergies, or other questions whenever you need them.</p><button type="button" onClick={() => setGuidedMode(false)} className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50">Add or change questions</button></section>
-      <MoreOptions label="More options (form settings, class choices, family mode, email)"><button type="button" onClick={() => setGuidedMode(false)} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 hover:bg-slate-50">Open the full form builder</button></MoreOptions>
-    </div>
-  );
 
   return (
     <div className="max-w-5xl">
