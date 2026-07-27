@@ -72,12 +72,11 @@ interface StatCardProps {
   label: string;
   value: string | number;
   icon: string;
-  gradient: string;
 }
 
-function StatCard({ label, value, icon, gradient }: StatCardProps) {
+function StatCard({ label, value, icon }: StatCardProps) {
   return (
-    <div className={`${gradient} tile-button px-4 py-3`}>
+    <div className="tile-button px-4 py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-2xl font-black tracking-tight text-slate-900">{value}</div>
@@ -628,8 +627,8 @@ function DashboardContent() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <StatCard label="Registered Participants" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" gradient="stat-forest" />
-            <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" gradient="stat-sunset" />
+            <StatCard label="Registered Participants" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" />
+            <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" />
           </div>
 
           {summary && (
