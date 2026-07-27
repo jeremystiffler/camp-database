@@ -556,6 +556,6 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 .act-block__title { display:block; font-family:var(--font-display); font-weight:600; font-size:13px; line-height:1.25; letter-spacing:-.01em; color:var(--act-ink); }
 .act-block__meta { font-size:11px; line-height:1.4; color:var(--text-muted); }
 .act-block__count { display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:11px; font-weight:500; color:var(--text-muted); }
-.act-block__count.is-filling { color:var(--warning); }.act-block__count.is-full { color:var(--danger); font-weight:700; }.capacity-dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;}
+.act-block__count.is-filling { color:var(--warning); }.act-block__count.is-full { color:var(--success); font-weight:700; }.act-block__count.is-over { color:var(--danger); font-weight:700; }.capacity-dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;}
 .act-block:hover { box-shadow:var(--shadow-md); transform:translateY(-1px); }.act-block:focus-within { outline:2px solid var(--act-rail); outline-offset:2px; }.act-block--fixed { background:var(--canvas-sunk); border:1px dashed var(--border); }.act-block--fixed::before { display:none; }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition:none !important; animation:none !important; } .act-block:hover,.camp-card:hover { transform:none; } }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { capacityForCourse } from "@/lib/capacity";
 
 async function checkAccess(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -58,6 +59,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       return NextResponse.json({ error: `${lockedByTime.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.` }, { status: 409 });
     }
   }
-  const item = await prisma.session.create({ data: { ...data, campId } });
+  let capacity = 0;
+  if (data?.courseId) {
+    capacity = await capacityForCourse(data.courseId, data.roomId);
+  } else if (data?.roomId) {
+    capacity = (await prisma.room.findFirst({ where: { id: data.roomId, campId }, select: { capacity: true } }))?.capacity ?? 0;
+  }
+  const item = await prisma.session.create({ data: { ...data, campId, capacity } });
   return NextResponse.json(item, { status: 201 });
 }

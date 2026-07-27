@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { CapacityError, claimSeat } from "@/lib/capacity";
 
 async function checkAccess(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -27,17 +28,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const data = await req.json();
   const { camperId, sessionId, status } = data;
 
-  // Check session cap
-  const sess = await prisma.session.findUnique({ where: { id: sessionId }, include: { course: true } });
-  if (sess?.course?.cap) {
-    if (sess.enrolledCount >= sess.course.cap) {
-      return NextResponse.json({ error: "Session is full" }, { status: 409 });
+  try {
+    const item = await claimSeat({ campId, camperId, sessionId, status, allowHeldSeat: true });
+    return NextResponse.json(item, { status: 201 });
+  } catch (error) {
+    if (error instanceof CapacityError) {
+      return NextResponse.json({ error: error.message, code: error.code, details: error.details }, { status: error.status });
     }
+    throw error;
   }
-
-  // Prisma HTTP mode does not support transactions. Keep this as two
-  // single-statement writes instead of prisma.$transaction().
-  const item = await prisma.enrollment.create({ data: { campId, camperId, sessionId, status: status || "enrolled" } });
-  await prisma.session.update({ where: { id: sessionId }, data: { enrolledCount: { increment: 1 } } });
-  return NextResponse.json(item, { status: 201 });
 }

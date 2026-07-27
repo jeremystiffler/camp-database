@@ -49,6 +49,18 @@ export async function POST(
   });
   if (!source) return NextResponse.json({ error: "Source camp not found" }, { status: 404 });
 
+  if (includeActivities && includeRooms) {
+    const roomsById = new Map(source.rooms.map(room => [room.id, room]));
+    const invalid = source.courses.find(course => {
+      const room = course.roomId ? roomsById.get(course.roomId) : null;
+      return room?.capacity !== null && room?.capacity !== undefined && course.cap !== null && course.cap > room.capacity;
+    });
+    if (invalid) {
+      const room = invalid.roomId ? roomsById.get(invalid.roomId) : null;
+      return NextResponse.json({ error: `Cannot copy ${invalid.name}: class cap ${invalid.cap} exceeds ${room?.name || "room"} capacity ${room?.capacity}. Fix the source event first.` }, { status: 409 });
+    }
+  }
+
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user?.organizationId) return NextResponse.json({ error: "No organization" }, { status: 400 });
 
@@ -163,6 +175,7 @@ export async function POST(
           color:       course.color,
           icon:        course.icon        ?? undefined,
           cap:         course.cap         ?? undefined,
+          heldSeats:   course.heldSeats,
           roomId:      newRoomId,
         },
       });

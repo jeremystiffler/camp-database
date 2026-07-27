@@ -33,6 +33,8 @@ interface SessionOption {
   cap?: number | null;
   enrolledCount: number;
   seatsLeft: number | null;
+  full?: boolean;
+  heldSeats?: number;
 }
 interface RegistrationSession {
   id: string;
@@ -113,7 +115,6 @@ function mergeWeeklyOptions(sessions: RegistrationSession[], ageGroupId: string)
       enrolledCount: Math.max(...matches.map(option => option.enrolledCount)),
       seatsLeft: matches.some(option => option.seatsLeft === null) ? null : Math.min(...matches.map(option => option.seatsLeft ?? 0)),
     }))
-    .filter(option => option.seatsLeft === null || option.seatsLeft > 0)
     .sort((a, b) => a.name.localeCompare(b.name));
   return { optionCount: options.length, options };
 }
@@ -128,6 +129,7 @@ function optionFillRate(option: SessionOption): number | null {
 }
 
 function optionCapacityClass(option: SessionOption, checked: boolean, unavailable: boolean): string {
+  if (option.seatsLeft === 0) return "border-emerald-300 bg-emerald-50 opacity-75 cursor-not-allowed";
   if (unavailable) return "border-slate-200 bg-slate-50 opacity-55 cursor-not-allowed";
   if (checked) return "border-forest-300 bg-forest-50 ring-2 ring-forest-200 cursor-pointer";
   const rate = optionFillRate(option);
@@ -139,6 +141,7 @@ function optionCapacityClass(option: SessionOption, checked: boolean, unavailabl
 }
 
 function optionSeatBadgeClass(option: SessionOption, unavailable: boolean): string {
+  if (option.seatsLeft === 0) return "text-emerald-900 bg-emerald-100 border border-emerald-300";
   if (unavailable) return "text-slate-600 bg-slate-200 border border-slate-300";
   const rate = optionFillRate(option);
   if (rate === null) return "text-emerald-800 bg-emerald-100 border border-emerald-200";
@@ -149,6 +152,7 @@ function optionSeatBadgeClass(option: SessionOption, unavailable: boolean): stri
 }
 
 function optionCapacityLabel(option: SessionOption): string {
+  if (option.seatsLeft === 0) return "Full";
   const rate = optionFillRate(option);
   if (rate === null) return "Open seats";
   if (rate >= 0.9) return "Nearly full";
@@ -687,7 +691,8 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                             {session.options.map(option => {
                               const checked = session.sessionIds.every(sessionId => activeSelectedBySession[sessionId] === option.courseId);
                               const selectedInAnotherSession = Object.entries(activeSelectedBySession).some(([sessionId, courseId]) => !session.sessionIds.includes(sessionId) && courseId === option.courseId);
-                              const unavailableBecauseChosen = selectedInAnotherSession && !checked;
+                              const full = option.seatsLeft === 0;
+                              const unavailableBecauseChosen = (selectedInAnotherSession && !checked) || full;
                               return <label key={option.courseId} className={`block border-l-4 p-4 transition-all ${optionCapacityClass(option, checked, unavailableBecauseChosen)}`}>
                                 <div className="flex items-start gap-3">
                                   <input type="radio" name={`session-${session.id}`} checked={checked} disabled={unavailableBecauseChosen} onChange={() => selectCourseForSession(session.sessionIds, option.courseId)} className="mt-1 w-4 h-4 accent-forest-500 disabled:accent-slate-300" />
@@ -701,7 +706,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                                           </span>
                                         )}
                                         <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap ${optionSeatBadgeClass(option, unavailableBecauseChosen)}`}>
-                                          {unavailableBecauseChosen ? "Already chosen" : option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} seats left`}
+                                          {full ? "Full" : unavailableBecauseChosen ? "Already chosen" : option.seatsLeft === null ? "Open seats" : `${option.seatsLeft} seats left`}
                                         </span>
                                       </div>
                                     </div>

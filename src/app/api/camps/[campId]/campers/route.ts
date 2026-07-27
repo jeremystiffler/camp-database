@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { generateCamperScanCode, normalizePickupNumber } from "@/lib/camper-identity";
+import { CapacityError, claimSeat, effectiveCapacity, releaseEnrollment } from "@/lib/capacity";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -39,7 +40,7 @@ async function resolveSessionChoices(campId: string, choices: SessionChoiceInput
   for (const choice of choices) {
     const course = await prisma.course.findFirst({
       where: { id: choice.courseId, campId, courseSessionTemplates: { some: { sessionTemplateId: choice.sessionTemplateId } } },
-      include: { sessions: { where: { campId, sessionTemplateId: choice.sessionTemplateId }, select: { id: true, enrolledCount: true } } },
+      include: { room: true, sessions: { where: { campId, sessionTemplateId: choice.sessionTemplateId }, select: { id: true, enrolledCount: true } } },
     }).catch(() => null);
     if (!course) throw new Error("One or more selected classes are not available for this event");
     let session = course.sessions[0] || null;
@@ -47,10 +48,12 @@ async function resolveSessionChoices(campId: string, choices: SessionChoiceInput
       const template = await prisma.sessionTemplate.findFirst({ where: { id: choice.sessionTemplateId, campId }, select: { id: true, label: true, startTime: true, endTime: true, mandatory: true } });
       if (!template) throw new Error("One or more selected time blocks are not available for this event");
       if (template.mandatory) throw new Error(`${template.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.`);
-      const created = await prisma.session.create({ data: { campId, courseId: course.id, sessionTemplateId: template.id, roomId: course.roomId, startTime: template.startTime, endTime: template.endTime }, select: { id: true, enrolledCount: true } });
+      const capacity = effectiveCapacity(course, course.room);
+      if (capacity <= 0) throw new CapacityError("session_has_no_room", `${course.name} needs a room with capacity before enrollment.`);
+      const created = await prisma.session.create({ data: { campId, courseId: course.id, sessionTemplateId: template.id, roomId: course.roomId, startTime: template.startTime, endTime: template.endTime, capacity }, select: { id: true, enrolledCount: true } });
       session = created;
     }
-    if (course.cap !== null && session.enrolledCount >= (course.cap ?? 0)) throw new Error(`${course.name} is full. Choose a different class.`);
+
     sessionIds.push(session.id);
   }
   return sessionIds;
@@ -69,17 +72,12 @@ async function replaceEnrollments(campId: string, camperId: string, nextSessionI
     const validIds = new Set(validSessions.map((s) => s.id));
     const invalid = toAdd.filter((id) => !validIds.has(id));
     if (invalid.length) throw new Error("One or more selected sessions do not belong to this event");
-    for (const session of validSessions) {
-      if (session.course?.cap !== null && session.course?.cap !== undefined && session.enrolledCount >= session.course.cap) throw new Error(`${session.course.name} is full. Choose a different class.`);
-    }
     for (const sessionId of toAdd) {
-      await prisma.enrollment.create({ data: { campId, camperId, sessionId, status: "enrolled" } });
-      await prisma.session.update({ where: { id: sessionId }, data: { enrolledCount: { increment: 1 } } });
+      await claimSeat({ campId, camperId, sessionId, status: "enrolled", allowHeldSeat: true });
     }
   }
   for (const enrollment of toRemove) {
-    await prisma.enrollment.delete({ where: { id: enrollment.id } });
-    await prisma.session.update({ where: { id: enrollment.sessionId }, data: { enrolledCount: { decrement: 1 } } });
+    await releaseEnrollment(enrollment.id, campId);
   }
 }
 const camperInclude = {
@@ -155,6 +153,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     return NextResponse.json(reloaded, { status: 201 });
   } catch (err) {
     console.error("Participant POST error:", err);
+    if (err instanceof CapacityError) return NextResponse.json({ error: err.message, code: err.code }, { status: err.status });
     return NextResponse.json({ error: "Failed to add participant", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });
   }
 }

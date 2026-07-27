@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkSchedulingConflicts } from "@/lib/scheduling-conflicts";
+import { effectiveCapacity, syncCourseSessionCapacities } from "@/lib/capacity";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ campId: string; id: string }> }) {
   const session = await getSession();
@@ -20,6 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
       courseTeachers:         { select: { personId: true } },
       courseSessionTemplates: { select: { sessionTemplateId: true } },
       courseAgeGroups:        { select: { ageGroupId: true } },
+      sessions:               { select: { id: true, enrolledCount: true, sessionTemplateId: true } },
     },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -28,6 +30,31 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const resolvedRoomId = "roomId" in data
     ? (data.roomId || undefined)
     : (existing.roomId || undefined);
+
+  // Room capacity is an absolute ceiling; class cap is adjustable only within it.
+  const nextRoom = resolvedRoomId
+    ? await prisma.room.findFirst({ where: { id: resolvedRoomId, campId }, select: { id: true, name: true, capacity: true } })
+    : null;
+  const nextCap = "cap" in data ? (data.cap === null || data.cap === "" ? null : Number(data.cap)) : existing.cap;
+  const nextHeldSeats = "heldSeats" in data ? Number(data.heldSeats) : existing.heldSeats;
+  const capacityEdit = "roomId" in data || "cap" in data || "heldSeats" in data;
+  if (capacityEdit) {
+    if (!nextRoom) return NextResponse.json({ error: "Assign a room before changing class capacity." }, { status: 409 });
+    if (nextRoom.capacity === null) return NextResponse.json({ error: `${nextRoom.name} needs a capacity before this class can accept enrollment.` }, { status: 409 });
+    if (nextCap !== null && (!Number.isInteger(nextCap) || nextCap < 1)) return NextResponse.json({ error: "Class cap must be a positive whole number." }, { status: 400 });
+    if (nextCap !== null && nextCap > nextRoom.capacity) return NextResponse.json({ error: `${existing.name} allows ${nextCap}, but ${nextRoom.name} holds ${nextRoom.capacity}. Lower the class cap or choose a larger room.` }, { status: 409 });
+    if (!Number.isInteger(nextHeldSeats) || nextHeldSeats < 0) return NextResponse.json({ error: "Held seats must be zero or a positive whole number." }, { status: 400 });
+    const nextCapacity = effectiveCapacity({ cap: nextCap, heldSeats: nextHeldSeats }, nextRoom);
+    if (nextHeldSeats > nextCapacity) return NextResponse.json({ error: `Held seats cannot exceed this class's capacity of ${nextCapacity}.` }, { status: 409 });
+    const blockedSessions = existing.sessions.filter(item => item.enrolledCount > nextCapacity);
+    if (blockedSessions.length) {
+      return NextResponse.json({
+        error: `${existing.name} has ${Math.max(...blockedSessions.map(item => item.enrolledCount))} enrolled. A capacity of ${nextCapacity} would leave participants without a place. Move participants or choose a larger room first.`,
+        code: "capacity_reduction_blocked",
+        affectedSessions: blockedSessions,
+      }, { status: 409 });
+    }
+  }
 
   const resolvedTeacherIds = Array.isArray(teacherIds)
     ? teacherIds
@@ -77,6 +104,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   if ("cap" in data) nextDismissals = nextDismissals.filter(value => value !== "capacity");
 
   await prisma.course.update({ where: { id }, data: { ...data, attentionDismissals: nextDismissals } });
+  if ("roomId" in data) {
+    await prisma.session.updateMany({ where: { courseId: id }, data: { roomId: resolvedRoomId || null } });
+  }
 
   if (Array.isArray(ageGroupIds)) {
     await prisma.courseAgeGroup.deleteMany({ where: { courseId: id } });
@@ -96,6 +126,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
       await prisma.courseSessionTemplate.create({ data: { courseId: id, sessionTemplateId } });
     }
   }
+  await syncCourseSessionCapacities(id);
 
   const full = await prisma.course.findUnique({
     where: { id },

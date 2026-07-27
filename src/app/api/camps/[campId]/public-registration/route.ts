@@ -4,6 +4,7 @@ import { getResend, FROM_EMAIL } from "@/lib/email";
 import { getBaseUrl, getStripe } from "@/lib/billing";
 import { calculateRegistrationTotal, couponAllowsEmail, normalizeCouponCode, type PricingCoupon } from "@/lib/registration-pricing";
 import { generateCamperScanCode } from "@/lib/camper-identity";
+import { CapacityError, claimSeat, effectiveCapacity, releaseEnrollment } from "@/lib/capacity";
 
 interface StudentPayload {
   firstName: string;
@@ -526,6 +527,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
             course: {
               include: {
                 courseAgeGroups: true,
+                room: true,
                 sessions: { where: { campId }, select: { id: true, sessionTemplateId: true, enrolledCount: true } },
               },
             },
@@ -573,7 +575,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     } else if (classChoicesEnabled && fallbackCourseIds.length > 0) {
       const courses = await prisma.course.findMany({
         where: { id: { in: fallbackCourseIds }, campId, OR: [{ ageGroupId: student.ageGroupId || undefined }, { courseAgeGroups: { some: { ageGroupId: student.ageGroupId || undefined } } }] },
-        include: { courseAgeGroups: true, courseSessionTemplates: true, sessions: { where: { campId }, select: { id: true, sessionTemplateId: true, enrolledCount: true } } },
+        include: { courseAgeGroups: true, courseSessionTemplates: true, room: true, sessions: { where: { campId }, select: { id: true, sessionTemplateId: true, enrolledCount: true } } },
         orderBy: { name: "asc" },
       });
       if (courses.length !== fallbackCourseIds.length) return NextResponse.json({ error: `One or more selected classes are not available for ${firstName}` }, { status: 400 });
@@ -626,9 +628,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     createdCamperIds.push(camper.id);
 
     if (updating) {
-      const oldEnrollments = await prisma.enrollment.findMany({ where: { camperId: camper.id, campId }, select: { sessionId: true } });
-      await prisma.enrollment.deleteMany({ where: { camperId: camper.id, campId } });
-      for (const old of oldEnrollments) await prisma.session.update({ where: { id: old.sessionId }, data: { enrolledCount: { decrement: 1 } } });
+      const oldEnrollments = await prisma.enrollment.findMany({ where: { camperId: camper.id, campId }, select: { id: true } });
+      for (const old of oldEnrollments) await releaseEnrollment(old.id, campId);
     }
 
     const enrolledSessionIds = new Set<string>();
@@ -636,29 +637,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       let session = await prisma.session.findFirst({ where: { campId, courseId: selection.course.id, sessionTemplateId: selection.sessionTemplateId } });
       if (!session) {
         const template = sessionTemplates.find(t => t.id === selection.sessionTemplateId);
-        session = await prisma.session.create({ data: { campId, courseId: selection.course.id, sessionTemplateId: selection.sessionTemplateId, roomId: selection.course.roomId, startTime: template?.startTime, endTime: template?.endTime } });
+        const capacity = effectiveCapacity(selection.course, selection.course.room);
+        if (capacity <= 0) return NextResponse.json({ error: `${selection.course.name} has no room capacity and cannot accept registration.` }, { status: 409 });
+        session = await prisma.session.create({ data: { campId, courseId: selection.course.id, sessionTemplateId: selection.sessionTemplateId, roomId: selection.course.roomId, startTime: template?.startTime, endTime: template?.endTime, capacity } });
       }
       if (enrolledSessionIds.has(session.id)) continue;
-      if (selection.course.cap !== null && session.enrolledCount >= (selection.course.cap ?? 0)) return NextResponse.json({ error: `${selection.course.name} just filled up. Please choose a different class for ${firstName}.` }, { status: 409 });
       enrolledSessionIds.add(session.id);
       const already = await prisma.enrollment.findFirst({ where: { camperId: camper.id, sessionId: session.id } });
       if (!already) {
-        await prisma.enrollment.create({ data: { campId, camperId: camper.id, sessionId: session.id, status: "enrolled" } });
-        await prisma.session.update({ where: { id: session.id }, data: { enrolledCount: { increment: 1 } } });
+        try {
+          await claimSeat({ campId, camperId: camper.id, sessionId: session.id, status: "enrolled", allowHeldSeat: false });
+        } catch (error) {
+          if (error instanceof CapacityError) return NextResponse.json({ error: `${selection.course.name} just filled up. Please choose a different class for ${firstName}.`, code: error.code }, { status: 409 });
+          throw error;
+        }
       }
     }
 
     for (const assignment of mandatoryAssignments) {
       let session = assignment.sessions[0] ? await prisma.session.findUnique({ where: { id: assignment.sessions[0].id } }) : null;
       if (!session) {
-        session = await prisma.session.create({ data: { campId, courseId: null, mandatorySessionId: assignment.id, sessionTemplateId: assignment.sessionTemplateId, roomId: assignment.roomId, startTime: assignment.sessionTemplate.startTime, endTime: assignment.sessionTemplate.endTime } });
+        const capacity = assignment.room?.capacity ?? 0;
+        if (capacity <= 0) return NextResponse.json({ error: `${assignment.title} has no room capacity and cannot accept registration.` }, { status: 409 });
+        session = await prisma.session.create({ data: { campId, courseId: null, mandatorySessionId: assignment.id, sessionTemplateId: assignment.sessionTemplateId, roomId: assignment.roomId, startTime: assignment.sessionTemplate.startTime, endTime: assignment.sessionTemplate.endTime, capacity } });
       }
       if (enrolledSessionIds.has(session.id)) continue;
       enrolledSessionIds.add(session.id);
       const already = await prisma.enrollment.findFirst({ where: { camperId: camper.id, sessionId: session.id } });
       if (!already) {
-        await prisma.enrollment.create({ data: { campId, camperId: camper.id, sessionId: session.id, status: "enrolled" } });
-        await prisma.session.update({ where: { id: session.id }, data: { enrolledCount: { increment: 1 } } });
+        try {
+          await claimSeat({ campId, camperId: camper.id, sessionId: session.id, status: "enrolled", allowHeldSeat: false });
+        } catch (error) {
+          if (error instanceof CapacityError) return NextResponse.json({ error: `${assignment.title} just filled up. Please contact the event administrator.`, code: error.code }, { status: 409 });
+          throw error;
+        }
       }
     }
 

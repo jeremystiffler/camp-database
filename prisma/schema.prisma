@@ -176,6 +176,7 @@ model Course {
   roomId                 String?
   room                   Room?                   @relation(fields: [roomId], references: [id], onDelete: SetNull)
   cap                    Int?
+  heldSeats              Int                     @default(0)
   color                  String                  @default("#6366f1")
   icon                   String?
   attentionDismissals    String[]                @default([])
@@ -245,6 +246,10 @@ model Session {
   endTime            String?
   status             String            @default("scheduled")
   enrolledCount      Int               @default(0)
+  // Denormalized storage ceiling. New sessions use effectiveCapacity(course, room).
+  // Legacy overflows are grandfathered at migration time; seat claims still compare
+  // against the live effective capacity so no additional enrollment can be added.
+  capacity           Int               @default(0)
   createdAt          DateTime          @default(now())
   sessionTeachers    SessionTeacher[]
   enrollments        Enrollment[]

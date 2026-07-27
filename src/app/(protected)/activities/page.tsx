@@ -138,6 +138,7 @@ interface Course {
   name: string;
   description?: string;
   cap: number;
+  heldSeats?: number;
   color: string;
   icon?: string;
   room?: Room | null;
@@ -254,6 +255,7 @@ function CourseModal({
   const [name, setName]               = useState(course?.name || "");
   const [description, setDescription] = useState(course?.description || "");
   const [cap, setCap]                 = useState(String(course?.cap || 20));
+  const [heldSeats, setHeldSeats]     = useState(String(course?.heldSeats || 0));
   const [color, setColor]             = useState(course?.color || COLORS[0]);
   const [icon, setIcon]               = useState(course?.icon || "A");
   const [roomId, setRoomId]           = useState(course?.room?.id || "");
@@ -382,7 +384,7 @@ function CourseModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name, description: description || undefined,
-          cap: parseInt(cap), color, icon,
+          cap: parseInt(cap), heldSeats: parseInt(heldSeats || "0"), color, icon,
           roomId: roomId || undefined,
           ageGroupIds: selectedAgeGroups,
           teacherIds: selectedTeachers,
@@ -437,7 +439,7 @@ function CourseModal({
           </div>
 
           {/* Room + Cap */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Room / Location</label>
               <select value={roomId} onChange={e => setRoomId(e.target.value)}
@@ -450,6 +452,12 @@ function CourseModal({
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Capacity</label>
               <input type="number" value={cap} onChange={e => setCap(e.target.value)} min={1} max={500}
                 className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Held seats</label>
+              <input type="number" value={heldSeats} onChange={e => setHeldSeats(e.target.value)} min={0} max={Math.max(0, Number(cap) || 0)}
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              <p className="mt-1 text-[11px] text-slate-500">Reserved for admins; never adds seats.</p>
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import { HelpCopy } from "@/components/HelpMode";
 import { EmptyState } from "@/components/OperationalUI";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { hueVars, normalizeActivityName, resolveActivityHue } from "@/lib/activity-color";
+import { effectiveCapacity } from "@/lib/capacity-rules";
 
 interface SessionTemplate {
   id: string;
@@ -34,6 +35,7 @@ interface Course {
   color: string;
   icon?: string;
   cap: number;
+  heldSeats?: number;
   ageGroup?: AgeGroup | null;
   courseAgeGroups?: { ageGroup: AgeGroup }[];
   courseTeachers?: { person: Person }[];
@@ -42,6 +44,7 @@ interface Course {
 interface Room {
   id: string;
   name: string;
+  capacity: number | null;
 }
 
 interface MandatorySession {
@@ -104,12 +107,16 @@ function sessionTitle(session: Session) {
 function ageGroupNames(course?: Course | null) {
   return course?.courseAgeGroups?.map((cag) => cag.ageGroup.name).join(", ") || course?.ageGroup?.name || "All groups";
 }
+function sessionCapacity(session: Session) {
+  return session.course ? effectiveCapacity(session.course, session.room) : 0;
+}
 function capacityPercent(session: Session) {
-  const cap = session.course?.cap || 0;
+  const cap = sessionCapacity(session);
   return cap > 0 ? Math.round((session.enrolledCount / cap) * 100) : 0;
 }
 function capacityTone(percent: number) {
-  if (percent >= 100) return "bg-rose-100 text-rose-800 border-rose-200";
+  if (percent > 100) return "bg-rose-100 text-rose-800 border-rose-200";
+  if (percent === 100) return "bg-emerald-100 text-emerald-800 border-emerald-200";
   if (percent >= 85) return "bg-clay-100 text-clay-800 border-clay-200";
   if (percent >= 60) return "bg-butter-100 text-amber-800 border-amber-200";
   if (percent > 0) return "bg-sage-100 text-sage-800 border-sage-200";
@@ -176,8 +183,10 @@ function sessionCell(session: Session, campId: string, compact = false) {
   const hue = session.course ? resolveActivityHue(session.course.name) : null;
   const vars = hue ? hueVars(hue) : undefined;
   const isFixed = !session.course;
-  const countLabel = session.course?.cap ? `${session.enrolledCount}/${session.course.cap}` : "—";
-  const capacityClass = percent >= 100 ? "act-block__count is-full" : percent >= 80 ? "act-block__count is-filling" : "act-block__count";
+  const cap = sessionCapacity(session);
+  const held = session.course?.heldSeats || 0;
+  const countLabel = cap ? `${session.enrolledCount} of ${cap}${held ? ` · ${held} held` : ""}${session.enrolledCount === cap ? " · Full" : ""}` : "—";
+  const capacityClass = percent > 100 ? "act-block__count is-over" : percent === 100 ? "act-block__count is-full" : percent >= 80 ? "act-block__count is-filling" : "act-block__count";
   const titleNode = session.course ? (
     <Link
       href={activityHref(campId, session.course.id)}
@@ -260,7 +269,7 @@ function ScheduleContent() {
     .sort((a, b) => a.start.localeCompare(b.start));
   const roomRows = uniqueBy([...rooms, ...filteredSessions.map((s) => s.room).filter((room): room is Room => Boolean(room))], (room) => room.id).sort((a, b) => a.name.localeCompare(b.name));
   const teacherRows = uniqueBy(filteredSessions.flatMap((s) => s.course?.courseTeachers?.map((ct) => ct.person) || []), (p) => p.id).sort((a, b) => fullName(a).localeCompare(fullName(b)));
-  const totalCapacity = displaySessions.reduce((sum, session) => sum + (session.course?.cap || 0), 0);
+  const totalCapacity = displaySessions.reduce((sum, session) => sum + sessionCapacity(session), 0);
   const totalEnrolled = displaySessions.reduce((sum, session) => sum + session.enrolledCount, 0);
   const averageFill = displaySessions.length ? Math.round(displaySessions.reduce((sum, session) => sum + capacityPercent(session), 0) / displaySessions.length) : 0;
   const overloaded = displaySessions.filter((session) => capacityPercent(session) >= 100).length;

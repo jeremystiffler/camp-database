@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkSchedulingConflicts } from "@/lib/scheduling-conflicts";
+import { effectiveCapacity } from "@/lib/capacity";
 
 async function checkAccess(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -34,6 +35,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { ageGroupIds, teacherIds, sessionTemplateIds, ...data } = await req.json();
+
+  if (data.roomId) {
+    const room = await prisma.room.findFirst({ where: { id: data.roomId, campId }, select: { name: true, capacity: true } });
+    if (!room) return NextResponse.json({ error: "Selected room does not belong to this event." }, { status: 400 });
+    if (room.capacity === null) return NextResponse.json({ error: `${room.name} needs a capacity before it can host a class.` }, { status: 409 });
+    const cap = data.cap === null || data.cap === undefined || data.cap === "" ? null : Number(data.cap);
+    const heldSeats = data.heldSeats === undefined ? 0 : Number(data.heldSeats);
+    if (cap !== null && (!Number.isInteger(cap) || cap < 1)) return NextResponse.json({ error: "Class cap must be a positive whole number." }, { status: 400 });
+    if (cap !== null && cap > room.capacity) return NextResponse.json({ error: `${data.name || "This class"} allows ${cap}, but ${room.name} holds ${room.capacity}.` }, { status: 409 });
+    const capacity = effectiveCapacity({ cap, heldSeats }, room);
+    if (!Number.isInteger(heldSeats) || heldSeats < 0 || heldSeats > capacity) return NextResponse.json({ error: `Held seats must be between 0 and ${capacity}.` }, { status: 400 });
+    data.cap = cap;
+    data.heldSeats = heldSeats;
+  }
 
   // ── Conflict check before any write ──────────────────────────────────────
   const conflicts = await checkSchedulingConflicts({

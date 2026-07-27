@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { effectiveCapacity, publicCapacity } from "@/lib/capacity";
 import { getSession } from "@/lib/auth";
 
 async function checkAccess(userId: string, campId: string) {
@@ -176,6 +177,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
           name: true,
           description: true,
           cap: true,
+          heldSeats: true,
+          room: { select: { id: true, name: true, capacity: true } },
           ageGroupId: true,
           courseAgeGroups: { select: { ageGroupId: true } },
           courseSessionTemplates: { select: { sessionTemplateId: true } },
@@ -225,23 +228,32 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
           .map(course => {
             const existing = course.sessions.find(s => s.sessionTemplateId === session.id);
             const enrolledCount = existing?.enrolledCount ?? 0;
-            const seatsLeft = course.cap === null ? null : Math.max((course.cap ?? 0) - enrolledCount, 0);
-            return { courseId: course.id, name: course.name, description: course.description, cap: course.cap, enrolledCount, seatsLeft };
+            const cap = publicCapacity(course, course.room);
+            const seatsLeft = Math.max(cap - enrolledCount, 0);
+            return { courseId: course.id, name: course.name, description: course.description, cap, enrolledCount, seatsLeft, full: seatsLeft === 0, heldSeats: course.heldSeats };
           })
-          .filter(option => option.seatsLeft === null || option.seatsLeft > 0)
           .sort((a, b) => a.name.localeCompare(b.name));
         return acc;
       }, {}),
     };
   });
 
-  const formOpen = selectedForm ? camp.registrationOpen && selectedForm.status !== "draft" : false;
+  const capacityViolations = camp.courses.flatMap(course => {
+    const capacity = effectiveCapacity(course, course.room);
+    const issues: string[] = [];
+    if (!course.room) issues.push(`${course.name} has no room assigned`);
+    else if (course.cap !== null && course.room.capacity !== null && course.cap > course.room.capacity) issues.push(`${course.name} allows ${course.cap} but ${course.room.name} holds ${course.room.capacity}`);
+    for (const session of course.sessions) if (session.enrolledCount > capacity) issues.push(`${course.name} has ${session.enrolledCount} enrolled but capacity is ${capacity}`);
+    return issues;
+  });
+  const formOpen = selectedForm ? camp.registrationOpen && selectedForm.status !== "draft" && capacityViolations.length === 0 : false;
   return NextResponse.json({
     campName: camp.name,
     primaryColor: camp.primaryColor,
     accentColor: camp.accentColor,
     fontFamily: camp.fontFamily,
     registrationOpen: formOpen,
+    registrationBlockedReason: capacityViolations.length ? "Registration is paused until event capacity issues are resolved." : null,
     billingMode: camp.billingMode,
     billingStatus: camp.billingStatus,
     platformFeeCents: camp.platformFeeCents,
