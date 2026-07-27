@@ -57,6 +57,11 @@ function formatCampDateRange(camp?: Camp) {
   return formatCampDate(camp.startDate || camp.endDate);
 }
 
+function campInitials(name: string) {
+  const words = name.replace(/[^a-zA-Z\s]/g, " ").trim().split(/\s+/).filter((word) => /[a-zA-Z]/.test(word));
+  return words.slice(0, 2).map((word) => word[0].toUpperCase()).join("") || "EV";
+}
+
 function formatCurrency(cents?: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format((cents || 0) / 100);
 }
@@ -273,12 +278,12 @@ function CampCard({ camp, active, onCopy, onDelete }: { camp: Camp; active: bool
     <div
       className="camp-card relative group overflow-hidden p-5"
       style={{
-        borderColor: primaryColor,
-        borderWidth: active ? 3 : 2,
-        background: `linear-gradient(135deg, ${primaryColor}12, ${accentColor}0A 48%, var(--ui-surface))`,
+        borderColor: active ? primaryColor : "var(--border)",
+        borderWidth: active ? 2 : 1,
+        background: "var(--canvas)",
       }}
     >
-      <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${primaryColor}, ${accentColor})` }} />
+      <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: primaryColor }} />
 
       <Link
         href={`/activities?campId=${camp.id}`}
@@ -287,7 +292,7 @@ function CampCard({ camp, active, onCopy, onDelete }: { camp: Camp; active: bool
       >
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-black shadow-sm" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}>
-            CC
+            {campInitials(camp.name)}
           </div>
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full mr-7 ${statusColors[camp.status] || "bg-slate-100 text-slate-600"}`}>
             {camp.status}

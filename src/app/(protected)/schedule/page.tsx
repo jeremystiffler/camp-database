@@ -6,6 +6,7 @@ import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
 import { EmptyState } from "@/components/OperationalUI";
 import { RowDeleteButton } from "@/components/InlineEditing";
+import { hueVars, normalizeActivityName, resolveActivityHue } from "@/lib/activity-color";
 
 interface SessionTemplate {
   id: string;
@@ -172,27 +173,40 @@ function activityHref(campId: string, courseId: string) {
 function sessionCell(session: Session, campId: string, compact = false) {
   const percent = capacityPercent(session);
   const title = sessionTitle(session);
+  const hue = session.course ? resolveActivityHue(session.course.name) : null;
+  const vars = hue ? hueVars(hue) : undefined;
+  const isFixed = !session.course;
+  const countLabel = session.course?.cap ? `${session.enrolledCount}/${session.course.cap}` : "—";
+  const capacityClass = percent >= 100 ? "act-block__count is-full" : percent >= 80 ? "act-block__count is-filling" : "act-block__count";
   const titleNode = session.course ? (
     <Link
       href={activityHref(campId, session.course.id)}
-      className="truncate text-xs font-black text-slate-900 underline-offset-2 hover:underline"
+      className="act-block__title truncate underline-offset-2 hover:underline"
       title={`Edit ${session.course.name}`}
     >
-      {title}
+      {session.course.icon && <span aria-hidden>{session.course.icon} </span>}{title}
     </Link>
   ) : (
-    <p className="truncate text-xs font-black text-slate-900">{title}</p>
+    <p className="truncate text-xs font-semibold text-[var(--text-muted)]">{title}</p>
   );
   return (
-    <div key={session.id} className={`rounded-xl border p-2 ${capacityTone(percent)}`}>
+    <div
+      key={session.id}
+      className={isFixed ? "act-block act-block--fixed" : "act-block"}
+      style={vars ? {
+        ["--act-rail" as string]: vars.rail,
+        ["--act-wash" as string]: vars.wash,
+        ["--act-ink" as string]: vars.ink,
+      } : undefined}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           {titleNode}
-          {!compact && <p className="mt-0.5 text-[11px] font-semibold opacity-80">{session.room?.name || "No room"}</p>}
+          {!compact && <p className="act-block__meta mt-0.5">{session.room?.name || "No room"}</p>}
         </div>
-        <span className="rounded-full bg-white/65 px-1.5 py-0.5 text-[10px] font-black">{session.enrolledCount}/{session.course?.cap || "?"}</span>
+        {session.course && <span className={capacityClass}>{percent >= 80 && <span className="capacity-dot" />} {countLabel}</span>}
       </div>
-      {!compact && session.course && <p className="mt-1 text-[10px] leading-tight opacity-75">{teacherNames(session.course)}</p>}
+      {!compact && session.course && <p className="act-block__meta mt-1 truncate">{teacherNames(session.course)}</p>}
     </div>
   );
 }
@@ -326,6 +340,17 @@ function ScheduleContent() {
               </select>
             </label>
             <p className="text-xs font-semibold text-slate-500">{VIEW_OPTIONS.find((option) => option.id === view)?.description}</p>
+          </div>
+
+          <div className="rounded-xl border border-[var(--border)] bg-white px-4 py-3">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[.1em] text-[var(--text-faint)]">Activities</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {uniqueBy(courses, (course) => normalizeActivityName(course.name)).sort((a, b) => a.name.localeCompare(b.name)).map((course) => {
+                const hue = resolveActivityHue(course.name);
+                const vars = hueVars(hue);
+                return <span key={course.id} className="inline-flex items-center gap-1.5 text-xs text-[var(--text)]"><span className="h-2 w-2 rounded-full" style={{ background: vars.rail }} />{course.icon && <span aria-hidden>{course.icon}</span>}{course.name}</span>;
+              })}
+            </div>
           </div>
 
           {view === "dayGrid" && <DayTimeGrid sessions={filteredDaySessions} displayDayGroups={displayDayGroups} duplicateDayCount={filterDay === "" ? duplicateDayCount : 0} timeSlots={timeSlots} campId={campId} />}
