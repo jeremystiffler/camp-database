@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkSchedulingConflicts } from "@/lib/scheduling-conflicts";
-import { effectiveCapacity, syncCourseSessionCapacities } from "@/lib/capacity";
+import { storedCapacity, syncCourseSessionCapacities } from "@/lib/capacity";
 
 const ACTIVITY_COLORS  = ["#22C55E","#0EA5E9","#F97316","#A855F7","#EAB308","#EC4899","#14B8A6","#6366F1"];
 const AGE_GROUP_COLORS = ["#6366F1","#22C55E","#0EA5E9","#F97316","#A855F7","#EC4899","#EAB308","#14B8A6"];
@@ -155,13 +155,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       const targetRoom = targetRoomId ? await prisma.room.findFirst({ where: { id: targetRoomId, campId }, select: { name: true, capacity: true } }) : null;
       const targetCap = row.activity_capacity ? parseInt(row.activity_capacity, 10) : existing?.cap ?? 20;
       if (!Number.isInteger(targetCap) || targetCap < 1) throw new Error("activity_capacity must be a positive whole number");
-      if (targetRoom?.capacity !== null && targetRoom?.capacity !== undefined && targetCap > targetRoom.capacity) {
-        throw new Error(`class cap ${targetCap} exceeds ${targetRoom.name} capacity ${targetRoom.capacity}`);
-      }
-      if (existing && targetRoom) {
-        const nextCapacity = effectiveCapacity({ cap: targetCap, heldSeats: existing.heldSeats }, targetRoom);
-        const overflow = await prisma.session.findFirst({ where: { courseId: existing.id, enrolledCount: { gt: nextCapacity } }, select: { enrolledCount: true } });
-        if (overflow) throw new Error(`capacity ${nextCapacity} is below current enrollment ${overflow.enrolledCount}; move participants first`);
+      if (existing) {
+        const nextCapacity = storedCapacity({ cap: targetCap, heldSeats: existing.heldSeats });
+        const overflow = nextCapacity === null ? null : await prisma.session.findFirst({ where: { courseId: existing.id, enrolledCount: { gt: nextCapacity } }, select: { enrolledCount: true } });
+        if (overflow) throw new Error(`class limit ${nextCapacity} is below current enrollment ${overflow.enrolledCount}; move participants first`);
       }
 
       if (existing) {

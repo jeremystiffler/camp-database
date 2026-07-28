@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
-import { effectiveCapacity } from "@/lib/capacity-rules";
-export { effectiveCapacity, publicCapacity } from "@/lib/capacity-rules";
+import { storedCapacity } from "@/lib/capacity-rules";
+export { effectiveCapacity, publicCapacity, storedCapacity, hasUnsetLimit, exceedsRoom, formatCapacity } from "@/lib/capacity-rules";
 
 export class CapacityError extends Error {
   status = 409;
@@ -16,16 +16,17 @@ export class CapacityError extends Error {
   }
 }
 
-export async function capacityForCourse(courseId: string, roomId?: string | null): Promise<number> {
+/**
+ * Seats for a class. Room is irrelevant: the class cap is the only limit.
+ * Returns null when the class has no cap set (unlimited).
+ */
+export async function capacityForCourse(courseId: string): Promise<number | null> {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { cap: true, roomId: true, room: { select: { capacity: true } } },
+    select: { cap: true },
   });
   if (!course) throw new CapacityError("invalid_capacity", "Class not found");
-  const room = roomId && roomId !== course.roomId
-    ? await prisma.room.findUnique({ where: { id: roomId }, select: { capacity: true } })
-    : course.room;
-  return effectiveCapacity(course, room);
+  return storedCapacity(course);
 }
 
 type ClaimedEnrollment = {
@@ -54,18 +55,12 @@ export async function claimSeat(input: {
     `WITH claimed AS (
        UPDATE "Session" AS s
           SET "enrolledCount" = s."enrolledCount" + 1
-         FROM "Room" AS r
-         LEFT JOIN "Course" AS c
-           ON c."id" = (SELECT x."courseId" FROM "Session" AS x WHERE x."id" = $1)
+         FROM "Course" AS c
         WHERE s."id" = $1
           AND s."campId" = $2
-          AND r."id" = COALESCE(s."roomId", c."roomId")
-          AND r."capacity" IS NOT NULL
-          AND s."enrolledCount" < LEAST(
-                COALESCE(c."cap", 2147483647),
-                r."capacity",
-                s."capacity"
-              ) - (CASE WHEN $3 = 1 THEN GREATEST(COALESCE(c."heldSeats", 0), 0) ELSE 0 END)
+          AND c."id" = s."courseId"
+          AND s."enrolledCount" < COALESCE(c."cap", 2147483647)
+              - (CASE WHEN $3 = 1 THEN GREATEST(COALESCE(c."heldSeats", 0), 0) ELSE 0 END)
         RETURNING s."id"
      ), inserted AS (
        INSERT INTO "Enrollment" ("id", "campId", "camperId", "sessionId", "status", "createdAt")
@@ -86,18 +81,14 @@ export async function claimSeat(input: {
     const session = await prisma.session.findFirst({
       where: { id: input.sessionId, campId: input.campId },
       select: {
-        roomId: true,
-        course: { select: { name: true, roomId: true, cap: true, heldSeats: true, room: { select: { name: true, capacity: true } } } },
+        course: { select: { name: true, cap: true, heldSeats: true } },
       },
     });
-    if (!session?.course?.roomId && !session?.roomId) {
-      throw new CapacityError("session_has_no_room", `${session?.course?.name || "This class"} has no room assigned and cannot accept enrollment.`);
-    }
-    const roomName = session?.course?.room?.name;
-    const roomCapacity = session?.course?.room?.capacity;
+    const name = session?.course?.name || "This class";
+    const cap = session?.course?.cap;
     throw new CapacityError(
       "session_full",
-      `${session?.course?.name || "This class"} is full${roomCapacity ? ` (${roomName || "room"} limit: ${roomCapacity})` : ""}. Choose a different class.`,
+      `${name} is full${typeof cap === "number" ? ` (limit: ${cap})` : ""}. Choose a different class.`,
     );
   }
   return rows[0];
@@ -146,10 +137,17 @@ export async function releaseCamperEnrollments(camperId: string, campId: string)
 export async function syncCourseSessionCapacities(courseId: string): Promise<void> {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { cap: true, room: { select: { capacity: true } } },
+    select: { cap: true },
   });
   if (!course) return;
-  const capacity = effectiveCapacity(course, course.room);
+  const capacity = storedCapacity(course);
+  if (capacity === null) {
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Session" SET "capacity" = NULL WHERE "courseId" = $1`,
+      courseId,
+    );
+    return;
+  }
   await prisma.$executeRawUnsafe(
     `UPDATE "Session"
         SET "capacity" = GREATEST($2, "enrolledCount")

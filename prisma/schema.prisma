@@ -246,10 +246,10 @@ model Session {
   endTime            String?
   status             String            @default("scheduled")
   enrolledCount      Int               @default(0)
-  // Denormalized storage ceiling. New sessions use effectiveCapacity(course, room).
-  // Legacy overflows are grandfathered at migration time; seat claims still compare
-  // against the live effective capacity so no additional enrollment can be added.
-  capacity           Int               @default(0)
+  // Denormalized mirror of the class cap. NULL means unlimited: the class has no
+  // cap set. Room capacity never contributes — it is advisory only. Seat claims
+  // compare against Course.cap directly, so this column is for display/reporting.
+  capacity           Int?
   createdAt          DateTime          @default(now())
   sessionTeachers    SessionTeacher[]
   enrollments        Enrollment[]

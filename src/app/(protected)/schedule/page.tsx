@@ -108,11 +108,11 @@ function ageGroupNames(course?: Course | null) {
   return course?.courseAgeGroups?.map((cag) => cag.ageGroup.name).join(", ") || course?.ageGroup?.name || "All groups";
 }
 function sessionCapacity(session: Session) {
-  return session.course ? effectiveCapacity(session.course, session.room) : 0;
+  return session.course ? effectiveCapacity(session.course) : Number.POSITIVE_INFINITY;
 }
 function capacityPercent(session: Session) {
   const cap = sessionCapacity(session);
-  return cap > 0 ? Math.round((session.enrolledCount / cap) * 100) : 0;
+  return Number.isFinite(cap) && cap > 0 ? Math.round((session.enrolledCount / cap) * 100) : 0;
 }
 function capacityTone(percent: number) {
   if (percent > 100) return "bg-rose-100 text-rose-800 border-rose-200";

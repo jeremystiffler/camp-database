@@ -31,7 +31,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     ? (data.roomId || undefined)
     : (existing.roomId || undefined);
 
-  // Room capacity is an absolute ceiling; class cap is adjustable only within it.
+  // The class cap is the only limit on enrollment. Room capacity is advisory:
+  // a class may be capped above what its room fits, and a class with no room at
+  // all still accepts its full cap. A forgotten room number must never block
+  // scheduling.
   const nextRoom = resolvedRoomId
     ? await prisma.room.findFirst({ where: { id: resolvedRoomId, campId }, select: { id: true, name: true, capacity: true } })
     : null;
@@ -39,17 +42,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const nextHeldSeats = "heldSeats" in data ? Number(data.heldSeats) : existing.heldSeats;
   const capacityEdit = "roomId" in data || "cap" in data || "heldSeats" in data;
   if (capacityEdit) {
-    if (!nextRoom) return NextResponse.json({ error: "Assign a room before changing class capacity." }, { status: 409 });
-    if (nextRoom.capacity === null) return NextResponse.json({ error: `${nextRoom.name} needs a capacity before this class can accept enrollment.` }, { status: 409 });
-    if (nextCap !== null && (!Number.isInteger(nextCap) || nextCap < 1)) return NextResponse.json({ error: "Class cap must be a positive whole number." }, { status: 400 });
-    if (nextCap !== null && nextCap > nextRoom.capacity) return NextResponse.json({ error: `${existing.name} allows ${nextCap}, but ${nextRoom.name} holds ${nextRoom.capacity}. Lower the class cap or choose a larger room.` }, { status: 409 });
+    if (nextCap !== null && (!Number.isInteger(nextCap) || nextCap < 1)) return NextResponse.json({ error: "Class limit must be a positive whole number." }, { status: 400 });
     if (!Number.isInteger(nextHeldSeats) || nextHeldSeats < 0) return NextResponse.json({ error: "Held seats must be zero or a positive whole number." }, { status: 400 });
-    const nextCapacity = effectiveCapacity({ cap: nextCap, heldSeats: nextHeldSeats }, nextRoom);
-    if (nextHeldSeats > nextCapacity) return NextResponse.json({ error: `Held seats cannot exceed this class's capacity of ${nextCapacity}.` }, { status: 409 });
-    const blockedSessions = existing.sessions.filter(item => item.enrolledCount > nextCapacity);
+    const nextCapacity = effectiveCapacity({ cap: nextCap, heldSeats: nextHeldSeats });
+    if (Number.isFinite(nextCapacity) && nextHeldSeats > nextCapacity) return NextResponse.json({ error: `Held seats cannot exceed this class's limit of ${nextCapacity}.` }, { status: 409 });
+    const blockedSessions = Number.isFinite(nextCapacity)
+      ? existing.sessions.filter(item => item.enrolledCount > nextCapacity)
+      : [];
     if (blockedSessions.length) {
       return NextResponse.json({
-        error: `${existing.name} has ${Math.max(...blockedSessions.map(item => item.enrolledCount))} enrolled. A capacity of ${nextCapacity} would leave participants without a place. Move participants or choose a larger room first.`,
+        error: `${existing.name} has ${Math.max(...blockedSessions.map(item => item.enrolledCount))} enrolled. A limit of ${nextCapacity} would leave participants without a place. Move participants first or raise the limit.`,
         code: "capacity_reduction_blocked",
         affectedSessions: blockedSessions,
       }, { status: 409 });

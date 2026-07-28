@@ -4,7 +4,7 @@ import { getResend, FROM_EMAIL } from "@/lib/email";
 import { getBaseUrl, getStripe } from "@/lib/billing";
 import { calculateRegistrationTotal, couponAllowsEmail, normalizeCouponCode, type PricingCoupon } from "@/lib/registration-pricing";
 import { generateCamperScanCode } from "@/lib/camper-identity";
-import { CapacityError, claimSeat, effectiveCapacity, releaseEnrollment } from "@/lib/capacity";
+import { CapacityError, claimSeat, storedCapacity, releaseEnrollment } from "@/lib/capacity";
 
 interface StudentPayload {
   firstName: string;
@@ -637,8 +637,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       let session = await prisma.session.findFirst({ where: { campId, courseId: selection.course.id, sessionTemplateId: selection.sessionTemplateId } });
       if (!session) {
         const template = sessionTemplates.find(t => t.id === selection.sessionTemplateId);
-        const capacity = effectiveCapacity(selection.course, selection.course.room);
-        if (capacity <= 0) return NextResponse.json({ error: `${selection.course.name} has no room capacity and cannot accept registration.` }, { status: 409 });
+        const capacity = storedCapacity(selection.course);
         session = await prisma.session.create({ data: { campId, courseId: selection.course.id, sessionTemplateId: selection.sessionTemplateId, roomId: selection.course.roomId, startTime: template?.startTime, endTime: template?.endTime, capacity } });
       }
       if (enrolledSessionIds.has(session.id)) continue;

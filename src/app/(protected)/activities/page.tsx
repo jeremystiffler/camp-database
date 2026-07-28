@@ -449,9 +449,10 @@ function CourseModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Capacity</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Participant limit</label>
               <input type="number" value={cap} onChange={e => setCap(e.target.value)} min={1} max={500}
                 className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+              <p className="mt-1 text-[11px] text-slate-500">The only limit on registration. Room size does not restrict this.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Held seats</label>

@@ -39,13 +39,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (data.roomId) {
     const room = await prisma.room.findFirst({ where: { id: data.roomId, campId }, select: { name: true, capacity: true } });
     if (!room) return NextResponse.json({ error: "Selected room does not belong to this event." }, { status: 400 });
-    if (room.capacity === null) return NextResponse.json({ error: `${room.name} needs a capacity before it can host a class.` }, { status: 409 });
+  }
+
+  // Cap validation runs whether or not a room is assigned. The class cap is the
+  // only limit on enrollment; room capacity is advisory and never blocks a class.
+  {
     const cap = data.cap === null || data.cap === undefined || data.cap === "" ? null : Number(data.cap);
     const heldSeats = data.heldSeats === undefined ? 0 : Number(data.heldSeats);
-    if (cap !== null && (!Number.isInteger(cap) || cap < 1)) return NextResponse.json({ error: "Class cap must be a positive whole number." }, { status: 400 });
-    if (cap !== null && cap > room.capacity) return NextResponse.json({ error: `${data.name || "This class"} allows ${cap}, but ${room.name} holds ${room.capacity}.` }, { status: 409 });
-    const capacity = effectiveCapacity({ cap, heldSeats }, room);
-    if (!Number.isInteger(heldSeats) || heldSeats < 0 || heldSeats > capacity) return NextResponse.json({ error: `Held seats must be between 0 and ${capacity}.` }, { status: 400 });
+    if (cap !== null && (!Number.isInteger(cap) || cap < 1)) return NextResponse.json({ error: "Class limit must be a positive whole number." }, { status: 400 });
+    const capacity = effectiveCapacity({ cap, heldSeats });
+    if (!Number.isInteger(heldSeats) || heldSeats < 0) return NextResponse.json({ error: "Held seats must be zero or a positive whole number." }, { status: 400 });
+    if (Number.isFinite(capacity) && heldSeats > capacity) return NextResponse.json({ error: `Held seats must be between 0 and ${capacity}.` }, { status: 400 });
     data.cap = cap;
     data.heldSeats = heldSeats;
   }

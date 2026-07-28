@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { generateCamperScanCode, normalizePickupNumber } from "@/lib/camper-identity";
-import { CapacityError, claimSeat, effectiveCapacity, releaseCamperEnrollments, releaseEnrollment } from "@/lib/capacity";
+import { CapacityError, claimSeat, storedCapacity, releaseCamperEnrollments, releaseEnrollment } from "@/lib/capacity";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -48,8 +48,7 @@ async function resolveSessionChoices(campId: string, choices: SessionChoiceInput
       const template = await prisma.sessionTemplate.findFirst({ where: { id: choice.sessionTemplateId, campId }, select: { id: true, label: true, startTime: true, endTime: true, mandatory: true } });
       if (!template) throw new Error("One or more selected time blocks are not available for this event");
       if (template.mandatory) throw new Error(`${template.label || "This time block"} is locked to everyone’s schedule and cannot be assigned to an activity.`);
-      const capacity = effectiveCapacity(course, course.room);
-      if (capacity <= 0) throw new CapacityError("session_has_no_room", `${course.name} needs a room with capacity before enrollment.`);
+      const capacity = storedCapacity(course);
       const created = await prisma.session.create({ data: { campId, courseId: course.id, sessionTemplateId: template.id, roomId: course.roomId, startTime: template.startTime, endTime: template.endTime, capacity }, select: { id: true, enrolledCount: true } });
       session = created;
     }
