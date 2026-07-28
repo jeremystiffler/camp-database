@@ -1,6 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import {
+  PHASE_OF,
+  buildPhases,
+  continueLabel,
+  firstIncompleteSection,
+  phaseEntrySection,
+  remainingLine,
+  totalRemaining,
+  type SetupSection,
+} from "@/lib/setupPhases";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { TeachersContent } from "../teachers/page";
@@ -115,8 +125,6 @@ type SetupStep = {
   help: string;
   question: string;
   done: boolean;
-  locked?: boolean;
-  lockMessage?: string;
   actionLabel?: string;
 };
 
@@ -151,6 +159,8 @@ function SetupContent() {
   const [setupNotice, setSetupNotice] = useState("");
   const [saveError, setSaveError] = useState("");
   const [activeTab, setActiveTab]  = useState<SetupTab>("details");
+  // Latest section-completion snapshot, for first-incomplete routing (§5.2).
+  const phaseSectionsRef = useRef<SetupSection[]>([]);
   const [requiredRoomDrafts, setRequiredRoomDrafts] = useState<Record<string, string>>({});
   const [overrideDraftRows, setOverrideDraftRows] = useState<Record<string, boolean>>({});
   const [sessionRowDrafts, setSessionRowDrafts] = useState<Record<string, SessionRowEditDraft>>({});
@@ -219,14 +229,21 @@ function SetupContent() {
     const validSteps: SetupTab[] = ["details", "ages", "rooms", "times", "teachers", "activities", "schedule", "registration", "review"];
     if (requestedStep && validSteps.includes(requestedStep)) {
       setActiveTab(requestedStep);
-      setSetupNotice(`You opened Setup > ${requestedStep === "times" ? "Time Blocks" : requestedStep}. Continue here, or use the stepper to return to any earlier step.`);
       return;
     }
     if (searchParams.get("from") === "quick-start") {
       setActiveTab("teachers");
       setSetupNotice("Quick Start is complete. Your event details, age groups, rooms, and time blocks are ready — next, add your staff.");
+      return;
     }
-  }, [searchParams]);
+    // THE DEFECT UNDERNEATH IT ALL (§5.2): with no step parameter this used to
+    // sit on "details", which is usually the first thing an organiser finished.
+    // Landing a returning user on completed work is the reason the whole screen
+    // felt like it was not paying attention. Wait for data before deciding, or
+    // every section looks unfinished and we route to step 1 anyway.
+    if (loading) return;
+    setActiveTab(firstIncompleteSection(phaseSectionsRef.current));
+  }, [searchParams, loading]);
 
   const goToStep = (tab: SetupTab) => {
     setActiveTab(tab);
@@ -737,25 +754,37 @@ function SetupContent() {
 
   const setupSteps: SetupStep[] = [
     { key: "details", label: "Event Info", shortLabel: "Info", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What event am I building?", done: detailsDone, actionLabel: "Set event info" },
-    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this event serving?", question: "Who is coming?", done: ageGroups.length > 0, locked: !detailsDone, lockMessage: "Save an event name and valid start/end dates first.", actionLabel: "Add age groups" },
-    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, locked: !detailsDone, lockMessage: "Save an event name and valid start/end dates first.", actionLabel: "Add rooms" },
-    { key: "times", label: "Time Blocks", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, locked: !detailsDone, lockMessage: "Save an event name and valid start/end dates first.", actionLabel: "Build day schedule" },
-    { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning activities.", question: "Who is helping run this?", done: teachersDone, locked: rooms.length === 0 && ageGroups.length === 0, lockMessage: "Add at least one age group or room before adding teachers.", actionLabel: "Add teachers" },
-    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of activities.", question: "What are we offering?", done: activitiesDone, locked: ageGroups.length === 0 || rooms.length === 0 || sessionRows.length === 0, lockMessage: "Add an age group, room, and time block before creating activities.", actionLabel: "Create activities" },
-    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time blocks with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, locked: !activitiesDone, lockMessage: "Create at least one activity before building the schedule.", actionLabel: "Schedule activities" },
-    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, locked: !scheduleDone, lockMessage: "Schedule every activity before setting up registration.", actionLabel: "Prepare registration" },
-    { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, locked: !registrationReady, lockMessage: "Finish event details, staff, activities, schedule, and registration before opening.", actionLabel: registrationOpen ? "Review live event" : "Open registration" },
+    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this event serving?", question: "Who is coming?", done: ageGroups.length > 0, actionLabel: "Add age groups" },
+    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, actionLabel: "Add rooms" },
+    { key: "times", label: "Time Blocks", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, actionLabel: "Build day schedule" },
+    { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning activities.", question: "Who is helping run this?", done: teachersDone, actionLabel: "Add teachers" },
+    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of activities.", question: "What are we offering?", done: activitiesDone, actionLabel: "Create activities" },
+    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time blocks with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, actionLabel: "Schedule activities" },
+    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, actionLabel: "Prepare registration" },
+    { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, actionLabel: registrationOpen ? "Review live event" : "Open registration" },
   ];
+  // NO HARD LOCKS (§5.3). Every section stays reachable: a volunteer may
+  // legitimately enter activities before rooms, and a disabled link cannot
+  // explain itself. Dependencies are soft notes now, never closed doors.
   const visibleSetupSteps = setupSteps;
-  const completedSteps = visibleSetupSteps.filter(step => step.done).length;
-  const nextStep = visibleSetupSteps.find(step => !step.done && !step.locked) || visibleSetupSteps.find(step => !step.done) || visibleSetupSteps[visibleSetupSteps.length - 1];
-  const activeStep = visibleSetupSteps.find(step => step.key === activeTab) || nextStep;
+
+  // The three phases (§5.1). The grid absorbed rooms, blocks, teachers,
+  // activities and scheduling, so those five stop being separate destinations.
+  const phaseSections: SetupSection[] = setupSteps.map((step) => ({
+    key: step.key,
+    label: step.label,
+    phase: PHASE_OF[step.key],
+    done: Boolean(step.done),
+  }));
+  const phases = buildPhases(phaseSections);
+  const remainingCount = totalRemaining(phaseSections);
+  // Kept in a ref so the routing effect can read the latest completion state
+  // without re-running every time a count changes.
+  phaseSectionsRef.current = phaseSections;
+  const activeStep = visibleSetupSteps.find(step => step.key === activeTab) || visibleSetupSteps[0];
   const stepLabel = (step: typeof activeStep) => step.label;
-  const nextStepLabel = stepLabel(nextStep).trim() || nextStep.actionLabel || "your next step";
-  const activeStepIndex = setupSteps.findIndex(step => step.key === activeStep.key);
   const followingStep = visibleSetupSteps[visibleSetupSteps.findIndex(step => step.key === activeStep.key) + 1];
-  const activeStateLabel = activeStep.done ? "Done" : activeStep.locked ? "Locked" : "Open";
-  const setupPercent = Math.round((completedSteps / visibleSetupSteps.length) * 100);
+  const activePhase = PHASE_OF[activeStep.key];
 
   const advanceToFollowingStep = async () => {
     // Event details are the only card with unsaved local form state.
@@ -776,7 +805,7 @@ function SetupContent() {
       onClick={advanceToFollowingStep}
       className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-slate-700"
     >
-      Next: {stepLabel(followingStep)} →
+      {continueLabel(stepLabel(followingStep))}
     </button>
   ) : null;
 
@@ -797,80 +826,79 @@ function SetupContent() {
     <div>
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          {searchParams.get("step") && <p className="mb-1 text-xs font-black uppercase tracking-wide text-sky-700">Setup › {stepLabel(activeStep)}</p>}
           <h1 className="page-title">{"Event Setup"}</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{"Build your event in the order your brain naturally asks the questions."}</p>
+          {/* One status line (§5.2a). It says how MUCH is left, never what to do
+              now — that is the continue button's job, and §5.2a allows exactly
+              one "what next" signal. If this ever names a section it has become
+              a second one. */}
+          <p className="mt-0.5 text-sm font-semibold text-slate-600">{remainingLine(remainingCount)}</p>
         </div>
       </div>
 
       <div className="camp-card mb-5 overflow-hidden bg-white p-5">
-        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="minimal-section-title">Setup progress</p>
-            <h2 className="mt-1 text-lg font-black text-slate-900">{completedSteps} of {visibleSetupSteps.length} steps complete</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-600">
-              Next: <span className="text-slate-950">{nextStepLabel}</span> — {nextStep.question}
-            </p>
-          </div>
-          <div className="min-w-[220px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="mb-2 flex items-center justify-between text-xs font-black uppercase tracking-wide text-slate-600">
-              <span>Readiness</span>
-              <span>{setupPercent}%</span>
-            </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-white shadow-inner">
-              <div className="h-full rounded-full transition-all" style={{ width: `${setupPercent}%`, background: "linear-gradient(90deg, var(--brand-primary), var(--accent))" }} />
-            </div>
-          </div>
+        {/* The three phases (§5.1), replacing the nine-step chevron bar. Nothing
+            is locked (§5.3): every phase is reachable in any order. */}
+        <div className="setupphase">
+          {phases.map((phase) => {
+            const isActive = phase.key === activePhase;
+            const entry = phaseEntrySection(phase);
+            return (
+              <button
+                key={phase.key}
+                type="button"
+                className={`setupphase__item ${isActive ? "is-active" : ""} ${phase.done ? "is-done" : ""}`}
+                aria-current={isActive ? "step" : undefined}
+                onClick={() => entry && goToStep(entry)}
+              >
+                <span className="setupphase__dot" aria-hidden="true">
+                  {phase.done ? "✓" : ""}
+                </span>
+                <span className="setupphase__body">
+                  <span className="setupphase__label">{phase.label}</span>
+                  <span className="setupphase__meta">
+                    {phase.done
+                      ? "Done"
+                      : `${phase.remaining} of ${phase.sections.length}`}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="overflow-x-auto pb-2">
-          <div className={`flex items-stretch px-1 pt-2 ${"min-w-[980px]"}`}>
-            {visibleSetupSteps.map((step, index) => {
-              const isActive = activeTab === step.key;
-              const stateLabel = step.done ? "Done" : step.locked ? "Locked" : "Open";
-              return (
-                <button
-                  key={step.key}
-                  type="button"
-                  aria-disabled={step.locked}
-                  onClick={() => step.locked ? setSetupNotice(step.lockMessage || `${step.label} is locked until earlier setup is complete.`) : goToStep(step.key)}
-                  className={`group relative -ml-3 first:ml-0 flex h-14 flex-1 min-w-[110px] items-center justify-center pl-7 pr-7 text-left transition-all ${step.locked ? "cursor-not-allowed" : isActive ? "z-30 scale-[1.03]" : step.done ? "z-20" : "z-10 hover:z-20 hover:-translate-y-0.5"}`}
-                  title={step.locked ? step.lockMessage : `${step.label}: ${stateLabel}`}
-                  style={{ clipPath: "polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%, 18px 50%)" }}
-                >
-                  <span className={`absolute inset-0 shadow-sm transition ${step.locked ? "bg-slate-100" : ""}`} style={isActive ? { background: "var(--brand-primary)" } : step.done ? { background: "linear-gradient(90deg, var(--brand-primary), var(--accent))" } : undefined} />
-                  <span className={`absolute inset-[2px] transition ${step.locked ? "bg-slate-50" : "bg-white"}`} style={{ clipPath: "polygon(0 0, calc(100% - 17px) 0, 100% 50%, calc(100% - 17px) 100%, 0 100%, 17px 50%)", ...(isActive ? { background: "var(--brand-primary)" } : step.done ? { background: "linear-gradient(90deg, var(--brand-primary), var(--accent))" } : {}) }} />
-                  <span className="relative flex items-center gap-2 min-w-0">
-                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isActive ? "bg-white text-slate-950" : step.done ? "bg-white/95" : step.locked ? "bg-slate-200 text-slate-400" : "bg-sky-100 text-sky-700"}`} style={step.done && !isActive ? { color: "var(--brand-primary)" } : undefined}>
-                      {step.done ? "✓" : index + 1}
-                    </span>
-                    <span className={`block truncate text-[11px] font-black uppercase tracking-wide ${isActive || step.done ? "text-white" : step.locked ? "text-slate-400" : "text-slate-800"}`}>{step.shortLabel}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Sections within the active phase. Plain reachable buttons — a
+            disabled link cannot explain itself. */}
+        <div className="setupsec">
+          {visibleSetupSteps
+            .filter((step) => PHASE_OF[step.key] === activePhase)
+            .map((step) => (
+              <button
+                key={step.key}
+                type="button"
+                onClick={() => goToStep(step.key)}
+                className={`setupsec__item ${step.key === activeTab ? "is-active" : ""}`}
+              >
+                <span className={`setupsec__dot ${step.done ? "is-done" : ""}`} aria-hidden="true" />
+                <span>{step.label}</span>
+              </button>
+            ))}
         </div>
 
         <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
-          <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-black text-white shadow-sm" style={{ background: "linear-gradient(135deg, var(--brand-primary), var(--accent))" }}>
-              {activeStep.done ? "✓" : activeStepIndex + 1}
-            </span>
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Step {activeStepIndex + 1} of {visibleSetupSteps.length} • {activeStateLabel}</p>
-              <h3 className="mt-1 text-xl font-black text-slate-950">{stepLabel(activeStep)}</h3>
-              <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">{activeStep.help}</p>
-            </div>
-          </div>
+          <h3 className="text-xl font-black text-slate-950">{stepLabel(activeStep)}</h3>
+          <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">{activeStep.help}</p>
         </div>
 
-        <div className="mt-3 flex items-center justify-between gap-3 px-1">
-          <p className="text-xs font-semibold text-slate-500">Use the setup path above to move between sections.</p>
-          <Link href={`/import?campId=${campId}`} className="text-xs font-bold text-sky-700 underline decoration-sky-300 underline-offset-4 hover:text-sky-900">
-            Already have a spreadsheet? Import it
-          </Link>
-        </div>
+        {/* "Already have a spreadsheet?" appears ONCE, in Start only (§5.2). It
+            used to repeat on all nine steps, which is noise everywhere except
+            the moment you are first entering data. */}
+        {activePhase === "start" && (
+          <div className="mt-3 flex justify-end px-1">
+            <Link href={`/import?campId=${campId}`} className="text-xs font-bold text-sky-700 underline decoration-sky-300 underline-offset-4 hover:text-sky-900">
+              Already have a spreadsheet? Import it
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* ── Program Details ── */}
@@ -1417,7 +1445,7 @@ function SetupContent() {
                 onClick={() => refreshAndGo("schedule")}
                 className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
               >
-                Done — refresh & go to Schedule →
+                Save and continue to Schedule Grid →
               </button>
             </div>
           </div>
@@ -1430,7 +1458,7 @@ function SetupContent() {
               onClick={() => refreshAndGo("schedule")}
               className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
             >
-              Done — refresh everything & continue →
+              Save and continue →
             </button>
           </div>
         </div>
@@ -1455,7 +1483,7 @@ function SetupContent() {
                 onClick={() => refreshAndGo("registration")}
                 className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
               >
-                Done — refresh & go to Registration →
+                Save and continue to Registration Form →
               </button>
             </div>
           </div>
@@ -1468,7 +1496,7 @@ function SetupContent() {
               onClick={() => refreshAndGo("registration")}
               className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
             >
-              Done — refresh everything & continue →
+              Save and continue →
             </button>
           </div>
         </div>

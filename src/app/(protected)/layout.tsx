@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import { SetupNav, sectionsFromStats, type SetupNavState } from "@/components/SetupNav";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
@@ -81,6 +82,10 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const [camps, setPrograms] = useState<Camp[]>([]);
   const [activeCamp, setActiveCamp] = useState<Camp | null>(null);
   const [lastKnownCampId, setLastKnownCampId] = useState("");
+  // Setup phase completion for the sidebar dots (§5.3). Sourced from the same
+  // dashboard endpoint the issue engine feeds, so the sidebar and /setup cannot
+  // form two different opinions about what is finished.
+  const [setupNavState, setSetupNavState] = useState<SetupNavState | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [campSwitcherOpen, setCampSwitcherOpen] = useState(false);
@@ -90,6 +95,31 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const requestedCampId = searchParams.get("campId") || "";
   const validatedUrlCampId = camps.some((camp) => camp.id === requestedCampId) ? requestedCampId : "";
   const campId = validatedUrlCampId || activeCamp?.id || (camps.length ? lastKnownCampId : "");
+
+  useEffect(() => {
+    if (!activeCamp?.id) { setSetupNavState(null); return; }
+    let cancelled = false;
+    fetch(`/api/camps/${activeCamp.id}/dashboard`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.stats) return;
+        setSetupNavState({
+          sections: sectionsFromStats(data.stats, {
+            detailsDone: true,
+            scheduleDone: (data.stats.classes ?? 0) > 0,
+            registrationOpen: Boolean(data.camp?.registrationOpen),
+          }),
+          // Hover copy comes from the issue engine (§5.3), never a second
+          // string table. Blocking issues surface on the Build phase, which is
+          // where every schedulable thing now lives.
+          reasons: (data.issues ?? []).some((issue: { severity?: string }) => issue.severity === "blocking")
+            ? { activities: (data.issues ?? []).find((issue: { severity?: string; message?: string }) => issue.severity === "blocking")?.message }
+            : {},
+        });
+      })
+      .catch(() => { if (!cancelled) setSetupNavState(null); });
+    return () => { cancelled = true; };
+  }, [activeCamp?.id]);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
@@ -193,17 +223,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   };
 
   const isKioskShell = pathname.startsWith("/check-in") && searchParams.get("kiosk") === "1";
-  const nextSteps: Record<string, { label: string; href: string }> = {
-    "/dashboard": { label: "Build your event", href: "/setup" },
-    "/setup": { label: "Add activities and teachers", href: "/activities" },
-    "/activities": { label: "Build your schedule", href: "/schedule" },
-    "/schedule": { label: "Prepare registration", href: "/registration" },
-    "/registration": { label: "Manage participants", href: "/campers" },
-    "/campers": { label: "Open check-in", href: "/check-in" },
-  };
-  const nextStep = nextSteps[pathname] || { label: "Build your event", href: "/setup" };
-  const isPublishedProgram = activeCamp?.status?.toLowerCase() === "published";
-  const showBuildGuidance = !isPublishedProgram && pathname !== "/dashboard";
+  // nextSteps / showBuildGuidance deleted with the banner (§5.2).
   const workspaceStyle = {
     background: "var(--ui-bg)",
     ...themeTokens(activeCamp?.primaryColor, activeCamp?.accentColor),
@@ -296,6 +316,20 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             <p className="minimal-section-title px-3 mb-1.5">Build your event</p>
             <div className="space-y-1">{primaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
+              // Event setup expands into its three phases with status dots
+              // (§5.3). This replaces the in-page chevron bar — one navigation
+              // system, not two.
+              if (item.href === "/setup") {
+                return (
+                  <SetupNav
+                    key={item.href}
+                    href={navHref(item.href)}
+                    active={isActive}
+                    state={setupNavState}
+                    onNavigate={() => setSidebarOpen(false)}
+                  />
+                );
+              }
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
             })}</div>
           </div>
@@ -341,12 +375,12 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
       </div>}
       <main className={`flex-1 min-h-dvh flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`} style={{ background: "var(--ui-bg)" }}>
         <div className={`w-full min-h-dvh px-3 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>
-          {!isKioskShell && showBuildGuidance && (
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm">
-              <p className="font-semibold text-slate-700"><span className="mr-2 text-xs font-black uppercase tracking-wide text-sky-700">Next step</span>{nextStep.label}</p>
-              <Link href={navHref(nextStep.href)} className="rounded-lg bg-white px-3 py-1.5 text-xs font-black text-sky-800 shadow-sm ring-1 ring-sky-100 hover:bg-sky-100">Continue →</Link>
-            </div>
-          )}
+          {/* The sticky "NEXT STEP · Continue →" banner stood here and is
+              deleted (§5.2). It was the fourth element on /setup answering
+              "what's next", and the only one that navigated OUT of setup — to
+              /activities, away from the flow it claimed to be guiding. The one
+              surviving signal is the Save-and-continue button at the bottom of
+              the setup body, which names its destination and stays put. */}
           {children}
         </div>
       </main>
