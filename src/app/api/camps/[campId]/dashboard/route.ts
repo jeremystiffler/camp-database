@@ -72,7 +72,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
     prisma.ageGroup.findMany({
       where: { campId },
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, color: true },
+      select: { id: true, name: true, color: true, noSchedule: true },
     }),
     // Demand per age group, for the seat-shortfall rule.
     prisma.camper.groupBy({

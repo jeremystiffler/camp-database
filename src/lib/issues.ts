@@ -113,7 +113,62 @@ export type IssueBlock = {
   mandatory?: boolean;
 };
 
-export type IssueAgeGroup = { id: string; name: string };
+export type IssueAgeGroup = {
+  id: string;
+  name: string;
+  /**
+   * A group that does not take classes at all — a daycare or nursery band that
+   * is enrolled in the event but never picks activities. Coverage and shortfall
+   * rules skip these entirely: "Pre K has nothing at Session 3" is a false
+   * alarm thirty times over when Pre K was never meant to be scheduled.
+   */
+  noSchedule?: boolean;
+};
+
+/**
+ * Which age groups actually take classes. Everything about coverage is measured
+ * against these, never against the raw list.
+ */
+export function schedulableGroups(ageGroups: IssueAgeGroup[]): IssueAgeGroup[] {
+  return ageGroups.filter((group) => !group.noSchedule);
+}
+
+/**
+ * Is this activity open to everyone?
+ *
+ * Two ways to say it, and they mean the same thing (owner's ruling, 2026-07-28):
+ *   - no age tags at all, or
+ *   - tagged with every schedulable group.
+ *
+ * The second is the common case in real data: an organiser ticks all the boxes
+ * to mean "anyone may come", not "these N specific groups". Snacktivities is
+ * tagged Older + Younger, which is every group that takes classes, so it is
+ * all-ages — not a two-group restriction that happens to exclude the daycare.
+ *
+ * NOTE ON FUTURE GROUPS: this is evaluated against the CURRENT schedulable list,
+ * so adding a brand-new group makes a previously all-ages activity stop covering
+ * it until it is re-tagged. Making that intent survive new groups needs a stored
+ * flag on Course rather than a derivation — see the note in the phase log.
+ */
+export function isAllAges(
+  course: { courseAgeGroups?: { ageGroupId: string }[] },
+  schedulable: IssueAgeGroup[],
+): boolean {
+  const tags = (course.courseAgeGroups ?? []).map((entry) => entry.ageGroupId);
+  if (tags.length === 0) return true;
+  if (schedulable.length === 0) return true;
+  return schedulable.every((group) => tags.includes(group.id));
+}
+
+/** Can this activity be chosen by a child in this age group? */
+export function coversGroup(
+  course: { courseAgeGroups?: { ageGroupId: string }[] },
+  groupId: string,
+  schedulable: IssueAgeGroup[],
+): boolean {
+  if (isAllAges(course, schedulable)) return true;
+  return (course.courseAgeGroups ?? []).some((entry) => entry.ageGroupId === groupId);
+}
 
 export type IssueRoom = { id: string; name: string };
 
@@ -174,6 +229,8 @@ function liveSessions(course: IssueCourse): IssueSession[] {
  */
 export function detectIssues(input: IssueInput): Issue[] {
   const { courses, blocks = [], ageGroups = [], persons = [], campersByAgeGroup = {} } = input;
+  // Coverage is always measured against groups that actually take classes.
+  const schedulable = schedulableGroups(ageGroups);
   const blockById = new Map(blocks.map((block) => [block.id, block]));
   const personById = new Map(persons.map((person) => [person.id, person]));
   const issues: Issue[] = [];
@@ -353,15 +410,15 @@ export function detectIssues(input: IssueInput): Issue[] {
   for (const block of blocks) {
     // Whole-event blocks have no activity choice by design.
     if (block.mandatory) continue;
-    for (const group of ageGroups) {
+    // Groups that never take classes are not missing anything.
+    for (const group of schedulable) {
       const covered = courses.some((course) => {
         if (!isLive(course)) return false;
         const runsHere =
           liveSessions(course).some((session) => session.sessionTemplateId === block.id) ||
           (course.courseSessionTemplates ?? []).some((entry) => entry.sessionTemplateId === block.id);
         if (!runsHere) return false;
-        const groups = (course.courseAgeGroups ?? []).map((entry) => entry.ageGroupId);
-        return groups.length === 0 || groups.includes(group.id);
+        return coversGroup(course, group.id, schedulable);
       });
       if (!covered) {
         push({
@@ -379,16 +436,14 @@ export function detectIssues(input: IssueInput): Issue[] {
   // never short.
   for (const block of blocks) {
     if (block.mandatory) continue;
-    for (const group of ageGroups) {
+    for (const group of schedulable) {
       const demand = campersByAgeGroup[group.id] ?? 0;
       if (demand === 0) continue;
       let seats = 0;
       let unlimited = false;
       for (const course of courses) {
         if (!isLive(course)) continue;
-        const groups = (course.courseAgeGroups ?? []).map((entry) => entry.ageGroupId);
-        const eligible = groups.length === 0 || groups.includes(group.id);
-        if (!eligible) continue;
+        if (!coversGroup(course, group.id, schedulable)) continue;
         const runsHere = liveSessions(course).some((session) => session.sessionTemplateId === block.id);
         if (!runsHere) continue;
         const capacity = effectiveCapacity(course);

@@ -4,7 +4,10 @@ import {
   blockingIssues,
   canOpenRegistration,
   countsByCode,
+  coversGroup,
   detectIssues,
+  isAllAges,
+  schedulableGroups,
   issueCounts,
   issuesForCourse,
   type IssueCourse,
@@ -390,6 +393,92 @@ describe("age group gap", () => {
       ageGroups,
     };
     expect(detectIssues(input).some((issue) => issue.code === "age-group-gap")).toBe(false);
+  });
+});
+
+describe("unscheduled age groups and all-ages activities (owner ruling 2026-07-28)", () => {
+  const groups = [
+    { id: "older", name: "Older" },
+    { id: "younger", name: "Younger" },
+    { id: "prek", name: "Pre K", noSchedule: true },
+  ];
+  const blocks = [
+    { id: "b1", label: "Session 1", dayOfWeek: 1, startTime: "09:00", endTime: "09:30" },
+    { id: "b2", label: "Session 2", dayOfWeek: 1, startTime: "09:30", endTime: "10:00" },
+  ];
+  const choir = {
+    id: "c1",
+    name: "Choir",
+    cap: 50,
+    room: { id: "r1", name: "Sanctuary", capacity: 200 },
+    courseAgeGroups: [{ ageGroupId: "older" }, { ageGroupId: "younger" }],
+    courseTeachers: [{ person: { id: "p1", firstName: "Judi", lastName: "Reynolds" } }],
+    sessions: [
+      { id: "s1", sessionTemplateId: "b1", enrolledCount: 3 },
+      { id: "s2", sessionTemplateId: "b2", enrolledCount: 3 },
+    ],
+  };
+
+  it("treats an activity tagged on every schedulable group as all-ages", () => {
+    const sched = schedulableGroups(groups);
+    expect(sched.map((g) => g.id)).toEqual(["older", "younger"]);
+    expect(isAllAges(choir, sched)).toBe(true);
+  });
+
+  it("still treats an untagged activity as all-ages", () => {
+    expect(isAllAges({ courseAgeGroups: [] }, schedulableGroups(groups))).toBe(true);
+  });
+
+  it("does not treat a single-group activity as all-ages", () => {
+    const olderOnly = { courseAgeGroups: [{ ageGroupId: "older" }] };
+    const sched = schedulableGroups(groups);
+    expect(isAllAges(olderOnly, sched)).toBe(false);
+    expect(coversGroup(olderOnly, "older", sched)).toBe(true);
+    expect(coversGroup(olderOnly, "younger", sched)).toBe(false);
+  });
+
+  it("raises no coverage gap for a group that never takes classes", () => {
+    const issues = detectIssues({
+      courses: [choir],
+      blocks,
+      ageGroups: groups,
+      campersByAgeGroup: { older: 5, younger: 5, prek: 9 },
+    } as never);
+    expect(issues.filter((i) => i.code === "age-group-gap")).toHaveLength(0);
+  });
+
+  it("raises the gap again if that group is marked schedulable", () => {
+    // Sabotage-check: the silence above must come from the flag, not from the
+    // coverage rule having quietly stopped working.
+    const issues = detectIssues({
+      courses: [choir],
+      blocks,
+      ageGroups: groups.map((g) => ({ id: g.id, name: g.name })),
+      campersByAgeGroup: { older: 5, younger: 5, prek: 9 },
+    } as never);
+    const gaps = issues.filter((i) => i.code === "age-group-gap");
+    expect(gaps).toHaveLength(2);
+    expect(gaps[0].message).toContain("Pre K");
+  });
+
+  it("counts no seat shortfall against an unscheduled group", () => {
+    const issues = detectIssues({
+      courses: [choir],
+      blocks,
+      ageGroups: groups,
+      campersByAgeGroup: { prek: 500 },
+    } as never);
+    expect(issues.filter((i) => i.code === "seat-shortfall")).toHaveLength(0);
+  });
+
+  it("an all-ages activity covers every schedulable group at once", () => {
+    const issues = detectIssues({
+      courses: [choir],
+      blocks,
+      ageGroups: groups,
+      campersByAgeGroup: { older: 5, younger: 5 },
+    } as never);
+    expect(issues.filter((i) => i.code === "age-group-gap")).toHaveLength(0);
   });
 });
 
