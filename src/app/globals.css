@@ -540,28 +540,30 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
    Bar LENGTH carries quantity; colour carries status only. A full class is a
    success, not an error, so it is never tinted red. Whole cells are never
    tinted — a 30x6 grid of tinted cells is a wall of colour. */
-/* Bar height scales with the count so the pair reads as one unit. At 4px against
-   a 48px number the bar disappeared. */
+/* Bar height is proportional to the count size: 6px against a 24px number. */
 .cap-track {
-  height: 8px; border-radius: 4px;
+  height: 6px; border-radius: 3px;
   background: var(--canvas-sunk);
-  margin-top: 5px; display: flex; gap: 2px;
+  margin-top: 4px; display: flex; gap: 2px;
 }
-.cap-fill { height: 100%; border-radius: 4px; background: var(--brand-rail); }
+.cap-fill { height: 100%; border-radius: 3px; background: var(--brand-rail); }
 .cap-track--over .cap-fill { background: var(--danger); flex: 1; }
-.cap-nub { height: 100%; border-radius: 4px; background: var(--danger); }
+.cap-nub { height: 100%; border-radius: 3px; background: var(--danger); }
 .cap-track--empty { background: var(--warning-wash); }
 
 /* Tabular figures so counts align down a column. */
-/* Enrollment count size. Deliberately a token: this is the number the organiser
-   reads across the room, and it is the most likely thing to be retuned. 12px was
-   the original; 48px is 4x. Change here only — cell width follows from it. */
+/* Enrollment count size. Deliberately a token so the scale can be retuned in one
+   place. 12px was the original; 24px is 2x. Uses the site's body face (DM Sans)
+   rather than DM Mono, with tabular figures so columns still align — DM Mono is
+   also only loaded at weights 400/500, so a 700 weight on it was faux-bolded. */
 .ops-num {
-  font-family: var(--font-mono);
+  font-family: var(--font-body);
   font-variant-numeric: tabular-nums;
-  font-size: var(--ops-num-size, 48px);
+  font-feature-settings: "tnum" 1;
+  font-size: var(--ops-num-size, 24px);
   font-weight: 700;
-  line-height: 1.05;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
   color: var(--text);
   display: block;
 }
@@ -576,18 +578,21 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 .ops-grid tr:last-child th, .ops-grid tr:last-child td { border-bottom: 0; }
 .ops-grid th:last-child, .ops-grid td:last-child { border-right: 0; }
 
-/* Column headers: sentence case, muted, mono. Not uppercase black. */
-.ops-grid thead th { position: sticky; top: 0; z-index: 2; background: var(--canvas); font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--text-muted); text-align: center; white-space: nowrap; }
+/* Column headers: sentence case, muted. Not uppercase black. Uses the body face
+   to match the counts beneath them — a mono header above a sans number read as
+   two unrelated typefaces stacked in one column. */
+.ops-grid thead th { position: sticky; top: 0; z-index: 2; background: var(--canvas); font-family: var(--font-body); font-size: 11px; font-weight: 500; color: var(--text-muted); text-align: center; white-space: nowrap; letter-spacing: 0; }
 /* Row header frozen left; the corner needs the higher stacking order. */
 /* Row header. Widened because the longest real activity name is 35 characters
    ("Violin (Advanced Only = 1+ yrs exp)") and the title is now larger. */
 .ops-grid .ops-rowhead { position: sticky; left: 0; z-index: 1; background: var(--canvas); width: 260px; min-width: 260px; max-width: 260px; text-align: left; vertical-align: top; }
 .ops-grid thead .ops-rowhead { z-index: 3; }
-/* Wide enough for three digits at the enlarged count size. Padding is trimmed on
-   data cells because the number itself now supplies the visual separation, and at
-   10px each side the grid overflowed the viewport by one column's worth. */
-.ops-cell { width: 92px; min-width: 92px; text-align: center; vertical-align: top; }
-.ops-grid td.ops-cell { padding: 5px 4px; }
+/* Sized from measurement in the real face, not guesswork: three digits of DM Sans
+   at 24px/700 is 37px, and the widest header ("10:35am" at 11px) is 43px. The
+   header is the binding constraint, so 56px + padding covers both with slack. */
+.ops-cell { width: 68px; min-width: 68px; text-align: center; vertical-align: top; }
+.ops-grid td.ops-cell { padding: 6px; }
+.ops-grid thead th.ops-cell { padding: 8px 6px; }
 
 /* Activity title: bolder and larger than the metadata beneath it, so the row
    header has a clear hierarchy at a glance. */
@@ -602,11 +607,11 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 .ops-shadow-b { left: 0; right: 0; bottom: 0; height: 14px; background: linear-gradient(to top, rgba(15,23,42,.10), transparent); }
 .ops-shadow-r.is-on, .ops-shadow-b.is-on { opacity: 1; }
 
-/* Black and white print: bars must survive without colour. Counts shrink so a
-   printed grid still fits a page — 48px is for reading a screen across a room. */
+/* Black and white print: bars must survive without colour. At 24px the count is
+   already page-appropriate, so no size override is needed. */
 @media print {
   .ops-grid-wrap { overflow: visible; max-height: none; border-color: #000; }
-  .ops-num { font-size: 20px; }
+  .ops-num { font-size: 16px; }
   .cap-track { border: 1px solid #000; background: #fff; }
   .cap-fill { background: #000; }
   .cap-nub { background: #000; }

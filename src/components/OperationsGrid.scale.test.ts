@@ -21,27 +21,43 @@ function px(block: string, property: string): number {
 }
 
 describe("enrollment count size", () => {
-  it("is 4x the original 12px", () => {
+  it("is 2x the original 12px", () => {
     const block = rule(".ops-num {");
     const fallback = block.match(/var\(--ops-num-size,\s*([0-9.]+)px\)/);
     expect(fallback).not.toBeNull();
-    expect(Number(fallback![1])).toBe(48);
+    expect(Number(fallback![1])).toBe(24);
   });
 
   it("is exposed as a token so the scale can be retuned in one place", () => {
     expect(rule(".ops-num {")).toContain("--ops-num-size");
   });
 
-  it("keeps tabular figures so columns still align at the larger size", () => {
+  it("uses the site body face, not the mono face", () => {
+    // DM Sans is the site's body font (--font-body, set in layout.tsx). DM Mono
+    // is also only loaded at weights 400/500, so 700 on it was faux-bolded.
+    const block = rule(".ops-num {");
+    expect(block).toContain("var(--font-body)");
+    expect(block).not.toContain("var(--font-mono)");
+  });
+
+  it("uses one typeface across the whole grid", () => {
+    // A mono header above a sans number read as two unrelated faces stacked in
+    // the same column, so the headers moved to the body face too.
+    for (const selector of [".ops-grid thead th {", ".ops-num {", ".ops-name {"]) {
+      expect(rule(selector)).not.toContain("var(--font-mono)");
+    }
+  });
+
+  it("keeps tabular figures so columns still align", () => {
     const block = rule(".ops-num {");
     expect(block).toContain("tabular-nums");
-    expect(block).toContain("var(--font-mono)");
+    expect(block).toContain('font-feature-settings: "tnum" 1');
   });
 
   it("shrinks for print so a printed grid still fits a page", () => {
     const printBlock = css.slice(css.indexOf("@media print", css.indexOf(".ops-shadow-r.is-on")));
     expect(printBlock).toContain(".ops-num");
-    expect(px(printBlock.slice(printBlock.indexOf(".ops-num")), "font-size")).toBeLessThan(48);
+    expect(px(printBlock.slice(printBlock.indexOf(".ops-num")), "font-size")).toBeLessThan(24);
   });
 });
 
@@ -66,23 +82,28 @@ describe("column widths follow from the type scale", () => {
     expect(px(block, "width")).toBeGreaterThanOrEqual(260);
   });
 
-  it("gives a data cell room for three digits at the enlarged size", () => {
-    // A 48px DM Mono digit is ~29px, so three digits need ~88px of content box.
-    // Measured in a real browser: 3 digits render at 177px in a 178px content box.
+  it("gives a data cell room for three digits and the widest time header", () => {
+    // Measured in a browser with DM Sans loaded: "125" at 24px/700 is 37px, and
+    // the widest header ("10:35am" at 11px) is 43px — the header binds.
     const block = rule(".ops-cell {");
     const width = px(block, "width");
-    // padding: 5px 4px — the horizontal value is the second.
-    const padding = Number(
-      rule(".ops-grid td.ops-cell {").match(/padding:\s*[0-9.]+px\s+([0-9.]+)px/)![1],
-    );
-    expect(padding).toBe(4);
-    expect(width - padding * 2).toBeGreaterThanOrEqual(84);
+    const declaration = rule(".ops-grid td.ops-cell {").match(/padding:\s*([^;]+)/)![1];
+    const parts = declaration.trim().split(/\s+/).map((value) => Number(value.replace("px", "")));
+    // padding: A  -> horizontal is A;  padding: A B -> horizontal is B.
+    const padding = parts.length === 1 ? parts[0] : parts[1];
+    expect(width - padding * 2).toBeGreaterThanOrEqual(48);
   });
 });
 
 describe("the capacity bar stays proportional to the count", () => {
-  it("is taller than the original 4px so it is not lost beside a 48px number", () => {
+  it("is taller than the original 4px so it is not lost beside the larger number", () => {
     expect(px(rule(".cap-track {"), "height")).toBeGreaterThan(4);
+  });
+
+  it("stays proportional — not taller than a quarter of the count size", () => {
+    const barHeight = px(rule(".cap-track {"), "height");
+    const numSize = Number(rule(".ops-num {").match(/var\(--ops-num-size,\s*([0-9.]+)px\)/)![1]);
+    expect(barHeight).toBeLessThanOrEqual(numSize / 4);
   });
 
   it("keeps the fill, nub and empty states", () => {
