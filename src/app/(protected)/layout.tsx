@@ -10,6 +10,8 @@ import { themeTokens } from "@/lib/programPalettes";
 
 // Navigation vocabulary is frozen: one name per route, sentence case, no
 // preference-driven variants. See simpleschedulepro-nav-and-toggle-removal.md.
+// Visibility is role-gated only. Guided mode is deleted — do not reintroduce a
+// nav-shaping preference of any kind.
 const primaryNav = [
   { href: "/dashboard", label: "Home", icon: "compass", minRole: "viewer" },
   { href: "/setup", label: "Event setup", icon: "tent", minRole: "editor" },
@@ -88,13 +90,6 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const requestedCampId = searchParams.get("campId") || "";
   const validatedUrlCampId = camps.some((camp) => camp.id === requestedCampId) ? requestedCampId : "";
   const campId = validatedUrlCampId || activeCamp?.id || (camps.length ? lastKnownCampId : "");
-  const visiblePrimaryNav = primaryNav;
-  const visibleMoreNav = moreNav;
-
-  // Migration: guided mode was removed; clear its stale preference key once.
-  useEffect(() => {
-    try { localStorage.removeItem("ssp-guided-mode"); } catch { /* storage unavailable */ }
-  }, []);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
@@ -299,14 +294,14 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         <nav aria-label="Event navigation" className="flex-1 px-3 py-4 space-y-3 overflow-y-auto">
           <div>
             <p className="minimal-section-title px-3 mb-1.5">Build your event</p>
-            <div className="space-y-1">{visiblePrimaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
+            <div className="space-y-1">{primaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
             })}</div>
           </div>
           <div>
             <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-50 hover:text-slate-900"><span>More</span><span aria-hidden="true">{moreOpen ? "▴" : "▾"}</span></button>
-            {moreOpen && <div className="mt-1 space-y-1 border-l border-slate-200 pl-2">{visibleMoreNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
+            {moreOpen && <div className="mt-1 space-y-1 border-l border-slate-200 pl-2">{moreNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
             })}</div>}
