@@ -589,3 +589,42 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
   .ops-num--over { text-decoration: underline; }
   .ops-shadow-r, .ops-shadow-b { display: none; }
 }
+
+/* ─── Operations grid toolbar: sort and filter the activity rows ───────────── */
+.ops-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ops-search { position: relative; flex: 1 1 200px; min-width: 160px; max-width: 320px; }
+.ops-input, .ops-select {
+  width: 100%; font-size: 12px; color: var(--text);
+  background: var(--canvas); border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px); padding: 6px 8px; line-height: 1.4;
+}
+.ops-select { width: auto; }
+.ops-input:focus-visible, .ops-select:focus-visible, .ops-toggle:focus-visible {
+  outline: 2px solid var(--brand-rail); outline-offset: 1px;
+}
+.ops-search .ops-input { padding-right: 26px; }
+/* Suppress the native search clear button: we render our own, and both together
+   produced two x controls stacked in the same corner. */
+.ops-search .ops-input::-webkit-search-cancel-button,
+.ops-search .ops-input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+.ops-clear {
+  position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+  border: 0; background: transparent; cursor: pointer; line-height: 1;
+  font-size: 14px; color: var(--text-muted); padding: 2px 4px; border-radius: 4px;
+}
+.ops-clear:hover { color: var(--text); background: var(--canvas-sunk); }
+.ops-toggle {
+  display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+  font-size: 12px; color: var(--text); background: var(--canvas);
+  border: 1px solid var(--border); border-radius: 999px; padding: 5px 10px;
+}
+.ops-toggle[aria-pressed="true"] { background: var(--warning-wash); border-color: var(--warning); }
+.ops-count { font-size: 11px; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
+/* A filter must never hide a blocking problem without saying so. */
+.ops-hidden-warn {
+  font-size: 11px; color: var(--danger); background: var(--danger-wash);
+  border: 1px solid var(--danger); border-radius: var(--radius-sm, 8px);
+  padding: 6px 8px; margin-bottom: 8px;
+}
+.ops-sorted-by { font-weight: 700; }
+@media print { .ops-toolbar, .ops-clear { display: none; } }

@@ -198,6 +198,152 @@ function teacherLabel(course: GridCourse): { text: string; missing: boolean } {
   return { text: names.join(", "), missing: false };
 }
 
+export type SortKey = "default" | "name" | "fullest" | "emptiest" | "attention";
+
+/**
+ * What is wrong with this activity, counted for the attention sort.
+ *
+ * Deliberately reuses the same conditions the dashboard already reports, so the
+ * grid's ordering cannot disagree with the warnings shown elsewhere. When the
+ * Slice 2 issue engine lands this should delegate to it rather than restate it.
+ */
+export function attentionScore(course: GridCourse, columns: GridColumn[]): number {
+  let score = 0;
+  const capacity = effectiveCapacity({ cap: course.cap });
+  const cells = columns.map((column) => foldCell(course, column)).filter(Boolean);
+
+  // Over capacity is the only blocking condition here, so it outranks the rest.
+  if (Number.isFinite(capacity) && cells.some((cell) => cell!.enrolled > capacity)) score += 100;
+  if ((course.courseTeachers ?? []).length === 0) score += 10;
+  if (cells.length === 0) score += 8; // never scheduled
+  if (cells.length > 0 && cells.every((cell) => cell!.enrolled === 0)) score += 6;
+  if (!course.room) score += 4;
+  if (!Number.isFinite(capacity)) score += 2; // no limit set
+  return score;
+}
+
+/** Peak fill ratio across every block. Over-capacity exceeds 1 and sorts first. */
+export function peakFill(course: GridCourse, columns: GridColumn[]): number {
+  const capacity = effectiveCapacity({ cap: course.cap });
+  if (!Number.isFinite(capacity) || capacity <= 0) return 0;
+  const ratios = columns
+    .map((column) => foldCell(course, column))
+    .filter(Boolean)
+    .map((cell) => cell!.enrolled / capacity);
+  return ratios.length === 0 ? 0 : Math.max(...ratios);
+}
+
+export type GridFilter = {
+  query: string;
+  ageGroupId: string;
+  attentionOnly: boolean;
+};
+
+export const EMPTY_FILTER: GridFilter = { query: "", ageGroupId: "", attentionOnly: false };
+
+function courseAgeGroupIds(course: GridCourse): string[] {
+  const ids = (course.courseAgeGroups ?? []).map((entry) => entry.ageGroupId);
+  if (ids.length > 0) return ids;
+  return course.ageGroupId ? [course.ageGroupId] : [];
+}
+
+/**
+ * Filter and sort the activity rows.
+ *
+ * Rows only — the time columns are never touched. Folding and column alignment
+ * must stay stable while filtering, both so the header does not jump around and
+ * so the Slice 4 coverage band can keep sharing these columns.
+ */
+export function arrangeRows(
+  courses: GridCourse[],
+  columns: GridColumn[],
+  sort: SortKey,
+  filter: GridFilter,
+): GridCourse[] {
+  const query = filter.query.trim().toLowerCase();
+
+  const visible = courses.filter((course) => {
+    if (query) {
+      const teacher = (course.courseTeachers ?? [])
+        .map((entry) => `${entry.person.firstName} ${entry.person.lastName}`)
+        .join(" ")
+        .toLowerCase();
+      const haystack = `${course.name} ${course.room?.name ?? ""} ${teacher}`.toLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
+    if (filter.ageGroupId) {
+      const ids = courseAgeGroupIds(course);
+      // An activity with no age group is open to everyone, so it stays visible
+      // under any group filter rather than vanishing from all of them.
+      if (ids.length > 0 && !ids.includes(filter.ageGroupId)) return false;
+    }
+    if (filter.attentionOnly && attentionScore(course, columns) === 0) return false;
+    return true;
+  });
+
+  const byName = (left: GridCourse, right: GridCourse) =>
+    left.name.localeCompare(right.name, undefined, { sensitivity: "base", numeric: true });
+
+  const sorted = [...visible];
+  switch (sort) {
+    case "name":
+      sorted.sort(byName);
+      break;
+    case "fullest":
+      sorted.sort(
+        (left, right) => peakFill(right, columns) - peakFill(left, columns) || byName(left, right),
+      );
+      break;
+    case "emptiest":
+      sorted.sort(
+        (left, right) => peakFill(left, columns) - peakFill(right, columns) || byName(left, right),
+      );
+      break;
+    case "attention":
+      sorted.sort(
+        (left, right) =>
+          attentionScore(right, columns) - attentionScore(left, columns) || byName(left, right),
+      );
+      break;
+    default:
+      // Scheduled activities first, then never-scheduled, each alphabetically.
+      // Unscheduled rows are all blanks, so floating them to the top would push
+      // the real grid off the first screen.
+      sorted.sort((left, right) => {
+        const leftScheduled = (left.sessions ?? []).length > 0 ? 0 : 1;
+        const rightScheduled = (right.sessions ?? []).length > 0 ? 0 : 1;
+        return leftScheduled - rightScheduled || byName(left, right);
+      });
+  }
+  return sorted;
+}
+
+/**
+ * Activities a filter is hiding that carry a blocking problem.
+ *
+ * A filtered view must not make an over-capacity class disappear silently — the
+ * organiser would believe the grid was clean. Hidden blockers are named above
+ * the grid instead.
+ */
+export function hiddenBlockers(
+  courses: GridCourse[],
+  visible: GridCourse[],
+  columns: GridColumn[],
+): string[] {
+  const shown = new Set(visible.map((course) => course.id));
+  return courses
+    .filter((course) => {
+      if (shown.has(course.id)) return false;
+      const capacity = effectiveCapacity({ cap: course.cap });
+      if (!Number.isFinite(capacity)) return false;
+      return columns.some((column) => {
+        const cell = foldCell(course, column);
+        return cell ? cell.enrolled > capacity : false;
+      });
+    })
+    .map((course) => course.name);
+}
+
 /**
  * The class limit, labelled. A bare trailing number in the row header reads as
  * ambiguous — "Outside · Brad Farley · 15" could be a room size, a count, or an
@@ -380,6 +526,8 @@ export function OperationsGrid({
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [scrollRight, setScrollRight] = useState(false);
   const [scrollBottom, setScrollBottom] = useState(false);
+  const [sort, setSort] = useState<SortKey>("default");
+  const [filter, setFilter] = useState<GridFilter>(EMPTY_FILTER);
 
   // Show that it scrolls (§1.4) — the current /schedule grid overflows with no
   // affordance at all, which is how controls end up clipped and unreachable.
@@ -407,8 +555,9 @@ export function OperationsGrid({
   // columns.
   const { columns, folded, dayLabel, hiddenDayCount } = foldBlocks(blocks);
 
-  const scheduled = courses.filter((course) => (course.sessions ?? []).length > 0);
-  const rows = [...scheduled, ...courses.filter((course) => !scheduled.includes(course))];
+  const rows = arrangeRows(courses, columns, sort, filter);
+  const blockers = hiddenBlockers(courses, rows, columns);
+  const filtering = filter.query.trim() !== "" || filter.ageGroupId !== "" || filter.attentionOnly;
 
   // Only mention the variation marker when something actually varies.
   const anyVaries =
@@ -421,6 +570,103 @@ export function OperationsGrid({
 
   return (
     <>
+      <div className="ops-toolbar">
+        <div className="ops-search">
+          <label className="sr-only" htmlFor="ops-filter-query">
+            Find an activity, room, or teacher
+          </label>
+          <input
+            id="ops-filter-query"
+            type="search"
+            className="ops-input"
+            placeholder="Find an activity…"
+            value={filter.query}
+            onChange={(event) => setFilter({ ...filter, query: event.target.value })}
+          />
+          {filter.query && (
+            <button
+              type="button"
+              className="ops-clear"
+              onClick={() => setFilter({ ...filter, query: "" })}
+              aria-label="Clear the search"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        <label className="sr-only" htmlFor="ops-sort">
+          Sort activities
+        </label>
+        <select
+          id="ops-sort"
+          className="ops-select"
+          value={sort}
+          onChange={(event) => setSort(event.target.value as SortKey)}
+        >
+          <option value="default">Scheduled first</option>
+          <option value="name">Name A–Z</option>
+          <option value="fullest">Fullest first</option>
+          <option value="emptiest">Emptiest first</option>
+          <option value="attention">Needs attention first</option>
+        </select>
+
+        {ageGroups.length > 0 && (
+          <>
+            <label className="sr-only" htmlFor="ops-age-filter">
+              Filter by age group
+            </label>
+            <select
+              id="ops-age-filter"
+              className="ops-select"
+              value={filter.ageGroupId}
+              onChange={(event) => setFilter({ ...filter, ageGroupId: event.target.value })}
+            >
+              <option value="">All age groups</option>
+              {ageGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+
+        <button
+          type="button"
+          className="ops-toggle"
+          aria-pressed={filter.attentionOnly}
+          onClick={() => setFilter({ ...filter, attentionOnly: !filter.attentionOnly })}
+        >
+          Needs attention
+        </button>
+
+        {filtering && (
+          <button
+            type="button"
+            className="ops-toggle"
+            onClick={() => setFilter(EMPTY_FILTER)}
+          >
+            Clear filters
+          </button>
+        )}
+
+        <span className="ops-count" aria-live="polite">
+          {rows.length === courses.length
+            ? `${courses.length} activities`
+            : `${rows.length} of ${courses.length} activities`}
+        </span>
+      </div>
+
+      {/* A filter must not make a blocking problem vanish silently. */}
+      {blockers.length > 0 && (
+        <p className="ops-hidden-warn" role="status">
+          {blockers.length === 1
+            ? `${blockers[0]} is over capacity but hidden by the current filter.`
+            : `${blockers.length} activities are over capacity but hidden by the current filter: ${blockers.join(", ")}.`}
+        </p>
+      )}
+
       {folded && (
         <p className="ops-meta mb-2">
           {dayLabel} run the same time blocks, so the {hiddenDayCount + 1} days are shown once.
@@ -428,7 +674,20 @@ export function OperationsGrid({
         </p>
       )}
 
-      <BlockList columns={columns} courses={courses} ageGroupById={ageGroupById} />
+      {rows.length === 0 ? (
+        <p className="ops-meta">
+          No activity matches this filter.{" "}
+          <button
+            type="button"
+            className="ops-toggle"
+            onClick={() => setFilter(EMPTY_FILTER)}
+          >
+            Show all {courses.length}
+          </button>
+        </p>
+      ) : (
+        <>
+      <BlockList columns={columns} courses={rows} ageGroupById={ageGroupById} />
 
       <div className="relative hidden md:block">
         <div className="ops-grid-wrap" ref={wrapRef}>
@@ -492,6 +751,8 @@ export function OperationsGrid({
         <div className={`ops-shadow-r ${scrollRight ? "is-on" : ""}`} aria-hidden="true" />
         <div className={`ops-shadow-b ${scrollBottom ? "is-on" : ""}`} aria-hidden="true" />
       </div>
+        </>
+      )}
     </>
   );
 }
