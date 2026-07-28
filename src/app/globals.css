@@ -540,20 +540,35 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
    Bar LENGTH carries quantity; colour carries status only. A full class is a
    success, not an error, so it is never tinted red. Whole cells are never
    tinted — a 30x6 grid of tinted cells is a wall of colour. */
+/* Bar height scales with the count so the pair reads as one unit. At 4px against
+   a 48px number the bar disappeared. */
 .cap-track {
-  height: 4px; border-radius: 2px;
+  height: 8px; border-radius: 4px;
   background: var(--canvas-sunk);
-  margin-top: 3px; display: flex; gap: 2px;
+  margin-top: 5px; display: flex; gap: 2px;
 }
-.cap-fill { height: 100%; border-radius: 2px; background: var(--brand-rail); }
+.cap-fill { height: 100%; border-radius: 4px; background: var(--brand-rail); }
 .cap-track--over .cap-fill { background: var(--danger); flex: 1; }
-.cap-nub { height: 100%; border-radius: 2px; background: var(--danger); }
+.cap-nub { height: 100%; border-radius: 4px; background: var(--danger); }
 .cap-track--empty { background: var(--warning-wash); }
 
 /* Tabular figures so counts align down a column. */
-.ops-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px; line-height: 1.2; color: var(--text); }
+/* Enrollment count size. Deliberately a token: this is the number the organiser
+   reads across the room, and it is the most likely thing to be retuned. 12px was
+   the original; 48px is 4x. Change here only — cell width follows from it. */
+.ops-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ops-num-size, 48px);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--text);
+  display: block;
+}
 .ops-num--empty { color: var(--warning); }
 .ops-num--over { color: var(--danger); font-weight: 700; }
+/* The varies-by-day marker rides at the old text size, not the count size. */
+.ops-num > span[aria-hidden] { font-size: 0.34em; vertical-align: super; font-weight: 500; }
 
 .ops-grid-wrap { position: relative; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--canvas); max-height: min(70vh, 620px); }
 .ops-grid { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
@@ -564,11 +579,19 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 /* Column headers: sentence case, muted, mono. Not uppercase black. */
 .ops-grid thead th { position: sticky; top: 0; z-index: 2; background: var(--canvas); font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--text-muted); text-align: center; white-space: nowrap; }
 /* Row header frozen left; the corner needs the higher stacking order. */
-.ops-grid .ops-rowhead { position: sticky; left: 0; z-index: 1; background: var(--canvas); width: 200px; min-width: 200px; max-width: 200px; text-align: left; vertical-align: top; }
+/* Row header. Widened because the longest real activity name is 35 characters
+   ("Violin (Advanced Only = 1+ yrs exp)") and the title is now larger. */
+.ops-grid .ops-rowhead { position: sticky; left: 0; z-index: 1; background: var(--canvas); width: 260px; min-width: 260px; max-width: 260px; text-align: left; vertical-align: top; }
 .ops-grid thead .ops-rowhead { z-index: 3; }
-.ops-cell { width: 76px; min-width: 76px; text-align: center; vertical-align: top; }
+/* Wide enough for three digits at the enlarged count size. Padding is trimmed on
+   data cells because the number itself now supplies the visual separation, and at
+   10px each side the grid overflowed the viewport by one column's worth. */
+.ops-cell { width: 92px; min-width: 92px; text-align: center; vertical-align: top; }
+.ops-grid td.ops-cell { padding: 5px 4px; }
 
-.ops-name { font-size: 12px; font-weight: 500; color: var(--text); }
+/* Activity title: bolder and larger than the metadata beneath it, so the row
+   header has a clear hierarchy at a glance. */
+.ops-name { font-size: 15px; font-weight: 700; line-height: 1.25; color: var(--text); }
 .ops-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .ops-meta__warn { color: var(--warning); }
 .ops-chip { display: inline-block; font-size: 10px; line-height: 1.4; padding: 0 5px; border-radius: 999px; margin-left: 5px; vertical-align: 1px; }
@@ -579,9 +602,11 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 .ops-shadow-b { left: 0; right: 0; bottom: 0; height: 14px; background: linear-gradient(to top, rgba(15,23,42,.10), transparent); }
 .ops-shadow-r.is-on, .ops-shadow-b.is-on { opacity: 1; }
 
-/* Black and white print: bars must survive without colour. */
+/* Black and white print: bars must survive without colour. Counts shrink so a
+   printed grid still fits a page — 48px is for reading a screen across a room. */
 @media print {
   .ops-grid-wrap { overflow: visible; max-height: none; border-color: #000; }
+  .ops-num { font-size: 20px; }
   .cap-track { border: 1px solid #000; background: #fff; }
   .cap-fill { background: #000; }
   .cap-nub { background: #000; }

@@ -499,7 +499,7 @@ function BlockList({
                       {course.room?.name ?? "No room"} · {teacher.text} · {capLabel(course.cap)}
                     </p>
                   </div>
-                  <div className="w-16 shrink-0 text-right">
+                  <div className="w-[104px] shrink-0 text-right">
                     <CellContent cell={cell} course={course} />
                   </div>
                 </div>
