@@ -149,12 +149,15 @@ describe("tone follows the worst issue present", () => {
   });
 });
 
-describe("empty event becomes wayfinding (§2.2)", () => {
-  it("shows one primary action and no issue list", () => {
-    const html = render(<SummaryStrip issues={[]} isEmptyEvent emptyAction={{ label: "Add an activity", onClick: () => {} }} />);
-    expect(html).toContain("Add your first activity");
-    expect(html).toContain("Add an activity");
-    expect(html).not.toContain("Show issues");
+describe("the strip's empty branch moved to EmptyHome (phase 18g)", () => {
+  it("no longer carries an empty-event mode", () => {
+    // The branch was unreachable: the dashboard only rendered this strip inside
+    // a section already gated on courses.length > 0. EmptyHome owns that state
+    // now — two components answering "what now?" is how they disagree.
+    const source = fs.readFileSync("src/components/SummaryStrip.tsx", "utf8");
+    expect(source).not.toContain("isEmptyEvent");
+    expect(source).not.toContain("emptyAction");
+    expect(source).not.toContain("Add your first activity");
   });
 });
 

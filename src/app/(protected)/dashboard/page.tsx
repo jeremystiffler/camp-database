@@ -7,6 +7,8 @@ import NewCampWizard from "@/components/NewCampWizard";
 import { HelpCopy } from "@/components/HelpMode";
 import { OperationsGrid, type GridAgeGroup, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
 import { SummaryStrip } from "@/components/SummaryStrip";
+import { EmptyHome, SetupPanel, type SetupLink } from "@/components/SetupPanel";
+import { homeState, type HomeState } from "@/lib/homeState";
 import type { Issue } from "@/lib/issues";
 import { PROGRAM_PALETTES } from "@/lib/programPalettes";
 
@@ -24,6 +26,8 @@ interface Camp {
 }
 
 interface DashboardSummary {
+  /** The API has always returned this; the local type just never declared it. */
+  camp?: { id: string; name: string; status?: string; registrationOpen?: boolean };
   stats: {
     registeredStudents: number;
     classes: number;
@@ -652,6 +656,42 @@ function DashboardContent() {
   // sitting a few hundred pixels above it.
   const needsAttention = (summary?.issues?.length ?? 0) > 0;
 
+  // Home's four states (spec §5, phase 18g). Derived every render — never
+  // stored, so it cannot fall out of step with the event it describes.
+  const registrationOpen = Boolean(summary?.camp?.registrationOpen);
+  const state: HomeState = homeState({
+    activityCount: summary?.grid?.courses.length ?? 0,
+    blockCount: summary?.grid?.blocks.length ?? 0,
+    issues: summary?.issues ?? [],
+    registrationOpen,
+  });
+  const blockingCount = (summary?.issues ?? []).filter((issue) => issue.severity === "blocking").length;
+
+  const setupLinks: SetupLink[] = activeCamp
+    ? [
+        { label: "Age groups", href: `/setup?campId=${activeCamp.id}&step=age-groups`, done: (summary?.stats?.ageGroups ?? 0) > 0 },
+        { label: "Rooms", href: `/setup?campId=${activeCamp.id}&step=rooms`, done: (summary?.stats?.rooms ?? 0) > 0 },
+        { label: "Time blocks", href: `/setup?campId=${activeCamp.id}&step=schedule`, done: (summary?.stats?.scheduleBlocks ?? 0) > 0 },
+        { label: "Teachers", href: `/teachers?campId=${activeCamp.id}`, done: (summary?.stats?.teachers ?? 0) > 0 },
+        { label: "Activities", href: `/activities?campId=${activeCamp.id}`, done: (summary?.stats?.classes ?? 0) > 0 },
+        { label: "Registration form", href: `/registration?campId=${activeCamp.id}`, done: registrationOpen },
+      ]
+    : [];
+
+  // §5.2: setup must open the FIRST INCOMPLETE section. Landing a returning
+  // organiser on finished work is the defect underneath that whole screen.
+  const firstIncomplete = setupLinks.find((link) => !link.done);
+
+  const setupPanel = activeCamp ? (
+    <SetupPanel
+      state={state}
+      blockingCount={blockingCount}
+      links={setupLinks}
+      registrationOpen={registrationOpen}
+      firstIncompleteHref={firstIncomplete?.href ?? `/setup?campId=${activeCamp.id}`}
+    />
+  ) : null;
+
   return (
     <div>
       {(camps.length === 0 || canAdminCamp(activeCamp)) && <div className="mb-4 flex justify-end"><button onClick={() => setShowNewCamp(true)} className="minimal-button-primary flex items-center gap-2"><span>+</span> New Event</button></div>}
@@ -724,9 +764,19 @@ function DashboardContent() {
             </div>
           </div>
 
-          {/* The grid is the most important thing on this page, so it is the
-              first thing on it — above the stat tiles (dashboard spec §1.6). */}
-          {summary?.grid && summary.grid.courses.length > 0 && (
+          {/* Home's four states (spec §5, phase 18g). The ORDER changes;
+              nothing is ever hidden, and there is no mode toggle — the state is
+              derived from the issue engine on every render. */}
+          {summary && state === "empty" && (
+            <EmptyHome
+              campName={activeCamp.name}
+              onStart={() => router.push(`/setup?campId=${activeCamp.id}`)}
+            />
+          )}
+
+          {summary && state === "building" && setupPanel}
+
+          {summary?.grid && state !== "empty" && (
             <section aria-labelledby="ops-grid-heading" className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 id="ops-grid-heading" className="text-sm font-black text-slate-900">
@@ -736,15 +786,11 @@ function DashboardContent() {
                   Open the schedule
                 </Link>
               </div>
-              <SummaryStrip
-                issues={summary.issues ?? []}
-                isEmptyEvent={summary.grid.courses.length === 0 && summary.grid.blocks.length === 0}
-                emptyAction={{
-                  label: "Add an activity",
-                  onClick: () => router.push(`/activities?campId=${activeCamp.id}`),
-                }}
-                onJump={jumpToIssue}
-              />
+              {/* No isEmptyEvent prop (phase 18g): this section only renders when
+                  the state is not "empty", so that branch was dead the moment I
+                  wrote it in 18e. EmptyHome owns the empty state — two components
+                  answering "what now?" is how they end up disagreeing. */}
+              <SummaryStrip issues={summary.issues ?? []} onJump={jumpToIssue} />
               <OperationsGrid
                 courses={summary.grid.courses}
                 blocks={summary.grid.blocks}
@@ -755,6 +801,8 @@ function DashboardContent() {
               />
             </section>
           )}
+
+          {summary && (state === "ready" || state === "running") && setupPanel}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <StatCard label="Registered Participants" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" />

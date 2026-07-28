@@ -19,9 +19,6 @@ import type { Issue, IssueSeverity } from "@/lib/issues";
 export type SummaryStripProps = {
   issues: Issue[];
   /** Zero activities AND zero blocks: the strip becomes wayfinding (§2.2). */
-  isEmptyEvent?: boolean;
-  /** Rendered as the single primary action for an empty event. */
-  emptyAction?: { label: string; onClick: () => void };
   /**
    * Scroll the offending cell into view and highlight it. Returns false when the
    * target is not on screen, which lets the strip say so instead of silently
@@ -82,7 +79,7 @@ export function summarise(issues: Issue[]): string {
     .join(" · ");
 }
 
-export function SummaryStrip({ issues, isEmptyEvent, emptyAction, onJump, defaultOpen }: SummaryStripProps) {
+export function SummaryStrip({ issues, onJump, defaultOpen }: SummaryStripProps) {
   const [open, setOpen] = useState(Boolean(defaultOpen));
   const [missed, setMissed] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -90,21 +87,8 @@ export function SummaryStrip({ issues, isEmptyEvent, emptyAction, onJump, defaul
   // A resolved issue must not leave a stale "couldn't find it" note behind.
   useEffect(() => setMissed(null), [issues]);
 
-  // Empty event: the strip is the wayfinding, with one primary action (§2.2).
-  if (isEmptyEvent) {
-    return (
-      <div className="strip strip--empty" role="status">
-        <div className="strip__row">
-          <p className="strip__text">Add your first activity</p>
-          {emptyAction && (
-            <button type="button" className="strip__cta" onClick={emptyAction.onClick}>
-              {emptyAction.label}
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  // The empty-event branch that stood here is deleted (phase 18g). EmptyHome
+  // owns that state; this strip only ever renders alongside a grid.
 
   const blocking = issues.filter((issue) => issue.severity === "blocking").length;
   const clear = issues.length === 0;
