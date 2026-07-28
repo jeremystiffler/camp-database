@@ -48,6 +48,18 @@ describe("the issue engine against real production data", () => {
     expect(byCode["room-clash"] ?? 0).toBe(0);
   });
 
+  it("does not raise coverage gaps for the 10 whole-event blocks", () => {
+    // Opening and Closing Assembly carry no activities by design. An earlier
+    // version of the rule produced 30 false gap warnings on this exact data.
+    expect(byCode["age-group-gap"] ?? 0).toBe(0);
+    const mandatory = snapshot.blocks.filter((block: { mandatory?: boolean }) => block.mandatory);
+    expect(mandatory.length).toBe(10);
+  });
+
+  it("finds the real event completely clean", () => {
+    expect(issues).toEqual([]);
+  });
+
   it("keeps every advisory out of the blocking set on real data", () => {
     const advisories = issues.filter((issue) => issue.severity === "advisory");
     expect(advisories.every((issue) => issue.code !== "over-capacity")).toBe(true);

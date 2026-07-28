@@ -2494,280 +2494,320 @@
    "label": "Opening Assembly",
    "dayOfWeek": 5,
    "startTime": "09:00",
-   "endTime": "09:20"
+   "endTime": "09:20",
+   "mandatory": true
   },
   {
    "id": "cmqxzrfpf000004l5p575t5eu",
    "label": "Opening Assembly",
    "dayOfWeek": 1,
    "startTime": "09:00",
-   "endTime": "09:20"
+   "endTime": "09:20",
+   "mandatory": true
   },
   {
    "id": "cmqxzrfqn000004ju5sulurr2",
    "label": "Opening Assembly",
    "dayOfWeek": 4,
    "startTime": "09:00",
-   "endTime": "09:20"
+   "endTime": "09:20",
+   "mandatory": true
   },
   {
    "id": "cmqs6k5sy000904l4n014mlix",
    "label": "Closing Assembly",
    "dayOfWeek": 3,
    "startTime": "11:50",
-   "endTime": "12:00"
+   "endTime": "12:00",
+   "mandatory": true
   },
   {
    "id": "cmqs6k5sz000604jukszsqk57",
    "label": "Closing Assembly",
    "dayOfWeek": 4,
    "startTime": "11:50",
-   "endTime": "12:00"
+   "endTime": "12:00",
+   "mandatory": true
   },
   {
    "id": "cmqs6k5sz000704l4m3xgtzxt",
    "label": "Closing Assembly",
    "dayOfWeek": 1,
    "startTime": "11:50",
-   "endTime": "12:00"
+   "endTime": "12:00",
+   "mandatory": true
   },
   {
    "id": "cmqs6k5t8000904kzkm15oyuy",
    "label": "Closing Assembly",
    "dayOfWeek": 5,
    "startTime": "11:50",
-   "endTime": "12:00"
+   "endTime": "12:00",
+   "mandatory": true
   },
   {
    "id": "cmqs6k5t1000804i8qz2gstdy",
    "label": "Closing Assembly",
    "dayOfWeek": 2,
    "startTime": "11:50",
-   "endTime": "12:00"
+   "endTime": "12:00",
+   "mandatory": true
   },
   {
    "id": "cmqxzrfa3000004k03wo2rkm1",
    "label": "Opening Assembly",
    "dayOfWeek": 3,
    "startTime": "09:00",
-   "endTime": "09:20"
+   "endTime": "09:20",
+   "mandatory": true
   },
   {
    "id": "cmqxzrflw000004l8j9msu5ng",
    "label": "Opening Assembly",
    "dayOfWeek": 2,
    "startTime": "09:00",
-   "endTime": "09:20"
+   "endTime": "09:20",
+   "mandatory": true
   },
   {
    "id": "cmqs6hom0000204juclj2qbob",
    "label": "Session 2",
    "dayOfWeek": 4,
    "startTime": "09:45",
-   "endTime": "10:10"
+   "endTime": "10:10",
+   "mandatory": false
   },
   {
    "id": "cmqs6holw000204l42tm3r1vy",
    "label": "Session 2",
    "dayOfWeek": 5,
    "startTime": "09:45",
-   "endTime": "10:10"
+   "endTime": "10:10",
+   "mandatory": false
   },
   {
    "id": "cmqs6ino0000404l43q6a1smw",
    "label": "Session 3",
    "dayOfWeek": 4,
    "startTime": "10:10",
-   "endTime": "10:35"
+   "endTime": "10:35",
+   "mandatory": false
   },
   {
    "id": "cmqs6ino3000304l4tm7wjszx",
    "label": "Session 3",
    "dayOfWeek": 5,
    "startTime": "10:10",
-   "endTime": "10:35"
+   "endTime": "10:35",
+   "mandatory": false
   },
   {
    "id": "cmqs6ino6000404i8rhzn4abs",
    "label": "Session 3",
    "dayOfWeek": 1,
    "startTime": "10:10",
-   "endTime": "10:35"
+   "endTime": "10:35",
+   "mandatory": false
   },
   {
    "id": "cmqs6inoc000404kzm6q8bjme",
    "label": "Session 3",
    "dayOfWeek": 3,
    "startTime": "10:10",
-   "endTime": "10:35"
+   "endTime": "10:35",
+   "mandatory": false
   },
   {
    "id": "cmqs6inpy000504kzbesm7sq2",
    "label": "Session 3",
    "dayOfWeek": 2,
    "startTime": "10:10",
-   "endTime": "10:35"
+   "endTime": "10:35",
+   "mandatory": false
   },
   {
    "id": "cmqs6ixze000404l41oqt0jzv",
    "label": "Session 4",
    "dayOfWeek": 3,
    "startTime": "10:35",
-   "endTime": "11:00"
+   "endTime": "11:00",
+   "mandatory": false
   },
   {
    "id": "cmqs6ixzd000504i8w3hkb9jx",
    "label": "Session 4",
    "dayOfWeek": 1,
    "startTime": "10:35",
-   "endTime": "11:00"
+   "endTime": "11:00",
+   "mandatory": false
   },
   {
    "id": "cmqs6ixzp000604kz6h5yiq42",
    "label": "Session 4",
    "dayOfWeek": 4,
    "startTime": "10:35",
-   "endTime": "11:00"
+   "endTime": "11:00",
+   "mandatory": false
   },
   {
    "id": "cmqs6ixzt000504l4e8kkbigb",
    "label": "Session 4",
    "dayOfWeek": 2,
    "startTime": "10:35",
-   "endTime": "11:00"
+   "endTime": "11:00",
+   "mandatory": false
   },
   {
    "id": "cmqs6iy2o000604l4ijko9kkk",
    "label": "Session 4",
    "dayOfWeek": 5,
    "startTime": "10:35",
-   "endTime": "11:00"
+   "endTime": "11:00",
+   "mandatory": false
   },
   {
    "id": "cmqs6jiga000604i89xra9vsz",
    "label": "Session 5",
    "dayOfWeek": 4,
    "startTime": "11:00",
-   "endTime": "11:25"
+   "endTime": "11:25",
+   "mandatory": false
   },
   {
    "id": "cmqs6jigc000704l48encal9p",
    "label": "Session 5",
    "dayOfWeek": 2,
    "startTime": "11:00",
-   "endTime": "11:25"
+   "endTime": "11:25",
+   "mandatory": false
   },
   {
    "id": "cmqs6jigb000704kzzl7d05xi",
    "label": "Session 5",
    "dayOfWeek": 5,
    "startTime": "11:00",
-   "endTime": "11:25"
+   "endTime": "11:25",
+   "mandatory": false
   },
   {
    "id": "cmqs6jigj000504l41n89acaw",
    "label": "Session 5",
    "dayOfWeek": 3,
    "startTime": "11:00",
-   "endTime": "11:25"
+   "endTime": "11:25",
+   "mandatory": false
   },
   {
    "id": "cmqs6jihc000404juhwhfzkkk",
    "label": "Session 5",
    "dayOfWeek": 1,
    "startTime": "11:00",
-   "endTime": "11:25"
+   "endTime": "11:25",
+   "mandatory": false
   },
   {
    "id": "cmqs6jst9000804kzopgcxtzn",
    "label": "Session 6",
    "dayOfWeek": 2,
    "startTime": "11:25",
-   "endTime": "11:50"
+   "endTime": "11:50",
+   "mandatory": false
   },
   {
    "id": "cmqs6jstc000504jun3000r7a",
    "label": "Session 6",
    "dayOfWeek": 3,
    "startTime": "11:25",
-   "endTime": "11:50"
+   "endTime": "11:50",
+   "mandatory": false
   },
   {
    "id": "cmqs6jstk000804l4wenejdl9",
    "label": "Session 6",
    "dayOfWeek": 4,
    "startTime": "11:25",
-   "endTime": "11:50"
+   "endTime": "11:50",
+   "mandatory": false
   },
   {
    "id": "cmqs6jstk000604l4rd4isryy",
    "label": "Session 6",
    "dayOfWeek": 5,
    "startTime": "11:25",
-   "endTime": "11:50"
+   "endTime": "11:50",
+   "mandatory": false
   },
   {
    "id": "cmqs6jstw000704i868dfgexd",
    "label": "Session 6",
    "dayOfWeek": 1,
    "startTime": "11:25",
-   "endTime": "11:50"
+   "endTime": "11:50",
+   "mandatory": false
   },
   {
    "id": "cmqxwr554000004ju47zjwiqn",
    "label": "Session 2",
    "dayOfWeek": 3,
    "startTime": "09:45",
-   "endTime": "10:10"
+   "endTime": "10:10",
+   "mandatory": false
   },
   {
    "id": "cmqxwr559000004jodt08w99r",
    "label": "Session 2",
    "dayOfWeek": 1,
    "startTime": "09:45",
-   "endTime": "10:10"
+   "endTime": "10:10",
+   "mandatory": false
   },
   {
    "id": "cmqxwr55o000104jo167wlw6e",
    "label": "Session 2",
    "dayOfWeek": 2,
    "startTime": "09:45",
-   "endTime": "10:10"
+   "endTime": "10:10",
+   "mandatory": false
   },
   {
    "id": "cmqy0btgk000004ldunjak9kq",
    "label": "Session 1",
    "dayOfWeek": 3,
    "startTime": "09:20",
-   "endTime": "09:45"
+   "endTime": "09:45",
+   "mandatory": false
   },
   {
    "id": "cmqy0bti3000004l762nthzym",
    "label": "Session 1",
    "dayOfWeek": 5,
    "startTime": "09:20",
-   "endTime": "09:45"
+   "endTime": "09:45",
+   "mandatory": false
   },
   {
    "id": "cmqy0btiz000004l1mi8nhb9a",
    "label": "Session 1",
    "dayOfWeek": 1,
    "startTime": "09:20",
-   "endTime": "09:45"
+   "endTime": "09:45",
+   "mandatory": false
   },
   {
    "id": "cmqy0btka000004l70a326i2q",
    "label": "Session 1",
    "dayOfWeek": 4,
    "startTime": "09:20",
-   "endTime": "09:45"
+   "endTime": "09:45",
+   "mandatory": false
   },
   {
    "id": "cmqy0btkl000004l5p6l22bqe",
    "label": "Session 1",
    "dayOfWeek": 2,
    "startTime": "09:20",
-   "endTime": "09:45"
+   "endTime": "09:45",
+   "mandatory": false
   }
  ],
  "ageGroups": [
@@ -2783,5 +2823,9 @@
    "id": "cmqrdmyiq000004jsv5iviuzi",
    "name": "Pre K (4-5 years)"
   }
- ]
+ ],
+ "campersByAgeGroup": {
+  "cmqrdmyh4000004jl6swwok3c": 1,
+  "cmqrdmz4v000004lbs1r0efhc": 6
+ }
 }

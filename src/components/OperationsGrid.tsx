@@ -714,7 +714,7 @@ export function OperationsGrid({
                 const cancelled = course.status === "cancelled";
                 return (
                   <tr key={course.id} style={hidden ? { opacity: 0.55 } : undefined}>
-                    <th scope="row" className="ops-rowhead">
+                    <th scope="row" className="ops-rowhead" data-course-id={course.id}>
                       <p className="ops-name" style={cancelled ? { textDecoration: "line-through" } : undefined}>
                         {course.name}
                         {chip && (
@@ -735,7 +735,12 @@ export function OperationsGrid({
                       </p>
                     </th>
                     {columns.map((column) => (
-                      <td key={column.key} className="ops-cell">
+                      <td
+                        key={column.key}
+                        className="ops-cell"
+                        data-course-id={course.id}
+                        data-block-ids={column.blockIds.join(" ")}
+                      >
                         <CellContent cell={foldCell(course, column)} course={course} />
                       </td>
                     ))}

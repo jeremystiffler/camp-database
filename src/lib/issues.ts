@@ -10,16 +10,21 @@
  * Pure: no database access, no framework imports, no I/O. Callers pass a snapshot
  * and get issues back, which makes every rule testable in isolation.
  *
- * SEVERITY IS A CONTRACT, not a hint:
+ * SEVERITY IS A CONTRACT, not a hint. The split follows the dashboard spec §2.1:
  *
- *   blocking  — registration may not open while this exists. Reserved for a real
- *               overflow: enrolment above the class participant limit.
- *   warning   — the event is misconfigured and someone must act, but families can
- *               still register. Missing teacher, unscheduled, clashes.
+ *   blocking  — registration may not open. These are the conditions under which
+ *               the event as configured cannot physically run: enrolment above
+ *               the class limit, one room double-booked, one teacher in two
+ *               places, or more participants than seats in a block.
+ *   warning   — incomplete but runnable. Someone must act, families can register.
  *   advisory  — descriptive. Never blocks anything, ever. Room mismatches and
  *               missing limits live here per master build order §3.7, because a
  *               forgotten room number must never become the thing that stops a
  *               class from being scheduled.
+ *
+ * §3.7 overrides room capacity as an ENROLMENT CEILING only. It does not touch
+ * double-booking: a room that cannot hold two activities at once is a scheduling
+ * fact, not a capacity estimate.
  *
  * Adding a blocking code is a product decision. Do not promote an advisory to
  * blocking to make a number look better on a dashboard.
@@ -30,15 +35,15 @@ import { effectiveCapacity, formatCapacity, hasUnsetLimit, exceedsRoom } from "@
 export type IssueSeverity = "blocking" | "warning" | "advisory";
 
 export type IssueCode =
-  // Blocking
+  // Blocking — the event as configured cannot run
   | "over-capacity"
-  // Warnings
-  | "no-teacher"
-  | "unscheduled"
-  | "empty"
   | "room-clash"
   | "teacher-clash"
   | "seat-shortfall"
+  // Warnings — incomplete but runnable
+  | "no-teacher"
+  | "unscheduled"
+  | "empty"
   | "age-group-gap"
   // Advisories — never blocking (§3.7)
   | "cap-above-room"
@@ -58,8 +63,17 @@ export type Issue = {
   key: string;
 };
 
-/** Which codes may prevent registration from opening. Deliberately a single item. */
-export const BLOCKING_CODES: readonly IssueCode[] = ["over-capacity"];
+/**
+ * Which codes prevent registration from opening (dashboard spec §2.1). Every one
+ * describes an event that cannot physically run as configured. Room capacity
+ * mismatches are deliberately NOT here — see §3.7.
+ */
+export const BLOCKING_CODES: readonly IssueCode[] = [
+  "over-capacity",
+  "room-clash",
+  "teacher-clash",
+  "seat-shortfall",
+];
 
 export type IssueSession = {
   id: string;
@@ -91,6 +105,12 @@ export type IssueBlock = {
   dayOfWeek?: number | null;
   startTime?: string | null;
   endTime?: string | null;
+  /**
+   * True for whole-event blocks (opening assembly, lunch) where nobody chooses an
+   * activity. Coverage and shortfall rules skip these: everyone is already
+   * accounted for, so "Older has nothing at Closing Assembly" is a false alarm.
+   */
+  mandatory?: boolean;
 };
 
 export type IssueAgeGroup = { id: string; name: string };
@@ -183,7 +203,7 @@ export function detectIssues(input: IssueInput): Issue[] {
             severity: "blocking",
             courseId: course.id,
             blockId: session.sessionTemplateId ?? undefined,
-            message: `${course.name} has ${enrolled} enrolled in ${blockLabel(block)} but its limit is ${capacity}`,
+            message: `${course.name} is ${enrolled - capacity} over at ${blockLabel(block)}`,
           });
         }
       }
@@ -209,7 +229,7 @@ export function detectIssues(input: IssueInput): Issue[] {
         code: "unscheduled",
         severity: "warning",
         courseId: course.id,
-        message: `${course.name} is not scheduled in any time block`,
+        message: `${course.name} isn't in any time block`,
       });
     }
 
@@ -219,7 +239,7 @@ export function detectIssues(input: IssueInput): Issue[] {
         code: "empty",
         severity: "warning",
         courseId: course.id,
-        message: `${course.name} is scheduled but has nobody enrolled`,
+        message: `Nobody has signed up for ${course.name}`,
       });
     }
 
@@ -230,7 +250,7 @@ export function detectIssues(input: IssueInput): Issue[] {
         code: "cap-above-room",
         severity: "advisory",
         courseId: course.id,
-        message: `${course.name} allows ${formatCapacity(course)} but ${course.room.name} holds ${course.room.capacity}`,
+        message: `${course.name} allows ${formatCapacity(course)}; ${course.room.name} is listed at ${course.room.capacity}`,
       });
     }
 
@@ -285,9 +305,9 @@ export function detectIssues(input: IssueInput): Issue[] {
     const names = users.map((user) => user.courseName).sort((a, b) => a.localeCompare(b));
     push({
       code: "room-clash",
-      severity: "warning",
+      severity: "blocking",
       blockId,
-      message: `${names.join(" and ")} are both in ${roomName} during ${blockLabel(blockById.get(blockId))}`,
+      message: `${roomName} has two activities at ${blockLabel(blockById.get(blockId))}`,
     });
   }
 
@@ -321,9 +341,9 @@ export function detectIssues(input: IssueInput): Issue[] {
     const names = [...(teacherCourseNames.get(key)?.values() ?? [])].sort((a, b) => a.localeCompare(b));
     push({
       code: "teacher-clash",
-      severity: "warning",
+      severity: "blocking",
       blockId,
-      message: `${personName(personById.get(personId), personId)} is teaching ${names.join(" and ")} at the same time during ${blockLabel(blockById.get(blockId))}`,
+      message: `${personName(personById.get(personId), personId)} is in two rooms at ${blockLabel(blockById.get(blockId))}`,
     });
   }
 
@@ -331,6 +351,8 @@ export function detectIssues(input: IssueInput): Issue[] {
   // group is open to everyone, so it covers every group (same rule the grid's age
   // filter uses).
   for (const block of blocks) {
+    // Whole-event blocks have no activity choice by design.
+    if (block.mandatory) continue;
     for (const group of ageGroups) {
       const covered = courses.some((course) => {
         if (!isLive(course)) return false;
@@ -346,7 +368,7 @@ export function detectIssues(input: IssueInput): Issue[] {
           code: "age-group-gap",
           severity: "warning",
           blockId: block.id,
-          message: `${group.name} has no activity available during ${blockLabel(block)}`,
+          message: `${group.name} has nothing at ${blockLabel(block)}`,
         });
       }
     }
@@ -356,6 +378,7 @@ export function detectIssues(input: IssueInput): Issue[] {
   // block. Unlimited activities absorb everyone, so a block containing one is
   // never short.
   for (const block of blocks) {
+    if (block.mandatory) continue;
     for (const group of ageGroups) {
       const demand = campersByAgeGroup[group.id] ?? 0;
       if (demand === 0) continue;
@@ -379,9 +402,9 @@ export function detectIssues(input: IssueInput): Issue[] {
       if (seats < demand) {
         push({
           code: "seat-shortfall",
-          severity: "warning",
+          severity: "blocking",
           blockId: block.id,
-          message: `${group.name} has ${demand} participants but only ${seats} seats during ${blockLabel(block)}`,
+          message: `${blockLabel(block)} offers ${seats} seats for ${demand} ${group.name} participants`,
         });
       }
     }

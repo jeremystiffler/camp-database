@@ -658,3 +658,66 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 }
 .ops-sorted-by { font-weight: 700; }
 @media print { .ops-toolbar, .ops-clear { display: none; } }
+
+/* ─── Summary strip (dashboard spec §2.2, phase 18e) ───────────────────────── */
+/* Always visible above the grid. Replaces the deleted "Health details"
+   accordion: a health summary hidden behind a click is not a callout. */
+.strip { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--canvas); margin-bottom: 12px; }
+.strip__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; flex-wrap: wrap; }
+.strip__text { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; }
+.strip--ok { border-color: color-mix(in srgb, var(--success) 35%, var(--border)); }
+.strip--ok .strip__text { color: var(--success); }
+/* Blocking and warning states carry a left rail as well as a border tint: a 1px
+   line at 40% mix was measurably present but far too quiet to represent an event
+   that cannot open for registration. */
+.strip--blocking { border-color: color-mix(in srgb, var(--danger) 55%, var(--border)); border-left: 4px solid var(--danger); }
+.strip--blocking .strip__text { color: var(--danger); }
+.strip--warn { border-color: color-mix(in srgb, var(--warning) 55%, var(--border)); border-left: 4px solid var(--warning); }
+.strip--empty .strip__text { color: var(--text-muted); }
+
+.strip__toggle, .strip__cta {
+  font-size: 12px; font-weight: 600; padding: 5px 10px; cursor: pointer;
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--canvas-sunk); color: var(--text);
+}
+.strip__toggle:hover, .strip__cta:hover { background: var(--canvas-raised); }
+.strip__cta { background: var(--brand-primary); color: #fff; border-color: transparent; }
+.strip__toggle:focus-visible, .strip__cta:focus-visible, .strip__issue:focus-visible {
+  outline: 2px solid var(--brand-primary); outline-offset: 2px;
+}
+
+.strip__list { border-top: 1px solid var(--border); padding: 6px; }
+.strip__list ul { list-style: none; margin: 0; padding: 0; }
+.strip__issue {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  padding: 7px 8px; border: 0; background: transparent; cursor: pointer;
+  border-radius: var(--radius-sm); font-size: 12px; color: var(--text);
+}
+.strip__issue:hover { background: var(--canvas-sunk); }
+.strip__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.strip__dot--blocking { background: var(--danger); }
+.strip__dot--warning { background: var(--warning); }
+.strip__dot--advisory { background: var(--text-muted); }
+.strip__msg { flex: 1; }
+.strip__sev { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); flex-shrink: 0; }
+.strip__missed { font-size: 11px; color: var(--text-muted); margin: 0 0 4px 23px; }
+
+/* Jump target highlight. The spec requires the highlight to persist without
+   animating under prefers-reduced-motion — the cue must survive, only the
+   motion is dropped. */
+.ops-cell.is-jump-target, .ops-rowhead.is-jump-target {
+  animation: jump-flash 1.2s ease-out;
+  border-radius: var(--radius-sm);
+}
+@keyframes jump-flash {
+  0%, 60% { background: color-mix(in srgb, var(--brand-primary) 22%, transparent); }
+  100% { background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ops-cell.is-jump-target, .ops-rowhead.is-jump-target {
+    animation: none;
+    background: color-mix(in srgb, var(--brand-primary) 22%, transparent);
+  }
+}
+
+@media print { .strip__toggle, .strip__cta { display: none; } }

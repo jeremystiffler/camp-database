@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import NewCampWizard from "@/components/NewCampWizard";
 import { HelpCopy } from "@/components/HelpMode";
 import { OperationsGrid, type GridAgeGroup, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
+import { SummaryStrip } from "@/components/SummaryStrip";
+import type { Issue } from "@/lib/issues";
 import { PROGRAM_PALETTES } from "@/lib/programPalettes";
 
 interface Camp {
@@ -42,6 +44,8 @@ interface DashboardSummary {
     classesWithNoRoom?: { courseId: string; message: string }[];
     classesWithNoLimit?: { courseId: string; message: string }[];
   };
+  /** Every issue, from the one engine (phase 18b). Drives the summary strip. */
+  issues?: Issue[];
   grid?: {
     courses: GridCourse[];
     blocks: GridBlock[];
@@ -418,7 +422,52 @@ function DashboardContent() {
   const [summary,      setSummary]      = useState<DashboardSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [actionsOpen,  setActionsOpen]  = useState(false);
-  const [healthOpen,   setHealthOpen]   = useState(false);
+
+  /**
+   * Scroll the offending cell into view and highlight it for 1.2s (spec §2.2).
+   * Returns false when the issue has no cell — an unscheduled activity has a row
+   * but no session, and a block-level clash has no single owning row. The strip
+   * says so rather than appearing broken.
+   */
+  const jumpToIssue = useCallback((issue: Issue): boolean => {
+    if (typeof document === "undefined") return false;
+    const escape = (value: string) =>
+      typeof CSS !== "undefined" && CSS.escape ? CSS.escape(value) : value.replace(/"/g, '\\"');
+
+    let target: HTMLElement | null = null;
+    if (issue.courseId && issue.blockId) {
+      target = document.querySelector<HTMLElement>(
+        `td.ops-cell[data-course-id="${escape(issue.courseId)}"][data-block-ids~="${escape(issue.blockId)}"]`,
+      );
+    }
+    // Fall back to the activity's row header, then to any cell in that block.
+    if (!target && issue.courseId) {
+      target = document.querySelector<HTMLElement>(
+        `th.ops-rowhead[data-course-id="${escape(issue.courseId)}"]`,
+      );
+    }
+    if (!target && issue.blockId) {
+      target = document.querySelector<HTMLElement>(
+        `td.ops-cell[data-block-ids~="${escape(issue.blockId)}"]`,
+      );
+    }
+    if (!target) return false;
+
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({
+      behavior: reduced ? "auto" : "smooth",
+      block: "center",
+      inline: "center",
+    });
+    // Restart the highlight if the same target is clicked twice.
+    target.classList.remove("is-jump-target");
+    void target.offsetWidth;
+    target.classList.add("is-jump-target");
+    window.setTimeout(() => target?.classList.remove("is-jump-target"), 1400);
+    return true;
+  }, []);
   const [renameValue,  setRenameValue]  = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameMsg,    setRenameMsg]    = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -650,6 +699,15 @@ function DashboardContent() {
                   Open the schedule
                 </Link>
               </div>
+              <SummaryStrip
+                issues={summary.issues ?? []}
+                isEmptyEvent={summary.grid.courses.length === 0 && summary.grid.blocks.length === 0}
+                emptyAction={{
+                  label: "Add an activity",
+                  onClick: () => router.push(`/activities?campId=${activeCamp.id}`),
+                }}
+                onJump={jumpToIssue}
+              />
               <OperationsGrid
                 courses={summary.grid.courses}
                 blocks={summary.grid.blocks}
@@ -663,19 +721,9 @@ function DashboardContent() {
             <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" />
           </div>
 
-          {summary && (
-            <div className="rounded-2xl border border-slate-200 bg-white">
-              <button type="button" onClick={() => setHealthOpen(value => !value)} aria-expanded={healthOpen} className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-black text-slate-800 hover:bg-slate-50">
-                <span>Health details</span><span aria-hidden="true">{healthOpen ? "▴" : "▾"}</span>
-              </button>
-              {healthOpen && <div className="grid grid-cols-1 gap-3 border-t border-slate-100 p-4 md:grid-cols-4">
-                <div><p className="text-2xl font-black text-slate-900">{summary!.attention.classesWithoutTeachers}</p><p className="text-xs font-bold text-slate-600">Activities without teachers</p></div>
-                <div><p className="text-2xl font-black text-slate-900">{summary!.attention.unscheduledClasses}</p><p className="text-xs font-bold text-slate-600">Activities not on schedule</p></div>
-                <div><p className="text-2xl font-black text-slate-900">{summary!.attention.fullOrOverCapacityClasses}</p><p className="text-xs font-bold text-slate-600">Full or over capacity</p></div>
-                <div><p className="text-2xl font-black text-slate-900">{summary!.attention.classesWithNoEnrollment}</p><p className="text-xs font-bold text-slate-600">Activities with no enrollments</p></div>
-              </div>}
-            </div>
-          )}
+          {/* The "Health details" accordion that stood here is deleted (spec
+              §2.3): a health summary hidden behind a click is not a callout. Its
+              content is now the always-visible summary strip above the grid. */}
         </div>
       )}
 

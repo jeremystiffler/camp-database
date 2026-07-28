@@ -72,8 +72,8 @@ describe("over capacity is the only blocking condition", () => {
     const over = issues.find((issue) => issue.code === "over-capacity");
     expect(over).toBeDefined();
     expect(over!.severity).toBe("blocking");
-    expect(over!.message).toContain("25");
-    expect(over!.message).toContain("20");
+    // Spec wording: "Get crafty is 1 over at 9:20" — the overage, not the raw pair.
+    expect(over!.message).toContain("is 5 over");
     expect(canOpenRegistration(issues)).toBe(false);
   });
 
@@ -112,8 +112,18 @@ describe("over capacity is the only blocking condition", () => {
     expect(canOpenRegistration(issues)).toBe(true);
   });
 
-  it("is the sole member of the blocking set", () => {
-    expect([...BLOCKING_CODES]).toEqual(["over-capacity"]);
+  it("blocks on exactly the four conditions the spec lists", () => {
+    // Dashboard spec 2.1: over capacity, room clash, teacher clash, seat
+    // shortfall. Room-capacity mismatches are NOT here (build order 3.7).
+    expect([...BLOCKING_CODES].sort()).toEqual([
+      "over-capacity",
+      "room-clash",
+      "seat-shortfall",
+      "teacher-clash",
+    ]);
+    expect(BLOCKING_CODES).not.toContain("cap-above-room");
+    expect(BLOCKING_CODES).not.toContain("roomless");
+    expect(BLOCKING_CODES).not.toContain("no-limit-set");
   });
 });
 
@@ -135,6 +145,10 @@ describe("room and limit problems are advisory, never blocking (§3.7)", () => {
     expect(advisory!.severity).toBe("advisory");
     expect(advisory!.message).toContain("Sanctuary");
     expect(advisory!.message).toContain("60");
+    // Spec 2.1: room capacity is often an unverified estimate, so the wording is
+    // deliberately soft — "is listed at", never "holds".
+    expect(advisory!.message).toContain("is listed at");
+    expect(advisory!.message).not.toContain("holds");
     expect(canOpenRegistration(issues)).toBe(true);
   });
 
@@ -201,10 +215,11 @@ describe("room clash", () => {
     };
     const clash = detectIssues(input).find((issue) => issue.code === "room-clash");
     expect(clash).toBeDefined();
-    expect(clash!.severity).toBe("warning");
+    // A double-booked room means the event cannot physically run (spec 2.1).
+    // 3.7 makes room CAPACITY advisory; it does not make double-booking benign.
+    expect(clash!.severity).toBe("blocking");
     expect(clash!.message).toContain("Sanctuary");
-    expect(clash!.message).toContain("Choir");
-    expect(clash!.message).toContain("Drum Set");
+    expect(clash!.message).toContain("two activities");
   });
 
   it("does not report a clash when the rooms differ", () => {
@@ -287,9 +302,10 @@ describe("teacher clash", () => {
     };
     const clash = detectIssues(input).find((issue) => issue.code === "teacher-clash");
     expect(clash).toBeDefined();
+    expect(clash!.severity).toBe("blocking");
+    // Spec wording: "Judi Reynolds is in two rooms at 11:25".
     expect(clash!.message).toContain("Brad Farley");
-    expect(clash!.message).toContain("Choir");
-    expect(clash!.message).toContain("Drum Set");
+    expect(clash!.message).toContain("in two rooms");
   });
 
   it("does not report a clash for different teachers", () => {
@@ -377,6 +393,39 @@ describe("age group gap", () => {
   });
 });
 
+describe("whole-event blocks are not coverage gaps", () => {
+  it("does not report a gap in a mandatory block", () => {
+    // Opening and Closing Assembly have zero activities BY DESIGN — everyone
+    // attends together. Before this rule, real production data produced 30
+    // false "Older has nothing at Closing Assembly" warnings.
+    const input: IssueInput = {
+      courses: [],
+      blocks: [{ id: "assembly", label: "Closing Assembly", dayOfWeek: 1, startTime: "11:50", endTime: "12:00", mandatory: true }],
+      ageGroups,
+    };
+    expect(detectIssues(input).some((issue) => issue.code === "age-group-gap")).toBe(false);
+  });
+
+  it("still reports a gap in an ordinary block", () => {
+    const input: IssueInput = {
+      courses: [],
+      blocks: [{ id: "b1", label: "Session 1", dayOfWeek: 1, startTime: "09:20", endTime: "09:45", mandatory: false }],
+      ageGroups,
+    };
+    expect(detectIssues(input).filter((issue) => issue.code === "age-group-gap")).toHaveLength(2);
+  });
+
+  it("does not report a seat shortfall in a mandatory block", () => {
+    const input: IssueInput = {
+      courses: [course({ id: "c1", name: "Choir", cap: 1, sessions: [{ id: "s1", sessionTemplateId: "assembly", enrolledCount: 1 }] })],
+      blocks: [{ id: "assembly", label: "Opening Assembly", dayOfWeek: 1, startTime: "09:00", endTime: "09:20", mandatory: true }],
+      ageGroups: [ageGroups[0]],
+      campersByAgeGroup: { "g-young": 500 },
+    };
+    expect(detectIssues(input).some((issue) => issue.code === "seat-shortfall")).toBe(false);
+  });
+});
+
 describe("seat shortfall", () => {
   it("reports more participants than seats in a block", () => {
     const input: IssueInput = {
@@ -387,8 +436,10 @@ describe("seat shortfall", () => {
     };
     const shortfall = detectIssues(input).find((issue) => issue.code === "seat-shortfall");
     expect(shortfall).toBeDefined();
-    expect(shortfall!.message).toContain("12 participants");
-    expect(shortfall!.message).toContain("5 seats");
+    expect(shortfall!.severity).toBe("blocking");
+    // Spec wording: "10:10 offers 70 seats for 84 participants".
+    expect(shortfall!.message).toContain("offers 5 seats");
+    expect(shortfall!.message).toContain("12");
   });
 
   it("does not report a shortfall when seats are sufficient", () => {

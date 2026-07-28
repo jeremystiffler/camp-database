@@ -252,8 +252,11 @@ describe("rendered toolbar", () => {
 
   it("hides the toolbar when printing", () => {
     const css = fs.readFileSync("src/app/globals.css", "utf8");
-    const printBlock = css.slice(css.lastIndexOf("@media print"));
-    expect(printBlock).toContain("ops-toolbar");
+    // There are several @media print blocks. Assert the rule exists in one of
+    // them rather than assuming which is last — appending a new print block
+    // elsewhere must not break this.
+    const printBlocks = css.split("@media print").slice(1);
+    expect(printBlocks.some((block) => block.includes("ops-toolbar"))).toBe(true);
   });
 
   it("writes the toolbar harness", () => {
