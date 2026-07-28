@@ -555,7 +555,7 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 .ops-num--empty { color: var(--warning); }
 .ops-num--over { color: var(--danger); font-weight: 700; }
 
-.ops-grid-wrap { position: relative; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--canvas); max-height: 70vh; }
+.ops-grid-wrap { position: relative; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--canvas); max-height: min(70vh, 620px); }
 .ops-grid { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
 .ops-grid th, .ops-grid td { padding: 10px; border-bottom: 1px solid var(--border-hair); border-right: 1px solid var(--border-hair); }
 .ops-grid tr:last-child th, .ops-grid tr:last-child td { border-bottom: 0; }

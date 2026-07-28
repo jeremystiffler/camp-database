@@ -60,6 +60,136 @@ export function blockLabel(block: GridBlock, showDay: boolean): string {
   return `${DAY_LABEL[block.dayOfWeek] ?? ""} ${time}`.trim();
 }
 
+/** A column in the rendered grid. May stand for several days' worth of blocks. */
+export type GridColumn = {
+  key: string;
+  label: string;
+  startTime: string;
+  endTime: string;
+  /** Every SessionTemplate id this column stands for. */
+  blockIds: string[];
+  days: number[];
+};
+
+function dayRangeLabel(days: number[]): string {
+  const sorted = [...days].sort((a, b) => a - b);
+  if (sorted.length === 0) return "";
+  if (sorted.length === 1) return DAY_LABEL[sorted[0]] ?? "";
+  const consecutive = sorted.every((day, index) => index === 0 || day === sorted[index - 1] + 1);
+  if (consecutive) return `${DAY_LABEL[sorted[0]]}–${DAY_LABEL[sorted[sorted.length - 1]]}`;
+  return sorted.map((day) => DAY_LABEL[day] ?? "").join(", ");
+}
+
+/**
+ * Collapse repeating days into one set of time columns.
+ *
+ * A week-long camp that runs the same eight periods every weekday produces forty
+ * SessionTemplates, and forty columns is not a grid anyone can read. When every
+ * period runs on every active day the schedule is a perfect repeat, so the days
+ * carry no information and are folded away — eight columns, labelled by time.
+ *
+ * Folding is deliberately strict: if any period is missing on any day the days
+ * genuinely differ, and the grid keeps day-prefixed columns rather than quietly
+ * flattening a difference the organiser needs to see.
+ */
+export function foldBlocks(blocks: GridBlock[]): {
+  columns: GridColumn[];
+  folded: boolean;
+  dayLabel: string;
+  hiddenDayCount: number;
+} {
+  const byTime = new Map<string, GridBlock[]>();
+  for (const block of blocks) {
+    const key = `${block.startTime}|${block.endTime}`;
+    const list = byTime.get(key) ?? [];
+    list.push(block);
+    byTime.set(key, list);
+  }
+
+  const activeDays = [
+    ...new Set(
+      blocks
+        .map((block) => block.dayOfWeek)
+        .filter((day): day is number => day !== null && day !== undefined),
+    ),
+  ].sort((a, b) => a - b);
+
+  // Every period must run on every active day for the days to be redundant.
+  const everyPeriodRunsEveryDay =
+    activeDays.length > 1 &&
+    [...byTime.values()].every((group) => {
+      const days = new Set(
+        group
+          .map((block) => block.dayOfWeek)
+          .filter((day): day is number => day !== null && day !== undefined),
+      );
+      return days.size === activeDays.length;
+    });
+
+  if (!everyPeriodRunsEveryDay) {
+    const showDay = new Set(blocks.map((block) => block.dayOfWeek ?? -1)).size > 1;
+    return {
+      columns: blocks.map((block) => ({
+        key: block.id,
+        label: blockLabel(block, showDay),
+        startTime: block.startTime,
+        endTime: block.endTime,
+        blockIds: [block.id],
+        days: block.dayOfWeek === null || block.dayOfWeek === undefined ? [] : [block.dayOfWeek],
+      })),
+      folded: false,
+      dayLabel: dayRangeLabel(activeDays),
+      hiddenDayCount: 0,
+    };
+  }
+
+  const columns = [...byTime.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, group]) => ({
+      key,
+      label: formatTime(group[0].startTime),
+      startTime: group[0].startTime,
+      endTime: group[0].endTime,
+      blockIds: group.map((block) => block.id),
+      days: activeDays,
+    }));
+
+  return {
+    columns,
+    folded: true,
+    dayLabel: dayRangeLabel(activeDays),
+    hiddenDayCount: activeDays.length - 1,
+  };
+}
+
+/**
+ * The occupancy a folded column should display.
+ *
+ * When a column stands for five identical days the count is the same on each and
+ * is shown plainly. When the days disagree the highest is shown and flagged: for
+ * a capacity tool the fullest day is the one that can breach the limit, and a
+ * quiet average would hide exactly the day that matters.
+ */
+export function foldCell(
+  course: GridCourse,
+  column: GridColumn,
+): { enrolled: number; scheduled: boolean; varies: boolean; perDay: string } | null {
+  const sessions = (course.sessions ?? []).filter(
+    (session) => session.sessionTemplateId && column.blockIds.includes(session.sessionTemplateId),
+  );
+  if (sessions.length === 0) return null;
+
+  const counts = sessions.map((session) => session.enrolledCount ?? 0);
+  const enrolled = Math.max(...counts);
+  const varies = new Set(counts).size > 1;
+  return {
+    enrolled,
+    scheduled: true,
+    varies,
+    perDay: varies ? counts.join(", ") : String(enrolled),
+  };
+}
+
 function teacherLabel(course: GridCourse): { text: string; missing: boolean } {
   const names = (course.courseTeachers ?? [])
     .map((entry) => `${entry.person.firstName} ${entry.person.lastName}`.trim())
@@ -121,11 +251,17 @@ export function CapacityBar({ enrolled, cap }: { enrolled: number; cap: number |
   );
 }
 
-function CellContent({ session, course }: { session: GridSession | undefined; course: GridCourse }) {
+function CellContent({
+  cell,
+  course,
+}: {
+  cell: { enrolled: number; varies: boolean; perDay: string } | null;
+  course: GridCourse;
+}) {
   // Not scheduled in this block: no track, blank cell (§1.3).
-  if (!session) return null;
+  if (!cell) return null;
 
-  const enrolled = session.enrolledCount ?? 0;
+  const enrolled = cell.enrolled;
   const capacity = effectiveCapacity({ cap: course.cap });
   const over = Number.isFinite(capacity) && enrolled > capacity;
   const empty = enrolled === 0;
@@ -136,11 +272,15 @@ function CellContent({ session, course }: { session: GridSession | undefined; co
 
   return (
     <>
-      <span className={numClass}>{enrolled}</span>
+      <span className={numClass} title={cell.varies ? `Varies by day: ${cell.perDay}` : undefined}>
+        {enrolled}
+        {cell.varies && <span aria-hidden="true">*</span>}
+      </span>
       <span className="sr-only">
         {unlimited
           ? ` enrolled, no limit set`
           : ` of ${capText}${over ? " — over capacity" : ""}${empty ? " — nobody enrolled" : ""}`}
+        {cell.varies ? ` — busiest day; varies by day: ${cell.perDay}` : ""}
       </span>
       <CapacityBar enrolled={enrolled} cap={course.cap} />
     </>
@@ -149,26 +289,21 @@ function CellContent({ session, course }: { session: GridSession | undefined; co
 
 /** Mobile (<768px): a time-block list, not a shrunken desktop grid (§1.5). */
 function BlockList({
-  blocks,
+  columns,
   courses,
   ageGroupById,
-  showDay,
 }: {
-  blocks: GridBlock[];
+  columns: GridColumn[];
   courses: GridCourse[];
   ageGroupById: Map<string, GridAgeGroup>;
-  showDay: boolean;
 }) {
-  const [activeBlock, setActiveBlock] = useState(blocks[0]?.id ?? "");
-  const block = blocks.find((b) => b.id === activeBlock) ?? blocks[0];
-  if (!block) return null;
+  const [activeKey, setActiveKey] = useState(columns[0]?.key ?? "");
+  const column = columns.find((candidate) => candidate.key === activeKey) ?? columns[0];
+  if (!column) return null;
 
   const running = courses
-    .map((course) => ({
-      course,
-      session: (course.sessions ?? []).find((s) => s.sessionTemplateId === block.id),
-    }))
-    .filter((entry) => entry.session);
+    .map((course) => ({ course, cell: foldCell(course, column) }))
+    .filter((entry) => entry.cell);
 
   return (
     <div className="md:hidden">
@@ -177,14 +312,13 @@ function BlockList({
       </label>
       <select
         id="ops-block-picker"
-        value={block.id}
-        onChange={(event) => setActiveBlock(event.target.value)}
+        value={column.key}
+        onChange={(event) => setActiveKey(event.target.value)}
         className="mb-3 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 text-sm text-[var(--text)]"
       >
-        {blocks.map((option) => (
-          <option key={option.id} value={option.id}>
-            {blockLabel(option, showDay)}–{formatTime(option.endTime)}
-            {option.label ? ` · ${option.label}` : ""}
+        {columns.map((option) => (
+          <option key={option.key} value={option.key}>
+            {option.label}–{formatTime(option.endTime)}
           </option>
         ))}
       </select>
@@ -193,7 +327,7 @@ function BlockList({
         <p className="ops-meta">Nothing is scheduled in this block yet.</p>
       ) : (
         <ul className="space-y-2">
-          {running.map(({ course, session }) => {
+          {running.map(({ course, cell }) => {
             const teacher = teacherLabel(course);
             const group = course.courseAgeGroups?.[0]?.ageGroupId ?? course.ageGroupId ?? "";
             const chip = ageGroupById.get(group);
@@ -220,7 +354,7 @@ function BlockList({
                     </p>
                   </div>
                   <div className="w-16 shrink-0 text-right">
-                    <CellContent session={session} course={course} />
+                    <CellContent cell={cell} course={course} />
                   </div>
                 </div>
               </li>
@@ -267,10 +401,19 @@ export function OperationsGrid({
   }, [courses.length, blocks.length]);
 
   const ageGroupById = new Map(ageGroups.map((group) => [group.id, group]));
-  const showDay = new Set(blocks.map((block) => block.dayOfWeek ?? -1)).size > 1;
+
+  // Fold repeating days into one set of time columns. A five-day camp running
+  // the same eight periods daily has forty templates but only eight meaningful
+  // columns.
+  const { columns, folded, dayLabel, hiddenDayCount } = foldBlocks(blocks);
 
   const scheduled = courses.filter((course) => (course.sessions ?? []).length > 0);
   const rows = [...scheduled, ...courses.filter((course) => !scheduled.includes(course))];
+
+  // Only mention the variation marker when something actually varies.
+  const anyVaries =
+    folded &&
+    courses.some((course) => columns.some((column) => foldCell(course, column)?.varies));
 
   if (blocks.length === 0 || courses.length === 0) {
     return <p className="ops-meta">{emptyMessage}</p>;
@@ -278,22 +421,30 @@ export function OperationsGrid({
 
   return (
     <>
-      <BlockList blocks={blocks} courses={courses} ageGroupById={ageGroupById} showDay={showDay} />
+      {folded && (
+        <p className="ops-meta mb-2">
+          {dayLabel} run the same time blocks, so the {hiddenDayCount + 1} days are shown once.
+          {anyVaries ? " A count marked * differs between days — the busiest is shown." : ""}
+        </p>
+      )}
+
+      <BlockList columns={columns} courses={courses} ageGroupById={ageGroupById} />
 
       <div className="relative hidden md:block">
         <div className="ops-grid-wrap" ref={wrapRef}>
           <table className="ops-grid">
             <caption className="sr-only">
               Activities by time block, showing enrollment against each class limit.
+              {folded ? ` ${dayLabel} run the same set of time blocks, shown once.` : ""}
             </caption>
             <thead>
               <tr>
                 <th scope="col" className="ops-rowhead">
                   Activity
                 </th>
-                {blocks.map((block) => (
-                  <th key={block.id} scope="col" className="ops-cell">
-                    {blockLabel(block, showDay)}
+                {columns.map((column) => (
+                  <th key={column.key} scope="col" className="ops-cell">
+                    {column.label}
                   </th>
                 ))}
               </tr>
@@ -327,16 +478,11 @@ export function OperationsGrid({
                         {course.room?.name ?? "No room"} · {teacher.text} · {capLabel(course.cap)}
                       </p>
                     </th>
-                    {blocks.map((block) => {
-                      const session = (course.sessions ?? []).find(
-                        (candidate) => candidate.sessionTemplateId === block.id,
-                      );
-                      return (
-                        <td key={block.id} className="ops-cell">
-                          <CellContent session={session} course={course} />
-                        </td>
-                      );
-                    })}
+                    {columns.map((column) => (
+                      <td key={column.key} className="ops-cell">
+                        <CellContent cell={foldCell(course, column)} course={course} />
+                      </td>
+                    ))}
                   </tr>
                 );
               })}
