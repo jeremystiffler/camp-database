@@ -114,13 +114,23 @@ function capacityPercent(session: Session) {
   const cap = sessionCapacity(session);
   return Number.isFinite(cap) && cap > 0 ? Math.round((session.enrolledCount / cap) * 100) : 0;
 }
+/**
+ * Capacity badge styling. Uses the status token layer, not the legacy warm
+ * palette: the old sage/clay/butter Tailwind classes were never defined as
+ * colour scales, so those branches rendered unstyled. Full is a success
+ * state, not an error (F §8) — only genuine overflow reads as danger.
+ */
 function capacityTone(percent: number) {
-  if (percent > 100) return "bg-rose-100 text-rose-800 border-rose-200";
-  if (percent === 100) return "bg-emerald-100 text-emerald-800 border-emerald-200";
-  if (percent >= 85) return "bg-clay-100 text-clay-800 border-clay-200";
-  if (percent >= 60) return "bg-butter-100 text-amber-800 border-amber-200";
-  if (percent > 0) return "bg-sage-100 text-sage-800 border-sage-200";
-  return "bg-slate-50 text-slate-400 border-slate-200";
+  if (percent > 100) return "border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,white)] text-[var(--danger)]";
+  if (percent === 100) return "border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,white)] text-[var(--success)]";
+  if (percent >= 85) return "border-[color-mix(in_srgb,var(--warning)_35%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,white)] text-[var(--warning)]";
+  if (percent >= 60) return "border-[color-mix(in_srgb,var(--warning)_25%,transparent)] bg-[color-mix(in_srgb,var(--warning)_6%,white)] text-[var(--text)]";
+  if (percent > 0) return "border-[var(--border)] bg-white text-[var(--text)]";
+  return "border-[var(--border)] bg-[var(--canvas-sunk)] text-[var(--text-faint)]";
+}
+/** Class limit for display. A blank limit is unlimited, not unknown. */
+function capLabel(cap?: number | null) {
+  return typeof cap === "number" && Number.isFinite(cap) ? String(cap) : "No limit";
 }
 function uniqueBy<T>(items: T[], keyFn: (item: T) => string) {
   const map = new Map<string, T>();
@@ -334,7 +344,7 @@ function ScheduleContent() {
                       <p className="text-xs font-black uppercase tracking-wide text-slate-400">Highest load</p>
                       <p className="text-sm font-bold text-slate-800">{sessionTitle(busiest)} · {DAYS[sessionDay(busiest)]} {timeRange(busiest)} · {busiest.room?.name || "No room"}</p>
                     </div>
-                    <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{busiest.course?.cap || "?"}</span>
+                    <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{capLabel(busiest.course?.cap)}</span>
                   </div>
                 </div>
               )}
@@ -438,7 +448,7 @@ function CoursePivot({ sessions, courses, campId }: { sessions: Session[]; cours
     <PivotShell title="Course matrix" subtitle="One row per course with its schedule footprint and operational metadata.">
       <table className="min-w-full border-collapse text-left text-sm">
         <thead><tr className="bg-slate-50"><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Course</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Times</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Rooms</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Teachers</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Groups</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Load</th></tr></thead>
-        <tbody>{rows.map(({ course, sessions: courseSessions }) => { const uniqueTimes = uniqueBy(courseSessions, (s) => `${sessionDay(s)}|${s.startTime}|${s.endTime}`); const rooms = uniqueBy(courseSessions.map((s) => s.room).filter((room): room is Room => Boolean(room)), (room) => room.id); const enrolled = courseSessions.reduce((sum, s) => sum + s.enrolledCount, 0); const cap = courseSessions.reduce((sum, s) => sum + (s.course?.cap || 0), 0); return <tr key={course.id} className="border-b border-slate-100"><td className="p-3 font-black text-slate-900"><Link href={activityHref(campId, course.id)} className="underline-offset-2 hover:underline">{course.name}</Link></td><td className="p-3 text-xs text-slate-600">{uniqueTimes.map((s) => `${DAYS[sessionDay(s)]} ${timeRange(s)}`).join("\n")}</td><td className="p-3 text-xs text-slate-600">{rooms.map((room) => room.name).join("\n") || "—"}</td><td className="p-3 text-xs text-slate-600">{teacherNames(course)}</td><td className="p-3 text-xs text-slate-600">{ageGroupNames(course)}</td><td className="p-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${capacityTone(cap ? Math.round((enrolled / cap) * 100) : 0)}`}>{enrolled}/{cap || "?"}</span></td></tr>; })}</tbody>
+        <tbody>{rows.map(({ course, sessions: courseSessions }) => { const uniqueTimes = uniqueBy(courseSessions, (s) => `${sessionDay(s)}|${s.startTime}|${s.endTime}`); const rooms = uniqueBy(courseSessions.map((s) => s.room).filter((room): room is Room => Boolean(room)), (room) => room.id); const enrolled = courseSessions.reduce((sum, s) => sum + s.enrolledCount, 0); const cap = courseSessions.reduce((sum, s) => sum + (s.course?.cap || 0), 0); return <tr key={course.id} className="border-b border-slate-100"><td className="p-3 font-black text-slate-900"><Link href={activityHref(campId, course.id)} className="underline-offset-2 hover:underline">{course.name}</Link></td><td className="p-3 text-xs text-slate-600">{uniqueTimes.map((s) => `${DAYS[sessionDay(s)]} ${timeRange(s)}`).join("\n")}</td><td className="p-3 text-xs text-slate-600">{rooms.map((room) => room.name).join("\n") || "—"}</td><td className="p-3 text-xs text-slate-600">{teacherNames(course)}</td><td className="p-3 text-xs text-slate-600">{ageGroupNames(course)}</td><td className="p-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${capacityTone(cap ? Math.round((enrolled / cap) * 100) : 0)}`}>{enrolled}/{cap || "No limit"}</span></td></tr>; })}</tbody>
       </table>
     </PivotShell>
   );
@@ -450,7 +460,7 @@ function CapacityHeatmap({ sessions, campId }: { sessions: Session[]; campId: st
       <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
         {[...sessions].sort((a, b) => capacityPercent(b) - capacityPercent(a)).map((session) => {
           const percent = capacityPercent(session);
-          return <div key={session.id} className={`rounded-2xl border p-4 ${capacityTone(percent)}`}><div className="flex items-start justify-between gap-3"><div>{session.course ? <Link href={activityHref(campId, session.course.id)} className="font-black text-slate-900 underline-offset-2 hover:underline">{sessionTitle(session)}</Link> : <p className="font-black text-slate-900">{sessionTitle(session)}</p>}<p className="mt-1 text-xs font-semibold opacity-80">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}</p></div><span className="rounded-full bg-white/65 px-2 py-1 text-xs font-black">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70"><div className="h-full rounded-full bg-slate-900/60" style={{ width: `${Math.min(percent, 100)}%` }} /></div><p className="mt-2 text-xs font-bold opacity-80">{session.enrolledCount}/{session.course?.cap || "?"} enrolled{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>;
+          return <div key={session.id} className={`rounded-2xl border p-4 ${capacityTone(percent)}`}><div className="flex items-start justify-between gap-3"><div>{session.course ? <Link href={activityHref(campId, session.course.id)} className="font-black text-slate-900 underline-offset-2 hover:underline">{sessionTitle(session)}</Link> : <p className="font-black text-slate-900">{sessionTitle(session)}</p>}<p className="mt-1 text-xs font-semibold opacity-80">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}</p></div><span className="rounded-full bg-white/65 px-2 py-1 text-xs font-black">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70"><div className="h-full rounded-full bg-slate-900/60" style={{ width: `${Math.min(percent, 100)}%` }} /></div><p className="mt-2 text-xs font-bold opacity-80">{session.enrolledCount}/{capLabel(session.course?.cap)} enrolled{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>;
         })}
       </div>
     </PivotShell>
@@ -469,7 +479,7 @@ function ListView({ sessions, campId }: { sessions: Session[]; campId: string })
         <div key={session.id} className="camp-card flex items-center gap-4 p-4">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: session.course?.color || "#94a3b8" }}>{session.course?.icon || "Sc"}</div>
           <div className="min-w-0 flex-1">{session.course ? <Link href={activityHref(campId, session.course.id)} className="truncate font-semibold text-slate-800 underline-offset-2 hover:underline">{sessionTitle(session)}</Link> : <p className="truncate font-semibold text-slate-800">{sessionTitle(session)}</p>}<p className="text-xs text-slate-500">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>
-          <div className="flex-shrink-0 text-right"><div className="text-sm font-semibold text-slate-700">{session.enrolledCount}/{session.course?.cap || "?"}</div><div className="text-xs text-slate-400">enrolled</div></div>
+          <div className="flex-shrink-0 text-right"><div className="text-sm font-semibold text-slate-700">{session.enrolledCount}/{capLabel(session.course?.cap)}</div><div className="text-xs text-slate-400">enrolled</div></div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[session.status] || "bg-slate-100 text-slate-600"}`}>{session.status}</span>
           <RowDeleteButton onDelete={() => deleteSession(session)} label={sessionTitle(session)} />
         </div>
