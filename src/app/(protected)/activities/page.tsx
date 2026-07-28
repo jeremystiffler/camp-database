@@ -7,6 +7,9 @@ import { HelpCopy } from "@/components/HelpMode";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState } from "@/components/OperationalUI";
 import { useConfirmation } from "@/components/ConfirmDialog";
+import { CoverageMatrixView } from "@/components/CoverageMatrixView";
+import { buildCoverage } from "@/lib/coverage";
+import { foldBlocks } from "@/components/OperationsGrid";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -239,7 +242,7 @@ function QuickAddPerson({
 type SlotMode = "same" | "different";
 
 function CourseModal({
-  course, campId, ageGroups, rooms, persons, sessionTemplates,
+  course, campId, ageGroups, rooms, persons, sessionTemplates, prefill,
   onClose, onSaved, onPersonsChanged,
 }: {
   course?: Course | null;
@@ -248,6 +251,8 @@ function CourseModal({
   rooms: Room[];
   persons: Person[];
   sessionTemplates: SessionTemplate[];
+  /** Block and age group a coverage flag asked for (§4.4). */
+  prefill?: { blockId: string; ageGroupId: string } | null;
   onClose: () => void;
   onSaved: () => void;
   onPersonsChanged: (p: Person[]) => void;
@@ -265,7 +270,10 @@ function CourseModal({
 
   // Age groups
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>(
-    course?.courseAgeGroups?.map(cag => cag.ageGroup.id) || []
+    // A new class raised by a coverage flag starts tagged with the group that
+    // was short, and slotted into the period that was short (§4.4).
+    course?.courseAgeGroups?.map(cag => cag.ageGroup.id)
+      || (prefill?.ageGroupId ? [prefill.ageGroupId] : []),
   );
 
   // Teachers split by role — both stored in same selectedTeachers array
@@ -289,7 +297,13 @@ function CourseModal({
   };
 
   const [slotMode, setSlotMode]     = useState<SlotMode>(deriveInitialMode);
-  const [selectedSlots, setSelectedSlots] = useState<string[]>(existingSlotIds);
+  const [selectedSlots, setSelectedSlots] = useState<string[]>(
+    existingSlotIds.length > 0
+      ? existingSlotIds
+      : prefill?.blockId
+        ? [prefill.blockId]
+        : [],
+  );
 
   // ── Derived: unique times across all session templates ──
   const uniqueTimes = useMemo(() => {
@@ -729,6 +743,12 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
   const searchParams = useSearchParams();
   const campId = searchParams.get("campId") || "";
   const activityId = searchParams.get("activityId") || "";
+  // §4.4 pre-fill: a flagged coverage cell opens the new-activity form already
+  // carrying the block and age group it was raised for. A flag that makes you
+  // re-enter the context it just told you about is not a fix.
+  const prefillNew = searchParams.get("new") === "1";
+  const prefillBlockId = searchParams.get("blockId") || "";
+  const prefillAgeGroupId = searchParams.get("ageGroupId") || "";
 
   const [courses, setCourses]                   = useState<Course[]>([]);
   const [mandatorySessions, setMandatorySessions] = useState<MandatorySession[]>([]);
@@ -752,6 +772,29 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
   const [inlineConflicts, setInlineConflicts]   = useState<SchedulingConflict[]>([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const [bulkWorking, setBulkWorking]           = useState(false);
+  // Which block/group a coverage flag asked for, so the new-class form opens
+  // already carrying that context (§4.4).
+  const [prefillBlock, setPrefillBlock]         = useState<{ blockId: string; ageGroupId: string } | null>(null);
+
+  // Coverage for this catalogue (§4.3). sessionTemplates are the time blocks.
+  const coverage = useMemo(() => {
+    if (loading || sessionTemplates.length === 0) return null;
+    const blocks = sessionTemplates.map((template) => ({
+      id: template.id,
+      label: template.label ?? "",
+      startTime: template.startTime ?? "",
+      endTime: template.endTime ?? "",
+      dayOfWeek: template.dayOfWeek ?? 0,
+      mandatory: Boolean((template as { allScheduleLock?: boolean }).allScheduleLock),
+    }));
+    return buildCoverage({
+      courses: courses as never,
+      blocks,
+      columns: foldBlocks(blocks as never).columns,
+      ageGroups: ageGroups as never,
+      campersByAgeGroup: {},
+    });
+  }, [loading, courses, sessionTemplates, ageGroups]);
 
   const toggleSort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -797,6 +840,17 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
       document.getElementById(`activity-row-${activityId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 150);
   }, [activityId, loading, courses]);
+
+  // Coverage sent us here to create a class for a specific period and group.
+  useEffect(() => {
+    if (!prefillNew || loading) return;
+    // Arrived from the dashboard band, which navigates because the remedy lives
+    // on this screen. Carry the block and group through so the form opens with
+    // the context the flag was raised for.
+    setPrefillBlock({ blockId: prefillBlockId, ageGroupId: prefillAgeGroupId });
+    setEditingCourse(null);
+    setShowModal(true);
+  }, [prefillNew, prefillBlockId, prefillAgeGroupId, loading]);
 
   const toggleCourseSelected = (id: string) => {
     setSelectedCourseIds(prev => {
@@ -1073,6 +1127,41 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
         </>
       )}
 
+      {/* Coverage as a first-class view ABOVE the catalogue (§4.3): this is
+          where classes actually get created, so the gap and the remedy sit in
+          the same place. Same component as the dashboard band. */}
+      {coverage && coverage.flagged.length > 0 && (
+        <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <CoverageMatrixView
+            matrix={coverage}
+            courses={courses as never}
+            variant="panel"
+            onAddClass={(columnKey, groupId) => {
+              const column = coverage.columns.find((c) => c.key === columnKey);
+              const blockId = column?.blockIds[0] ?? "";
+              // The modal opens here directly. No navigation: the gap and the
+              // remedy are on the same screen, which is the point of putting
+              // coverage on /activities at all.
+              setPrefillBlock({ blockId, ageGroupId: groupId });
+              setEditingCourse(null);
+              setShowModal(true);
+            }}
+            onRaiseCap={(courseId) => {
+              const match = courses.find((course) => course.id === courseId);
+              if (!match) return;
+              setEditingCourse(match);
+              setShowModal(true);
+            }}
+            onUnhide={(courseId) => {
+              const match = courses.find((course) => course.id === courseId);
+              if (!match) return;
+              setEditingCourse(match);
+              setShowModal(true);
+            }}
+          />
+        </div>
+      )}
+
       {(simpleCatalog || workspaceTab === "catalog") && (
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="px-5 py-4">
@@ -1304,7 +1393,8 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
           rooms={rooms}
           persons={persons}
           sessionTemplates={sessionTemplates}
-          onClose={() => { setShowModal(false); setEditingCourse(undefined); }}
+          prefill={prefillBlock}
+          onClose={() => { setShowModal(false); setEditingCourse(undefined); setPrefillBlock(null); }}
           onSaved={() => { load(); onActivitiesChanged?.(); }}
           onPersonsChanged={setPersons}
         />

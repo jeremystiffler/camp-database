@@ -578,6 +578,7 @@ export function OperationsGrid({
   ageGroups,
   emptyMessage = "Add an activity and a time block to see your grid.",
   interactive = false,
+  footer,
   onRemoveSession,
   onAddSession,
 }: {
@@ -590,6 +591,11 @@ export function OperationsGrid({
    * navigation. Off by default so read-only placements stay read-only.
    */
   interactive?: boolean;
+  /**
+   * Rendered inside the scroll wrapper, beneath the table. Used for the Slice 4
+   * coverage band, which must share these exact time columns (§4.3).
+   */
+  footer?: React.ReactNode;
   /** Return true on success. The grid does not know how to talk to the API. */
   onRemoveSession?: (input: { courseId: string; sessionId: string }) => Promise<boolean>;
   onAddSession?: (input: {
@@ -1101,6 +1107,12 @@ export function OperationsGrid({
               })}
             </tbody>
           </table>
+          {/* Coverage band (§4.3). Rendered INSIDE the scroll wrapper so it
+              shares the grid's horizontal scroll and therefore its time
+              columns — reading down a column gives the classes above and the
+              spare places below. Sticky to the bottom of this viewport, which
+              is the frozen-header treatment on the opposite edge. */}
+          {footer}
         </div>
         <div className={`ops-shadow-r ${scrollRight ? "is-on" : ""}`} aria-hidden="true" />
         <div className={`ops-shadow-b ${scrollBottom ? "is-on" : ""}`} aria-hidden="true" />

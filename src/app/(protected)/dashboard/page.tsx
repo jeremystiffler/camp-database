@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import NewCampWizard from "@/components/NewCampWizard";
 import { HelpCopy } from "@/components/HelpMode";
-import { OperationsGrid, type GridAgeGroup, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
+import { OperationsGrid, foldBlocks, type GridAgeGroup, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
+import { CoverageMatrixView } from "@/components/CoverageMatrixView";
+import { buildCoverage } from "@/lib/coverage";
 import { SummaryStrip } from "@/components/SummaryStrip";
 import { EmptyHome, SetupPanel, type SetupLink } from "@/components/SetupPanel";
 import { homeState, type HomeState } from "@/lib/homeState";
@@ -28,6 +30,8 @@ interface Camp {
 interface DashboardSummary {
   /** The API has always returned this; the local type just never declared it. */
   camp?: { id: string; name: string; status?: string; registrationOpen?: boolean };
+  /** Registration count per age group — the honest stand-in for expected size. */
+  campersByAgeGroup?: Record<string, number>;
   stats: {
     registeredStudents: number;
     classes: number;
@@ -659,6 +663,18 @@ function DashboardContent() {
   // Home's four states (spec §5, phase 18g). Derived every render — never
   // stored, so it cannot fall out of step with the event it describes.
   const registrationOpen = Boolean(summary?.camp?.registrationOpen);
+  // Coverage (§4.3). Shares the grid's folded columns so the band lines up with
+  // the table above it — column alignment is the whole point of the placement.
+  const coverage = summary?.grid
+    ? buildCoverage({
+        courses: summary.grid.courses,
+        blocks: summary.grid.blocks,
+        columns: foldBlocks(summary.grid.blocks).columns,
+        ageGroups: summary.grid.ageGroups,
+        campersByAgeGroup: summary.campersByAgeGroup ?? {},
+      })
+    : null;
+
   const state: HomeState = homeState({
     activityCount: summary?.grid?.courses.length ?? 0,
     blockCount: summary?.grid?.blocks.length ?? 0,
@@ -798,6 +814,22 @@ function DashboardContent() {
                 interactive
                 onRemoveSession={removeSession}
                 onAddSession={addSession}
+                footer={
+                  coverage ? (
+                    <CoverageMatrixView
+                      matrix={coverage}
+                      courses={summary.grid.courses}
+                      variant="band"
+                      onAddClass={(columnKey, groupId) => {
+                        const column = coverage.columns.find((c) => c.key === columnKey);
+                        const blockId = column?.blockIds[0] ?? "";
+                        router.push(`/activities?new=1&blockId=${blockId}&ageGroupId=${groupId}`);
+                      }}
+                      onRaiseCap={(courseId) => router.push(`/activities?activityId=${courseId}`)}
+                      onUnhide={(courseId) => router.push(`/activities?activityId=${courseId}`)}
+                    />
+                  ) : null
+                }
               />
             </section>
           )}

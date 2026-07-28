@@ -944,3 +944,94 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 .setupnav__dot.is-todo { background: #cbd5e1; }
 
 @media print { .setupnav { display: none; } }
+
+/* ─── Coverage matrix (§4.3) — one component, two placements ─────────────── */
+.cov { --cov-cell: 68px; }
+.cov__head { margin-bottom: 10px; }
+.cov__title { font-size: 15px; font-weight: 800; color: var(--text); }
+.cov__sub { margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.cov__scroll { overflow-x: auto; }
+/* A popover inside the scroll container gets clipped, because overflow-x:auto
+   makes this a scroll container on BOTH axes. When a cell is open, let the
+   popover escape downward. Measured: it was cut off by 39px, so the remedy
+   buttons could not be clicked at all. */
+.cov__scroll:has(.cov__pop) { overflow: visible; }
+.cov__table { border-collapse: separate; border-spacing: 0; width: 100%; }
+.cov__corner, .cov__rowhead {
+  position: sticky; left: 0; z-index: 2; background: var(--canvas);
+  text-align: left; font-size: 11px; font-weight: 700; color: var(--text-muted);
+  padding: 4px 10px 4px 2px; white-space: nowrap;
+}
+.cov__colhead {
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  padding: 2px 4px; text-align: center; min-width: var(--cov-cell);
+}
+.cov__cell { padding: 2px; position: relative; text-align: center; }
+.cov__btn {
+  display: grid; gap: 0; width: 100%; min-width: var(--cov-cell);
+  padding: 5px 6px; border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; font: inherit; cursor: default; text-align: center;
+}
+.cov__btn.is-flagged { cursor: pointer; }
+.cov__btn.is-flagged:hover { border-color: var(--border-strong); }
+.cov__btn:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 1px; }
+.cov__spare { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cov__count { font-size: 10px; font-weight: 600; color: var(--text-muted); }
+
+/* Seat states. Quiet when comfortable — no fill at all. */
+.cov__btn.is-tight { background: var(--warning-wash); }
+.cov__btn.is-short { background: var(--danger-wash); }
+.cov__btn.is-short .cov__spare { font-weight: 600; color: var(--danger); }
+.cov__btn.is-none  { background: var(--danger-wash); }
+.cov__btn.is-none .cov__spare { font-size: 12px; font-weight: 600; color: var(--danger); }
+
+/* Fragile stacks on top of any seat colour — dashed border, warning count. */
+.cov__btn.is-fragile { border: 1px dashed var(--border-strong); }
+.cov__btn.is-fragile .cov__count { color: var(--warning); font-weight: 700; }
+
+.cov__pop {
+  position: absolute; z-index: 40; left: 50%; transform: translateX(-50%);
+  top: 100%; margin-top: 2px; width: max-content; max-width: 260px;
+  background: var(--canvas); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lift); padding: 8px 10px;
+}
+.cov__popline { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.cov__actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.cov__action {
+  font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+  padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--canvas); color: var(--text);
+}
+.cov__action:hover { background: var(--canvas-sunk); }
+.cov__action:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 1px; }
+
+/* Worst-first callout. */
+.cov__list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 3px; }
+.cov__listitem { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.cov__pip { width: 8px; height: 8px; border-radius: 2px; flex: none; background: var(--text-muted); }
+.cov__pip.is-short, .cov__pip.is-none { background: var(--danger); }
+.cov__pip.is-tight { background: var(--warning); }
+.cov__pip.is-fragile { border: 1px dashed var(--border-strong); background: transparent; }
+.cov__listtext { font-weight: 600; color: var(--text); flex: 1; min-width: 0; }
+.cov__listbtn {
+  font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; flex: none;
+  padding: 3px 8px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--canvas); color: var(--text);
+}
+.cov__listbtn:hover { background: var(--canvas-sunk); }
+
+/* BAND: a footer beneath the grid, sharing its time columns. Sticky to the
+   bottom of the grid viewport so totals stay visible while rows scroll — the
+   frozen-header treatment on the opposite edge (§4.3). */
+.cov--band {
+  position: sticky; bottom: 0; z-index: 5;
+  background: var(--canvas); border-top: 2px solid var(--border-strong);
+  padding: 4px 0 2px;
+}
+.cov--band .cov__colhead { display: none; }
+.cov--band .cov__spare { font-size: 13px; }
+
+@media print {
+  .cov--band { position: static; }
+  .cov__pop, .cov__listbtn, .cov__actions { display: none; }
+}
