@@ -6,6 +6,7 @@ import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
 import { EmptyState } from "@/components/OperationalUI";
 import { RowDeleteButton } from "@/components/InlineEditing";
+import { OperationsGrid, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
 import { hueVars, normalizeActivityName, resolveActivityHue } from "@/lib/activity-color";
 import { effectiveCapacity } from "@/lib/capacity-rules";
 
@@ -36,6 +37,8 @@ interface Course {
   icon?: string;
   cap: number;
   heldSeats?: number;
+  /** The activity's own room. The courses endpoint includes it. */
+  room?: Room | null;
   ageGroup?: AgeGroup | null;
   courseAgeGroups?: { ageGroup: AgeGroup }[];
   courseTeachers?: { person: Person }[];
@@ -65,7 +68,7 @@ interface Session {
   sessionTemplate?: SessionTemplate | null;
 }
 
-type ScheduleView = "dayGrid" | "roomPivot" | "teacherPivot" | "coursePivot" | "capacity" | "list";
+type ScheduleView = "dayGrid" | "roomPivot" | "teacherPivot" | "grid" | "list";
 type DisplayDayGroup = { key: string; label: string; days: number[] };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -81,8 +84,8 @@ const VIEW_OPTIONS: { id: ScheduleView; label: string; description: string }[] =
   { id: "dayGrid", label: "Day × Time", description: "Pivot grid of each day by time block." },
   { id: "roomPivot", label: "Room × Time", description: "See room usage and collisions by time." },
   { id: "teacherPivot", label: "Teacher × Time", description: "Teacher assignments across the schedule." },
-  { id: "coursePivot", label: "Course Matrix", description: "Courses with times, rooms, teachers, and counts." },
-  { id: "capacity", label: "Capacity Heatmap", description: "Enrollment load by room, class, and time." },
+  // Replaces the two capacity views this supersedes (build order 18d).
+  { id: "grid", label: "Activity × Time", description: "Enrollment against each class limit, by time block." },
   { id: "list", label: "List", description: "Clean operational list of sessions." },
 ];
 
@@ -103,9 +106,6 @@ function teacherNames(course?: Course | null) {
 }
 function sessionTitle(session: Session) {
   return session.course?.name || session.mandatorySession?.title || session.sessionTemplate?.label || "Unassigned";
-}
-function ageGroupNames(course?: Course | null) {
-  return course?.courseAgeGroups?.map((cag) => cag.ageGroup.name).join(", ") || course?.ageGroup?.name || "All groups";
 }
 function sessionCapacity(session: Session) {
   return session.course ? effectiveCapacity(session.course) : Number.POSITIVE_INFINITY;
@@ -238,6 +238,7 @@ function ScheduleContent() {
   const [templates, setTemplates] = useState<SessionTemplate[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [ageGroups, setAgeGroups] = useState<{ id: string; name: string; color?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ScheduleView>("dayGrid");
   const [filterDay, setFilterDay] = useState<number | "">("");
@@ -251,11 +252,13 @@ function ScheduleContent() {
       fetch(`/api/camps/${campId}/session-templates`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/courses`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/rooms`).then((r) => r.json()),
-    ]).then(([s, t, c, r]) => {
+      fetch(`/api/camps/${campId}/age-groups`).then((r) => r.json()),
+    ]).then(([s, t, c, r, g]) => {
       setSessions(Array.isArray(s) ? s : []);
       setTemplates(Array.isArray(t) ? t : []);
       setCourses(Array.isArray(c) ? c : []);
       setRooms(Array.isArray(r) ? r : []);
+      setAgeGroups(Array.isArray(g) ? g : []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [campId]);
@@ -289,6 +292,40 @@ function ScheduleContent() {
   const scheduleSummary = activeDays.length > 0
     ? `${dayRangeLabel(activeDays)} · ${timeSlots.length} time block${timeSlots.length === 1 ? "" : "s"}${duplicateDayCount > 0 ? ` · ${duplicateDayCount} duplicate day${duplicateDayCount === 1 ? "" : "s"} hidden` : ""}`
     : `${timeSlots.length} time block${timeSlots.length === 1 ? "" : "s"}`;
+
+  // Operations grid input (build order 18d). Built from the RAW sessions, not the
+  // deduped display list: the grid folds repeating days itself, and feeding it
+  // pre-deduped data would hide days twice over. The day filter is deliberately
+  // not applied either — folding is the grid's own answer to a repeating week.
+  const gridBlocks: GridBlock[] = templates
+    .map((template) => ({
+      id: template.id,
+      label: template.label ?? "",
+      dayOfWeek: template.dayOfWeek,
+      startTime: template.startTime,
+      endTime: template.endTime,
+    }))
+    .sort((a, b) => (a.dayOfWeek ?? 0) - (b.dayOfWeek ?? 0) || a.startTime.localeCompare(b.startTime));
+  const gridCourses: GridCourse[] = courses.map((course) => ({
+    id: course.id,
+    name: course.name,
+    cap: course.cap ?? null,
+    color: course.color,
+    room: course.room ?? null,
+    courseTeachers: course.courseTeachers,
+    // The grid filters by age-group id; this page's payload carries nested
+    // objects, so map them down to ids.
+    courseAgeGroups: (course.courseAgeGroups ?? [])
+      .map((entry) => ({ ageGroupId: entry.ageGroup?.id ?? "" }))
+      .filter((entry) => entry.ageGroupId),
+    sessions: sessions
+      .filter((session) => session.course?.id === course.id && session.sessionTemplate?.id)
+      .map((session) => ({
+        id: session.id,
+        sessionTemplateId: session.sessionTemplate!.id,
+        enrolledCount: session.enrolledCount,
+      })),
+  }));
 
   return (
     <div className="space-y-6">
@@ -375,8 +412,13 @@ function ScheduleContent() {
           {view === "dayGrid" && <DayTimeGrid sessions={filteredDaySessions} displayDayGroups={displayDayGroups} duplicateDayCount={filterDay === "" ? duplicateDayCount : 0} timeSlots={timeSlots} campId={campId} />}
           {view === "roomPivot" && <RoomPivot sessions={filteredSessions} rooms={roomRows} timeSlots={timeSlots} campId={campId} />}
           {view === "teacherPivot" && <TeacherPivot sessions={filteredSessions} teachers={teacherRows} timeSlots={timeSlots} campId={campId} />}
-          {view === "coursePivot" && <CoursePivot sessions={filteredSessions} courses={courses} campId={campId} />}
-          {view === "capacity" && <CapacityHeatmap sessions={filteredSessions} campId={campId} />}
+          {view === "grid" && (
+            <PivotShell title="Activity × Time" subtitle="Enrollment against each class limit. Bar length is the load; a full class is not an error.">
+              <div className="p-4">
+                <OperationsGrid courses={gridCourses} blocks={gridBlocks} ageGroups={ageGroups} />
+              </div>
+            </PivotShell>
+          )}
           {view === "list" && <ListView sessions={filteredSessions} campId={campId} />}
         </>
       )}
@@ -438,31 +480,6 @@ function TeacherPivot({ sessions, teachers, timeSlots, campId }: { sessions: Ses
         <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-44 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Teacher</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-52 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
         <tbody>{teachers.map((teacher) => <tr key={teacher.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{fullName(teacher)}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.startTime === slot.start && s.endTime === slot.end && s.course?.courseTeachers?.some((ct) => ct.person.id === teacher.id)).map((s) => sessionCell(s, campId, true))}</div></td>)}</tr>)}</tbody>
       </table>
-    </PivotShell>
-  );
-}
-
-function CoursePivot({ sessions, courses, campId }: { sessions: Session[]; courses: Course[]; campId: string }) {
-  const rows = courses.map((course) => ({ course, sessions: sessions.filter((s) => s.course?.id === course.id).sort(sessionSort) })).filter((row) => row.sessions.length > 0);
-  return (
-    <PivotShell title="Course matrix" subtitle="One row per course with its schedule footprint and operational metadata.">
-      <table className="min-w-full border-collapse text-left text-sm">
-        <thead><tr className="bg-slate-50"><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Course</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Times</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Rooms</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Teachers</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Groups</th><th className="border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">Load</th></tr></thead>
-        <tbody>{rows.map(({ course, sessions: courseSessions }) => { const uniqueTimes = uniqueBy(courseSessions, (s) => `${sessionDay(s)}|${s.startTime}|${s.endTime}`); const rooms = uniqueBy(courseSessions.map((s) => s.room).filter((room): room is Room => Boolean(room)), (room) => room.id); const enrolled = courseSessions.reduce((sum, s) => sum + s.enrolledCount, 0); const cap = courseSessions.reduce((sum, s) => sum + (s.course?.cap || 0), 0); return <tr key={course.id} className="border-b border-slate-100"><td className="p-3 font-black text-slate-900"><Link href={activityHref(campId, course.id)} className="underline-offset-2 hover:underline">{course.name}</Link></td><td className="p-3 text-xs text-slate-600">{uniqueTimes.map((s) => `${DAYS[sessionDay(s)]} ${timeRange(s)}`).join("\n")}</td><td className="p-3 text-xs text-slate-600">{rooms.map((room) => room.name).join("\n") || "—"}</td><td className="p-3 text-xs text-slate-600">{teacherNames(course)}</td><td className="p-3 text-xs text-slate-600">{ageGroupNames(course)}</td><td className="p-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${capacityTone(cap ? Math.round((enrolled / cap) * 100) : 0)}`}>{enrolled}/{cap || "No limit"}</span></td></tr>; })}</tbody>
-      </table>
-    </PivotShell>
-  );
-}
-
-function CapacityHeatmap({ sessions, campId }: { sessions: Session[]; campId: string }) {
-  return (
-    <PivotShell title="Capacity heatmap" subtitle="Sorted by fullness so the pressure points float to the top.">
-      <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
-        {[...sessions].sort((a, b) => capacityPercent(b) - capacityPercent(a)).map((session) => {
-          const percent = capacityPercent(session);
-          return <div key={session.id} className={`rounded-2xl border p-4 ${capacityTone(percent)}`}><div className="flex items-start justify-between gap-3"><div>{session.course ? <Link href={activityHref(campId, session.course.id)} className="font-black text-slate-900 underline-offset-2 hover:underline">{sessionTitle(session)}</Link> : <p className="font-black text-slate-900">{sessionTitle(session)}</p>}<p className="mt-1 text-xs font-semibold opacity-80">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}</p></div><span className="rounded-full bg-white/65 px-2 py-1 text-xs font-black">{percent}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/70"><div className="h-full rounded-full bg-slate-900/60" style={{ width: `${Math.min(percent, 100)}%` }} /></div><p className="mt-2 text-xs font-bold opacity-80">{session.enrolledCount}/{capLabel(session.course?.cap)} enrolled{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>;
-        })}
-      </div>
     </PivotShell>
   );
 }
