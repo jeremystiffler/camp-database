@@ -1,0 +1,2787 @@
+{
+ "courses": [
+  {
+   "id": "cmqs9fcjd000004kykn30j3z4",
+   "name": "Arts and Crafts",
+   "cap": 9,
+   "status": "active",
+   "room": {
+    "id": "cmqs262rx000604jsjpzuljew",
+    "name": "First Things Cafe",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs262sh000704jsuw5cj30n"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a"
+    },
+    {
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    },
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmqu9qo0g00191s1yn8eqcjlg",
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx",
+     "enrolledCount": 0
+    },
+    {
+     "id": "cmqu9qlns00051s1yqaateask",
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs",
+     "enrolledCount": 0
+    },
+    {
+     "id": "cmqu9qnjg00111s1yjre4ctp1",
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqu9qnf7000z1s1yrsou5ch0",
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw",
+     "enrolledCount": 0
+    },
+    {
+     "id": "cmqu9qo4o001b1s1yhv60nf0e",
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqu9qm91000f1s1yt5rndx7y",
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2",
+     "enrolledCount": 0
+    },
+    {
+     "id": "cmqu9qmyj000r1s1yw8xiz03h",
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqu9qls200071s1ynag42tek",
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqu9qmda000h1s1ywmbhuynj",
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqu9qmu6000p1s1yvyt3taqi",
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme",
+     "enrolledCount": 0
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fcp4000204kyumkkx4gn",
+   "name": "Artsy Science Experiments",
+   "cap": 10,
+   "status": "active",
+   "room": {
+    "id": "cmqs6lsq8000704jut662g8lz",
+    "name": "Sanctuary Lobby Left",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgpv000104kzzku5uldt"
+    },
+    {
+     "personId": "cmqs8mgq8000204kzjv0lpctk"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0qpvrx001v04kyu4vn22bc",
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvvz002604kyrx01o0gm",
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvzt002h04kyrzd0wogi",
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw3t002s04kypflayfi5",
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw7s003304ky35cmxdqw",
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fcre000304kyl2q20q51",
+   "name": "Artsy Science Experiments",
+   "cap": 10,
+   "status": "active",
+   "room": {
+    "id": "cmqs6lsq8000704jut662g8lz",
+    "name": "Sanctuary Lobby Left",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgpv000104kzzku5uldt"
+    },
+    {
+     "personId": "cmqs8mgq8000204kzjv0lpctk"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fctl000404ky6t8lar09",
+   "name": "Artsy Sports",
+   "cap": 15,
+   "status": "active",
+   "room": {
+    "id": "cmqs6m1p5000904i83oi7uhzr",
+    "name": "Outside",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgt1000404kz12r5wyzk"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fcvb000504kyc81wp96f",
+   "name": "Artsy Sports",
+   "cap": 15,
+   "status": "active",
+   "room": {
+    "id": "cmqs6m1p5000904i83oi7uhzr",
+    "name": "Outside",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgt1000404kz12r5wyzk"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmqzaz0qh000t04l4vzyi0a7c",
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqzaz0es000504l4tou2tjih",
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqzaz0mi000h04l4cl6v1ue3",
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqzaz0uf001504l4igtosxhl",
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqzaz0xm001h04l4puumf5yl",
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0v3vkn000204l4wk1026sx",
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0v3vqs000b04l4e89ysohh",
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0v3vty000k04l4ngagsdgr",
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0v3vx1000t04l41g7yggaq",
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0v3w0b001204l4l9afn760",
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvc2000104l4q2b8stax",
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvkn000a04l4abrcylwq",
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvoh000j04l411n9y8v4",
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvs4000s04l4ggdb9pon",
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvvz001104l4sgoddgh3",
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fdbf000l04ky12nft98h",
+   "name": "Painting Lessons",
+   "cap": 8,
+   "status": "active",
+   "room": {
+    "id": "cmqs6p2u6000104jp936yta9g",
+    "name": "Kids Green Room",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgyh000b04kz3k34hr1d"
+    },
+    {
+     "personId": "cmqs8mgyr000c04kzfphhvbjf"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0vgvet000304l4tidavuii",
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvld000c04l45dt9xp76",
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvp7000l04l4dvqta5fk",
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvsw000u04l4r5qte9cr",
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvwl001304l4d1pnn82k",
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fcx8000704kyj1g318pz",
+   "name": "Drawing Lessons",
+   "cap": 9,
+   "status": "active",
+   "room": {
+    "id": "cmqs6mwae000804l46uhujqmt",
+    "name": "Kids Purple Room",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqrxq36n000004l2bq1y8ldv"
+    },
+    {
+     "personId": "cmqs8mgwv000904kzhtwbeoo0"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0qpvsl001x04kyab01pgey",
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvwn002804kymtl8il2f",
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw0i002j04ky2x9xo651",
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw4i002u04ky7zx09kds",
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw8j003504kye92zje1e",
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fcye000804ky9g84hr1p",
+   "name": "Drawing Lessons",
+   "cap": 10,
+   "status": "active",
+   "room": {
+    "id": "cmqs6p2u6000104jp936yta9g",
+    "name": "Kids Green Room",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgyh000b04kz3k34hr1d"
+    },
+    {
+     "personId": "cmqs8mgyr000c04kzfphhvbjf"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    },
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0qpuzc000104kyo0l2d3m2",
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a",
+     "enrolledCount": 4
+    },
+    {
+     "id": "cmr0qpv52000c04kysfcij548",
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe",
+     "enrolledCount": 4
+    },
+    {
+     "id": "cmr0qpv97000n04kyg5w6iyqj",
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq",
+     "enrolledCount": 4
+    },
+    {
+     "id": "cmr0qpvd9000y04kyi65c7p36",
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q",
+     "enrolledCount": 4
+    },
+    {
+     "id": "cmr0qpvgw001904kyrjqad6u1",
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym",
+     "enrolledCount": 4
+    },
+    {
+     "id": "cmr0vgvj9000704l4truxm22z",
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvn2000g04l4a8nmssca",
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvqv000p04l4iwiy6fo5",
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvy9001704l4lkjhun5x",
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0vgvuf000y04l4do0bi8aq",
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fczh000904kyfy5hz99m",
+   "name": "Drum Set",
+   "cap": 9,
+   "status": "active",
+   "room": {
+    "id": "cmqs6mg1f000a04kzpqu1it6o",
+    "name": "Sanctuary",
+    "capacity": 500
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mh0a000d04kzsj0pc7vt"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0qpvtb001z04kytmyst29o",
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvxd002a04ky8m995kdb",
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw19002l04ky79d34luq",
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw56002w04kyf0080qay",
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw95003704kyayg2h5jp",
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fd0i000a04ky51p3t3ws",
+   "name": "Drum Set",
+   "cap": 9,
+   "status": "active",
+   "room": {
+    "id": "cmqs6mg1f000a04kzpqu1it6o",
+    "name": "Sanctuary",
+    "capacity": 500
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mh0a000d04kzsj0pc7vt"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmqzaz0le000f04l4z74xrleh",
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmqzaz0da000304l4kbn3ktim",
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmqzaz0pw000r04l49q9qbn6h",
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0qpv35000704ky9bdxfwrx",
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0qpv77000i04kyrfhaf5vu",
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0qpvbb000t04kyuhwb7vw9",
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0qpvf6001404ky3vqrl9pl",
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0qpvis001f04kycjivkzal",
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmqzaz0tt001304l42dohktzf",
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmqzaz0x3001f04l48cesm3ta",
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy",
+     "enrolledCount": 2
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fd1h000b04kyng3cwknf",
+   "name": "Get Crafty",
+   "cap": 9,
+   "status": "active",
+   "room": {
+    "id": "cmqs6nkmo000804jukx22ar9b",
+    "name": "College Room",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mh2g000f04kzi4tx5j61"
+    },
+    {
+     "personId": "cmqs8mh2q000g04kz0v1zed38"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0qpvuj002304kyrllt133q",
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvym002e04kyfqlsrscd",
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw2m002p04kyff7wx7sz",
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw6l003004kyqa7nyuzb",
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpwad003b04kygjx6r4g9",
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fd2t000c04ky5sdre7jn",
+   "name": "Get Crafty",
+   "cap": 9,
+   "status": "active",
+   "room": {
+    "id": "cmqs6nkmo000804jukx22ar9b",
+    "name": "College Room",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mh2g000f04kzi4tx5j61"
+    },
+    {
+     "personId": "cmqs8mh2q000g04kz0v1zed38"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    },
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmqzaz0ke000d04l4yzxpv3li",
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqzaz0p9000p04l49ix880y9",
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqzaz0t9001104l488d6ibqt",
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqzaz0wk001d04l4g2pt8yni",
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0ulglp000b04ky16zc10f9",
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0ulgqe000j04ky9hj7mvcn",
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0ulgtu000r04kybvorp48d",
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0ulgxe000z04kykoxb8ud7",
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0ulgi7000304kycc7kp1hb",
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmqzaz0be000104l45ergmbfv",
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fd3t000d04kyiutzjqoo",
+   "name": "Group Piano",
+   "cap": 5,
+   "status": "active",
+   "room": {
+    "id": "cmqs6o7wm000a04i8pofdwczc",
+    "name": "Big Kitchen",
+    "capacity": 20
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgvg000704kzvhu2ein2"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fd4v000e04kyla718j8z",
+   "name": "Group Piano",
+   "cap": 5,
+   "status": "active",
+   "room": {
+    "id": "cmqs6o7wm000a04i8pofdwczc",
+    "name": "Big Kitchen",
+    "capacity": 20
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgvg000704kzvhu2ein2"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0qpv11000304kyz2v087dp",
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0qpv5t000e04kyvn6wi815",
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0qpvdv001004kylsgmnok6",
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0qpvhj001b04kyp21dc0tq",
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0qpv9x000p04kymwxavq1k",
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn",
+     "enrolledCount": 2
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fd5t000f04ky1bhbd39w",
+   "name": "Guitar Jam",
+   "cap": 7,
+   "status": "active",
+   "room": {
+    "id": "cmqs6o7wm000a04i8pofdwczc",
+    "name": "Big Kitchen",
+    "capacity": 20
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgvg000704kzvhu2ein2"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fd6v000g04kythw9hzcw",
+   "name": "Guitar Jam",
+   "cap": 7,
+   "status": "active",
+   "room": {
+    "id": "cmqs6o7wm000a04i8pofdwczc",
+    "name": "Big Kitchen",
+    "capacity": 20
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgvg000704kzvhu2ein2"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmqzaz0nk000j04l48nc36vdp",
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb",
+     "enrolledCount": 4
+    },
+    {
+     "id": "cmqzaz0gi000704l4knwgclk4",
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx",
+     "enrolledCount": 4
+    },
+    {
+     "id": "cmqzaz0y5001j04l4xqys5a3a",
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk",
+     "enrolledCount": 4
+    },
+    {
+     "id": "cmqzaz0ux001704l467sbfl0j",
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42",
+     "enrolledCount": 4
+    },
+    {
+     "id": "cmqzaz0r6000v04l4arlj69cd",
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv",
+     "enrolledCount": 4
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fd8m000i04ky5a800507",
+   "name": "Hip Hop Worship",
+   "cap": 12,
+   "status": "active",
+   "room": {
+    "id": "cmqs6olud000004jpojtm5tpi",
+    "name": "Kids Church",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mh8y000k04kz4qt49fv2"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0v3vo8000704l4914yzusp",
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0v3vse000g04l4yy8pq4h6",
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0v3vvk000p04l4x7y22m4m",
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0v3vyk000y04l417v4qdux",
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0v3w1w001704l4k9sjowsf",
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi",
+     "enrolledCount": 2
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fd7q000h04kyjnwrna4p",
+   "name": "Hip Hop Worship",
+   "cap": 12,
+   "status": "active",
+   "room": {
+    "id": "cmqs6olud000004jpojtm5tpi",
+    "name": "Kids Church",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mh8y000k04kz4qt49fv2"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fd9i000j04ky1qxgdpf8",
+   "name": "Modern Worship Dance",
+   "cap": 12,
+   "status": "active",
+   "room": {
+    "id": "cmqs6olud000004jpojtm5tpi",
+    "name": "Kids Church",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mh8y000k04kz4qt49fv2"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9"
+    },
+    {
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmqzaz0oo000n04l4vljiue4y",
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn",
+     "enrolledCount": 5
+    },
+    {
+     "id": "cmqzaz0z7001n04l44uz7dnf3",
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy",
+     "enrolledCount": 5
+    },
+    {
+     "id": "cmqzaz0sk000z04l4jhjogr88",
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a",
+     "enrolledCount": 5
+    },
+    {
+     "id": "cmqzaz0w1001b04l4shbtvvar",
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9",
+     "enrolledCount": 5
+    },
+    {
+     "id": "cmqzaz0jc000b04l4t17ym19b",
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd",
+     "enrolledCount": 5
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fcnl000104kyg6mm30bh",
+   "name": "Arts and Crafts",
+   "cap": 8,
+   "status": "active",
+   "room": {
+    "id": "cmqs262rx000604jsjpzuljew",
+    "name": "First Things Cafe",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs262sh000704jsuw5cj30n"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0qpv3w000904kyjv09hvhp",
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvc2000v04kyhi4g2yhf",
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvfs001604ky31lqsmo0",
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpv7x000k04kyeignwoqx",
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvjf001h04kyt21vhzrc",
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fdeh000o04kyzuimmz24",
+   "name": "Stop Motion Movie Makers",
+   "cap": 10,
+   "status": "active",
+   "room": {
+    "id": "cmqs6qdo8000204jpq871szaa",
+    "name": "Nursing Room",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mhhc000s04kzd6klz2dm"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fddn000n04ky7s0z5xax",
+   "name": "Stop Motion Movie Makers",
+   "cap": 10,
+   "status": "active",
+   "room": {
+    "id": "cmqs6qdo8000204jpq871szaa",
+    "name": "Nursing Room",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mhhc000s04kzd6klz2dm"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9"
+    },
+    {
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fdh5000r04ky7z1z59ce",
+   "name": "Theatre Play",
+   "cap": 15,
+   "status": "active",
+   "room": {
+    "id": "cmqs6qqzj000c04i8yczutd9m",
+    "name": "Sanctuary Lobby Right",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mhlw000z04kz3i9wls1t"
+    },
+    {
+     "personId": "cmqs8mhkh000x04kz1gftbztc"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9"
+    },
+    {
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0qpv29000504kyz7j1dkiv",
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpv6i000g04kyzywjejc1",
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpval000r04ky79chk8vw",
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvej001204ky110fj31f",
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvi6001d04kykyxi93vd",
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fdg3000q04kyszyzc2ss",
+   "name": "Theatre Play",
+   "cap": 20,
+   "status": "active",
+   "room": {
+    "id": "cmqs6qqzj000c04i8yczutd9m",
+    "name": "Sanctuary Lobby Right",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mhk8000w04kzc07wv9gv"
+    },
+    {
+     "personId": "cmqs8mhkh000x04kz1gftbztc"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fdi2000s04ky37ex33el",
+   "name": "Violin (Beginners Only)",
+   "cap": 8,
+   "status": "active",
+   "room": {
+    "id": "cmqrdmz82000104lbz6awrw0b",
+    "name": "Kids Red Room",
+    "capacity": 9
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mhnb001004kzspa99k81"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fdjr000u04kyk617aopp",
+   "name": "Violin (Beginners Only)",
+   "cap": 8,
+   "status": "active",
+   "room": {
+    "id": "cmqrdmz82000104lbz6awrw0b",
+    "name": "Kids Red Room",
+    "capacity": 9
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mhnb001004kzspa99k81"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fdiw000t04kyr2f9vbfk",
+   "name": "Violin (Advanced Only = 1+ yrs exp)",
+   "cap": 8,
+   "status": "active",
+   "room": {
+    "id": "cmqrdmz82000104lbz6awrw0b",
+    "name": "Kids Red Room",
+    "capacity": 9
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mhnb001004kzspa99k81"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fcw8000604ky11x4rf8p",
+   "name": "Choir",
+   "cap": 50,
+   "status": "active",
+   "room": {
+    "id": "cmqs6mg1f000a04kzpqu1it6o",
+    "name": "Sanctuary",
+    "capacity": 500
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mgvg000704kzvhu2ein2"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    },
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy"
+    },
+    {
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0ulgjz000704kyjgxnj1lb",
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0ulgon000f04ky7sqdtz05",
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0ulgs6000n04kykdkgah06",
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0ulgvm000v04ky03vjw5sn",
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0ulgz2001304ky7vq383jh",
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy",
+     "enrolledCount": 1
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fdci000m04kymfk5dv8x",
+   "name": "PreK Class",
+   "cap": 15,
+   "status": "active",
+   "room": {
+    "id": "cmqs6pxmn000b04i84uszedww",
+    "name": "Nursery 4-5 & 2-3",
+    "capacity": 30
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mhfq000p04kzn6f5ob8x"
+    },
+    {
+     "personId": "cmqs8mhfz000q04kz333b8mej"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyiq000004jsv5iviuzi"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9"
+    },
+    {
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn"
+    }
+   ],
+   "sessions": []
+  },
+  {
+   "id": "cmqs9fdf9000p04ky07hlg3fw",
+   "name": "Snacktivities",
+   "cap": 50,
+   "status": "active",
+   "room": {
+    "id": "cmqs6r5xb000904juft7r3fvh",
+    "name": "Lobby Entrance",
+    "capacity": 50
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqs8mhj5000u04kzmjpawbyg"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    },
+    {
+     "ageGroupId": "cmqrdmz4v000004lbs1r0efhc"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6holw000204l42tm3r1vy"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs"
+    },
+    {
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p"
+    },
+    {
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk"
+    },
+    {
+     "sessionTemplateId": "cmqxwr559000004jodt08w99r"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6hom0000204juclj2qbob"
+    },
+    {
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx"
+    },
+    {
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi"
+    },
+    {
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw"
+    },
+    {
+     "sessionTemplateId": "cmqxwr554000004ju47zjwiqn"
+    },
+    {
+     "sessionTemplateId": "cmqxwr55o000104jo167wlw6e"
+    },
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmqzaz0ii000904l4mmsusq8o",
+     "sessionTemplateId": "cmqs6jihc000404juhwhfzkkk",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmqzaz0o5000l04l46coeoa41",
+     "sessionTemplateId": "cmqs6jigc000704l48encal9p",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmqzaz0rs000x04l4yo24lop8",
+     "sessionTemplateId": "cmqs6jigj000504l41n89acaw",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmqzaz0vg001904l4m9ody3im",
+     "sessionTemplateId": "cmqs6jiga000604i89xra9vsz",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmqzaz0yo001l04l4lzy0lfk3",
+     "sessionTemplateId": "cmqs6jigb000704kzzl7d05xi",
+     "enrolledCount": 2
+    },
+    {
+     "id": "cmr0v3vre000d04l4mbf3vjhj",
+     "sessionTemplateId": "cmqs6inpy000504kzbesm7sq2",
+     "enrolledCount": 3
+    },
+    {
+     "id": "cmr0v3vuj000m04l4sk9dqxhg",
+     "sessionTemplateId": "cmqs6inoc000404kzm6q8bjme",
+     "enrolledCount": 3
+    },
+    {
+     "id": "cmr0v3vxm000v04l41o94qnht",
+     "sessionTemplateId": "cmqs6ino0000404l43q6a1smw",
+     "enrolledCount": 3
+    },
+    {
+     "id": "cmr0v3w0v001404l4qio38tf4",
+     "sessionTemplateId": "cmqs6ino3000304l4tm7wjszx",
+     "enrolledCount": 3
+    },
+    {
+     "id": "cmr0v3vmg000404l4cq5kdykt",
+     "sessionTemplateId": "cmqs6ino6000404i8rhzn4abs",
+     "enrolledCount": 3
+    }
+   ]
+  },
+  {
+   "id": "cmqs9fdac000k04ky5vsfh2uo",
+   "name": "Painting Lessons",
+   "cap": 9,
+   "status": "active",
+   "room": {
+    "id": "cmqs6mwae000804l46uhujqmt",
+    "name": "Kids Purple Room",
+    "capacity": 15
+   },
+   "courseTeachers": [
+    {
+     "personId": "cmqrxq36n000004l2bq1y8ldv"
+    },
+    {
+     "personId": "cmqs8mgwv000904kzhtwbeoo0"
+    }
+   ],
+   "courseAgeGroups": [
+    {
+     "ageGroupId": "cmqrdmyh4000004jl6swwok3c"
+    }
+   ],
+   "courseSessionTemplates": [
+    {
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb"
+    },
+    {
+     "sessionTemplateId": "cmqy0btgk000004ldunjak9kq"
+    },
+    {
+     "sessionTemplateId": "cmqy0btiz000004l1mi8nhb9a"
+    },
+    {
+     "sessionTemplateId": "cmqy0btkl000004l5p6l22bqe"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstw000704i868dfgexd"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstc000504jun3000r7a"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx"
+    },
+    {
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42"
+    },
+    {
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk"
+    },
+    {
+     "sessionTemplateId": "cmqy0bti3000004l762nthzym"
+    },
+    {
+     "sessionTemplateId": "cmqy0btka000004l70a326i2q"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000604l4rd4isryy"
+    },
+    {
+     "sessionTemplateId": "cmqs6jstk000804l4wenejdl9"
+    },
+    {
+     "sessionTemplateId": "cmqs6jst9000804kzopgcxtzn"
+    }
+   ],
+   "sessions": [
+    {
+     "id": "cmr0qpvtx002104ky28gxf0np",
+     "sessionTemplateId": "cmqs6ixzd000504i8w3hkb9jx",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpvy1002c04ky98wii98s",
+     "sessionTemplateId": "cmqs6ixzt000504l4e8kkbigb",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw1z002n04kyo2ptran3",
+     "sessionTemplateId": "cmqs6ixze000404l41oqt0jzv",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw5v002y04kyv569druu",
+     "sessionTemplateId": "cmqs6ixzp000604kz6h5yiq42",
+     "enrolledCount": 1
+    },
+    {
+     "id": "cmr0qpw9r003904kymqs6vj9h",
+     "sessionTemplateId": "cmqs6iy2o000604l4ijko9kkk",
+     "enrolledCount": 1
+    }
+   ]
+  }
+ ],
+ "blocks": [
+  {
+   "id": "cmqxzrfnx000004l01pqgfv1b",
+   "label": "Opening Assembly",
+   "dayOfWeek": 5,
+   "startTime": "09:00",
+   "endTime": "09:20"
+  },
+  {
+   "id": "cmqxzrfpf000004l5p575t5eu",
+   "label": "Opening Assembly",
+   "dayOfWeek": 1,
+   "startTime": "09:00",
+   "endTime": "09:20"
+  },
+  {
+   "id": "cmqxzrfqn000004ju5sulurr2",
+   "label": "Opening Assembly",
+   "dayOfWeek": 4,
+   "startTime": "09:00",
+   "endTime": "09:20"
+  },
+  {
+   "id": "cmqs6k5sy000904l4n014mlix",
+   "label": "Closing Assembly",
+   "dayOfWeek": 3,
+   "startTime": "11:50",
+   "endTime": "12:00"
+  },
+  {
+   "id": "cmqs6k5sz000604jukszsqk57",
+   "label": "Closing Assembly",
+   "dayOfWeek": 4,
+   "startTime": "11:50",
+   "endTime": "12:00"
+  },
+  {
+   "id": "cmqs6k5sz000704l4m3xgtzxt",
+   "label": "Closing Assembly",
+   "dayOfWeek": 1,
+   "startTime": "11:50",
+   "endTime": "12:00"
+  },
+  {
+   "id": "cmqs6k5t8000904kzkm15oyuy",
+   "label": "Closing Assembly",
+   "dayOfWeek": 5,
+   "startTime": "11:50",
+   "endTime": "12:00"
+  },
+  {
+   "id": "cmqs6k5t1000804i8qz2gstdy",
+   "label": "Closing Assembly",
+   "dayOfWeek": 2,
+   "startTime": "11:50",
+   "endTime": "12:00"
+  },
+  {
+   "id": "cmqxzrfa3000004k03wo2rkm1",
+   "label": "Opening Assembly",
+   "dayOfWeek": 3,
+   "startTime": "09:00",
+   "endTime": "09:20"
+  },
+  {
+   "id": "cmqxzrflw000004l8j9msu5ng",
+   "label": "Opening Assembly",
+   "dayOfWeek": 2,
+   "startTime": "09:00",
+   "endTime": "09:20"
+  },
+  {
+   "id": "cmqs6hom0000204juclj2qbob",
+   "label": "Session 2",
+   "dayOfWeek": 4,
+   "startTime": "09:45",
+   "endTime": "10:10"
+  },
+  {
+   "id": "cmqs6holw000204l42tm3r1vy",
+   "label": "Session 2",
+   "dayOfWeek": 5,
+   "startTime": "09:45",
+   "endTime": "10:10"
+  },
+  {
+   "id": "cmqs6ino0000404l43q6a1smw",
+   "label": "Session 3",
+   "dayOfWeek": 4,
+   "startTime": "10:10",
+   "endTime": "10:35"
+  },
+  {
+   "id": "cmqs6ino3000304l4tm7wjszx",
+   "label": "Session 3",
+   "dayOfWeek": 5,
+   "startTime": "10:10",
+   "endTime": "10:35"
+  },
+  {
+   "id": "cmqs6ino6000404i8rhzn4abs",
+   "label": "Session 3",
+   "dayOfWeek": 1,
+   "startTime": "10:10",
+   "endTime": "10:35"
+  },
+  {
+   "id": "cmqs6inoc000404kzm6q8bjme",
+   "label": "Session 3",
+   "dayOfWeek": 3,
+   "startTime": "10:10",
+   "endTime": "10:35"
+  },
+  {
+   "id": "cmqs6inpy000504kzbesm7sq2",
+   "label": "Session 3",
+   "dayOfWeek": 2,
+   "startTime": "10:10",
+   "endTime": "10:35"
+  },
+  {
+   "id": "cmqs6ixze000404l41oqt0jzv",
+   "label": "Session 4",
+   "dayOfWeek": 3,
+   "startTime": "10:35",
+   "endTime": "11:00"
+  },
+  {
+   "id": "cmqs6ixzd000504i8w3hkb9jx",
+   "label": "Session 4",
+   "dayOfWeek": 1,
+   "startTime": "10:35",
+   "endTime": "11:00"
+  },
+  {
+   "id": "cmqs6ixzp000604kz6h5yiq42",
+   "label": "Session 4",
+   "dayOfWeek": 4,
+   "startTime": "10:35",
+   "endTime": "11:00"
+  },
+  {
+   "id": "cmqs6ixzt000504l4e8kkbigb",
+   "label": "Session 4",
+   "dayOfWeek": 2,
+   "startTime": "10:35",
+   "endTime": "11:00"
+  },
+  {
+   "id": "cmqs6iy2o000604l4ijko9kkk",
+   "label": "Session 4",
+   "dayOfWeek": 5,
+   "startTime": "10:35",
+   "endTime": "11:00"
+  },
+  {
+   "id": "cmqs6jiga000604i89xra9vsz",
+   "label": "Session 5",
+   "dayOfWeek": 4,
+   "startTime": "11:00",
+   "endTime": "11:25"
+  },
+  {
+   "id": "cmqs6jigc000704l48encal9p",
+   "label": "Session 5",
+   "dayOfWeek": 2,
+   "startTime": "11:00",
+   "endTime": "11:25"
+  },
+  {
+   "id": "cmqs6jigb000704kzzl7d05xi",
+   "label": "Session 5",
+   "dayOfWeek": 5,
+   "startTime": "11:00",
+   "endTime": "11:25"
+  },
+  {
+   "id": "cmqs6jigj000504l41n89acaw",
+   "label": "Session 5",
+   "dayOfWeek": 3,
+   "startTime": "11:00",
+   "endTime": "11:25"
+  },
+  {
+   "id": "cmqs6jihc000404juhwhfzkkk",
+   "label": "Session 5",
+   "dayOfWeek": 1,
+   "startTime": "11:00",
+   "endTime": "11:25"
+  },
+  {
+   "id": "cmqs6jst9000804kzopgcxtzn",
+   "label": "Session 6",
+   "dayOfWeek": 2,
+   "startTime": "11:25",
+   "endTime": "11:50"
+  },
+  {
+   "id": "cmqs6jstc000504jun3000r7a",
+   "label": "Session 6",
+   "dayOfWeek": 3,
+   "startTime": "11:25",
+   "endTime": "11:50"
+  },
+  {
+   "id": "cmqs6jstk000804l4wenejdl9",
+   "label": "Session 6",
+   "dayOfWeek": 4,
+   "startTime": "11:25",
+   "endTime": "11:50"
+  },
+  {
+   "id": "cmqs6jstk000604l4rd4isryy",
+   "label": "Session 6",
+   "dayOfWeek": 5,
+   "startTime": "11:25",
+   "endTime": "11:50"
+  },
+  {
+   "id": "cmqs6jstw000704i868dfgexd",
+   "label": "Session 6",
+   "dayOfWeek": 1,
+   "startTime": "11:25",
+   "endTime": "11:50"
+  },
+  {
+   "id": "cmqxwr554000004ju47zjwiqn",
+   "label": "Session 2",
+   "dayOfWeek": 3,
+   "startTime": "09:45",
+   "endTime": "10:10"
+  },
+  {
+   "id": "cmqxwr559000004jodt08w99r",
+   "label": "Session 2",
+   "dayOfWeek": 1,
+   "startTime": "09:45",
+   "endTime": "10:10"
+  },
+  {
+   "id": "cmqxwr55o000104jo167wlw6e",
+   "label": "Session 2",
+   "dayOfWeek": 2,
+   "startTime": "09:45",
+   "endTime": "10:10"
+  },
+  {
+   "id": "cmqy0btgk000004ldunjak9kq",
+   "label": "Session 1",
+   "dayOfWeek": 3,
+   "startTime": "09:20",
+   "endTime": "09:45"
+  },
+  {
+   "id": "cmqy0bti3000004l762nthzym",
+   "label": "Session 1",
+   "dayOfWeek": 5,
+   "startTime": "09:20",
+   "endTime": "09:45"
+  },
+  {
+   "id": "cmqy0btiz000004l1mi8nhb9a",
+   "label": "Session 1",
+   "dayOfWeek": 1,
+   "startTime": "09:20",
+   "endTime": "09:45"
+  },
+  {
+   "id": "cmqy0btka000004l70a326i2q",
+   "label": "Session 1",
+   "dayOfWeek": 4,
+   "startTime": "09:20",
+   "endTime": "09:45"
+  },
+  {
+   "id": "cmqy0btkl000004l5p6l22bqe",
+   "label": "Session 1",
+   "dayOfWeek": 2,
+   "startTime": "09:20",
+   "endTime": "09:45"
+  }
+ ],
+ "ageGroups": [
+  {
+   "id": "cmqrdmyh4000004jl6swwok3c",
+   "name": "Older (10-12 years)"
+  },
+  {
+   "id": "cmqrdmz4v000004lbs1r0efhc",
+   "name": "Younger (6-9 years)"
+  },
+  {
+   "id": "cmqrdmyiq000004jsv5iviuzi",
+   "name": "Pre K (4-5 years)"
+  }
+ ]
+}

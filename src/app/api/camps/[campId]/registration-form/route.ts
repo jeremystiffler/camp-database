@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { effectiveCapacity, publicCapacity, hasUnsetLimit, exceedsRoom, formatCapacity } from "@/lib/capacity";
+import { publicCapacity } from "@/lib/capacity";
+import { blockingIssues, detectIssues } from "@/lib/issues";
 import { getSession } from "@/lib/auth";
 
 async function checkAccess(userId: string, campId: string) {
@@ -238,26 +239,21 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
     };
   });
 
-  const capacityViolations = camp.courses.flatMap(course => {
-    const capacity = effectiveCapacity(course);
-    const issues: string[] = [];
-    for (const session of course.sessions) {
-      if (Number.isFinite(capacity) && session.enrolledCount > capacity) {
-        issues.push(`${course.name} has ${session.enrolledCount} enrolled but the class limit is ${capacity}`);
-      }
-    }
-    return issues;
+  // Every issue string comes from the one engine (phase 18b). This route used to
+  // author its own wording, which is how the same unset-limit condition ended up
+  // phrased two different ways here and on the dashboard.
+  // Teachers are not selected here, so clash rules do not apply — this route only
+  // consumes the blocking and advisory capacity issues.
+  const formIssues = detectIssues({
+    courses: camp.courses,
+    blocks: camp.sessionTemplates,
   });
+  const capacityViolations = blockingIssues(formIssues).map((issue) => issue.message);
   // Advisory only — these never block registration. A stale room number or a
   // missing room assignment must not stop families from signing up.
-  const capacityWarnings = camp.courses.flatMap(course => {
-    const warnings: string[] = [];
-    if (hasUnsetLimit(course)) warnings.push(`${course.name} has no class limit set and will accept unlimited registration`);
-    if (exceedsRoom(course, course.room) && course.room) {
-      warnings.push(`${course.name} allows ${formatCapacity(course)} but ${course.room.name} holds ${course.room.capacity}`);
-    }
-    return warnings;
-  });
+  const capacityWarnings = formIssues
+    .filter((issue) => issue.severity === "advisory")
+    .map((issue) => issue.message);
   const formOpen = selectedForm ? camp.registrationOpen && selectedForm.status !== "draft" && capacityViolations.length === 0 : false;
   return NextResponse.json({
     campName: camp.name,

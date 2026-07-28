@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { effectiveCapacity, formatCapacity } from "@/lib/capacity-rules";
+import { detectIssues, type IssueCourse } from "@/lib/issues";
 
 /**
  * The operations grid — dashboard spec Slice 1.
@@ -203,23 +204,19 @@ export type SortKey = "default" | "name" | "fullest" | "emptiest" | "attention";
 /**
  * What is wrong with this activity, counted for the attention sort.
  *
- * Deliberately reuses the same conditions the dashboard already reports, so the
- * grid's ordering cannot disagree with the warnings shown elsewhere. When the
- * Slice 2 issue engine lands this should delegate to it rather than restate it.
+ * Delegates to the issue engine (phase 18b) so the grid's ordering cannot
+ * disagree with the warnings shown anywhere else. Severity drives the weight:
+ * a blocking overflow outranks every warning, which outranks every advisory.
  */
 export function attentionScore(course: GridCourse, columns: GridColumn[]): number {
-  let score = 0;
-  const capacity = effectiveCapacity({ cap: course.cap });
-  const cells = columns.map((column) => foldCell(course, column)).filter(Boolean);
-
-  // Over capacity is the only blocking condition here, so it outranks the rest.
-  if (Number.isFinite(capacity) && cells.some((cell) => cell!.enrolled > capacity)) score += 100;
-  if ((course.courseTeachers ?? []).length === 0) score += 10;
-  if (cells.length === 0) score += 8; // never scheduled
-  if (cells.length > 0 && cells.every((cell) => cell!.enrolled === 0)) score += 6;
-  if (!course.room) score += 4;
-  if (!Number.isFinite(capacity)) score += 2; // no limit set
-  return score;
+  // The engine works in real SessionTemplate ids; a folded column stands for
+  // several, so expand back to the underlying blocks.
+  const blocks = columns.flatMap((column) =>
+    column.blockIds.map((id) => ({ id, startTime: column.startTime, endTime: column.endTime })),
+  );
+  const issues = detectIssues({ courses: [course as unknown as IssueCourse], blocks });
+  const weight: Record<string, number> = { blocking: 100, warning: 10, advisory: 2 };
+  return issues.reduce((total: number, issue) => total + (weight[issue.severity] ?? 0), 0);
 }
 
 /** Peak fill ratio across every block. Over-capacity exceeds 1 and sorts first. */

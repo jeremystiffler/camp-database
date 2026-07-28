@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { effectiveCapacity, exceedsRoom, hasUnsetLimit, formatCapacity } from "@/lib/capacity-rules";
+import { effectiveCapacity } from "@/lib/capacity-rules";
+import { canOpenRegistration, countsByCode, detectIssues, issueCounts } from "@/lib/issues";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -15,7 +16,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   const member = await getMember(session.userId, campId);
   if (!member) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const [camp, paidPayments, pendingPayments, courses, timeBlocks, ageGroups] = await Promise.all([
+  const [camp, paidPayments, pendingPayments, courses, timeBlocks, ageGroups, camperCounts] = await Promise.all([
     prisma.camp.findUnique({
       where: { id: campId },
       select: {
@@ -73,43 +74,37 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
       select: { id: true, name: true, color: true },
     }),
+    // Demand per age group, for the seat-shortfall rule.
+    prisma.camper.groupBy({
+      by: ["ageGroupId"],
+      where: { campId },
+      _count: { _all: true },
+    }),
   ]);
 
   if (!camp) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const isDismissed = (course: typeof courses[number], warning: string) => course.attentionDismissals.includes(warning);
-  const classesWithoutTeachers = courses.filter((course) => course.courseTeachers.length === 0 && !isDismissed(course, "teacher")).length;
-  const unscheduledClasses = courses.filter((course) => course.courseSessionTemplates.length === 0 && course.sessions.length === 0 && !isDismissed(course, "schedule")).length;
-  const fullOrOverCapacityClasses = courses.filter((course) => {
-    const effective = effectiveCapacity(course);
-    if (!Number.isFinite(effective) || effective <= 0) return false;
-    // Capacity is per scheduled instance of the activity. Summing enrollment
-    // across every time block made a five-session activity look full at 5× its
-    // actual per-session roster.
-    return course.sessions.some((session) => (session.enrolledCount || 0) >= effective) && !isDismissed(course, "capacity");
-  }).length;
-  // Advisory: the class limit exceeds what the room fits. This does NOT block
-  // enrollment — the class limit is the only gate. It flags a space mismatch.
-  const capsAboveRoomCapacity = courses
-    .filter((course) => exceedsRoom(course, course.room) && course.room?.capacity != null)
-    .map((course) => ({
-      courseId: course.id,
-      message: `${course.name} allows ${formatCapacity(course)} but ${course.room!.name} holds ${course.room!.capacity}`,
-    }));
-  // Loud flag: no class limit set means unlimited registration.
-  const classesWithNoLimit = courses
-    .filter((course) => hasUnsetLimit(course) && !isDismissed(course, "limit"))
-    .map((course) => ({
-      courseId: course.id,
-      message: `${course.name} has no limit set and will accept unlimited registration`,
-    }));
-  const classesWithNoRoom = courses
-    .filter((course) => !course.room)
-    .map((course) => ({
-      courseId: course.id,
-      message: `${course.name} has no room assigned`,
-    }));
-  const classesWithNoEnrollment = courses.filter((course) => course.sessions.reduce((sum, s) => sum + (s.enrolledCount || 0), 0) === 0).length;
+  // Every issue string in the product originates in one module (phase 18b). This
+  // route reports what the engine found; it does not decide anything itself.
+  const campersByAgeGroup = Object.fromEntries(
+    camperCounts
+      .filter((row) => row.ageGroupId)
+      .map((row) => [row.ageGroupId as string, row._count._all]),
+  );
+  const issues = detectIssues({
+    courses,
+    blocks: timeBlocks,
+    ageGroups,
+    persons: courses.flatMap((course) => course.courseTeachers.map((entry) => entry.person)),
+    campersByAgeGroup,
+  });
+  const byCode = countsByCode(issues);
+  const severity = issueCounts(issues);
+
+  const withMessages = (code: string) =>
+    issues
+      .filter((issue) => issue.code === code)
+      .map((issue) => ({ courseId: issue.courseId, message: issue.message }));
 
   return NextResponse.json({
     camp: { ...camp, myRole: member.role },
@@ -124,14 +119,24 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       paidPaymentCount: paidPayments._count,
       pendingPaymentCount: pendingPayments,
     },
+    // The full issue list, plus the shapes the existing tiles already consume.
+    // Both are derived from the same detectIssues() call, so they cannot disagree.
+    issues,
+    issueSummary: { ...severity, canOpenRegistration: canOpenRegistration(issues) },
     attention: {
-      classesWithoutTeachers,
-      unscheduledClasses,
-      fullOrOverCapacityClasses,
-      classesWithNoEnrollment,
-      capsAboveRoomCapacity,
-      classesWithNoRoom,
-      classesWithNoLimit,
+      classesWithoutTeachers: byCode["no-teacher"] ?? 0,
+      unscheduledClasses: byCode["unscheduled"] ?? 0,
+      // Historically this tile counted full-or-over. Full is not a problem, so it
+      // now reports genuine overflow only — the count may legitimately drop.
+      fullOrOverCapacityClasses: byCode["over-capacity"] ?? 0,
+      classesWithNoEnrollment: byCode["empty"] ?? 0,
+      capsAboveRoomCapacity: withMessages("cap-above-room"),
+      classesWithNoRoom: withMessages("roomless"),
+      classesWithNoLimit: withMessages("no-limit-set"),
+      roomClashes: withMessages("room-clash"),
+      teacherClashes: withMessages("teacher-clash"),
+      seatShortfalls: withMessages("seat-shortfall"),
+      ageGroupGaps: withMessages("age-group-gap"),
     },
     // Operations grid (dashboard spec Slice 1). Rows are activities, columns are
     // time blocks, cells are sessions.
