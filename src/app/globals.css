@@ -535,3 +535,57 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 .act-block__count.is-filling { color:var(--warning); }.act-block__count.is-full { color:var(--success); font-weight:700; }.act-block__count.is-over { color:var(--danger); font-weight:700; }.capacity-dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;}
 .act-block:hover { box-shadow:var(--shadow-md); transform:translateY(-1px); }.act-block:focus-within { outline:2px solid var(--act-rail); outline-offset:2px; }.act-block--fixed { background:var(--canvas-sunk); border:1px dashed var(--border); }.act-block--fixed::before { display:none; }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { transition:none !important; animation:none !important; } .act-block:hover,.camp-card:hover { transform:none; } }
+
+/* ─── Operations grid (dashboard spec §1.3, AUTHORITATIVE) ─────────────────────
+   Bar LENGTH carries quantity; colour carries status only. A full class is a
+   success, not an error, so it is never tinted red. Whole cells are never
+   tinted — a 30x6 grid of tinted cells is a wall of colour. */
+.cap-track {
+  height: 4px; border-radius: 2px;
+  background: var(--canvas-sunk);
+  margin-top: 3px; display: flex; gap: 2px;
+}
+.cap-fill { height: 100%; border-radius: 2px; background: var(--brand-rail); }
+.cap-track--over .cap-fill { background: var(--danger); flex: 1; }
+.cap-nub { height: 100%; border-radius: 2px; background: var(--danger); }
+.cap-track--empty { background: var(--warning-wash); }
+
+/* Tabular figures so counts align down a column. */
+.ops-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px; line-height: 1.2; color: var(--text); }
+.ops-num--empty { color: var(--warning); }
+.ops-num--over { color: var(--danger); font-weight: 700; }
+
+.ops-grid-wrap { position: relative; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--canvas); max-height: 70vh; }
+.ops-grid { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+.ops-grid th, .ops-grid td { padding: 10px; border-bottom: 1px solid var(--border-hair); border-right: 1px solid var(--border-hair); }
+.ops-grid tr:last-child th, .ops-grid tr:last-child td { border-bottom: 0; }
+.ops-grid th:last-child, .ops-grid td:last-child { border-right: 0; }
+
+/* Column headers: sentence case, muted, mono. Not uppercase black. */
+.ops-grid thead th { position: sticky; top: 0; z-index: 2; background: var(--canvas); font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--text-muted); text-align: center; white-space: nowrap; }
+/* Row header frozen left; the corner needs the higher stacking order. */
+.ops-grid .ops-rowhead { position: sticky; left: 0; z-index: 1; background: var(--canvas); width: 200px; min-width: 200px; max-width: 200px; text-align: left; vertical-align: top; }
+.ops-grid thead .ops-rowhead { z-index: 3; }
+.ops-cell { width: 76px; min-width: 76px; text-align: center; vertical-align: top; }
+
+.ops-name { font-size: 12px; font-weight: 500; color: var(--text); }
+.ops-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.ops-meta__warn { color: var(--warning); }
+.ops-chip { display: inline-block; font-size: 10px; line-height: 1.4; padding: 0 5px; border-radius: 999px; margin-left: 5px; vertical-align: 1px; }
+
+/* Scroll affordance: a shadow only while content overflows that edge. */
+.ops-shadow-r, .ops-shadow-b { position: absolute; pointer-events: none; opacity: 0; transition: opacity .15s ease; }
+.ops-shadow-r { top: 0; bottom: 0; right: 0; width: 18px; background: linear-gradient(to left, rgba(15,23,42,.13), transparent); }
+.ops-shadow-b { left: 0; right: 0; bottom: 0; height: 14px; background: linear-gradient(to top, rgba(15,23,42,.10), transparent); }
+.ops-shadow-r.is-on, .ops-shadow-b.is-on { opacity: 1; }
+
+/* Black and white print: bars must survive without colour. */
+@media print {
+  .ops-grid-wrap { overflow: visible; max-height: none; border-color: #000; }
+  .cap-track { border: 1px solid #000; background: #fff; }
+  .cap-fill { background: #000; }
+  .cap-nub { background: #000; }
+  .cap-track--empty { background: #fff; }
+  .ops-num--over { text-decoration: underline; }
+  .ops-shadow-r, .ops-shadow-b { display: none; }
+}

@@ -15,7 +15,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   const member = await getMember(session.userId, campId);
   if (!member) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const [camp, paidPayments, pendingPayments, courses] = await Promise.all([
+  const [camp, paidPayments, pendingPayments, courses, timeBlocks, ageGroups] = await Promise.all([
     prisma.camp.findUnique({
       where: { id: campId },
       select: {
@@ -36,17 +36,42 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
     prisma.registrationPayment.count({ where: { campId, status: "pending" } }),
     prisma.course.findMany({
       where: { campId },
+      orderBy: { name: "asc" },
       select: {
         id: true,
         name: true,
         cap: true,
         heldSeats: true,
-        room: { select: { name: true, capacity: true } },
+        status: true,
+        color: true,
+        ageGroupId: true,
+        room: { select: { id: true, name: true, capacity: true } },
         attentionDismissals: true,
-        courseTeachers: { select: { personId: true } },
+        courseTeachers: {
+          select: { personId: true, person: { select: { id: true, firstName: true, lastName: true } } },
+        },
+        courseAgeGroups: { select: { ageGroupId: true } },
         courseSessionTemplates: { select: { sessionTemplateId: true } },
-        sessions: { select: { id: true, enrolledCount: true } },
+        sessions: {
+          select: {
+            id: true,
+            sessionTemplateId: true,
+            enrolledCount: true,
+            sessionTeachers: { select: { personId: true } },
+          },
+        },
       },
+    }),
+    // Grid axes: time blocks are the columns, age groups drive the row chips.
+    prisma.sessionTemplate.findMany({
+      where: { campId },
+      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+      select: { id: true, label: true, dayOfWeek: true, startTime: true, endTime: true, mandatory: true },
+    }),
+    prisma.ageGroup.findMany({
+      where: { campId },
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, color: true },
     }),
   ]);
 
@@ -107,6 +132,31 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       capsAboveRoomCapacity,
       classesWithNoRoom,
       classesWithNoLimit,
+    },
+    // Operations grid (dashboard spec Slice 1). Rows are activities, columns are
+    // time blocks, cells are sessions.
+    grid: {
+      courses: courses.map((course) => ({
+        id: course.id,
+        name: course.name,
+        cap: course.cap,
+        status: course.status,
+        color: course.color,
+        ageGroupId: course.ageGroupId,
+        room: course.room,
+        courseTeachers: course.courseTeachers.map((entry) => ({ person: entry.person })),
+        courseAgeGroups: course.courseAgeGroups,
+        sessions: course.sessions,
+      })),
+      blocks: timeBlocks.map((block) => ({
+        id: block.id,
+        label: block.label ?? "",
+        dayOfWeek: block.dayOfWeek,
+        startTime: block.startTime,
+        endTime: block.endTime,
+        mandatory: block.mandatory,
+      })),
+      ageGroups,
     },
   });
 }

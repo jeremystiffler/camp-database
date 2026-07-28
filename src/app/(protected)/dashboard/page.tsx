@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import NewCampWizard from "@/components/NewCampWizard";
 import { HelpCopy } from "@/components/HelpMode";
+import { OperationsGrid, type GridAgeGroup, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
 import { PROGRAM_PALETTES } from "@/lib/programPalettes";
 
 interface Camp {
@@ -40,6 +41,11 @@ interface DashboardSummary {
     capsAboveRoomCapacity?: { courseId: string; message: string }[];
     classesWithNoRoom?: { courseId: string; message: string }[];
     classesWithNoLimit?: { courseId: string; message: string }[];
+  };
+  grid?: {
+    courses: GridCourse[];
+    blocks: GridBlock[];
+    ageGroups: GridAgeGroup[];
   };
 }
 
@@ -631,6 +637,26 @@ function DashboardContent() {
               </div>
             </div>
           </div>
+
+          {/* The grid is the most important thing on this page, so it is the
+              first thing on it — above the stat tiles (dashboard spec §1.6). */}
+          {summary?.grid && summary.grid.courses.length > 0 && (
+            <section aria-labelledby="ops-grid-heading" className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 id="ops-grid-heading" className="text-sm font-black text-slate-900">
+                  Activities by time block
+                </h2>
+                <Link href={`/schedule?campId=${activeCamp.id}`} className="text-xs font-bold text-slate-600 underline-offset-2 hover:underline">
+                  Open the schedule
+                </Link>
+              </div>
+              <OperationsGrid
+                courses={summary.grid.courses}
+                blocks={summary.grid.blocks}
+                ageGroups={summary.grid.ageGroups}
+              />
+            </section>
+          )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <StatCard label="Registered Participants" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" />

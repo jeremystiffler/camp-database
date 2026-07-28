@@ -15,7 +15,36 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   if (!member) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const camp = await prisma.camp.findFirst({
     where: { id: campId },
-    include: { ageGroups: true, rooms: true, persons: true, courses: true },
+    include: {
+      ageGroups: { orderBy: [{ displayOrder: "asc" }, { name: "asc" }] },
+      rooms: true,
+      persons: true,
+      // The operations grid needs each course's sessions with their block and
+      // occupancy. Extended here rather than behind a new endpoint so the grid
+      // has one source of truth (dashboard spec §1.1).
+      courses: {
+        include: {
+          courseTeachers: { include: { person: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+          courseAgeGroups: { select: { ageGroupId: true } },
+          courseSessionTemplates: { select: { sessionTemplateId: true } },
+          room: { select: { id: true, name: true, capacity: true } },
+          sessions: {
+            select: {
+              id: true,
+              sessionTemplateId: true,
+              roomId: true,
+              startTime: true,
+              endTime: true,
+              status: true,
+              enrolledCount: true,
+              capacity: true,
+              sessionTeachers: { select: { personId: true } },
+            },
+          },
+        },
+      },
+      sessionTemplates: { orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
+    },
   });
   if (!camp) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ...camp, myRole: member.role });
