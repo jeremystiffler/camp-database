@@ -721,3 +721,87 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 }
 
 @media print { .strip__toggle, .strip__cta { display: none; } }
+
+/* ─── Grid click targets: popover and drawer (spec §3, phase 18f) ─────────── */
+/* Nothing in here navigates. Every control is a button with a callback. */
+.ops-cellbtn {
+  display: block; width: 100%; border: 0; background: transparent; padding: 0;
+  cursor: pointer; text-align: left; border-radius: var(--radius-sm); color: inherit;
+  font: inherit;
+}
+.ops-cellbtn:hover { background: var(--canvas-sunk); }
+/* A visible ring on every focusable cell (§3 keyboard requirement). */
+.ops-cellbtn:focus-visible, .ops-headbtn:focus-visible, .ops-colbtn:focus-visible, .ops-tag:focus-visible {
+  outline: 2px solid var(--brand-primary); outline-offset: -2px; border-radius: var(--radius-sm);
+}
+.ops-headbtn {
+  display: block; width: 100%; border: 0; background: transparent; padding: 0;
+  cursor: pointer; text-align: left; color: inherit; font: inherit;
+}
+.ops-headbtn:hover .ops-name { text-decoration: underline; text-underline-offset: 2px; }
+.ops-colbtn {
+  border: 0; background: transparent; padding: 2px 4px; cursor: pointer;
+  font: inherit; color: inherit; border-radius: var(--radius-sm);
+}
+.ops-colbtn:hover { background: var(--canvas-sunk); }
+.ops-colbtn[aria-pressed="true"] { background: color-mix(in srgb, var(--brand-primary) 16%, transparent); }
+
+/* Teacher and room names inside the row header are their own filter targets. */
+.ops-tag {
+  border: 0; background: transparent; padding: 0; cursor: pointer; font: inherit;
+  color: inherit; text-decoration: underline; text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.ops-tag:hover { color: var(--brand-primary); }
+.ops-tag[aria-pressed="true"] { color: var(--brand-primary); font-weight: 600; }
+
+/* Filtered views dim rather than remove, so context survives (§3). */
+.ops-grid tbody tr.is-dimmed { opacity: 0.25; }
+.ops-grid td.is-colsel, .ops-grid th.is-colsel { background: color-mix(in srgb, var(--brand-primary) 7%, transparent); }
+.ops-filterbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 6px 10px; margin-bottom: 8px; font-size: 12px;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 30%, var(--border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--brand-primary) 6%, transparent);
+}
+.ops-filterbar__text { margin: 0; font-weight: 600; color: var(--text); }
+.ops-filterbar__clear {
+  border: 1px solid var(--border); background: var(--canvas); cursor: pointer;
+  border-radius: var(--radius-sm); padding: 3px 9px; font-size: 11px; font-weight: 600;
+  color: var(--text);
+}
+.ops-filterbar__clear:hover { background: var(--canvas-sunk); }
+
+.pop, .drawer {
+  position: absolute; z-index: 40; min-width: 240px; max-width: 300px;
+  background: var(--canvas); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lift); padding: 12px;
+}
+.pop__head { margin-bottom: 8px; }
+.pop__title, .drawer__title { margin: 0; font-size: 13px; font-weight: 700; color: var(--text); }
+.pop__sub { margin: 1px 0 0; font-size: 11px; color: var(--text-muted); }
+.pop__facts, .drawer__facts { margin: 0 0 10px; display: grid; gap: 5px; }
+.pop__facts > div, .drawer__facts > div { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+.pop__facts dt, .drawer__facts dt { color: var(--text-muted); }
+.pop__facts dd, .drawer__facts dd { margin: 0; font-weight: 600; text-align: right; color: var(--text); }
+.pop__muted { color: var(--text-muted); font-weight: 400; }
+.pop__empty { margin: 0 0 10px; font-size: 12px; color: var(--text-muted); }
+.pop__actions, .drawer__actions { display: grid; gap: 5px; }
+.pop__btn {
+  border: 1px solid var(--border); background: var(--canvas-sunk); cursor: pointer;
+  border-radius: var(--radius-sm); padding: 6px 10px; font-size: 12px; font-weight: 600;
+  color: var(--text); text-align: center;
+}
+.pop__btn:hover:not(:disabled) { background: var(--canvas-raised); }
+.pop__btn:disabled { opacity: 0.6; cursor: progress; }
+.pop__btn--danger { border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); color: var(--danger); }
+.pop__btn--danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 8%, transparent); }
+.pop__btn--quiet { background: transparent; border-color: transparent; color: var(--text-muted); }
+.drawer__head { display: flex; align-items: start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.drawer__close { border: 0; background: transparent; cursor: pointer; font-size: 18px; line-height: 1; color: var(--text-muted); padding: 0 2px; }
+.drawer__close:hover { color: var(--text); }
+.drawer__swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+
+@media print { .pop, .drawer, .ops-filterbar { display: none; } }
+.ops-coltotal { display: block; font-size: 10px; font-weight: 600; color: var(--brand-primary); margin-top: 1px; }

@@ -1,8 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { effectiveCapacity, formatCapacity } from "@/lib/capacity-rules";
 import { detectIssues, type IssueCourse } from "@/lib/issues";
+import {
+  NO_SELECTION,
+  blockTotals,
+  cellDomId,
+  dimmedRowIds,
+  moveFocus,
+  selectionLabel,
+  toggleSelection,
+  type FocusCell,
+  type GridSelection,
+} from "@/components/gridInteraction";
+import {
+  CellPopover,
+  RowDrawer,
+  type CellPopoverData,
+  type RowDrawerData,
+} from "@/components/GridPopover";
 
 /**
  * The operations grid — dashboard spec Slice 1.
@@ -509,22 +526,102 @@ function BlockList({
   );
 }
 
+/**
+ * Position a transient surface next to the cell that opened it, clamped inside
+ * the grid so a popover on the last column cannot render off-screen.
+ */
+function Anchored({
+  anchor,
+  container,
+  children,
+}: {
+  anchor: HTMLElement;
+  container: HTMLElement | null;
+  children: React.ReactNode;
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const host = container ?? anchor.offsetParent;
+    if (!host) return;
+    const hostBox = (host as HTMLElement).getBoundingClientRect();
+    const cell = anchor.getBoundingClientRect();
+    const width = ref.current?.firstElementChild?.getBoundingClientRect().width ?? 260;
+    const maxLeft = Math.max(0, hostBox.width - width - 4);
+    setPos({
+      top: cell.bottom - hostBox.top + 4,
+      left: Math.min(Math.max(0, cell.left - hostBox.left), maxLeft),
+    });
+  }, [anchor, container]);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: "absolute",
+        top: pos?.top ?? 0,
+        left: pos?.left ?? 0,
+        // Measure before showing, so it never flashes at the wrong place.
+        visibility: pos ? "visible" : "hidden",
+        zIndex: 40,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function OperationsGrid({
   courses,
   blocks,
   ageGroups,
   emptyMessage = "Add an activity and a time block to see your grid.",
+  interactive = false,
+  onRemoveSession,
+  onAddSession,
 }: {
   courses: GridCourse[];
   blocks: GridBlock[];
   ageGroups: GridAgeGroup[];
   emptyMessage?: string;
+  /**
+   * Turn on Slice 3 click targets: popovers, drawer, filtered views, keyboard
+   * navigation. Off by default so read-only placements stay read-only.
+   */
+  interactive?: boolean;
+  /** Return true on success. The grid does not know how to talk to the API. */
+  onRemoveSession?: (input: { courseId: string; sessionId: string }) => Promise<boolean>;
+  onAddSession?: (input: {
+    courseId: string;
+    blockId: string;
+    startTime: string;
+    endTime: string;
+  }) => Promise<boolean>;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [scrollRight, setScrollRight] = useState(false);
   const [scrollBottom, setScrollBottom] = useState(false);
   const [sort, setSort] = useState<SortKey>("default");
   const [filter, setFilter] = useState<GridFilter>(EMPTY_FILTER);
+  const [selection, setSelection] = useState<GridSelection>(NO_SELECTION);
+  const [popover, setPopover] = useState<{ data: CellPopoverData; anchor: HTMLElement } | null>(null);
+  const [drawer, setDrawer] = useState<{ data: RowDrawerData; anchor: HTMLElement } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [focus, setFocus] = useState<FocusCell>({ row: 0, col: -1 });
+
+  // Close every transient surface when the underlying data changes, so a stale
+  // popover can never describe a session that no longer exists.
+  useEffect(() => {
+    setPopover(null);
+    setDrawer(null);
+  }, [courses, blocks]);
+
+  const clearSelection = useCallback(() => setSelection(NO_SELECTION), []);
+  const pick = useCallback(
+    (next: GridSelection) => setSelection((current) => toggleSelection(current, next)),
+    [],
+  );
 
   // Show that it scrolls (§1.4) — the current /schedule grid overflows with no
   // affordance at all, which is how controls end up clipped and unreachable.
@@ -555,6 +652,127 @@ export function OperationsGrid({
   const rows = arrangeRows(courses, columns, sort, filter);
   const blockers = hiddenBlockers(courses, rows, columns);
   const filtering = filter.query.trim() !== "" || filter.ageGroupId !== "" || filter.attentionOnly;
+
+  // ── Slice 3 interaction ──────────────────────────────────────────────────
+  const dimmed = dimmedRowIds(
+    rows.map((course) => ({
+      courseId: course.id,
+      teacherIds: (course.courseTeachers ?? []).map((entry) => entry.person.id),
+      roomId: course.room?.id ?? null,
+    })),
+    selection,
+  );
+  const matchCount = rows.length - dimmed.size;
+
+  /** Build the popover payload for one cell. Never navigates. */
+  const openCell = useCallback(
+    (course: GridCourse, column: GridColumn, anchor: HTMLElement) => {
+      const session = (course.sessions ?? []).find(
+        (entry) => entry.sessionTemplateId != null && column.blockIds.includes(entry.sessionTemplateId),
+      );
+      setDrawer(null);
+      setPopover({
+        anchor,
+        data: {
+          courseId: course.id,
+          courseName: course.name,
+          blockLabel: column.label,
+          sessionId: session?.id ?? null,
+          enrolled: session?.enrolledCount ?? 0,
+          capacity: course.cap ?? null,
+          roomName: course.room?.name ?? null,
+          teacherNames: (course.courseTeachers ?? []).map(
+            (entry) => `${entry.person.firstName} ${entry.person.lastName}`.trim(),
+          ),
+        },
+      });
+    },
+    [],
+  );
+
+  const openRow = useCallback(
+    (course: GridCourse, anchor: HTMLElement) => {
+      const groupId = course.courseAgeGroups?.[0]?.ageGroupId ?? course.ageGroupId ?? "";
+      setPopover(null);
+      setDrawer({
+        anchor,
+        data: {
+          courseId: course.id,
+          name: course.name,
+          ageGroupName: ageGroupById.get(groupId)?.name ?? null,
+          color: course.color ?? null,
+          icon: null,
+          roomName: course.room?.name ?? null,
+          teacherNames: (course.courseTeachers ?? []).map(
+            (entry) => `${entry.person.firstName} ${entry.person.lastName}`.trim(),
+          ),
+          capacity: course.cap ?? null,
+          sessionCount: (course.sessions ?? []).length,
+        },
+      });
+    },
+    [ageGroupById],
+  );
+
+  /** Arrow keys move focus; Enter opens; Escape closes (§3). */
+  const onGridKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLTableElement>) => {
+      if (!interactive) return;
+      const { key } = event;
+      if (key === "Escape") {
+        setPopover(null);
+        setDrawer(null);
+        clearSelection();
+        return;
+      }
+      if (
+        key !== "ArrowUp" &&
+        key !== "ArrowDown" &&
+        key !== "ArrowLeft" &&
+        key !== "ArrowRight" &&
+        key !== "Home" &&
+        key !== "End"
+      ) {
+        return;
+      }
+      event.preventDefault();
+      const next = moveFocus(focus, key, rows.length, columns.length);
+      setFocus(next);
+      document.getElementById(cellDomId(next.row, next.col))?.focus();
+    },
+    [interactive, focus, rows.length, columns.length, clearSelection],
+  );
+
+  const removeSession = useCallback(
+    async (data: CellPopoverData) => {
+      if (!onRemoveSession || !data.sessionId) return;
+      setBusy(true);
+      const ok = await onRemoveSession({ courseId: data.courseId, sessionId: data.sessionId });
+      setBusy(false);
+      if (ok) setPopover(null);
+    },
+    [onRemoveSession],
+  );
+
+  const addSession = useCallback(
+    async (data: CellPopoverData) => {
+      const column = columns.find((entry) => entry.label === data.blockLabel);
+      if (!onAddSession || !column) return;
+      setBusy(true);
+      // A folded column stands for several real templates; add to the first.
+      // Pass the times through: a Session with null times exists in the data but
+      // is invisible on /schedule, which is worse than not creating it.
+      const ok = await onAddSession({
+        courseId: data.courseId,
+        blockId: column.blockIds[0],
+        startTime: column.startTime,
+        endTime: column.endTime,
+      });
+      setBusy(false);
+      if (ok) setPopover(null);
+    },
+    [onAddSession, columns],
+  );
 
   // Only mention the variation marker when something actually varies.
   const anyVaries =
@@ -687,63 +905,197 @@ export function OperationsGrid({
       <BlockList columns={columns} courses={rows} ageGroupById={ageGroupById} />
 
       <div className="relative hidden md:block">
+        {interactive && selection.kind !== "none" && (
+          <div className="ops-filterbar">
+            <p className="ops-filterbar__text" role="status">
+              {selectionLabel(selection, matchCount)}
+            </p>
+            <button type="button" className="ops-filterbar__clear" onClick={clearSelection}>
+              Clear
+            </button>
+          </div>
+        )}
         <div className="ops-grid-wrap" ref={wrapRef}>
-          <table className="ops-grid">
+          <table className="ops-grid" onKeyDown={onGridKeyDown}>
             <caption className="sr-only">
               Activities by time block, showing enrollment against each class limit.
               {folded ? ` ${dayLabel} run the same set of time blocks, shown once.` : ""}
+              {interactive ? " Use the arrow keys to move between cells and Enter to open one." : ""}
             </caption>
             <thead>
               <tr>
                 <th scope="col" className="ops-rowhead">
                   Activity
                 </th>
-                {columns.map((column) => (
-                  <th key={column.key} scope="col" className="ops-cell">
-                    {column.label}
-                  </th>
-                ))}
+                {columns.map((column) => {
+                  const chosen = selection.kind === "block" && selection.key === column.key;
+                  const totals = chosen
+                    ? blockTotals(
+                        rows
+                          .filter((course) =>
+                            (course.sessions ?? []).some(
+                              (entry) =>
+                                entry.sessionTemplateId != null &&
+                                column.blockIds.includes(entry.sessionTemplateId),
+                            ),
+                          )
+                          .map((course) => ({
+                            enrolled: (course.sessions ?? [])
+                              .filter(
+                                (entry) =>
+                                  entry.sessionTemplateId != null &&
+                                  column.blockIds.includes(entry.sessionTemplateId),
+                              )
+                              .reduce((peak, entry) => Math.max(peak, entry.enrolledCount), 0),
+                            capacity: course.cap ?? null,
+                          })),
+                      )
+                    : null;
+                  return (
+                    <th key={column.key} scope="col" className={`ops-cell ${chosen ? "is-colsel" : ""}`}>
+                      {interactive ? (
+                        <button
+                          type="button"
+                          className="ops-colbtn"
+                          aria-pressed={chosen}
+                          onClick={() => pick({ kind: "block", key: column.key, label: column.label })}
+                        >
+                          {column.label}
+                        </button>
+                      ) : (
+                        column.label
+                      )}
+                      {totals && (
+                        <span className="ops-coltotal">
+                          {totals.enrolled}
+                          {totals.capacity === null ? " · no limit" : ` of ${totals.capacity}`}
+                        </span>
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {rows.map((course) => {
+              {rows.map((course, rowIndex) => {
                 const teacher = teacherLabel(course);
                 const groupId = course.courseAgeGroups?.[0]?.ageGroupId ?? course.ageGroupId ?? "";
                 const chip = ageGroupById.get(groupId);
                 const hidden = course.status === "hidden";
                 const cancelled = course.status === "cancelled";
+                const isDimmed = dimmed.has(course.id);
+                const teachers = course.courseTeachers ?? [];
+                const nameBlock = (
+                  <>
+                    <p className="ops-name" style={cancelled ? { textDecoration: "line-through" } : undefined}>
+                      {course.name}
+                      {chip && (
+                        <span
+                          className="ops-chip"
+                          style={{
+                            background: `${chip.color ?? "#64748b"}1f`,
+                            color: chip.color ?? "#475569",
+                          }}
+                        >
+                          {chip.name}
+                        </span>
+                      )}
+                      {hidden && <span className="ops-chip" style={{ background: "var(--canvas-sunk)" }}>hidden</span>}
+                    </p>
+                  </>
+                );
                 return (
-                  <tr key={course.id} style={hidden ? { opacity: 0.55 } : undefined}>
+                  <tr
+                    key={course.id}
+                    className={isDimmed ? "is-dimmed" : undefined}
+                    style={hidden ? { opacity: 0.55 } : undefined}
+                  >
                     <th scope="row" className="ops-rowhead" data-course-id={course.id}>
-                      <p className="ops-name" style={cancelled ? { textDecoration: "line-through" } : undefined}>
-                        {course.name}
-                        {chip && (
-                          <span
-                            className="ops-chip"
-                            style={{
-                              background: `${chip.color ?? "#64748b"}1f`,
-                              color: chip.color ?? "#475569",
-                            }}
-                          >
-                            {chip.name}
-                          </span>
-                        )}
-                        {hidden && <span className="ops-chip" style={{ background: "var(--canvas-sunk)" }}>hidden</span>}
-                      </p>
+                      {interactive ? (
+                        <button
+                          type="button"
+                          id={cellDomId(rowIndex, -1)}
+                          className="ops-headbtn"
+                          onClick={(event) => openRow(course, event.currentTarget)}
+                          onFocus={() => setFocus({ row: rowIndex, col: -1 })}
+                        >
+                          {nameBlock}
+                        </button>
+                      ) : (
+                        nameBlock
+                      )}
                       <p className={`ops-meta ${teacher.missing ? "ops-meta__warn" : ""}`}>
-                        {course.room?.name ?? "No room"} · {teacher.text} · {capLabel(course.cap)}
+                        {/* Room and teacher names are their own filter targets (§3):
+                            one click shows that room's or that person's whole day,
+                            which is the fastest possible clash check. */}
+                        {interactive && course.room ? (
+                          <button
+                            type="button"
+                            className="ops-tag"
+                            aria-pressed={selection.kind === "room" && selection.id === course.room.id}
+                            onClick={() =>
+                              pick({ kind: "room", id: course.room!.id, label: course.room!.name })
+                            }
+                          >
+                            {course.room.name}
+                          </button>
+                        ) : (
+                          course.room?.name ?? "No room"
+                        )}
+                        {" · "}
+                        {interactive && teachers.length ? (
+                          teachers.map((entry, index) => (
+                            <span key={entry.person.id}>
+                              {index > 0 && ", "}
+                              <button
+                                type="button"
+                                className="ops-tag"
+                                aria-pressed={selection.kind === "teacher" && selection.id === entry.person.id}
+                                onClick={() =>
+                                  pick({
+                                    kind: "teacher",
+                                    id: entry.person.id,
+                                    label: `${entry.person.firstName} ${entry.person.lastName}`.trim(),
+                                  })
+                                }
+                              >
+                                {`${entry.person.firstName} ${entry.person.lastName}`.trim()}
+                              </button>
+                            </span>
+                          ))
+                        ) : (
+                          teacher.text
+                        )}
+                        {" · "}
+                        {capLabel(course.cap)}
                       </p>
                     </th>
-                    {columns.map((column) => (
-                      <td
-                        key={column.key}
-                        className="ops-cell"
-                        data-course-id={course.id}
-                        data-block-ids={column.blockIds.join(" ")}
-                      >
-                        <CellContent cell={foldCell(course, column)} course={course} />
-                      </td>
-                    ))}
+                    {columns.map((column, colIndex) => {
+                      const chosen = selection.kind === "block" && selection.key === column.key;
+                      const cell = foldCell(course, column);
+                      return (
+                        <td
+                          key={column.key}
+                          className={`ops-cell ${chosen ? "is-colsel" : ""}`}
+                          data-course-id={course.id}
+                          data-block-ids={column.blockIds.join(" ")}
+                        >
+                          {interactive ? (
+                            <button
+                              type="button"
+                              id={cellDomId(rowIndex, colIndex)}
+                              className="ops-cellbtn"
+                              onClick={(event) => openCell(course, column, event.currentTarget)}
+                              onFocus={() => setFocus({ row: rowIndex, col: colIndex })}
+                            >
+                              <CellContent cell={cell} course={course} />
+                            </button>
+                          ) : (
+                            <CellContent cell={cell} course={course} />
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
@@ -752,6 +1104,28 @@ export function OperationsGrid({
         </div>
         <div className={`ops-shadow-r ${scrollRight ? "is-on" : ""}`} aria-hidden="true" />
         <div className={`ops-shadow-b ${scrollBottom ? "is-on" : ""}`} aria-hidden="true" />
+
+        {popover && (
+          <Anchored anchor={popover.anchor} container={wrapRef.current?.parentElement ?? null}>
+            <CellPopover
+              data={popover.data}
+              busy={busy}
+              returnFocusTo={popover.anchor}
+              onClose={() => setPopover(null)}
+              onRemove={onRemoveSession ? removeSession : undefined}
+              onAdd={onAddSession ? addSession : undefined}
+            />
+          </Anchored>
+        )}
+        {drawer && (
+          <Anchored anchor={drawer.anchor} container={wrapRef.current?.parentElement ?? null}>
+            <RowDrawer
+              data={drawer.data}
+              returnFocusTo={drawer.anchor}
+              onClose={() => setDrawer(null)}
+            />
+          </Anchored>
+        )}
       </div>
         </>
       )}

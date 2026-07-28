@@ -498,6 +498,17 @@ function DashboardContent() {
     if (activeCamp?.id) localStorage.setItem("activeCampId", activeCamp.id);
   }, [activeCamp?.id, activeCamp?.name]);
 
+  const refreshSummary = useCallback(async () => {
+    if (!activeCamp?.id) return;
+    try {
+      const response = await fetch(`/api/camps/${activeCamp.id}/dashboard`);
+      const data = response.ok ? await response.json() : null;
+      setSummary(data && data.stats ? data : null);
+    } catch {
+      /* Leave the current view in place rather than blanking the grid. */
+    }
+  }, [activeCamp?.id]);
+
   useEffect(() => {
     if (!activeCamp?.id) {
       setSummary(null);
@@ -510,6 +521,39 @@ function DashboardContent() {
       .catch(() => setSummary(null))
       .finally(() => setSummaryLoading(false));
   }, [activeCamp?.id]);
+
+  /**
+   * Grid edits (§3). Both stay on the page: they call the API, refresh the
+   * summary in place, and never navigate. Returning false leaves the popover
+   * open so the organiser can see the action did not take.
+   */
+  const removeSession = useCallback(
+    async ({ sessionId }: { courseId: string; sessionId: string }) => {
+      if (!activeCamp?.id) return false;
+      const response = await fetch(`/api/camps/${activeCamp.id}/sessions/${sessionId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) return false;
+      await refreshSummary();
+      return true;
+    },
+    [activeCamp?.id, refreshSummary],
+  );
+
+  const addSession = useCallback(
+    async ({ courseId, blockId, startTime, endTime }: { courseId: string; blockId: string; startTime: string; endTime: string }) => {
+      if (!activeCamp?.id) return false;
+      const response = await fetch(`/api/camps/${activeCamp.id}/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId, sessionTemplateId: blockId, startTime, endTime }),
+      });
+      if (!response.ok) return false;
+      await refreshSummary();
+      return true;
+    },
+    [activeCamp?.id, refreshSummary],
+  );
 
   const reloadPrograms = () => {
     fetch("/api/camps").then(r => r.json()).then(d => { if (Array.isArray(d)) setPrograms(d); });
@@ -601,19 +645,12 @@ function DashboardContent() {
     }
   };
 
-  // Unset limits are the only real capacity risk now: an unlimited class can be
-  // over-registered. Room mismatches are advisory and never block anyone.
-  const capacityBlockers = summary
-    ? [...(summary.attention.classesWithNoLimit || [])]
-    : [];
-  const capacityAdvisories = summary
-    ? [...(summary.attention.capsAboveRoomCapacity || []), ...(summary.attention.classesWithNoRoom || [])]
-    : [];
-  const attentionTotal = summary
-    ? summary!.attention.classesWithoutTeachers + summary!.attention.unscheduledClasses + summary!.attention.fullOrOverCapacityClasses + capacityBlockers.length + capacityAdvisories.length
-    : 0;
   const selectedStats = summary?.stats;
-  const needsAttention = attentionTotal > 0;
+  // Derived from the one engine (phase 18b), not from a second tally. The old
+  // arithmetic here counted a full 9/9 class as a problem and knew nothing of
+  // room or teacher clashes, so this headline could contradict the summary strip
+  // sitting a few hundred pixels above it.
+  const needsAttention = (summary?.issues?.length ?? 0) > 0;
 
   return (
     <div>
@@ -712,6 +749,9 @@ function DashboardContent() {
                 courses={summary.grid.courses}
                 blocks={summary.grid.blocks}
                 ageGroups={summary.grid.ageGroups}
+                interactive
+                onRemoveSession={removeSession}
+                onAddSession={addSession}
               />
             </section>
           )}
@@ -734,7 +774,14 @@ function DashboardContent() {
             <div>
               <p className={`mb-2 text-xs font-black uppercase tracking-[0.18em] ${needsAttention ? "text-amber-700" : "text-forest-700"}`}>{needsAttention ? "Needs your attention" : "Event is in good shape"}</p>
               <h2 className="text-lg font-black text-slate-950">{needsAttention ? "A few activity details need a decision" : "No teacher, schedule, or capacity issues found."}</h2>
-              {needsAttention && summary ? <div className="mt-3 flex flex-wrap gap-2">{summary!.attention.classesWithoutTeachers > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.classesWithoutTeachers} need a teacher</span>}{summary!.attention.unscheduledClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.unscheduledClasses} are not scheduled</span>}{summary!.attention.fullOrOverCapacityClasses > 0 && <span className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700">{summary!.attention.fullOrOverCapacityClasses} are at capacity</span>}{capacityBlockers.map((issue) => <button key={issue.courseId} type="button" onClick={() => router.push(`/activities?activityId=${issue.courseId}`)} className="rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-left text-xs font-black text-red-800 transition hover:bg-red-100">{issue.message}</button>)}{capacityAdvisories.map((issue) => <button key={issue.courseId} type="button" onClick={() => router.push(`/activities?activityId=${issue.courseId}`)} className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-left text-xs font-bold text-amber-900 transition hover:bg-amber-100" title="Advisory only — this does not block registration">{issue.message}</button>)}</div> : <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-700">{canEditCamp(activeCamp) ? "Use the tools below to keep registration, check-in, and printed materials ready." : "You can review the event’s live schedule, rosters, and printable materials."}</p>}
+              {/* The issue chips that stood here are deleted (phase 18f). They
+                  were a SECOND issue display with its own arithmetic, and it
+                  disagreed with the summary strip: on a room+teacher clash it
+                  reported "1 issue" (counting a full 9/9 class as a problem)
+                  while the engine correctly reported 2 blocking. Its buttons
+                  also router.push'd to /activities, which §3 forbids. One
+                  engine, one display: the strip above the grid. */}
+              <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-700">{canEditCamp(activeCamp) ? "Use the tools below to keep registration, check-in, and printed materials ready." : "You can review the event\u2019s live schedule, rosters, and printable materials."}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {canEditCamp(activeCamp) ? <Link href={`/activities?campId=${activeCamp.id}`} className="minimal-button-primary">Review activities</Link> : <Link href={`/schedule?campId=${activeCamp.id}`} className="minimal-button-primary">View schedule</Link>}
