@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { generateCamperScanCode, normalizePickupNumber } from "@/lib/camper-identity";
+import { generateParticipantScanCode, normalizePickupNumber } from "@/lib/participant-identity";
 import { CapacityError, claimSeat, storedCapacity, releaseEnrollment } from "@/lib/capacity";
 
 async function getMember(userId: string, campId: string) {
@@ -57,10 +57,10 @@ async function resolveSessionChoices(campId: string, choices: SessionChoiceInput
   }
   return sessionIds;
 }
-async function replaceEnrollments(campId: string, camperId: string, nextSessionIds: string[], sessionChoices: SessionChoiceInput[] = []) {
+async function replaceEnrollments(campId: string, participantId: string, nextSessionIds: string[], sessionChoices: SessionChoiceInput[] = []) {
   const resolvedChoiceSessionIds = await resolveSessionChoices(campId, sessionChoices);
   nextSessionIds = [...new Set([...nextSessionIds, ...resolvedChoiceSessionIds])];
-  const existing = await prisma.enrollment.findMany({ where: { campId, camperId }, select: { id: true, sessionId: true } });
+  const existing = await prisma.enrollment.findMany({ where: { campId, participantId }, select: { id: true, sessionId: true } });
   const existingIds = new Set(existing.map((e) => e.sessionId));
   const nextIds = new Set(nextSessionIds);
   const toAdd = nextSessionIds.filter((id) => !existingIds.has(id));
@@ -72,14 +72,14 @@ async function replaceEnrollments(campId: string, camperId: string, nextSessionI
     const invalid = toAdd.filter((id) => !validIds.has(id));
     if (invalid.length) throw new Error("One or more selected sessions do not belong to this event");
     for (const sessionId of toAdd) {
-      await claimSeat({ campId, camperId, sessionId, status: "enrolled", allowHeldSeat: true });
+      await claimSeat({ campId, participantId, sessionId, status: "enrolled", allowHeldSeat: true });
     }
   }
   for (const enrollment of toRemove) {
     await releaseEnrollment(enrollment.id, campId);
   }
 }
-const camperInclude = {
+const participantInclude = {
   ageGroup: true,
   enrollments: {
     include: { session: { include: { course: true, mandatorySession: true, room: true, sessionTemplate: true } } },
@@ -93,7 +93,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
   if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const items = await prisma.camper.findMany({ where: { campId }, include: camperInclude, orderBy: { lastName: "asc" } });
+  const items = await prisma.participant.findMany({ where: { campId }, include: participantInclude, orderBy: { lastName: "asc" } });
   return NextResponse.json(items);
 }
 
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     // Keep this as a single plain insert. Prisma's HTTP adapter (Neon/Vercel)
     // does not support transactions, and relation includes on writes can be
     // planned as transaction-like query batches by some adapter versions.
-    const item = await prisma.camper.create({
+    const item = await prisma.participant.create({
       data: {
         campId,
         firstName,
@@ -142,13 +142,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         totalPaidCents: intValue(data.totalPaidCents),
         paymentStatus: nullableString(data.paymentStatus) || "not_required",
         pickupNumber: normalizePickupNumber(data.pickupNumber),
-        scanCode: generateCamperScanCode(),
+        scanCode: generateParticipantScanCode(),
         scanCodeGeneratedAt: new Date(),
       },
       select: { id: true },
     });
     await replaceEnrollments(campId, item.id, parseSessionIds(data.sessionIds), parseSessionChoices(data.sessionChoices));
-    const reloaded = await prisma.camper.findFirst({ where: { id: item.id, campId }, include: camperInclude });
+    const reloaded = await prisma.participant.findFirst({ where: { id: item.id, campId }, include: participantInclude });
     return NextResponse.json(reloaded, { status: 201 });
   } catch (err) {
     console.error("Participant POST error:", err);

@@ -18,7 +18,7 @@ function clean(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-const camperInclude = {
+const participantInclude = {
   ageGroup: true,
   enrollments: {
     include: { session: { include: { course: true, mandatorySession: true, room: true, sessionTemplate: true } } },
@@ -27,14 +27,14 @@ const camperInclude = {
 };
 
 async function attendanceForCampDate(campId: string, campDate: Date) {
-  const [campers, attendances] = await Promise.all([
-    prisma.camper.findMany({ where: { campId }, include: camperInclude, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
-    prisma.camperAttendance.findMany({ where: { campId, campDate } }),
+  const [participants, attendances] = await Promise.all([
+    prisma.participant.findMany({ where: { campId }, include: participantInclude, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
+    prisma.participantAttendance.findMany({ where: { campId, campDate } }),
   ]);
-  const attendanceByCamper = new Map(attendances.map((attendance) => [attendance.camperId, attendance]));
-  return campers.map((camper) => ({
-    ...camper,
-    attendance: attendanceByCamper.get(camper.id) || null,
+  const attendanceByParticipant = new Map(attendances.map((attendance) => [attendance.participantId, attendance]));
+  return participants.map((participant) => ({
+    ...participant,
+    attendance: attendanceByParticipant.get(participant.id) || null,
   }));
 }
 
@@ -48,8 +48,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
   const campDate = dayStart(req.nextUrl.searchParams.get("date"));
   if (!campDate) return NextResponse.json({ error: "Invalid date" }, { status: 400 });
 
-  const campers = await attendanceForCampDate(campId, campDate);
-  return NextResponse.json({ campDate: campDate.toISOString().slice(0, 10), campers });
+  const participants = await attendanceForCampDate(campId, campDate);
+  return NextResponse.json({ campDate: campDate.toISOString().slice(0, 10), participants });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ campId: string }> }) {
@@ -61,13 +61,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
   try {
     const body = await req.json().catch(() => ({}));
-    const camperId = clean(body.camperId);
+    const participantId = clean(body.participantId);
     const action = clean(body.action);
     const campDate = dayStart(clean(body.date));
-    if (!camperId || !action || !campDate) return NextResponse.json({ error: "camperId, action, and date are required" }, { status: 400 });
+    if (!participantId || !action || !campDate) return NextResponse.json({ error: "participantId, action, and date are required" }, { status: 400 });
 
-    const camper = await prisma.camper.findFirst({ where: { id: camperId, campId }, select: { id: true, firstName: true, lastName: true } });
-    if (!camper) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
+    const participant = await prisma.participant.findFirst({ where: { id: participantId, campId }, select: { id: true, firstName: true, lastName: true } });
+    if (!participant) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
 
     const now = new Date();
     const note = clean(body.note);
@@ -91,23 +91,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     } else if (action === "shirt_picked_up") {
       data = { shirtPickedUpAt: now, notes: note };
     } else if (action === "mark_paid" || action === "mark_comped") {
-      await prisma.camper.update({ where: { id: camperId }, data: { paymentStatus: action === "mark_paid" ? "paid" : "comped" } });
+      await prisma.participant.update({ where: { id: participantId }, data: { paymentStatus: action === "mark_paid" ? "paid" : "comped" } });
       data = { notes: note };
       eventType = "payment_collected";
     } else {
       return NextResponse.json({ error: "Unknown attendance action" }, { status: 400 });
     }
 
-    await prisma.camperAttendance.upsert({
-      where: { campId_camperId_campDate: { campId, camperId, campDate } },
-      create: { campId, camperId, campDate, ...data },
+    await prisma.participantAttendance.upsert({
+      where: { campId_participantId_campDate: { campId, participantId, campDate } },
+      create: { campId, participantId, campDate, ...data },
       update: data,
     });
-    await prisma.checkInEvent.create({ data: { campId, camperId, type: eventType, note, pickupPersonName, createdByUserId: session.userId } });
+    await prisma.checkInEvent.create({ data: { campId, participantId, type: eventType, note, pickupPersonName, createdByUserId: session.userId } });
 
-    const campers = await attendanceForCampDate(campId, campDate);
-    const updated = campers.find((item) => item.id === camperId);
-    return NextResponse.json({ success: true, camper: updated });
+    const participants = await attendanceForCampDate(campId, campDate);
+    const updated = participants.find((item) => item.id === participantId);
+    return NextResponse.json({ success: true, participant: updated });
   } catch (err) {
     console.error("Attendance update error:", err);
     return NextResponse.json({ error: "Failed to update attendance", detail: err instanceof Error ? err.message : String(err) }, { status: 500 });

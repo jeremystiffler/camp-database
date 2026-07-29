@@ -12,12 +12,12 @@ describe("registration pricing integrity", () => {
 
   it("never charges a platform fee on zero or fully discounted registrations", () => {
     expect(calculatePlatformFee(0, feeSchedule)).toBe(0);
-    expect(calculateRegistrationTotal({ camperPriceCents: 0, ...feeSchedule })).toMatchObject({ subtotalCents: 0, platformFeeCents: 0, totalCents: 0 });
-    expect(calculateRegistrationTotal({ camperPriceCents: 5_000, ...feeSchedule }, { code: "FREE", discountType: "free" })).toMatchObject({ subtotalCents: 0, platformFeeCents: 0, totalCents: 0 });
+    expect(calculateRegistrationTotal({ participantPriceCents: 0, ...feeSchedule })).toMatchObject({ subtotalCents: 0, platformFeeCents: 0, totalCents: 0 });
+    expect(calculateRegistrationTotal({ participantPriceCents: 5_000, ...feeSchedule }, { code: "FREE", discountType: "free" })).toMatchObject({ subtotalCents: 0, platformFeeCents: 0, totalCents: 0 });
   });
 
   it("prices a family from the discounted family subtotal", () => {
-    expect(calculateRegistrationTotal({ camperPriceCents: 10_000, ...feeSchedule }, { code: "HALF", discountType: "percent", percentOff: 50 }, 3)).toMatchObject({
+    expect(calculateRegistrationTotal({ participantPriceCents: 10_000, ...feeSchedule }, { code: "HALF", discountType: "percent", percentOff: 50 }, 3)).toMatchObject({
       campPriceCents: 30_000,
       discountCents: 15_000,
       subtotalCents: 15_000,

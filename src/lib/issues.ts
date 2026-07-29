@@ -181,7 +181,7 @@ export type IssueInput = {
   rooms?: IssueRoom[];
   persons?: IssuePerson[];
   /** Registered participants per age group id, for seat-shortfall arithmetic. */
-  campersByAgeGroup?: Record<string, number>;
+  participantsByAgeGroup?: Record<string, number>;
 };
 
 /** Dismissal keys as stored on Course.attentionDismissals. */
@@ -228,7 +228,7 @@ function liveSessions(course: IssueCourse): IssueSession[] {
  * between renders of identical data.
  */
 export function detectIssues(input: IssueInput): Issue[] {
-  const { courses, blocks = [], ageGroups = [], persons = [], campersByAgeGroup = {} } = input;
+  const { courses, blocks = [], ageGroups = [], persons = [], participantsByAgeGroup = {} } = input;
   // Coverage is always measured against groups that actually take classes.
   const schedulable = schedulableGroups(ageGroups);
   const blockById = new Map(blocks.map((block) => [block.id, block]));
@@ -437,7 +437,7 @@ export function detectIssues(input: IssueInput): Issue[] {
   for (const block of blocks) {
     if (block.mandatory) continue;
     for (const group of schedulable) {
-      const demand = campersByAgeGroup[group.id] ?? 0;
+      const demand = participantsByAgeGroup[group.id] ?? 0;
       if (demand === 0) continue;
       let seats = 0;
       let unlimited = false;

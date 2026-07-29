@@ -8,10 +8,10 @@ function escapeHtml(value: string) {
 async function sendPaidConfirmation(paymentId: string) {
   const payment = await prisma.registrationPayment.findUnique({
     where: { id: paymentId },
-    include: { camp: { select: { name: true } }, campers: { include: { camper: { select: { firstName: true, lastName: true } } } } },
+    include: { camp: { select: { name: true } }, participants: { include: { participant: { select: { firstName: true, lastName: true } } } } },
   });
   if (!payment?.guardianEmail) return;
-  const participantNames = payment.campers.map(link => `${link.camper.firstName} ${link.camper.lastName}`);
+  const participantNames = payment.participants.map(link => `${link.participant.firstName} ${link.participant.lastName}`);
   const amount = new Intl.NumberFormat("en-US", { style: "currency", currency: payment.currency.toUpperCase() }).format(payment.amountCents / 100);
   await getResend().emails.send({
     from: FROM_EMAIL,
@@ -40,13 +40,13 @@ export async function completePendingRegistrationPayment(input: {
           AND "stripeConnectAccountId" = $2
           AND "stripeCheckoutSession" = $3
         RETURNING "id"
-     ), updated_campers AS (
-       UPDATE "Camper" AS c
+     ), updated_participants AS (
+       UPDATE "Participant" AS c
           SET "paymentStatus" = 'paid',
               "totalPaidCents" = rpc."allocatedAmountCents"
-         FROM "RegistrationPaymentCamper" AS rpc, transitioned
+         FROM "RegistrationPaymentParticipant" AS rpc, transitioned
         WHERE rpc."paymentId" = transitioned."id"
-          AND c."id" = rpc."camperId"
+          AND c."id" = rpc."participantId"
         RETURNING c."id"
      )
      SELECT "id" FROM transitioned`,
@@ -87,15 +87,15 @@ export async function failPendingRegistrationPayment(input: {
           AND transitioned."couponReservedAt" IS NOT NULL
           AND transitioned."couponRedeemedAt" IS NULL
         RETURNING coupon."id"
-     ), linked_campers AS (
-       SELECT rpc."camperId", transitioned."campId"
-         FROM "RegistrationPaymentCamper" AS rpc
+     ), linked_participants AS (
+       SELECT rpc."participantId", transitioned."campId"
+         FROM "RegistrationPaymentParticipant" AS rpc
          JOIN transitioned ON transitioned."id" = rpc."paymentId"
      ), deleted_enrollments AS (
        DELETE FROM "Enrollment" AS enrollment
-        USING linked_campers
-        WHERE enrollment."camperId" = linked_campers."camperId"
-          AND enrollment."campId" = linked_campers."campId"
+        USING linked_participants
+        WHERE enrollment."participantId" = linked_participants."participantId"
+          AND enrollment."campId" = linked_participants."campId"
         RETURNING enrollment."sessionId"
      ), released_seats AS (
        UPDATE "Session" AS session
@@ -103,12 +103,12 @@ export async function failPendingRegistrationPayment(input: {
          FROM (SELECT "sessionId", COUNT(*)::int AS n FROM deleted_enrollments GROUP BY "sessionId") AS counts
         WHERE session."id" = counts."sessionId"
         RETURNING session."id"
-     ), deleted_campers AS (
-       DELETE FROM "Camper" AS camper
-        USING linked_campers
-        WHERE camper."id" = linked_campers."camperId"
-          AND camper."paymentStatus" = 'pending'
-        RETURNING camper."id"
+     ), deleted_participants AS (
+       DELETE FROM "Participant" AS participant
+        USING linked_participants
+        WHERE participant."id" = linked_participants."participantId"
+          AND participant."paymentStatus" = 'pending'
+        RETURNING participant."id"
      )
      SELECT "id" FROM transitioned`,
     input.paymentId,

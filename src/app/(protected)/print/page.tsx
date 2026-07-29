@@ -6,7 +6,7 @@ import { fitName, nameFieldWidthPt } from "@/lib/badgeFit";
 import { DEFAULT_PROGRAM_PALETTE } from "@/lib/programPalettes";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/OperationalUI";
-import CamperScannableCode from "@/components/CamperScannableCode";
+import ParticipantScannableCode from "@/components/ParticipantScannableCode";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Print center — reduction build. Six hardcoded jobs, one options drawer
@@ -29,7 +29,7 @@ interface CampSession {
   sessionTemplate?: { id: string; label?: string | null; startTime: string; endTime: string } | null;
 }
 interface Enrollment { id: string; sessionId: string; session?: CampSession | null; }
-interface Camper {
+interface Participant {
   id: string;
   firstName: string;
   lastName: string;
@@ -118,7 +118,7 @@ function formatRange(start?: string | null, end?: string | null) { return `${for
 function sessionStart(session?: CampSession | null) { return session?.startTime || session?.sessionTemplate?.startTime || ""; }
 function sessionEnd(session?: CampSession | null) { return session?.endTime || session?.sessionTemplate?.endTime || ""; }
 function scheduleTitle(session?: CampSession | null) { return session?.mandatorySession?.title || session?.course?.name || session?.sessionTemplate?.label || "Session"; }
-function sortedCampersList(campers: Camper[]) { return [...campers].sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName)); }
+function sortedParticipantsList(participants: Participant[]) { return [...participants].sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName)); }
 function courseAgeLabel(course: Course) { return course.courseAgeGroups?.map(cag => cag.ageGroup.name).join(", ") || course.ageGroup?.name || "All groups"; }
 function chunkItems<T>(items: T[], size: number) {
   const chunks: T[][] = [];
@@ -126,9 +126,9 @@ function chunkItems<T>(items: T[], size: number) {
   return chunks.length ? chunks : [[]];
 }
 
-function scheduleRows(camper: Camper) {
+function scheduleRows(participant: Participant) {
   const rows = new Map<string, { time: string; activity: string; room: string; sortValue: string }>();
-  for (const enrollment of camper.enrollments || []) {
+  for (const enrollment of participant.enrollments || []) {
     const session = enrollment.session;
     if (!session) continue;
     const start = sessionStart(session);
@@ -143,33 +143,33 @@ function scheduleRows(camper: Camper) {
   return [...rows.values()].sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 }
 
-function rosterGroups(campers: Camper[]) {
-  const groups = new Map<string, { key: string; courseId: string; title: string; time: string; room: string; campers: Camper[]; sortValue: string }>();
-  for (const camper of campers) for (const enrollment of camper.enrollments || []) {
+function rosterGroups(participants: Participant[]) {
+  const groups = new Map<string, { key: string; courseId: string; title: string; time: string; room: string; participants: Participant[]; sortValue: string }>();
+  for (const participant of participants) for (const enrollment of participant.enrollments || []) {
     const session = enrollment.session;
     if (!session?.course?.id) continue;
     const start = sessionStart(session);
     const end = sessionEnd(session);
     const key = `${session.course.id}|${start}|${end}|${session.room?.id || session.room?.name || ""}`;
-    const existing = groups.get(key) || { key, courseId: session.course.id, title: session.course.name, time: formatRange(start, end), room: session.room?.name || "—", campers: [], sortValue: `${start || "99:99"}|${session.course.name}` };
-    if (!existing.campers.some(c => c.id === camper.id)) existing.campers.push(camper);
+    const existing = groups.get(key) || { key, courseId: session.course.id, title: session.course.name, time: formatRange(start, end), room: session.room?.name || "—", participants: [], sortValue: `${start || "99:99"}|${session.course.name}` };
+    if (!existing.participants.some(c => c.id === participant.id)) existing.participants.push(participant);
     groups.set(key, existing);
   }
-  return [...groups.values()].map(group => ({ ...group, campers: sortedCampersList(group.campers) })).sort((a, b) => a.sortValue.localeCompare(b.sortValue));
+  return [...groups.values()].map(group => ({ ...group, participants: sortedParticipantsList(group.participants) })).sort((a, b) => a.sortValue.localeCompare(b.sortValue));
 }
 
-function teacherRows(person: Person, courses: Course[], mandatorySessions: MandatorySession[], campers: Camper[], allSlots: SessionTemplate[] = []) {
-  const rows = new Map<string, { time: string; title: string; room: string; age: string; sortValue: string; students: Camper[] }>();
-  const campersForCourseSlot = (courseId: string, start: string, end: string, roomName?: string | null) => {
-    const matches = new Map<string, Camper>();
-    for (const camper of campers) for (const enrollment of camper.enrollments || []) {
+function teacherRows(person: Person, courses: Course[], mandatorySessions: MandatorySession[], participants: Participant[], allSlots: SessionTemplate[] = []) {
+  const rows = new Map<string, { time: string; title: string; room: string; age: string; sortValue: string; students: Participant[] }>();
+  const participantsForCourseSlot = (courseId: string, start: string, end: string, roomName?: string | null) => {
+    const matches = new Map<string, Participant>();
+    for (const participant of participants) for (const enrollment of participant.enrollments || []) {
       const session = enrollment.session;
       if (!session?.course?.id || session.course.id !== courseId) continue;
       if (sessionStart(session) !== start || sessionEnd(session) !== end) continue;
       if (roomName && session.room?.name && session.room.name !== roomName) continue;
-      matches.set(camper.id, camper);
+      matches.set(participant.id, participant);
     }
-    return sortedCampersList([...matches.values()]);
+    return sortedParticipantsList([...matches.values()]);
   };
   for (const course of courses.filter(course => course.courseTeachers?.some(ct => ct.person.id === person.id))) {
     for (const cst of course.courseSessionTemplates || []) {
@@ -177,7 +177,7 @@ function teacherRows(person: Person, courses: Course[], mandatorySessions: Manda
       const end = cst.sessionTemplate.endTime || "";
       const room = course.room?.name || "—";
       const key = `${course.id}|${start}|${end}|${room}`;
-      if (!rows.has(key)) rows.set(key, { time: formatRange(start, end), title: course.name, room, age: courseAgeLabel(course), sortValue: `${start || "99:99"}|${course.name}`, students: campersForCourseSlot(course.id, start, end, course.room?.name) });
+      if (!rows.has(key)) rows.set(key, { time: formatRange(start, end), title: course.name, room, age: courseAgeLabel(course), sortValue: `${start || "99:99"}|${course.name}`, students: participantsForCourseSlot(course.id, start, end, course.room?.name) });
     }
   }
   for (const assignment of mandatorySessions.filter(ms => ms.leader?.id === person.id)) {
@@ -224,7 +224,7 @@ function PrintContent() {
   const [campId, setCampId] = useState("");
   const [campName, setCampName] = useState("");
   const [eventColor, setEventColor] = useState(DEFAULT_PROGRAM_PALETTE.primaryColor);
-  const [campers, setCampers] = useState<Camper[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -274,7 +274,7 @@ function PrintContent() {
       return { response, data };
     };
     Promise.all([
-      getJson(`/api/camps/${campId}/campers`),
+      getJson(`/api/camps/${campId}/participants`),
       getJson(`/api/camps/${campId}/courses`),
       getJson(`/api/camps/${campId}/persons`),
       getJson(`/api/camps/${campId}/mandatory-sessions`),
@@ -289,7 +289,7 @@ function PrintContent() {
         setLoading(false);
         return;
       }
-      setCampers(Array.isArray(c.data) ? c.data : []);
+      setParticipants(Array.isArray(c.data) ? c.data : []);
       setCourses(Array.isArray(co.data) ? co.data : []);
       setPersons(Array.isArray(p.data) ? p.data : []);
       setMandatorySessions(Array.isArray(ms.data) ? ms.data : []);
@@ -317,30 +317,30 @@ function PrintContent() {
     return () => window.clearTimeout(id);
   }, [task, campId]);
 
-  const sortedCampers = useMemo(() => sortedCampersList(campers), [campers]);
-  const rosters = useMemo(() => rosterGroups(campers), [campers]);
+  const sortedParticipants = useMemo(() => sortedParticipantsList(participants), [participants]);
+  const rosters = useMemo(() => rosterGroups(participants), [participants]);
   const teachers = useMemo(() => persons.filter(p => ["teacher", "assistant", "director", "staff"].includes(p.role)), [persons]);
   const families = useMemo(() => {
-    const byFamily = new Map<string, Camper[]>();
-    for (const camper of sortedCampers) {
-      const key = camper.pickupNumber || `family-${camper.lastName.toLowerCase()}`;
-      byFamily.set(key, [...(byFamily.get(key) || []), camper]);
+    const byFamily = new Map<string, Participant[]>();
+    for (const participant of sortedParticipants) {
+      const key = participant.pickupNumber || `family-${participant.lastName.toLowerCase()}`;
+      byFamily.set(key, [...(byFamily.get(key) || []), participant]);
     }
     return [...byFamily.entries()].map(([key, members]) => ({ key, members }));
-  }, [sortedCampers]);
+  }, [sortedParticipants]);
   const roomsWithSchedule = useMemo(() => {
     const list = rooms.length ? rooms : [];
     return [...list].sort((a, b) => a.name.localeCompare(b.name));
   }, [rooms]);
   const ageGroups = useMemo(() => {
     const map = new Map<string, { id: string; name: string }>();
-    for (const camper of campers) if (camper.ageGroup?.id && !map.has(camper.ageGroup.id)) map.set(camper.ageGroup.id, { id: camper.ageGroup.id, name: camper.ageGroup.name });
+    for (const participant of participants) if (participant.ageGroup?.id && !map.has(participant.ageGroup.id)) map.set(participant.ageGroup.id, { id: participant.ageGroup.id, name: participant.ageGroup.name });
     return [...map.values()];
-  }, [campers]);
+  }, [participants]);
 
   const badgeRecipients = useMemo(() => {
     if (badgeRole === "participant") {
-      return badgeScopeAgeGroupId ? sortedCampers.filter(c => c.ageGroup?.id === badgeScopeAgeGroupId) : sortedCampers;
+      return badgeScopeAgeGroupId ? sortedParticipants.filter(c => c.ageGroup?.id === badgeScopeAgeGroupId) : sortedParticipants;
     }
     return persons.map(person => ({
       id: person.id,
@@ -349,8 +349,8 @@ function PrintContent() {
       scanCode: `staff-${person.id}`,
       ageGroup: null,
       enrollments: [],
-    })) as unknown as Camper[];
-  }, [badgeRole, badgeScopeAgeGroupId, sortedCampers, persons]);
+    })) as unknown as Participant[];
+  }, [badgeRole, badgeScopeAgeGroupId, sortedParticipants, persons]);
 
   const geometry = BADGE_GEOMETRY[badgeSize];
   // Fronts + backs: sheet mode prints a back sheet per front sheet; card mode prints two pages per badge.
@@ -360,7 +360,7 @@ function PrintContent() {
   const jobCounts: Record<JobId, { primary: string; sheets: number }> = {
     badges: { primary: `${badgeRecipients.length} badges`, sheets: badgeSheetCount },
     teacherPackets: { primary: `${teachers.length} teachers`, sheets: teachers.length },
-    emergencyCards: { primary: `${sortedCampers.length} participants`, sheets: Math.ceil(sortedCampers.length / 22) },
+    emergencyCards: { primary: `${sortedParticipants.length} participants`, sheets: Math.ceil(sortedParticipants.length / 22) },
     pickupCards: { primary: `${families.length} families`, sheets: families.length },
     roomSigns: { primary: `${roomsWithSchedule.length} rooms`, sheets: roomsWithSchedule.length },
   };
@@ -368,19 +368,19 @@ function PrintContent() {
 
   const exportCsv = () => {
     const slotSet = new Map<string, string>();
-    for (const camper of sortedCampers) for (const row of scheduleRows(camper)) {
+    for (const participant of sortedParticipants) for (const row of scheduleRows(participant)) {
       if (!slotSet.has(row.time)) slotSet.set(row.time, row.time);
     }
     const slots = [...slotSet.keys()];
     const header = ["First name", "Last name", "Age group", "Guardian", "Guardian phone", "Guardian email", "Emergency phone", "Medical notes", "Dietary notes", "Pickup #", "T-shirt", ...slots];
     const lines = [header.map(csvEscape).join(",")];
-    for (const camper of sortedCampers) {
-      const rows = scheduleRows(camper);
+    for (const participant of sortedParticipants) {
+      const rows = scheduleRows(participant);
       const bySlot = new Map(rows.map(row => [row.time, `${row.activity}${row.room ? ` (${row.room})` : ""}`]));
       lines.push([
-        camper.firstName, camper.lastName, camper.ageGroup?.name || "", camper.guardianName || "",
-        camper.guardianPhone || "", camper.guardianEmail || "", camper.emergencyPhone || "",
-        camper.medicalNotes || "", camper.dietaryNotes || "", camper.pickupNumber || "", camper.tshirtSize || "",
+        participant.firstName, participant.lastName, participant.ageGroup?.name || "", participant.guardianName || "",
+        participant.guardianPhone || "", participant.guardianEmail || "", participant.emergencyPhone || "",
+        participant.medicalNotes || "", participant.dietaryNotes || "", participant.pickupNumber || "", participant.tshirtSize || "",
         ...slots.map(slot => bySlot.get(slot) || ""),
       ].map(value => csvEscape(String(value))).join(","));
     }
@@ -408,7 +408,7 @@ function PrintContent() {
   const roleMeta = BADGE_ROLES.find(role => role.id === badgeRole) || BADGE_ROLES[0];
   const bandColor = badgeRole === "participant" ? eventColor : roleMeta.band;
 
-  const badgeCard = (record: Camper, key: string) => {
+  const badgeCard = (record: Participant, key: string) => {
     const rows = scheduleRows(record);
     return (
       <div key={key} className="badge-card-v2" style={{ width: `${geometry.w}in`, height: `${geometry.h}in` }}>
@@ -434,7 +434,7 @@ function PrintContent() {
     );
   };
 
-  const badgeBackCard = (record: Camper, key: string) => (
+  const badgeBackCard = (record: Participant, key: string) => (
     <div key={key} className="badge-card-v2 badge-card-back" style={{ width: `${geometry.w}in`, height: `${geometry.h}in` }}>
       <div className="badge-band" style={{ background: bandColor }}>
         <BadgeName name={fullName(record)} widthIn={geometry.w} />
@@ -446,7 +446,7 @@ function PrintContent() {
           <span className="badge-back-value badge-back-phone">{record.emergencyPhone || record.guardianPhone || "—"}</span>
         </div>
         <div className="badge-foot">
-          <CamperScannableCode value={record.scanCode} label="" size={96} />
+          <ParticipantScannableCode value={record.scanCode} label="" size={96} />
           <span className="badge-role-label">Scan for check-in / checkout</span>
         </div>
       </div>
@@ -462,7 +462,7 @@ function PrintContent() {
     </span>
   );
 
-  const renderBadges = (records: Camper[]) => {
+  const renderBadges = (records: Participant[]) => {
     if (badgeTarget === "card") {
       return records.flatMap((record, index) => [
         <article key={`${record.id}-f`} className="print-page badge-single">
@@ -474,7 +474,7 @@ function PrintContent() {
       ]);
     }
     const sheets = chunkItems(records, geometry.perSheet);
-    const layoutSheet = (sheetRecords: Camper[], back: boolean, sheetKey: string, isLast: boolean) => (
+    const layoutSheet = (sheetRecords: Participant[], back: boolean, sheetKey: string, isLast: boolean) => (
       <article key={sheetKey} className="print-page badge-sheet-v2" data-last={isLast || undefined}>
         {sheetRecords.map((record, cardIndex) => {
           const col = cardIndex % geometry.cols;
@@ -503,7 +503,7 @@ function PrintContent() {
   };
 
   const renderTeacherPackets = () => teachers.map((person, index) => {
-    const rows = teacherRows(person, courses, mandatorySessions, campers, sessionTemplates);
+    const rows = teacherRows(person, courses, mandatorySessions, participants, sessionTemplates);
     return (
       <article key={person.id} className="print-page doc-page" data-last={index === teachers.length - 1 || undefined}>
         <h1 className="doc-title">{fullName(person)}</h1>
@@ -519,7 +519,7 @@ function PrintContent() {
   });
 
   const renderEmergencyCards = () => {
-    const byFirstName = [...campers].sort((a, b) => a.firstName.localeCompare(b.firstName) || a.lastName.localeCompare(b.lastName));
+    const byFirstName = [...participants].sort((a, b) => a.firstName.localeCompare(b.firstName) || a.lastName.localeCompare(b.lastName));
     const pages = chunkItems(byFirstName, 22);
     return pages.map((page, pageIndex) => (
       <article key={`emergency-${pageIndex}`} className="print-page doc-page" data-last={pageIndex === pages.length - 1 || undefined}>
@@ -527,13 +527,13 @@ function PrintContent() {
         <p className="doc-subtitle">Alphabetical by first name · Page {pageIndex + 1} of {pages.length}</p>
         <table className="doc-table">
           <thead><tr><th style={{ width: "150px" }}>Participant</th><th style={{ width: "90px" }}>Age group</th><th>Guardian</th><th style={{ width: "110px" }}>Emergency phone</th><th>Medical / dietary</th></tr></thead>
-          <tbody>{page.map(camper => (
-            <tr key={camper.id}>
-              <td><strong>{camper.firstName} {camper.lastName}</strong></td>
-              <td>{camper.ageGroup?.name || "—"}</td>
-              <td>{camper.guardianName || "—"}{camper.guardianPhone ? `\n${camper.guardianPhone}` : ""}</td>
-              <td>{camper.emergencyPhone || camper.guardianPhone || "—"}</td>
-              <td>{[camper.medicalNotes, camper.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>
+          <tbody>{page.map(participant => (
+            <tr key={participant.id}>
+              <td><strong>{participant.firstName} {participant.lastName}</strong></td>
+              <td>{participant.ageGroup?.name || "—"}</td>
+              <td>{participant.guardianName || "—"}{participant.guardianPhone ? `\n${participant.guardianPhone}` : ""}</td>
+              <td>{participant.emergencyPhone || participant.guardianPhone || "—"}</td>
+              <td>{[participant.medicalNotes, participant.dietaryNotes].filter(Boolean).join(" / ") || "—"}</td>
             </tr>
           ))}</tbody>
         </table>
@@ -573,7 +573,7 @@ function PrintContent() {
                   <div key={group.key} className="room-sign-class">
                     <div className="room-sign-row"><span className="room-sign-time">{group.time}</span><span className="room-sign-class-name">{group.title}</span></div>
                     <div className="room-sign-teacher">Led by: {teacherList}</div>
-                    <div className="room-sign-students">{group.campers.length ? group.campers.map(fullName).join(" · ") : "No participants registered yet"}</div>
+                    <div className="room-sign-students">{group.participants.length ? group.participants.map(fullName).join(" · ") : "No participants registered yet"}</div>
                   </div>
                 );
               }) : <div className="room-sign-class"><div className="room-sign-row"><span>No classes scheduled in this room.</span></div></div>}
@@ -770,7 +770,7 @@ function PrintContent() {
               {badgeRole === "participant" && (
                 <label className="block text-xs font-bold text-slate-600">Who gets one
                   <select value={badgeScopeAgeGroupId} onChange={e => setBadgeScopeAgeGroupId(e.target.value)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm text-slate-800">
-                    <option value="">Everyone ({sortedCampers.length})</option>
+                    <option value="">Everyone ({sortedParticipants.length})</option>
                     {ageGroups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
                   </select>
                 </label>

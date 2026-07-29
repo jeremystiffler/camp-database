@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       await prisma.campMember.create({
         data: { campId: newCamp.id, userId: user.id, role: "admin" },
       });
-      await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [{ ...newCamp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], campers: [] }] } });
+      await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [{ ...newCamp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], participants: [] }] } });
     }
 
     const token = await signToken({

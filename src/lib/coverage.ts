@@ -170,9 +170,9 @@ export function buildCoverage(input: {
   blocks: CoverageBlock[];
   columns: CoverageColumn[];
   ageGroups: IssueAgeGroup[];
-  campersByAgeGroup?: Record<string, number>;
+  participantsByAgeGroup?: Record<string, number>;
 }): CoverageMatrix {
-  const { courses, blocks, columns, ageGroups, campersByAgeGroup = {} } = input;
+  const { courses, blocks, columns, ageGroups, participantsByAgeGroup = {} } = input;
 
   // Groups that never take classes are not missing anything (owner ruling
   // 2026-07-28: Pre K is a daycare). They get no headroom row at all.
@@ -187,7 +187,7 @@ export function buildCoverage(input: {
 
   const cells: CoverageCell[] = [];
   for (const group of groups) {
-    const expected = campersByAgeGroup[group.id] ?? 0;
+    const expected = participantsByAgeGroup[group.id] ?? 0;
     for (const column of electiveColumns) {
       const { seats, taken, spare, activeClasses, unlimited } = headroom(
         courses,

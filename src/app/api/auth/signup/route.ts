@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     await prisma.campMember.create({
       data: { campId: camp.id, userId: user.id, role: "owner" },
     });
-    await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [{ ...camp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], campers: [] }] } });
+    await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [{ ...camp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], participants: [] }] } });
 
     const token = await signToken({
       userId: user.id,

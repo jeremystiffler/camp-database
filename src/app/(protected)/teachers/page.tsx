@@ -31,7 +31,7 @@ interface CoursePreview {
   room?: string | null;
   ageGroups: string[];
   timeSlots: Array<{ label?: string | null; dayOfWeek?: number | null; startTime: string; endTime: string }>;
-  campers: Array<{ firstName: string; lastName: string; ageGroup?: string | null; guardianName?: string | null; guardianEmail?: string | null; medicalNotes?: string | null }>;
+  participants: Array<{ firstName: string; lastName: string; ageGroup?: string | null; guardianName?: string | null; guardianEmail?: string | null; medicalNotes?: string | null }>;
 }
 
 interface SchedulePreview {
@@ -213,7 +213,7 @@ function SendScheduleModal({ person, campId, onClose }: {
     finally { setSending(false); }
   };
 
-  const totalCampers = preview?.courses.reduce((s, c) => s + c.campers.length, 0) ?? 0;
+  const totalParticipants = preview?.courses.reduce((s, c) => s + c.participants.length, 0) ?? 0;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -256,7 +256,7 @@ function SendScheduleModal({ person, campId, onClose }: {
                   <p className="text-xs text-forest-600 mt-0.5">Activities</p>
                 </div>
                 <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-sky-700">{totalCampers}</p>
+                  <p className="text-2xl font-bold text-sky-700">{totalParticipants}</p>
                   <p className="text-xs text-sky-600 mt-0.5">Total Students</p>
                 </div>
                 <div className="bg-berry-50 border border-berry-200 rounded-xl p-4 text-center">
@@ -288,15 +288,15 @@ function SendScheduleModal({ person, campId, onClose }: {
                         </div>
                       </div>
                       <div className="ml-auto text-right flex-shrink-0">
-                        <p className="text-sm font-semibold text-slate-800">{course.campers.length}</p>
+                        <p className="text-sm font-semibold text-slate-800">{course.participants.length}</p>
                         <p className="text-xs text-slate-400">students</p>
                       </div>
                     </div>
-                    {course.campers.length > 0 && (
+                    {course.participants.length > 0 && (
                       <div className="px-4 pb-3 pt-1 bg-slate-50 border-t border-slate-100">
                         <p className="text-xs font-medium text-slate-500 mb-1.5">Enrolled students:</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {course.campers.map((c, i) => (
+                          {course.participants.map((c, i) => (
                             <span key={i} className="text-xs bg-white border border-slate-200 rounded-full px-2.5 py-1 text-slate-700">
                               {c.firstName} {c.lastName}
                               {c.medicalNotes && <span className="text-red-500 ml-1"></span>}

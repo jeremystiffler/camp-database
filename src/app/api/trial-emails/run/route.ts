@@ -58,7 +58,7 @@ async function runTrialEmails(req: NextRequest) {
               courses: { select: { id: true } },
               sessionTemplates: { select: { id: true } },
               registrationForms: { select: { id: true } },
-              campers: { select: { id: true } },
+              participants: { select: { id: true } },
             },
           },
         },

@@ -150,7 +150,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
       platformFeePercentBps: true,
       platformFeeMinCents: true,
       platformFeeCapCents: true,
-      camperPriceCents: true,
+      participantPriceCents: true,
       annualSubscriptionCents: true,
       organization: {
         select: {
@@ -267,7 +267,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
   const capacityWarnings = formIssues
     .filter((issue) => issue.severity === "advisory")
     .map((issue) => issue.message);
-  const paidRegistration = camp.billingMode === "camperFee" && camp.camperPriceCents > 0;
+  const paidRegistration = camp.billingMode === "participantFee" && camp.participantPriceCents > 0;
   const paymentReady = !paidRegistration || Boolean(getStripe() && connectReady(connectStateFromOrganization(camp.organization)));
   const formOpen = selectedForm ? camp.registrationOpen && selectedForm.status !== "draft" && capacityViolations.length === 0 && paymentReady : false;
   return NextResponse.json({
@@ -289,7 +289,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
     platformFeePercentBps: camp.platformFeePercentBps,
     platformFeeMinCents: camp.platformFeeMinCents,
     platformFeeCapCents: camp.platformFeeCapCents,
-    camperPriceCents: camp.camperPriceCents,
+    participantPriceCents: camp.participantPriceCents,
     annualSubscriptionCents: camp.annualSubscriptionCents,
     fields: selectedForm?.fields || DEFAULT_FIELDS,
     form: selectedForm ? compactForm(selectedForm, Boolean(member)) : null,

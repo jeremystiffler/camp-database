@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { generateCamperScanCode, normalizePickupNumber } from "@/lib/camper-identity";
-import { CapacityError, claimSeat, storedCapacity, releaseCamperEnrollments, releaseEnrollment } from "@/lib/capacity";
+import { generateParticipantScanCode, normalizePickupNumber } from "@/lib/participant-identity";
+import { CapacityError, claimSeat, storedCapacity, releaseParticipantEnrollments, releaseEnrollment } from "@/lib/capacity";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -57,10 +57,10 @@ async function resolveSessionChoices(campId: string, choices: SessionChoiceInput
   }
   return sessionIds;
 }
-async function replaceEnrollments(campId: string, camperId: string, nextSessionIds: string[], sessionChoices: SessionChoiceInput[] = []) {
+async function replaceEnrollments(campId: string, participantId: string, nextSessionIds: string[], sessionChoices: SessionChoiceInput[] = []) {
   const resolvedChoiceSessionIds = await resolveSessionChoices(campId, sessionChoices);
   nextSessionIds = [...new Set([...nextSessionIds, ...resolvedChoiceSessionIds])];
-  const existing = await prisma.enrollment.findMany({ where: { campId, camperId }, select: { id: true, sessionId: true } });
+  const existing = await prisma.enrollment.findMany({ where: { campId, participantId }, select: { id: true, sessionId: true } });
   const existingIds = new Set(existing.map((e) => e.sessionId));
   const nextIds = new Set(nextSessionIds);
   const toAdd = nextSessionIds.filter((id) => !existingIds.has(id));
@@ -72,14 +72,14 @@ async function replaceEnrollments(campId: string, camperId: string, nextSessionI
     const invalid = toAdd.filter((id) => !validIds.has(id));
     if (invalid.length) throw new Error("One or more selected sessions do not belong to this event");
     for (const sessionId of toAdd) {
-      await claimSeat({ campId, camperId, sessionId, status: "enrolled", allowHeldSeat: true });
+      await claimSeat({ campId, participantId, sessionId, status: "enrolled", allowHeldSeat: true });
     }
   }
   for (const enrollment of toRemove) {
     await releaseEnrollment(enrollment.id, campId);
   }
 }
-const camperInclude = {
+const participantInclude = {
   ageGroup: true,
   enrollments: {
     include: { session: { include: { course: true, mandatorySession: true, room: true, sessionTemplate: true } } },
@@ -94,7 +94,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const member = await getMember(session.userId, campId);
   if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can edit participants" }, { status: 403 });
 
-  const existing = await prisma.camper.findFirst({ where: { id, campId }, select: { id: true } });
+  const existing = await prisma.participant.findFirst({ where: { id, campId }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
 
   try {
@@ -109,7 +109,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
       if (!ageGroup) return NextResponse.json({ error: "Selected age group does not belong to this event" }, { status: 400 });
     }
 
-    await prisma.camper.update({
+    await prisma.participant.update({
       where: { id },
       data: {
         firstName,
@@ -132,13 +132,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
         totalPaidCents: intValue(data.totalPaidCents),
         paymentStatus: nullableString(data.paymentStatus) || "not_required",
         pickupNumber: normalizePickupNumber(data.pickupNumber),
-        scanCode: nullableString(data.scanCode) || generateCamperScanCode(),
+        scanCode: nullableString(data.scanCode) || generateParticipantScanCode(),
         scanCodeGeneratedAt: nullableString(data.scanCode) ? undefined : new Date(),
       },
     });
     const sessionIds = parseSessionIds(data.sessionIds);
     if (sessionIds) await replaceEnrollments(campId, id, sessionIds, parseSessionChoices(data.sessionChoices));
-    const item = await prisma.camper.findFirst({ where: { id, campId }, include: camperInclude });
+    const item = await prisma.participant.findFirst({ where: { id, campId }, include: participantInclude });
     return NextResponse.json(item);
   } catch (err) {
     console.error("Participant PATCH error:", err);
@@ -154,10 +154,10 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   const member = await getMember(session.userId, campId);
   if (!member || !hasPermission(member.role, "admin")) return NextResponse.json({ error: "Only admins and owners can delete participants" }, { status: 403 });
 
-  const existing = await prisma.camper.findFirst({ where: { id, campId }, select: { id: true } });
+  const existing = await prisma.participant.findFirst({ where: { id, campId }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
 
-  await releaseCamperEnrollments(id, campId);
-  await prisma.camper.delete({ where: { id } });
+  await releaseParticipantEnrollments(id, campId);
+  await prisma.participant.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

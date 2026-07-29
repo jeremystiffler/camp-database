@@ -61,7 +61,7 @@ const matrix = buildCoverage({
   blocks,
   columns,
   ageGroups: groups,
-  campersByAgeGroup: { older: 20, younger: 40 },
+  participantsByAgeGroup: { older: 20, younger: 40 },
 });
 
 describe("one component, two placements (§4.3)", () => {
@@ -141,7 +141,7 @@ describe("the flag is the fix (§4.5)", () => {
       blocks: [blocks[0]],
       columns: [columns[0]],
       ageGroups: groups,
-      campersByAgeGroup: { older: 5, younger: 5 },
+      participantsByAgeGroup: { older: 5, younger: 5 },
     });
     const html = render(<CoverageMatrixView matrix={m} courses={healthy} variant="panel" />);
     expect(html).toContain("disabled");
@@ -168,7 +168,7 @@ describe("the flag is the fix (§4.5)", () => {
       blocks,
       columns,
       ageGroups: groups,
-      campersByAgeGroup: { older: 20 },
+      participantsByAgeGroup: { older: 20 },
     });
     const html = render(<CoverageMatrixView matrix={m} courses={shortCourses} variant="panel" />);
     expect(html).toContain("\u22123");
@@ -181,7 +181,7 @@ describe("the flag is the fix (§4.5)", () => {
       blocks,
       columns,
       ageGroups: groups,
-      campersByAgeGroup: { older: 20 },
+      participantsByAgeGroup: { older: 20 },
     });
     const html = render(<CoverageMatrixView matrix={m} courses={[]} variant="panel" />);
     expect(html).toContain("none");
@@ -202,7 +202,7 @@ describe("nothing to report", () => {
       blocks: [blocks[0]],
       columns: [columns[0]],
       ageGroups: groups,
-      campersByAgeGroup: { older: 5, younger: 5 },
+      participantsByAgeGroup: { older: 5, younger: 5 },
     });
     const html = render(<CoverageMatrixView matrix={m} courses={healthy} variant="panel" />);
     expect(html).toContain("Every period has room and a choice");

@@ -22,13 +22,13 @@ interface CampAppearance {
 }
 
 interface CampBilling {
-  billingMode: "campPays" | "camperFee";
+  billingMode: "campPays" | "participantFee";
   billingStatus: string;
   platformFeeCents: number;
   platformFeePercentBps: number;
   platformFeeMinCents: number;
   platformFeeCapCents: number;
-  camperPriceCents: number;
+  participantPriceCents: number;
   annualSubscriptionCents: number;
 }
 
@@ -114,7 +114,7 @@ function SettingsContent() {
   const [campName,        setCampName]        = useState("this camp");
   const [appearanceSaving, setAppearanceSaving] = useState(false);
   const [appearanceMsg,   setAppearanceMsg]   = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [billing, setBilling] = useState<CampBilling>({ billingMode: "campPays", billingStatus: "trial", platformFeeCents: 300, platformFeePercentBps: 300, platformFeeMinCents: 200, platformFeeCapCents: 2500, camperPriceCents: 0, annualSubscriptionCents: 29900 });
+  const [billing, setBilling] = useState<CampBilling>({ billingMode: "campPays", billingStatus: "trial", platformFeeCents: 300, platformFeePercentBps: 300, platformFeeMinCents: 200, platformFeeCapCents: 2500, participantPriceCents: 0, annualSubscriptionCents: 29900 });
   const [activeTab, setActiveTab] = useState<"profile" | "billing" | "appearance" | "utilities">(searchParams.get("tab") === "billing" ? "billing" : "profile");
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingMsg, setBillingMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -151,13 +151,13 @@ function SettingsContent() {
             fontFamily:   d.fontFamily   || "Inter",
           });
           setBilling({
-            billingMode: d.billingMode === "camperFee" ? "camperFee" : "campPays",
+            billingMode: d.billingMode === "participantFee" ? "participantFee" : "campPays",
             billingStatus: d.billingStatus || "trial",
             platformFeeCents: Number(d.platformFeeCents || 300),
             platformFeePercentBps: Number(d.platformFeePercentBps || 300),
             platformFeeMinCents: Number(d.platformFeeMinCents || 200),
             platformFeeCapCents: Number(d.platformFeeCapCents || 2500),
-            camperPriceCents: Number(d.camperPriceCents || 0),
+            participantPriceCents: Number(d.participantPriceCents || 0),
             annualSubscriptionCents: Number(d.annualSubscriptionCents || 29900),
           });
         }
@@ -232,7 +232,7 @@ function SettingsContent() {
     const res = await fetch(`/api/camps/${campId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ billingMode: billing.billingMode, camperPriceCents: billing.camperPriceCents }),
+      body: JSON.stringify({ billingMode: billing.billingMode, participantPriceCents: billing.participantPriceCents }),
     });
     const data = await res.json().catch(() => ({}));
     setBillingSaving(false);
@@ -291,7 +291,7 @@ function SettingsContent() {
   };
 
   const money = (cents: number) => `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
-  const platformEstimate = Math.min(billing.platformFeeCapCents, Math.max(billing.platformFeeMinCents, Math.round(billing.camperPriceCents * billing.platformFeePercentBps / 10000)));
+  const platformEstimate = Math.min(billing.platformFeeCapCents, Math.max(billing.platformFeeMinCents, Math.round(billing.participantPriceCents * billing.platformFeePercentBps / 10000)));
 
   const inputCls = "minimal-input";
 
@@ -379,15 +379,15 @@ function SettingsContent() {
                 <p className="mt-1 text-2xl font-extrabold text-forest-700">{money(billing.annualSubscriptionCents)}<span className="text-xs font-semibold text-slate-500">/year</span></p>
                 <p className="mt-2 text-xs text-slate-500">Best when your event wants registration to feel completely free for families.</p>
               </button>
-              <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "camperFee" }))}
-                className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "camperFee" ? "border-sky-400 bg-sky-50" : "border-slate-200 hover:border-slate-300"}`}>
+              <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "participantFee" }))}
+                className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "participantFee" ? "border-sky-400 bg-sky-50" : "border-slate-200 hover:border-slate-300"}`}>
                 <p className="text-sm font-bold text-slate-800">Participants pay registration</p>
-                <p className="mt-1 text-2xl font-extrabold text-sky-700">{money(billing.camperPriceCents + platformEstimate)}<span className="text-xs font-semibold text-slate-500">/participant</span></p>
+                <p className="mt-1 text-2xl font-extrabold text-sky-700">{money(billing.participantPriceCents + platformEstimate)}<span className="text-xs font-semibold text-slate-500">/participant</span></p>
                 <p className="mt-2 text-xs text-slate-500">Families pay the event price plus our 3% platform fee, capped at {money(billing.platformFeeCapCents)}.</p>
               </button>
             </div>
 
-            {billing.billingMode === "camperFee" && (
+            {billing.billingMode === "participantFee" && (
               <div className="space-y-4">
                 <div className={`rounded-2xl border p-4 ${connectStatus?.ready ? "border-forest-200 bg-forest-50" : "border-amber-200 bg-amber-50"}`}>
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -415,10 +415,10 @@ function SettingsContent() {
                 <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 space-y-4">
                   <label className="block">
                     <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Event price per participant</span>
-                    <input type="number" min="0" step="1" value={billing.camperPriceCents / 100} onChange={e => setBilling(prev => ({ ...prev, camperPriceCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
+                    <input type="number" min="0" step="1" value={billing.participantPriceCents / 100} onChange={e => setBilling(prev => ({ ...prev, participantPriceCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
                   </label>
                   <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 text-sm text-sky-900">
-                    Event price <strong>{money(billing.camperPriceCents)}</strong> + Simple Schedule Pro fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.camperPriceCents + platformEstimate)}</strong>. Stripe processing fees are deducted from the organizer&rsquo;s connected Stripe balance.
+                    Event price <strong>{money(billing.participantPriceCents)}</strong> + Simple Schedule Pro fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.participantPriceCents + platformEstimate)}</strong>. Stripe processing fees are deducted from the organizer&rsquo;s connected Stripe balance.
                   </div>
                   <p className="text-xs text-sky-900">The platform fee is set by Simple Schedule Pro at {(billing.platformFeePercentBps / 100).toFixed(2).replace(/\.00$/, "")}% (minimum {money(billing.platformFeeMinCents)}, capped at {money(billing.platformFeeCapCents)}). Organizers control only their event price.</p>
                 </div>
@@ -426,10 +426,10 @@ function SettingsContent() {
             )}
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              Current status: <span className="font-bold capitalize text-slate-800">{billing.billingStatus.replace(/_/g, " ")}</span>. Registration pages will show the {billing.billingMode === "camperFee" ? `${money(billing.camperPriceCents)} event price + platform fee` : "event-paid plan"} messaging.
+              Current status: <span className="font-bold capitalize text-slate-800">{billing.billingStatus.replace(/_/g, " ")}</span>. Registration pages will show the {billing.billingMode === "participantFee" ? `${money(billing.participantPriceCents)} event price + platform fee` : "event-paid plan"} messaging.
             </div>
 
-            {billing.billingMode === "camperFee" && (
+            {billing.billingMode === "participantFee" && (
               <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4 space-y-3">
                 <div>
                   <p className="text-sm font-bold text-amber-900">Coupon codes</p>
@@ -468,7 +468,7 @@ function SettingsContent() {
               </div>
             )}
 
-            {billing.billingMode === "camperFee" && (
+            {billing.billingMode === "participantFee" && (
               <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-4">
                 <div>
                   <p className="text-sm font-extrabold text-slate-900">Registration payments</p>

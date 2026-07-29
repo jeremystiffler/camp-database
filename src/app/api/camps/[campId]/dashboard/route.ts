@@ -16,7 +16,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   const member = await getMember(session.userId, campId);
   if (!member) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const [camp, paidPayments, pendingPayments, courses, timeBlocks, ageGroups, camperCounts] = await Promise.all([
+  const [camp, paidPayments, pendingPayments, courses, timeBlocks, ageGroups, participantCounts] = await Promise.all([
     prisma.camp.findUnique({
       where: { id: campId },
       select: {
@@ -26,7 +26,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
         registrationOpen: true,
         startDate: true,
         endDate: true,
-        _count: { select: { campers: true, courses: true, persons: true, rooms: true, ageGroups: true, sessionTemplates: true } },
+        _count: { select: { participants: true, courses: true, persons: true, rooms: true, ageGroups: true, sessionTemplates: true } },
       },
     }),
     prisma.registrationPayment.aggregate({
@@ -75,7 +75,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       select: { id: true, name: true, color: true, noSchedule: true },
     }),
     // Demand per age group, for the seat-shortfall rule.
-    prisma.camper.groupBy({
+    prisma.participant.groupBy({
       by: ["ageGroupId"],
       where: { campId },
       _count: { _all: true },
@@ -86,8 +86,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
 
   // Every issue string in the product originates in one module (phase 18b). This
   // route reports what the engine found; it does not decide anything itself.
-  const campersByAgeGroup = Object.fromEntries(
-    camperCounts
+  const participantsByAgeGroup = Object.fromEntries(
+    participantCounts
       .filter((row) => row.ageGroupId)
       .map((row) => [row.ageGroupId as string, row._count._all]),
   );
@@ -96,7 +96,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
     blocks: timeBlocks,
     ageGroups,
     persons: courses.flatMap((course) => course.courseTeachers.map((entry) => entry.person)),
-    campersByAgeGroup,
+    participantsByAgeGroup,
   });
   const byCode = countsByCode(issues);
   const severity = issueCounts(issues);
@@ -109,7 +109,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   return NextResponse.json({
     camp: { ...camp, myRole: member.role },
     stats: {
-      registeredStudents: camp._count.campers,
+      registeredStudents: camp._count.participants,
       classes: camp._count.courses,
       teachers: camp._count.persons,
       ageGroups: camp._count.ageGroups,

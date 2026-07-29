@@ -32,7 +32,7 @@ export type TrialEmailUser = {
       courses: { id: string }[];
       sessionTemplates: { id: string }[];
       registrationForms: { id: string }[];
-      campers: { id: string }[];
+      participants: { id: string }[];
     }>;
   } | null;
 };

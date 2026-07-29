@@ -72,7 +72,7 @@ describe("headroom is per block per age group, never aggregated (§4.2)", () => 
       blocks,
       columns,
       ageGroups: groups,
-      campersByAgeGroup: { older: 20, younger: 40 },
+      participantsByAgeGroup: { older: 20, younger: 40 },
     });
     const olderCell = matrix.cells.find((c) => c.groupId === "older" && c.columnKey === "c920")!;
     expect(olderCell.state).toBe("short");
@@ -112,7 +112,7 @@ describe("fragile is orthogonal to seat state (§4.1)", () => {
       blocks,
       columns,
       ageGroups: groups,
-      campersByAgeGroup: { older: 30 },
+      participantsByAgeGroup: { older: 30 },
     });
     const cell = matrix.cells.find((c) => c.groupId === "older" && c.columnKey === "c920")!;
     expect(cell.spare).toBe(9);
@@ -125,7 +125,7 @@ describe("fragile is orthogonal to seat state (§4.1)", () => {
       course({ id: "a", courseAgeGroups: [{ ageGroupId: "older" }], sessions: [{ id: "s1", sessionTemplateId: "b920", enrolledCount: 1 }] }),
       course({ id: "b", courseAgeGroups: [{ ageGroupId: "older" }], sessions: [{ id: "s2", sessionTemplateId: "b920", enrolledCount: 1 }] }),
     ];
-    const matrix = buildCoverage({ courses, blocks, columns, ageGroups: groups, campersByAgeGroup: { older: 10 } });
+    const matrix = buildCoverage({ courses, blocks, columns, ageGroups: groups, participantsByAgeGroup: { older: 10 } });
     const cell = matrix.cells.find((c) => c.groupId === "older" && c.columnKey === "c920")!;
     expect(cell.fragile).toBe(false);
   });
@@ -134,7 +134,7 @@ describe("fragile is orthogonal to seat state (§4.1)", () => {
     const courses = [
       course({ id: "solo", cap: 5, courseAgeGroups: [{ ageGroupId: "older" }], sessions: [{ id: "s1", sessionTemplateId: "b920", enrolledCount: 5 }] }),
     ];
-    const matrix = buildCoverage({ courses, blocks, columns, ageGroups: groups, campersByAgeGroup: { older: 10 } });
+    const matrix = buildCoverage({ courses, blocks, columns, ageGroups: groups, participantsByAgeGroup: { older: 10 } });
     const cell = matrix.cells.find((c) => c.groupId === "older" && c.columnKey === "c920")!;
     expect(cell.state).toBe("short");
     expect(cell.fragile).toBe(true);
@@ -171,7 +171,7 @@ describe("unscheduled groups and mandatory blocks are excluded", () => {
   const courses = [
     course({ id: "a", courseAgeGroups: [{ ageGroupId: "older" }], sessions: [{ id: "s1", sessionTemplateId: "b920", enrolledCount: 1 }] }),
   ];
-  const matrix = buildCoverage({ courses, blocks, columns, ageGroups: groups, campersByAgeGroup: { older: 5, prek: 9 } });
+  const matrix = buildCoverage({ courses, blocks, columns, ageGroups: groups, participantsByAgeGroup: { older: 5, prek: 9 } });
 
   it("gives a daycare group no headroom row at all", () => {
     expect(matrix.groups.map((g) => g.id)).toEqual(["older", "younger"]);

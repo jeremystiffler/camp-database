@@ -5,7 +5,7 @@ import { PageBanner } from "@/components/PageBanner";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import jsQR from "jsqr";
-import CamperScannableCode from "@/components/CamperScannableCode";
+import ParticipantScannableCode from "@/components/ParticipantScannableCode";
 import { HelpCopy } from "@/components/HelpMode";
 import { EmptyState } from "@/components/OperationalUI";
 import { MoreOptions } from "@/components/GuidedMode";
@@ -33,7 +33,7 @@ interface Enrollment {
     sessionTemplate?: { label?: string | null; startTime?: string | null; endTime?: string | null } | null;
   } | null;
 }
-interface Camper {
+interface Participant {
   id: string;
   firstName: string;
   lastName: string;
@@ -72,32 +72,32 @@ const STATUS_COPY: Record<string, { label: string; cls: string }> = {
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-function fullName(camper: Camper) { return `${camper.firstName} ${camper.lastName}`.trim(); }
+function fullName(participant: Participant) { return `${participant.firstName} ${participant.lastName}`.trim(); }
 function todayValue() {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 10);
 }
-function attendanceStatus(camper: Camper) { return camper.attendance?.status || "not_arrived"; }
-function paymentCleared(camper: Camper) {
-  return ["paid", "not_required", "comped"].includes(camper.paymentStatus || "not_required");
+function attendanceStatus(participant: Participant) { return participant.attendance?.status || "not_arrived"; }
+function paymentCleared(participant: Participant) {
+  return ["paid", "not_required", "comped"].includes(participant.paymentStatus || "not_required");
 }
-function paymentNeededLabel(camper: Camper) {
-  return paymentCleared(camper) ? "No" : "Yes";
+function paymentNeededLabel(participant: Participant) {
+  return paymentCleared(participant) ? "No" : "Yes";
 }
-function paymentNeededClass(camper: Camper) {
-  return paymentCleared(camper) ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-900 border-amber-200";
+function paymentNeededClass(participant: Participant) {
+  return paymentCleared(participant) ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-amber-50 text-amber-900 border-amber-200";
 }
-function missingInfo(camper: Camper) {
+function missingInfo(participant: Participant) {
   const missing = [];
-  if (!camper.guardianName) missing.push("guardian name");
-  if (!camper.guardianPhone && !camper.guardianEmail) missing.push("guardian contact");
-  if (!camper.emergencyPhone) missing.push("emergency phone");
+  if (!participant.guardianName) missing.push("guardian name");
+  if (!participant.guardianPhone && !participant.guardianEmail) missing.push("guardian contact");
+  if (!participant.emergencyPhone) missing.push("emergency phone");
   return missing;
 }
-function readiness(camper: Camper) {
-  const missing = missingInfo(camper);
-  if (!paymentCleared(camper)) return { label: "Needs payment", cls: "bg-amber-100 text-amber-900 border-amber-200", missing };
+function readiness(participant: Participant) {
+  const missing = missingInfo(participant);
+  if (!paymentCleared(participant)) return { label: "Needs payment", cls: "bg-amber-100 text-amber-900 border-amber-200", missing };
   if (missing.length) return { label: "Missing info", cls: "bg-orange-100 text-orange-900 border-orange-200", missing };
   return { label: "Ready", cls: "bg-emerald-100 text-emerald-800 border-emerald-200", missing };
 }
@@ -137,10 +137,10 @@ function splitContactText(text: string): Contact {
   const name = text.replace(phoneMatch?.[0] || "", "").replace(/\b(phone|number|tel|cell|mobile|name|contact|emergency|alternate|relationship)\b/gi, "").replace(/[;:,|]+/g, " ").replace(/\s+/g, " ").trim();
   return { name: name || "Emergency contact", phone, source: "Custom form" };
 }
-function contactInfo(camper: Camper) {
-  const data = parseCustomData(camper.customData);
+function contactInfo(participant: Participant) {
+  const data = parseCustomData(participant.customData);
   const approved: Contact[] = [];
-  if (camper.guardianName || camper.guardianPhone) approved.push({ name: camper.guardianName || "Parent / guardian", phone: camper.guardianPhone || undefined, relationship: "Guardian", source: "Registration" });
+  if (participant.guardianName || participant.guardianPhone) approved.push({ name: participant.guardianName || "Parent / guardian", phone: participant.guardianPhone || undefined, relationship: "Guardian", source: "Registration" });
   for (const [, value] of customMatches(data, ["pickup", "pick up", "approved", "authorized", "release"])) {
     const text = customValueText(value);
     if (text && !approved.some(contact => contact.name.toLowerCase() === text.toLowerCase())) approved.push({ name: text, relationship: "Approved pickup", source: "Custom form" });
@@ -148,8 +148,8 @@ function contactInfo(camper: Camper) {
   const emergency: Contact[] = [];
   const emergencyName = valueForCustomLabel(data, ["emergency contact name", "emergency name", "alternate contact name", "backup contact name"]);
   const emergencyRelationship = valueForCustomLabel(data, ["emergency relationship", "alternate relationship", "backup relationship"]);
-  const emergencyPhone = camper.emergencyPhone || valueForCustomLabel(data, ["emergency phone", "emergency number", "alternate phone", "backup phone"]);
-  if (emergencyName || emergencyPhone) emergency.push({ name: emergencyName || camper.guardianName || "Emergency contact", phone: emergencyPhone || undefined, relationship: emergencyRelationship || undefined, source: "Registration" });
+  const emergencyPhone = participant.emergencyPhone || valueForCustomLabel(data, ["emergency phone", "emergency number", "alternate phone", "backup phone"]);
+  if (emergencyName || emergencyPhone) emergency.push({ name: emergencyName || participant.guardianName || "Emergency contact", phone: emergencyPhone || undefined, relationship: emergencyRelationship || undefined, source: "Registration" });
   for (const [, value] of customMatches(data, ["emergency", "alternate", "doctor", "contact phone"])) {
     const text = customValueText(value);
     if (!text) continue;
@@ -172,7 +172,7 @@ function tokensFromScan(raw: string) {
   values.add(trimmed);
   try {
     const url = new URL(trimmed);
-    for (const key of ["camperId", "camper", "id", "cid", "studentId", "registrationId"]) {
+    for (const key of ["participantId", "participant", "id", "cid", "studentId", "registrationId"]) {
       const found = url.searchParams.get(key);
       if (found) values.add(found);
     }
@@ -182,7 +182,7 @@ function tokensFromScan(raw: string) {
   try {
     const parsed = JSON.parse(trimmed);
     if (parsed && typeof parsed === "object") {
-      for (const key of ["camperId", "camper", "id", "cid", "studentId"]) {
+      for (const key of ["participantId", "participant", "id", "cid", "studentId"]) {
         const found = (parsed as Record<string, unknown>)[key];
         if (typeof found === "string") values.add(found);
       }
@@ -190,25 +190,25 @@ function tokensFromScan(raw: string) {
   } catch {}
   return [...values].map(normalize).filter(Boolean);
 }
-function scanMatches(camper: Camper, raw: string) {
+function scanMatches(participant: Participant, raw: string) {
   const scanTokens = tokensFromScan(raw);
   if (!scanTokens.length) return false;
   const haystacks = [
-    camper.scanCode || "",
-    camper.pickupNumber || "",
-    camper.id,
-    fullName(camper),
-    `${camper.lastName} ${camper.firstName}`,
-    camper.guardianName || "",
-    camper.guardianEmail || "",
-    camper.guardianPhone || "",
-    camper.emergencyPhone || "",
-    camper.ageGroup?.name || "",
+    participant.scanCode || "",
+    participant.pickupNumber || "",
+    participant.id,
+    fullName(participant),
+    `${participant.lastName} ${participant.firstName}`,
+    participant.guardianName || "",
+    participant.guardianEmail || "",
+    participant.guardianPhone || "",
+    participant.emergencyPhone || "",
+    participant.ageGroup?.name || "",
   ].map(normalize).filter(Boolean);
   return scanTokens.some(token => haystacks.some(hay => hay === token || hay.includes(token) || token.includes(hay)));
 }
-function nextScanAction(camper: Camper) {
-  return attendanceStatus(camper) === "checked_in" ? "check_out" : "check_in";
+function nextScanAction(participant: Participant) {
+  return attendanceStatus(participant) === "checked_in" ? "check_out" : "check_in";
 }
 
 function CheckInContent() {
@@ -218,7 +218,7 @@ function CheckInContent() {
   const kioskParam = searchParams.get("kiosk") === "1";
   const [campDate, setCampDate] = useState(todayValue());
   const [dateInitialized, setDateInitialized] = useState(false);
-  const [campers, setCampers] = useState<Camper[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
   const [view, setView] = useState<View>("walk_up");
@@ -229,7 +229,7 @@ function CheckInContent() {
   const [scanError, setScanError] = useState("");
   const [scanMessage, setScanMessage] = useState("");
   const [lastScanned, setLastScanned] = useState("");
-  const [codeCamper, setCodeCamper] = useState<Camper | null>(null);
+  const [codeParticipant, setCodeParticipant] = useState<Participant | null>(null);
   const [kioskMode, setKioskMode] = useState(false);
   const [kioskExitPassword, setKioskExitPassword] = useState("");
   const [kioskExitError, setKioskExitError] = useState("");
@@ -262,7 +262,7 @@ function CheckInContent() {
     setLoading(true);
     fetch(`/api/camps/${campId}/attendance?date=${encodeURIComponent(campDate)}`)
       .then(r => r.json())
-      .then(data => setCampers(Array.isArray(data.campers) ? data.campers : []))
+      .then(data => setParticipants(Array.isArray(data.participants) ? data.participants : []))
       .finally(() => setLoading(false));
   };
 
@@ -324,12 +324,12 @@ function CheckInContent() {
     withKioskUrl(false);
   };
 
-  const updateAttendance = async (camper: Camper, action: string, extra: Record<string, unknown> = {}) => {
-    setSavingId(camper.id);
+  const updateAttendance = async (participant: Participant, action: string, extra: Record<string, unknown> = {}) => {
+    setSavingId(participant.id);
     const res = await fetch(`/api/camps/${campId}/attendance`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ camperId: camper.id, action, date: campDate, ...extra }),
+      body: JSON.stringify({ participantId: participant.id, action, date: campDate, ...extra }),
     });
     const data = await res.json().catch(() => ({}));
     setSavingId("");
@@ -337,13 +337,13 @@ function CheckInContent() {
       alert(data.detail || data.error || "Could not update attendance.");
       return false;
     }
-    if (data.camper) setCampers(prev => prev.map(item => item.id === data.camper.id ? data.camper : item));
+    if (data.participant) setParticipants(prev => prev.map(item => item.id === data.participant.id ? data.participant : item));
     return true;
   };
 
   const autoHandleScan = async (raw: string) => {
     if (scanLockRef.current) return;
-    const matches = campers.filter(camper => scanMatches(camper, raw));
+    const matches = participants.filter(participant => scanMatches(participant, raw));
     if (matches.length !== 1) {
       if (kioskMode) {
         setScanMessage("We couldn't match that code. Please ask a staff member for help.");
@@ -355,13 +355,13 @@ function CheckInContent() {
       setScannerOpen(false);
       return;
     }
-    const camper = matches[0];
-    const action = nextScanAction(camper);
-    const contacts = contactInfo(camper);
+    const participant = matches[0];
+    const action = nextScanAction(participant);
+    const contacts = contactInfo(participant);
     scanLockRef.current = true;
     setLastScanned(raw);
-    const ok = await updateAttendance(camper, action, {
-      pickupPersonName: action === "check_out" ? (camper.guardianName || contacts.approved[0]?.name || "QR self checkout") : undefined,
+    const ok = await updateAttendance(participant, action, {
+      pickupPersonName: action === "check_out" ? (participant.guardianName || contacts.approved[0]?.name || "QR self checkout") : undefined,
       pickupRelationship: action === "check_out" ? "QR scan" : undefined,
       pickupCodeVerified: true,
       note: kioskMode ? `Self-serve kiosk QR ${action === "check_in" ? "check-in" : "check-out"}` : (action === "check_in" ? "Auto checked in by QR scan" : "Auto checked out by QR scan"),
@@ -371,7 +371,7 @@ function CheckInContent() {
       setQuery("");
       setActiveLetter("");
       setView(action === "check_in" ? "checked_in" : "checked_out");
-      setScanMessage(kioskMode ? `${fullName(camper)} is ${action === "check_in" ? "checked in" : "checked out"}.` : `${fullName(camper)} ${action === "check_in" ? "checked in" : "checked out"} by QR scan.`);
+      setScanMessage(kioskMode ? `${fullName(participant)} is ${action === "check_in" ? "checked in" : "checked out"}.` : `${fullName(participant)} ${action === "check_in" ? "checked in" : "checked out"} by QR scan.`);
       setScannerOpen(false);
     }
   };
@@ -454,67 +454,67 @@ function CheckInContent() {
     };
     void start();
     return stopCamera;
-  }, [scannerOpen, campers, campDate, campId, lastScanned, kioskMode]);
+  }, [scannerOpen, participants, campDate, campId, lastScanned, kioskMode]);
 
   const counts = useMemo(() => {
-    const checkedIn = campers.filter(c => attendanceStatus(c) === "checked_in").length;
+    const checkedIn = participants.filter(c => attendanceStatus(c) === "checked_in").length;
     return {
-      walk_up: campers.filter(c => attendanceStatus(c) === "not_arrived").length,
-      attention: campers.filter(c => attendanceStatus(c) !== "checked_out" && (!paymentCleared(c) || missingInfo(c).length > 0)).length,
+      walk_up: participants.filter(c => attendanceStatus(c) === "not_arrived").length,
+      attention: participants.filter(c => attendanceStatus(c) !== "checked_out" && (!paymentCleared(c) || missingInfo(c).length > 0)).length,
       checked_in: checkedIn,
-      checked_out: campers.filter(c => attendanceStatus(c) === "checked_out").length,
-      all: campers.length,
+      checked_out: participants.filter(c => attendanceStatus(c) === "checked_out").length,
+      all: participants.length,
     };
-  }, [campers]);
+  }, [participants]);
 
   const normalizedQuery = query.trim().toLowerCase();
   const availableLetters = useMemo(() => {
     const letters = new Set<string>();
-    campers.filter(c => attendanceStatus(c) === "not_arrived").forEach(c => {
+    participants.filter(c => attendanceStatus(c) === "not_arrived").forEach(c => {
       const firstInitial = (c.firstName || "").slice(0, 1).toUpperCase();
       const lastInitial = (c.lastName || "").slice(0, 1).toUpperCase();
       if (firstInitial) letters.add(firstInitial);
       if (lastInitial) letters.add(lastInitial);
     });
     return letters;
-  }, [campers]);
-  const visibleCampers = campers.filter(camper => {
-    const status = attendanceStatus(camper);
-    const isAttention = status !== "checked_out" && (!paymentCleared(camper) || missingInfo(camper).length > 0);
+  }, [participants]);
+  const visibleParticipants = participants.filter(participant => {
+    const status = attendanceStatus(participant);
+    const isAttention = status !== "checked_out" && (!paymentCleared(participant) || missingInfo(participant).length > 0);
     if (view === "walk_up" && status !== "not_arrived") return false;
     if (view === "checked_in" && status !== "checked_in") return false;
     if (view === "checked_out" && status !== "checked_out") return false;
     if (view === "attention" && !isAttention) return false;
     if (activeLetter && status === "not_arrived") {
-      const firstInitial = (camper.firstName || "").slice(0, 1).toUpperCase();
-      const lastInitial = (camper.lastName || "").slice(0, 1).toUpperCase();
+      const firstInitial = (participant.firstName || "").slice(0, 1).toUpperCase();
+      const lastInitial = (participant.lastName || "").slice(0, 1).toUpperCase();
       if (firstInitial !== activeLetter && lastInitial !== activeLetter) return false;
     }
     if (!normalizedQuery) return true;
     if (normalizedQuery.length === 1 && /^[a-z0-9]$/.test(normalizedQuery)) {
-      const firstInitial = (camper.firstName || "").slice(0, 1).toLowerCase();
-      const lastInitial = (camper.lastName || "").slice(0, 1).toLowerCase();
+      const firstInitial = (participant.firstName || "").slice(0, 1).toLowerCase();
+      const lastInitial = (participant.lastName || "").slice(0, 1).toLowerCase();
       if (firstInitial === normalizedQuery || lastInitial === normalizedQuery) return true;
     }
-    const haystack = [camper.scanCode, camper.pickupNumber, camper.id, fullName(camper), `${camper.lastName} ${camper.firstName}`, camper.guardianName, camper.guardianEmail, camper.guardianPhone, camper.emergencyPhone, camper.ageGroup?.name, customValueText(parseCustomData(camper.customData))].filter(Boolean).join(" ").toLowerCase();
+    const haystack = [participant.scanCode, participant.pickupNumber, participant.id, fullName(participant), `${participant.lastName} ${participant.firstName}`, participant.guardianName, participant.guardianEmail, participant.guardianPhone, participant.emergencyPhone, participant.ageGroup?.name, customValueText(parseCustomData(participant.customData))].filter(Boolean).join(" ").toLowerCase();
     return haystack.includes(normalizedQuery);
   }).sort((a, b) => `${a.lastName}|${a.firstName}`.localeCompare(`${b.lastName}|${b.firstName}`));
 
-  const checkout = (camper: Camper, pickupPersonName?: string) => {
-    const contacts = contactInfo(camper);
-    const fallback = pickupPersonName || camper.guardianName || contacts.approved[0]?.name || "";
-    const chosen = window.prompt(`Who is picking up ${fullName(camper)}?`, fallback);
+  const checkout = (participant: Participant, pickupPersonName?: string) => {
+    const contacts = contactInfo(participant);
+    const fallback = pickupPersonName || participant.guardianName || contacts.approved[0]?.name || "";
+    const chosen = window.prompt(`Who is picking up ${fullName(participant)}?`, fallback);
     if (chosen === null) return;
-    updateAttendance(camper, "check_out", { pickupPersonName: chosen, pickupRelationship: "Reviewed approved pickup list", pickupCodeVerified: true });
+    updateAttendance(participant, "check_out", { pickupPersonName: chosen, pickupRelationship: "Reviewed approved pickup list", pickupCodeVerified: true });
   };
 
-  const checkInAndShowCheckout = async (camper: Camper) => {
-    const ok = await updateAttendance(camper, "check_in");
+  const checkInAndShowCheckout = async (participant: Participant) => {
+    const ok = await updateAttendance(participant, "check_in");
     if (ok) {
       setQuery("");
       setActiveLetter("");
       setView("checked_in");
-      setScanMessage(`${fullName(camper)} is checked in and ready in the Check Out tab.`);
+      setScanMessage(`${fullName(participant)} is checked in and ready in the Check Out tab.`);
     }
   };
 
@@ -525,23 +525,23 @@ function CheckInContent() {
 
   const kioskSearchText = query.trim().toLowerCase();
   const kioskNameMatches = kioskSearchText.length >= 2
-    ? campers
-      .filter(camper => [fullName(camper), `${camper.lastName} ${camper.firstName}`, camper.guardianName || ""].join(" ").toLowerCase().includes(kioskSearchText))
+    ? participants
+      .filter(participant => [fullName(participant), `${participant.lastName} ${participant.firstName}`, participant.guardianName || ""].join(" ").toLowerCase().includes(kioskSearchText))
       .sort((a, b) => `${a.lastName}|${a.firstName}`.localeCompare(`${b.lastName}|${b.firstName}`))
       .slice(0, 8)
     : [];
 
-  const kioskToggleCamper = async (camper: Camper) => {
-    const action = nextScanAction(camper);
-    const contacts = contactInfo(camper);
-    const ok = await updateAttendance(camper, action, {
-      pickupPersonName: action === "check_out" ? (camper.guardianName || contacts.approved[0]?.name || "Kiosk name search") : undefined,
+  const kioskToggleParticipant = async (participant: Participant) => {
+    const action = nextScanAction(participant);
+    const contacts = contactInfo(participant);
+    const ok = await updateAttendance(participant, action, {
+      pickupPersonName: action === "check_out" ? (participant.guardianName || contacts.approved[0]?.name || "Kiosk name search") : undefined,
       pickupRelationship: action === "check_out" ? "Kiosk name search" : undefined,
       pickupCodeVerified: false,
       note: `Self-serve kiosk name ${action === "check_in" ? "check-in" : "check-out"}`,
     });
     if (ok) {
-      setScanMessage(`${fullName(camper)} is ${action === "check_in" ? "checked in" : "checked out"}.`);
+      setScanMessage(`${fullName(participant)} is ${action === "check_in" ? "checked in" : "checked out"}.`);
       setQuery("");
     }
   };
@@ -549,13 +549,13 @@ function CheckInContent() {
   const kioskSearchSubmit = async () => {
     const raw = query.trim();
     if (!raw) return;
-    const scanMatchesForQuery = campers.filter(camper => scanMatches(camper, raw));
+    const scanMatchesForQuery = participants.filter(participant => scanMatches(participant, raw));
     if (scanMatchesForQuery.length === 1) {
       await autoHandleScan(raw);
       return;
     }
     if (kioskNameMatches.length === 1) {
-      await kioskToggleCamper(kioskNameMatches[0]);
+      await kioskToggleParticipant(kioskNameMatches[0]);
       return;
     }
     setScanMessage(kioskNameMatches.length > 1 ? "Choose the matching child below." : "No match found. Please ask a staff member for help.");
@@ -600,18 +600,18 @@ function CheckInContent() {
             <button onClick={() => void kioskSearchSubmit()} className="min-h-14 rounded-2xl bg-emerald-600 px-6 text-base font-extrabold text-white hover:bg-emerald-700">Search / Use Scan</button>
           </div>
           {kioskNameMatches.length > 0 && <div className="mt-4 space-y-2">
-            {kioskNameMatches.map(camper => {
-              const status = attendanceStatus(camper);
+            {kioskNameMatches.map(participant => {
+              const status = attendanceStatus(participant);
               const canCheckOut = status === "checked_in";
               const done = status === "checked_out";
-              return <div key={camper.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+              return <div key={participant.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-lg font-extrabold text-slate-900">{fullName(camper)}</p>
+                  <p className="text-lg font-extrabold text-slate-900">{fullName(participant)}</p>
                   <p className="text-xs font-bold text-slate-500">Status: {STATUS_COPY[status]?.label || "Not arrived"}</p>
                 </div>
                 <div className="flex gap-2">
-                  {!canCheckOut && !done && <button disabled={savingId === camper.id} onClick={() => void kioskToggleCamper(camper)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50">Check In</button>}
-                  {canCheckOut && <button disabled={savingId === camper.id} onClick={() => void kioskToggleCamper(camper)} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50">Check Out</button>}
+                  {!canCheckOut && !done && <button disabled={savingId === participant.id} onClick={() => void kioskToggleParticipant(participant)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50">Check In</button>}
+                  {canCheckOut && <button disabled={savingId === participant.id} onClick={() => void kioskToggleParticipant(participant)} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50">Check Out</button>}
                   {done && <span className="rounded-xl bg-white px-4 py-2 text-sm font-extrabold text-slate-400">Checked Out</span>}
                 </div>
               </div>;
@@ -706,7 +706,7 @@ function CheckInContent() {
           <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder={view === "checked_in" ? "Search who is still on campus, guardian phone, or paste/scan QR text..." : "Quick search: participant, guardian, phone, email, or paste/scan QR text..."} className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100" autoFocus />
           <button onClick={manualScanSubmit} className="min-h-14 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 text-base font-extrabold text-emerald-800 hover:bg-emerald-100">Use as Scan</button>
           <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-14 rounded-2xl bg-slate-900 px-6 text-base font-extrabold text-white hover:bg-slate-700">Open Camera</button>
-          <Link href={`/campers?campId=${campId}`} className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-6 text-base font-extrabold text-slate-700 hover:bg-slate-100">+ Walk-Up</Link>
+          <Link href={`/participants?campId=${campId}`} className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-6 text-base font-extrabold text-slate-700 hover:bg-slate-100">+ Walk-Up</Link>
         </div>
         {view === "walk_up" && <div className="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3">
           <button onClick={() => setActiveLetter("")} className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${!activeLetter ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}>All</button>
@@ -733,7 +733,7 @@ function CheckInContent() {
 
       {loading ? (
         <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-forest-500 border-t-transparent" /></div>
-      ) : visibleCampers.length === 0 ? (
+      ) : visibleParticipants.length === 0 ? (
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <p className="text-lg font-extrabold text-slate-800">{view === "walk_up" ? "Everyone is either checked in or checked out." : view === "checked_in" ? "No one is currently waiting for checkout." : view === "attention" ? "No participants need attention right now." : "No participants match this view."}</p>
           <p className="mt-1 text-sm font-semibold text-slate-400">{query ? "Try clearing the search or switching tabs." : "Nice and tidy — like a clipboard after a miracle."}</p>
@@ -744,33 +744,33 @@ function CheckInContent() {
             <div>Participant</div><div>Guardian</div><div>Approved pickup</div><div>Check-in</div>
           </div>
           <div className="divide-y divide-slate-100">
-            {visibleCampers.map(camper => {
-              const status = attendanceStatus(camper);
+            {visibleParticipants.map(participant => {
+              const status = attendanceStatus(participant);
               const statusMeta = STATUS_COPY[status] || STATUS_COPY.not_arrived;
-              const saving = savingId === camper.id;
-              const contacts = contactInfo(camper);
+              const saving = savingId === participant.id;
+              const contacts = contactInfo(participant);
               const pickupList = compactApprovedPickup(contacts.approved) || "—";
-              const inOut = `${timestamp(camper.attendance?.checkedInAt)} / ${timestamp(camper.attendance?.checkedOutAt)}`;
+              const inOut = `${timestamp(participant.attendance?.checkedInAt)} / ${timestamp(participant.attendance?.checkedOutAt)}`;
               return (
-                <div key={camper.id} className="grid gap-4 px-4 py-4 text-sm lg:grid-cols-[1.1fr_1fr_1.35fr_0.9fr] lg:items-start">
+                <div key={participant.id} className="grid gap-4 px-4 py-4 text-sm lg:grid-cols-[1.1fr_1fr_1.35fr_0.9fr] lg:items-start">
                   <div className="min-w-0 space-y-2">
                     <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 lg:hidden">Participant</p>
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <h2 className="truncate text-base font-extrabold text-slate-900">{fullName(camper)}</h2>
+                      <h2 className="truncate text-base font-extrabold text-slate-900">{fullName(participant)}</h2>
                       <span className={`rounded-full border px-2 py-0.5 text-[11px] font-extrabold ${statusMeta.cls}`}>{statusMeta.label}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
                       <span>Payment needed?</span>
-                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-extrabold ${paymentNeededClass(camper)}`}>{paymentNeededLabel(camper)}</span>
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-extrabold ${paymentNeededClass(participant)}`}>{paymentNeededLabel(participant)}</span>
                     </div>
-                    <p className="text-xs font-bold text-slate-500">Pickup #: <span className="font-extrabold text-slate-800">{camper.pickupNumber || "—"}</span></p>
+                    <p className="text-xs font-bold text-slate-500">Pickup #: <span className="font-extrabold text-slate-800">{participant.pickupNumber || "—"}</span></p>
                     <p className="text-xs font-bold text-slate-500">Checked in/out: <span className="font-extrabold text-slate-800">{inOut}</span></p>
                   </div>
                   <div className="min-w-0 space-y-2">
                     <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 lg:hidden">Guardian</p>
-                    <p className="truncate text-base font-extrabold text-slate-900">{camper.guardianName || "—"}</p>
+                    <p className="truncate text-base font-extrabold text-slate-900">{participant.guardianName || "—"}</p>
                     <p className="text-xs font-bold text-slate-500">Guardian phone</p>
-                    {camper.guardianPhone ? <a className="block truncate font-extrabold text-sky-700 hover:underline" href={`tel:${camper.guardianPhone}`}>{camper.guardianPhone}</a> : <span className="font-bold text-slate-400">—</span>}
+                    {participant.guardianPhone ? <a className="block truncate font-extrabold text-sky-700 hover:underline" href={`tel:${participant.guardianPhone}`}>{participant.guardianPhone}</a> : <span className="font-bold text-slate-400">—</span>}
                   </div>
                   <div className="min-w-0 space-y-2">
                     <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 lg:hidden">Approved pickup</p>
@@ -779,12 +779,12 @@ function CheckInContent() {
                     <p className="text-[11px] font-extrabold uppercase tracking-wide text-emerald-700">Including guardian</p>
                   </div>
                   <div className="flex flex-wrap gap-2 lg:flex-col lg:items-stretch">
-                    {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => checkInAndShowCheckout(camper)} className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
-                    {status === "checked_in" && <button disabled={saving} onClick={() => checkout(camper)} className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">{saving ? "Saving…" : "Check Out"}</button>}
+                    {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => checkInAndShowCheckout(participant)} className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
+                    {status === "checked_in" && <button disabled={saving} onClick={() => checkout(participant)} className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">{saving ? "Saving…" : "Check Out"}</button>}
                     {status === "checked_out" && <button disabled className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-extrabold text-slate-400">Checked Out</button>}
-                    {!paymentCleared(camper) && <button disabled={saving} onClick={() => updateAttendance(camper, "mark_paid", { note: "Marked paid during check-in" })} className="rounded-2xl bg-amber-500 px-3 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">Mark Paid</button>}
-                    <button type="button" onClick={() => setCodeCamper(camper)} className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-extrabold text-indigo-800 hover:bg-indigo-100">QR / Pickup</button>
-                    {status !== "not_arrived" && <button disabled={saving} onClick={() => updateAttendance(camper, "reset")} className="rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-extrabold text-slate-500 disabled:opacity-50">Reset</button>}
+                    {!paymentCleared(participant) && <button disabled={saving} onClick={() => updateAttendance(participant, "mark_paid", { note: "Marked paid during check-in" })} className="rounded-2xl bg-amber-500 px-3 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">Mark Paid</button>}
+                    <button type="button" onClick={() => setCodeParticipant(participant)} className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-extrabold text-indigo-800 hover:bg-indigo-100">QR / Pickup</button>
+                    {status !== "not_arrived" && <button disabled={saving} onClick={() => updateAttendance(participant, "reset")} className="rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-extrabold text-slate-500 disabled:opacity-50">Reset</button>}
                   </div>
                 </div>
               );
@@ -792,21 +792,21 @@ function CheckInContent() {
           </div>
         </div>
       )}
-      {codeCamper && (
+      {codeParticipant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-400">Scannable codes</p>
-                <h2 className="mt-1 text-xl font-extrabold text-slate-900">{fullName(codeCamper)}</h2>
-                <p className="mt-1 text-sm font-bold text-slate-500">Pickup #{codeCamper.pickupNumber || "—"} · {codeCamper.lastName.toUpperCase()} FAMILY</p>
+                <h2 className="mt-1 text-xl font-extrabold text-slate-900">{fullName(codeParticipant)}</h2>
+                <p className="mt-1 text-sm font-bold text-slate-500">Pickup #{codeParticipant.pickupNumber || "—"} · {codeParticipant.lastName.toUpperCase()} FAMILY</p>
               </div>
-              <button onClick={() => setCodeCamper(null)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-extrabold text-slate-600">Close</button>
+              <button onClick={() => setCodeParticipant(null)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-extrabold text-slate-600">Close</button>
             </div>
-            <div className="mt-5 flex justify-center"><CamperScannableCode value={codeCamper.scanCode} label="Participant QR" size={180} /></div>
+            <div className="mt-5 flex justify-center"><ParticipantScannableCode value={codeParticipant.scanCode} label="Participant QR" size={180} /></div>
             <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-extrabold">
               <Link href={`/print?campId=${campId}`} className="rounded-xl border border-slate-200 px-3 py-2 text-center text-slate-700 hover:bg-slate-50">Open Print Center</Link>
-              <button onClick={() => navigator.clipboard?.writeText(codeCamper.scanCode || "")} className="rounded-xl bg-slate-900 px-3 py-2 text-white">Copy scan code</button>
+              <button onClick={() => navigator.clipboard?.writeText(codeParticipant.scanCode || "")} className="rounded-xl bg-slate-900 px-3 py-2 text-white">Copy scan code</button>
             </div>
           </div>
         </div>

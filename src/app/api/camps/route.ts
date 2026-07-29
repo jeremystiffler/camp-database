@@ -12,7 +12,7 @@ export async function GET() {
     include: {
       ageGroups: true,
       members: { where: { userId: session.userId }, select: { role: true } },
-      _count: { select: { campers: true, courses: true } },
+      _count: { select: { participants: true, courses: true } },
     },
     orderBy: { createdAt: "desc" },
   });

@@ -243,7 +243,7 @@ function ScheduleContent() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [ageGroups, setAgeGroups] = useState<{ id: string; name: string; color?: string }[]>([]);
-  const [campersByAgeGroup, setCampersByAgeGroup] = useState<Record<string, number>>({});
+  const [participantsByAgeGroup, setParticipantsByAgeGroup] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ScheduleView>("grid");
   const [filterDay, setFilterDay] = useState<number | "">("");
@@ -266,7 +266,7 @@ function ScheduleContent() {
       setCourses(Array.isArray(c) ? c : []);
       setRooms(Array.isArray(r) ? r : []);
       setAgeGroups(Array.isArray(g) ? g : []);
-      setCampersByAgeGroup(dashboard?.campersByAgeGroup ?? {});
+      setParticipantsByAgeGroup(dashboard?.participantsByAgeGroup ?? {});
     } catch {
       // Keep the current view in place if one endpoint fails.
     } finally {
@@ -368,7 +368,7 @@ function ScheduleContent() {
     blocks: gridBlocks,
     columns: foldBlocks(gridBlocks).columns,
     ageGroups,
-    campersByAgeGroup,
+    participantsByAgeGroup,
   });
 
   return (

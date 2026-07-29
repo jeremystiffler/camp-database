@@ -50,13 +50,13 @@ describe("connected registration checkout wiring", () => {
 
   it("reserves locally before Checkout and unwinds abandoned payments", () => {
     expect(registrationRoute.indexOf("prisma.registrationPayment.create")).toBeLessThan(registrationRoute.indexOf("checkout.sessions.create"));
-    expect(registrationRoute).not.toContain("camperIds: createdCamperIds.join");
+    expect(registrationRoute).not.toContain("participantIds: createdParticipantIds.join");
     expect(registrationRoute).toContain("couponReservedAt");
     expect(registrationRoute).toContain("checkoutExpiresAt");
     expect(registrationRoute).toContain("failPendingRegistrationPayment");
     expect(lifecycle).toContain('DELETE FROM "Enrollment"');
     expect(lifecycle).toContain('"redeemedCount" = GREATEST');
-    expect(lifecycle).toContain('DELETE FROM "Camper"');
+    expect(lifecycle).toContain('DELETE FROM "Participant"');
   });
 
   it("fulfills webhooks idempotently and only for the matching account", () => {
@@ -68,8 +68,8 @@ describe("connected registration checkout wiring", () => {
   });
 
   it("keeps platform fee controls out of organizer writes", () => {
-    expect(campRoute).toContain('"billingMode", "camperPriceCents"');
-    expect(campRoute).not.toContain('"billingMode", "billingStatus", "platformFeeCents", "platformFeePercentBps", "platformFeeMinCents", "platformFeeCapCents", "camperPriceCents", "annualSubscriptionCents",\n      "themePreset"');
+    expect(campRoute).toContain('"billingMode", "participantPriceCents"');
+    expect(campRoute).not.toContain('"billingMode", "billingStatus", "platformFeeCents", "platformFeePercentBps", "platformFeeMinCents", "platformFeeCapCents", "participantPriceCents", "annualSubscriptionCents",\n      "themePreset"');
     expect(settings).not.toContain("Our percentage");
     expect(settings).toContain("Organizers control only their event price.");
   });

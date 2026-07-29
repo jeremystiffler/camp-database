@@ -14,7 +14,7 @@ Backup before this work:
   - `src/app/(protected)/setup/page.tsx` — 1,417 lines
   - `src/app/(protected)/activities/page.tsx` — 1,293 lines
   - `src/app/(protected)/print/page.tsx` — 1,004 lines
-  - `src/app/(protected)/campers/page.tsx` — 924 lines
+  - `src/app/(protected)/participants/page.tsx` — 924 lines
   - `src/app/(protected)/registration/page.tsx` — 885 lines
   - `src/app/(protected)/check-in/page.tsx` — 810 lines
   - `src/components/TimeslotAssignmentGrid.tsx` — 711 lines
@@ -30,7 +30,7 @@ Priority targets:
 - `setup/page.tsx`
 - `activities/page.tsx`
 - `print/page.tsx`
-- `campers/page.tsx`
+- `participants/page.tsx`
 - `registration/page.tsx`
 - `check-in/page.tsx`
 

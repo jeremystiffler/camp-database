@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 
-export const BILLING_MODES = ["campPays", "camperFee"] as const;
+export const BILLING_MODES = ["campPays", "participantFee"] as const;
 export type BillingMode = typeof BILLING_MODES[number];
 
 export const CAMP_ANNUAL_SUBSCRIPTION_CENTS = 29900;

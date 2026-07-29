@@ -1,5 +1,5 @@
 export type PricingCamp = {
-  camperPriceCents?: number | null;
+  participantPriceCents?: number | null;
   platformFeeCents?: number | null;
   platformFeePercentBps?: number | null;
   platformFeeMinCents?: number | null;
@@ -34,15 +34,15 @@ export function calculateDiscount(priceCents: number, coupon?: PricingCoupon | n
 
 export function calculateRegistrationTotal(camp: PricingCamp, coupon?: PricingCoupon | null, quantity = 1) {
   const safeQuantity = Math.max(1, Math.floor(quantity || 1));
-  const perCamperPriceCents = Math.max(0, camp.camperPriceCents ?? 0);
-  const campPriceCents = perCamperPriceCents * safeQuantity;
+  const perParticipantPriceCents = Math.max(0, camp.participantPriceCents ?? 0);
+  const campPriceCents = perParticipantPriceCents * safeQuantity;
   const discountCents = calculateDiscount(campPriceCents, coupon);
   const subtotalCents = Math.max(0, campPriceCents - discountCents);
   // Free registrations and fully-discounted registrations should stay free.
   // Only charge the platform fee when there is an actual paid subtotal.
   const platformFeeCents = subtotalCents > 0 ? calculatePlatformFee(subtotalCents, camp) : 0;
   const totalCents = subtotalCents + platformFeeCents;
-  return { campPriceCents, discountCents, subtotalCents, platformFeeCents, totalCents, quantity: safeQuantity, perCamperPriceCents };
+  return { campPriceCents, discountCents, subtotalCents, platformFeeCents, totalCents, quantity: safeQuantity, perParticipantPriceCents };
 }
 
 export function normalizeCouponCode(value: unknown) {

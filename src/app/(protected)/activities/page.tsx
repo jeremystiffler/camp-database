@@ -792,7 +792,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
       blocks,
       columns: foldBlocks(blocks as never).columns,
       ageGroups: ageGroups as never,
-      campersByAgeGroup: {},
+      participantsByAgeGroup: {},
     });
   }, [loading, courses, sessionTemplates, ageGroups]);
 

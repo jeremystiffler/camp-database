@@ -9,7 +9,7 @@ export const UNLIMITED = 2147483647;
  *
  * The class cap is the ONLY thing that limits enrollment. Room capacity is
  * advisory: it describes the space, it does not gate registration. A class in a
- * room that holds 20 with a cap of 9 takes 9 campers; a class with no room at
+ * room that holds 20 with a cap of 9 takes 9 participants; a class with no room at
  * all still takes its full cap. A blank cap means unlimited.
  */
 export function effectiveCapacity(course: CapacityCourse): number {

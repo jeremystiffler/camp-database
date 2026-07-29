@@ -32,8 +32,8 @@ run("one remaining seat under two simultaneous claims", () => {
     const suffix = randomUUID();
     const courseId = `concurrency-course-${suffix}`;
     const sessionId = `concurrency-session-${suffix}`;
-    const camperAId = `concurrency-camper-a-${suffix}`;
-    const camperBId = `concurrency-camper-b-${suffix}`;
+    const participantAId = `concurrency-participant-a-${suffix}`;
+    const participantBId = `concurrency-participant-b-${suffix}`;
 
     try {
       await prisma.course.create({
@@ -49,19 +49,19 @@ run("one remaining seat under two simultaneous claims", () => {
         data: { id: sessionId, campId: campId!, courseId, enrolledCount: 0 },
       });
       await Promise.all([
-        prisma.camper.create({
-          data: { id: camperAId, campId: campId!, firstName: "Concurrency", lastName: "Probe A" },
+        prisma.participant.create({
+          data: { id: participantAId, campId: campId!, firstName: "Concurrency", lastName: "Probe A" },
         }),
-        prisma.camper.create({
-          data: { id: camperBId, campId: campId!, firstName: "Concurrency", lastName: "Probe B" },
+        prisma.participant.create({
+          data: { id: participantBId, campId: campId!, firstName: "Concurrency", lastName: "Probe B" },
         }),
       ]);
 
       // Do not await one before starting the other: both SQL statements are in
       // flight against the same Session row and its single remaining seat.
       const results = await Promise.allSettled([
-        claimSeat({ campId: campId!, camperId: camperAId, sessionId }),
-        claimSeat({ campId: campId!, camperId: camperBId, sessionId }),
+        claimSeat({ campId: campId!, participantId: participantAId, sessionId }),
+        claimSeat({ campId: campId!, participantId: participantBId, sessionId }),
       ]);
 
       const successes = results.filter((result) => result.status === "fulfilled");
@@ -82,7 +82,7 @@ run("one remaining seat under two simultaneous claims", () => {
       // understandable and remains safe if relation behavior changes.
       await prisma.enrollment.deleteMany({ where: { sessionId } });
       await prisma.session.deleteMany({ where: { id: sessionId } });
-      await prisma.camper.deleteMany({ where: { id: { in: [camperAId, camperBId] } } });
+      await prisma.participant.deleteMany({ where: { id: { in: [participantAId, participantBId] } } });
       await prisma.course.deleteMany({ where: { id: courseId } });
     }
   }, 30_000);

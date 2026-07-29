@@ -207,7 +207,7 @@ an explicit owner waiver, not misreported as a test that occurred.
 **Capacity — safety** *(amended per §3.7: the governing limit is the class participant limit, not room capacity)*
 
 - [x] `enrolledCount > capacity` is unreachable through registration, admin entry, import, API, or capacity edits.
-- [x] Two concurrent registrations for one remaining seat yield exactly one success. Tested in parallel. *(Real Neon test, not a mock: `RUN_DB_CONCURRENCY=1 npx vitest run src/lib/capacity.concurrency.test.ts`. Two simultaneous `claimSeat()` calls against one seat yielded one fulfillment, one `session_full`, one enrollment, and `enrolledCount=1`. The isolated QA fixtures were deleted; an independent query returned zero probe courses, sessions, campers, and enrollments.)*
+- [x] Two concurrent registrations for one remaining seat yield exactly one success. Tested in parallel. *(Real Neon test, not a mock: `RUN_DB_CONCURRENCY=1 npx vitest run src/lib/capacity.concurrency.test.ts`. Two simultaneous `claimSeat()` calls against one seat yielded one fulfillment, one `session_full`, one enrollment, and `enrolledCount=1`. The isolated QA fixtures were deleted; an independent query returned zero probe courses, sessions, participants, and enrollments.)*
 - [x] No override control exists that would let enrolment exceed the class participant limit.
 - [x] Registration cannot open while an unresolved overflow exists. *(Overflow = enrolled above the class limit. A roomless class or a limit above its room's capacity are advisories and deliberately do NOT block — §3.7.)*
 - [x] A class with no room assigned still accepts its full participant limit.

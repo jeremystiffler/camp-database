@@ -5,8 +5,8 @@ import { getBaseUrl, getStripe } from "@/lib/billing";
 import { connectReady, syncConnectedAccount } from "@/lib/stripe-connect";
 import { failPendingRegistrationPayment } from "@/lib/registration-payment-lifecycle";
 import { calculateRegistrationTotal, couponAllowsEmail, normalizeCouponCode, type PricingCoupon } from "@/lib/registration-pricing";
-import { generateCamperScanCode } from "@/lib/camper-identity";
-import { CapacityError, claimSeat, storedCapacity, releaseEnrollment, releaseCamperEnrollments } from "@/lib/capacity";
+import { generateParticipantScanCode } from "@/lib/participant-identity";
+import { CapacityError, claimSeat, storedCapacity, releaseEnrollment, releaseParticipantEnrollments } from "@/lib/capacity";
 
 interface StudentPayload {
   firstName: string;
@@ -30,8 +30,8 @@ interface RegistrationPayload extends StudentPayload {
   formRef?: string;
   couponCode?: string;
   updateExisting?: boolean;
-  existingCamperId?: string;
-  campers?: StudentPayload[];
+  existingParticipantId?: string;
+  participants?: StudentPayload[];
 }
 
 type EmailTemplateBlock = {
@@ -414,7 +414,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       platformFeePercentBps: true,
       platformFeeMinCents: true,
       platformFeeCapCents: true,
-      camperPriceCents: true,
+      participantPriceCents: true,
       organization: {
         select: {
           id: true,
@@ -448,8 +448,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const guardianEmail = clean(data.guardianEmail).toLowerCase();
   const guardianName = clean(data.guardianName);
   const guardianPhone = clean(data.guardianPhone);
-  const rawCampers = familyRegistrationEnabled && Array.isArray(data.campers) && data.campers.length > 0 ? data.campers : [data];
-  const campers = rawCampers.slice(0, 12);
+  const rawParticipants = familyRegistrationEnabled && Array.isArray(data.participants) && data.participants.length > 0 ? data.participants : [data];
+  const participants = rawParticipants.slice(0, 12);
   if (!guardianEmail || !guardianName) return NextResponse.json({ error: "Guardian name and email are required" }, { status: 400 });
 
   const couponCode = normalizeCouponCode(data.couponCode);
@@ -464,7 +464,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   }
 
   const seenStudents = new Set<string>();
-  for (const student of campers) {
+  for (const student of participants) {
     const firstName = clean(student.firstName);
     const lastName = clean(student.lastName);
     const dob = normalizedDate(student.dateOfBirth);
@@ -476,7 +476,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       return NextResponse.json({ error: `${firstName} ${lastName} is listed more than once in this family registration.` }, { status: 400 });
     }
     seenStudents.add(familyKey);
-    const existing = await prisma.camper.findFirst({
+    const existing = await prisma.participant.findFirst({
       where: {
         campId,
         guardianEmail,
@@ -486,18 +486,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       },
       select: { id: true },
     });
-    if (existing && (!data.updateExisting || data.existingCamperId !== existing.id || familyRegistrationEnabled)) {
+    if (existing && (!data.updateExisting || data.existingParticipantId !== existing.id || familyRegistrationEnabled)) {
       return NextResponse.json({
         duplicate: true,
-        camperId: existing.id,
+        participantId: existing.id,
         message: `${firstName} ${lastName} already appears to be registered. Please edit that existing registration or contact the event before submitting this family registration.`,
       }, { status: 409 });
     }
   }
 
-  const familyTotals = calculateRegistrationTotal(camp, coupon, campers.length);
-  const perCamperTotals = calculateRegistrationTotal(camp, null, 1);
-  const paymentRequired = camp.billingMode === "camperFee" && familyTotals.totalCents > 0;
+  const familyTotals = calculateRegistrationTotal(camp, coupon, participants.length);
+  const perParticipantTotals = calculateRegistrationTotal(camp, null, 1);
+  const paymentRequired = camp.billingMode === "participantFee" && familyTotals.totalCents > 0;
   const registrationStripe = paymentRequired ? getStripe() : null;
   const connectAccountId = camp.organization.stripeConnectAccountId;
   if (paymentRequired) {
@@ -509,19 +509,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       return NextResponse.json({ error: "This event's Stripe payout account could not be verified. Please try again later." }, { status: 503 });
     }
   }
-  const createdStudents: Array<{ camperId: string; firstName: string; lastName: string; dateOfBirth?: string; ageGroupName?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }> = [];
-  const createdCamperIds: string[] = [];
-  const rollbackCreatedCampers = async () => {
-    for (const camperId of [...createdCamperIds].reverse()) {
-      const pending = await prisma.camper.findFirst({ where: { id: camperId, campId, paymentStatus: "pending" }, select: { id: true } });
+  const createdStudents: Array<{ participantId: string; firstName: string; lastName: string; dateOfBirth?: string; ageGroupName?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }> = [];
+  const createdParticipantIds: string[] = [];
+  const rollbackCreatedParticipants = async () => {
+    for (const participantId of [...createdParticipantIds].reverse()) {
+      const pending = await prisma.participant.findFirst({ where: { id: participantId, campId, paymentStatus: "pending" }, select: { id: true } });
       if (!pending) continue;
-      await releaseCamperEnrollments(camperId, campId);
-      await prisma.camper.deleteMany({ where: { id: camperId, campId, paymentStatus: "pending" } });
+      await releaseParticipantEnrollments(participantId, campId);
+      await prisma.participant.deleteMany({ where: { id: participantId, campId, paymentStatus: "pending" } });
     }
   };
   let anyUpdating = false;
 
-  for (const student of campers) {
+  for (const student of participants) {
     const firstName = clean(student.firstName);
     const lastName = clean(student.lastName);
     const dob = normalizedDate(student.dateOfBirth);
@@ -529,7 +529,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       return NextResponse.json({ error: "Each student needs first name, last name, and age group" }, { status: 400 });
     }
 
-    const existing = await prisma.camper.findFirst({
+    const existing = await prisma.participant.findFirst({
       where: {
         campId,
         guardianEmail,
@@ -539,10 +539,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       },
     });
 
-    if (existing && (!data.updateExisting || data.existingCamperId !== existing.id || familyRegistrationEnabled)) {
+    if (existing && (!data.updateExisting || data.existingParticipantId !== existing.id || familyRegistrationEnabled)) {
       return NextResponse.json({
         duplicate: true,
-        camperId: existing.id,
+        participantId: existing.id,
         message: `${firstName} ${lastName} already appears to be registered. Please edit that existing registration or contact the event before submitting this family registration.`,
       }, { status: 409 });
     }
@@ -633,9 +633,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       }
     }
 
-    const updating = Boolean(existing && data.updateExisting && data.existingCamperId === existing.id && !familyRegistrationEnabled);
+    const updating = Boolean(existing && data.updateExisting && data.existingParticipantId === existing.id && !familyRegistrationEnabled);
     anyUpdating = anyUpdating || updating;
-    const camperData = {
+    const participantData = {
       firstName,
       lastName,
       dateOfBirth: dob,
@@ -650,18 +650,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       dietaryNotes: clean(student.dietaryNotes) || undefined,
       customData: student.customData ? JSON.stringify({ ...student.customData, familyRegistration: familyRegistrationEnabled ? true : undefined }) : undefined,
       couponCode: coupon?.code,
-      campPriceCents: perCamperTotals.campPriceCents,
+      campPriceCents: perParticipantTotals.campPriceCents,
       discountCents: familyRegistrationEnabled ? 0 : familyTotals.discountCents,
       platformFeeCents: familyRegistrationEnabled ? 0 : familyTotals.platformFeeCents,
       totalPaidCents: 0,
       paymentStatus: familyTotals.totalCents > 0 && !updating ? "pending" : "not_required",
     };
 
-    const camper = updating ? await prisma.camper.update({ where: { id: existing!.id }, data: camperData }) : await prisma.camper.create({ data: { ...camperData, campId, scanCode: generateCamperScanCode(), scanCodeGeneratedAt: new Date() } });
-    createdCamperIds.push(camper.id);
+    const participant = updating ? await prisma.participant.update({ where: { id: existing!.id }, data: participantData }) : await prisma.participant.create({ data: { ...participantData, campId, scanCode: generateParticipantScanCode(), scanCodeGeneratedAt: new Date() } });
+    createdParticipantIds.push(participant.id);
 
     if (updating) {
-      const oldEnrollments = await prisma.enrollment.findMany({ where: { camperId: camper.id, campId }, select: { id: true } });
+      const oldEnrollments = await prisma.enrollment.findMany({ where: { participantId: participant.id, campId }, select: { id: true } });
       for (const old of oldEnrollments) await releaseEnrollment(old.id, campId);
     }
 
@@ -675,12 +675,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       }
       if (enrolledSessionIds.has(session.id)) continue;
       enrolledSessionIds.add(session.id);
-      const already = await prisma.enrollment.findFirst({ where: { camperId: camper.id, sessionId: session.id } });
+      const already = await prisma.enrollment.findFirst({ where: { participantId: participant.id, sessionId: session.id } });
       if (!already) {
         try {
-          await claimSeat({ campId, camperId: camper.id, sessionId: session.id, status: "enrolled", allowHeldSeat: false });
+          await claimSeat({ campId, participantId: participant.id, sessionId: session.id, status: "enrolled", allowHeldSeat: false });
         } catch (error) {
-          await rollbackCreatedCampers();
+          await rollbackCreatedParticipants();
           if (error instanceof CapacityError) return NextResponse.json({ error: `${selection.course.name} just filled up. Please choose a different class for ${firstName}.`, code: error.code }, { status: 409 });
           throw error;
         }
@@ -692,19 +692,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       if (!session) {
         const capacity = assignment.room?.capacity ?? 0;
         if (capacity <= 0) {
-          await rollbackCreatedCampers();
+          await rollbackCreatedParticipants();
           return NextResponse.json({ error: `${assignment.title} has no room capacity and cannot accept registration.` }, { status: 409 });
         }
         session = await prisma.session.create({ data: { campId, courseId: null, mandatorySessionId: assignment.id, sessionTemplateId: assignment.sessionTemplateId, roomId: assignment.roomId, startTime: assignment.sessionTemplate.startTime, endTime: assignment.sessionTemplate.endTime, capacity } });
       }
       if (enrolledSessionIds.has(session.id)) continue;
       enrolledSessionIds.add(session.id);
-      const already = await prisma.enrollment.findFirst({ where: { camperId: camper.id, sessionId: session.id } });
+      const already = await prisma.enrollment.findFirst({ where: { participantId: participant.id, sessionId: session.id } });
       if (!already) {
         try {
-          await claimSeat({ campId, camperId: camper.id, sessionId: session.id, status: "enrolled", allowHeldSeat: false });
+          await claimSeat({ campId, participantId: participant.id, sessionId: session.id, status: "enrolled", allowHeldSeat: false });
         } catch (error) {
-          await rollbackCreatedCampers();
+          await rollbackCreatedParticipants();
           if (error instanceof CapacityError) return NextResponse.json({ error: `${assignment.title} just filled up. Please contact the event administrator.`, code: error.code }, { status: 409 });
           throw error;
         }
@@ -731,7 +731,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     ];
 
     createdStudents.push({
-      camperId: camper.id,
+      participantId: participant.id,
       firstName,
       lastName,
       dateOfBirth: student.dateOfBirth,
@@ -744,27 +744,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     });
   }
 
-  const emailPaymentRequired = camp.billingMode === "camperFee" && !anyUpdating && familyTotals.totalCents > 0;
+  const emailPaymentRequired = camp.billingMode === "participantFee" && !anyUpdating && familyTotals.totalCents > 0;
 
   if (emailPaymentRequired && registrationStripe && connectAccountId) {
     try {
       const liveState = await syncConnectedAccount(registrationStripe, camp.organization.id, connectAccountId);
       if (!connectReady(liveState)) {
-        await rollbackCreatedCampers();
+        await rollbackCreatedParticipants();
         return NextResponse.json({ error: "The organizer's Stripe account became unavailable before checkout. No registration or seat was retained." }, { status: 503 });
       }
     } catch {
-      await rollbackCreatedCampers();
+      await rollbackCreatedParticipants();
       return NextResponse.json({ error: "The organizer's Stripe account could not be re-verified before checkout. No registration or seat was retained." }, { status: 503 });
     }
-    const baseAllocation = Math.floor(familyTotals.totalCents / Math.max(createdCamperIds.length, 1));
-    const remainder = familyTotals.totalCents - baseAllocation * createdCamperIds.length;
+    const baseAllocation = Math.floor(familyTotals.totalCents / Math.max(createdParticipantIds.length, 1));
+    const remainder = familyTotals.totalCents - baseAllocation * createdParticipantIds.length;
     let payment;
     try {
       payment = await prisma.registrationPayment.create({
         data: {
           campId,
-          camperId: createdCamperIds[0] || undefined,
+          participantId: createdParticipantIds[0] || undefined,
           guardianEmail,
           amountCents: familyTotals.totalCents,
           campPriceCents: familyTotals.campPriceCents,
@@ -774,9 +774,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           status: "pending",
           stripeConnectAccountId: connectAccountId,
           type: createdStudents.length > 1 ? "family_registration" : "registration",
-          campers: {
-            create: createdCamperIds.map((camperId, index) => ({
-              camperId,
+          participants: {
+            create: createdParticipantIds.map((participantId, index) => ({
+              participantId,
               allocatedAmountCents: baseAllocation + (index < remainder ? 1 : 0),
             })),
           },
@@ -784,7 +784,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       });
     } catch (error) {
       console.error("Registration payment reservation failed", error);
-      await rollbackCreatedCampers();
+      await rollbackCreatedParticipants();
       return NextResponse.json({ error: "Payment checkout could not be prepared. No registration or seat was retained. Please try again." }, { status: 500 });
     }
 
@@ -824,18 +824,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         line_items: [{ price_data: { currency: "usd", unit_amount: familyTotals.totalCents, product_data: { name: `${camp.name} registration${createdStudents.length > 1 ? ` (${createdStudents.length} students)` : ""}` } }, quantity: 1 }],
         payment_intent_data: {
           ...(familyTotals.platformFeeCents > 0 ? { application_fee_amount: familyTotals.platformFeeCents } : {}),
-          metadata: { registrationPaymentId: payment.id, campId, type: "camper_registration" },
+          metadata: { registrationPaymentId: payment.id, campId, type: "participant_registration" },
         },
         success_url: `${getBaseUrl()}/register/${campId}?payment=success`,
         cancel_url: `${getBaseUrl()}/register/${campId}?payment=cancelled`,
-        metadata: { registrationPaymentId: payment.id, campId, type: "camper_registration" },
+        metadata: { registrationPaymentId: payment.id, campId, type: "participant_registration" },
       }, { stripeAccount: connectAccountId, idempotencyKey: `registration-checkout:${payment.id}:v1` });
       checkoutId = checkout.id;
       await prisma.registrationPayment.update({
         where: { id: payment.id },
         data: { stripeCheckoutSession: checkout.id, checkoutExpiresAt },
       });
-      return NextResponse.json({ success: true, updated: false, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent: false, adminEmailSent: false, adminEmailCount: 0, paymentRequired: true, checkoutUrl: checkout.url, totals: familyTotals });
+      return NextResponse.json({ success: true, updated: false, participantIds: createdParticipantIds, studentCount: createdStudents.length, emailSent: false, adminEmailSent: false, adminEmailCount: 0, paymentRequired: true, checkoutUrl: checkout.url, totals: familyTotals });
     } catch (error) {
       console.error("Registration Checkout creation failed", error);
       if (checkoutId) await registrationStripe.checkout.sessions.expire(checkoutId, {}, { stripeAccount: connectAccountId }).catch(() => undefined);
@@ -867,5 +867,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     await prisma.campCoupon.update({ where: { id: coupon.id }, data: { redeemedCount: { increment: 1 } } });
   }
 
-  return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, adminEmailSent, adminEmailCount, paymentRequired: false, totals: familyTotals });
+  return NextResponse.json({ success: true, updated: anyUpdating, participantIds: createdParticipantIds, studentCount: createdStudents.length, emailSent, adminEmailSent, adminEmailCount, paymentRequired: false, totals: familyTotals });
 }

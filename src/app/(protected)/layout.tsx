@@ -19,7 +19,7 @@ const primaryNav = [
   { href: "/activities", label: "Classes & teachers", icon: "clipboard", minRole: "viewer" },
   { href: "/schedule", label: "Schedule", icon: "calendar", minRole: "viewer" },
   { href: "/registration", label: "Registration form", icon: "clipboard", minRole: "editor" },
-  { href: "/campers", label: "Participants", icon: "campers", minRole: "viewer" },
+  { href: "/participants", label: "Participants", icon: "participants", minRole: "viewer" },
   { href: "/check-in", label: "Check in/out", icon: "check", minRole: "viewer" },
   { href: "/print", label: "Print center", icon: "printer", minRole: "viewer" },
 ] as const;
@@ -46,7 +46,7 @@ function SidebarIcon({ name }: { name: string }) {
 
   if (name === "compass") return <svg {...common}><circle cx="12" cy="12" r="8" /><path d="m14.6 9.4-1.7 3.5-3.5 1.7 1.7-3.5 3.5-1.7Z" /></svg>;
   if (name === "tent") return <svg {...common}><path d="M3 19h18" /><path d="M12 4 4 19" /><path d="m12 4 8 15" /><path d="M12 4v15" /><path d="m9.5 19 2.5-5 2.5 5" /></svg>;
-  if (name === "campers") return <svg {...common}><circle cx="8" cy="8" r="3" /><circle cx="16" cy="9" r="2.5" /><path d="M3.5 19c.8-3 2.3-5 4.5-5s3.7 2 4.5 5" /><path d="M12.5 18.8c.6-2.4 1.8-4 3.5-4 2 0 3.4 1.7 4 4" /></svg>;
+  if (name === "participants") return <svg {...common}><circle cx="8" cy="8" r="3" /><circle cx="16" cy="9" r="2.5" /><path d="M3.5 19c.8-3 2.3-5 4.5-5s3.7 2 4.5 5" /><path d="M12.5 18.8c.6-2.4 1.8-4 3.5-4 2 0 3.4 1.7 4 4" /></svg>;
   if (name === "check") return <svg {...common}><path d="M4 12.5 9 17l11-11" /><path d="M5 5h5" /><path d="M5 9h3" /><path d="M15 17h4" /></svg>;
   if (name === "calendar") return <svg {...common}><rect x="4" y="5" width="16" height="15" rx="3" /><path d="M8 3v4" /><path d="M16 3v4" /><path d="M4 10h16" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" /></svg>;
   if (name === "clipboard") return <svg {...common}><path d="M9 4h6l1 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2l1-2Z" /><path d="M9 6h6" /><path d="M8 12h8" /><path d="M8 16h5" /></svg>;

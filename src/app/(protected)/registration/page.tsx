@@ -103,7 +103,7 @@ const ADD_FIELD_TYPES: AddFieldItem[] = [
 
   { category: "Consent", type: "checkbox", label: "Transportation permission", icon: "🚌", description: "Travel consent", defaults: { label: "Transportation permission", checkboxDescription: "I give permission for event-provided transportation when applicable." } },
   { category: "Consent", type: "checkbox", label: "Medical consent", icon: "Required", description: "Emergency care", defaults: { label: "Medical consent", checkboxDescription: "I authorize event staff to seek emergency medical care if needed.", required: true } },
-  { category: "Consent", type: "checkbox", label: "Code of conduct", icon: "🤝", description: "Behavior agreement", defaults: { label: "Code of conduct", checkboxDescription: "I have reviewed the event expectations with my camper and agree to support them.", required: true } },
+  { category: "Consent", type: "checkbox", label: "Code of conduct", icon: "🤝", description: "Behavior agreement", defaults: { label: "Code of conduct", checkboxDescription: "I have reviewed the event expectations with my participant and agree to support them.", required: true } },
 ];
 
 const ADD_FIELD_CATEGORIES: AddFieldCategory[] = ["Basic", "Contact", "Choice", "Event", "Consent", "Layout"];
@@ -552,7 +552,7 @@ function RegistrationContent() {
               <span className={`rounded-full px-3 py-1 ${formStatus === "draft" ? "bg-slate-100 text-slate-600" : formStatus === "linkOnly" ? "bg-sky-100 text-sky-700" : "bg-forest-100 text-forest-700"}`}>{formStatus === "draft" ? "Draft" : formStatus === "linkOnly" ? "Link only" : "Public"}</span>
               <span className={`rounded-full px-3 py-1 ${formIsAcceptingRegistrations ? "bg-forest-100 text-forest-700" : "bg-amber-100 text-amber-800"}`}>{formIsAcceptingRegistrations ? "Registration accepting" : "Registration closed"}</span>
               <span className={`rounded-full px-3 py-1 ${classChoicesEnabled ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500"}`}>{classChoicesEnabled ? "Class choices on" : "Simple intake"}</span>
-              <span className={`rounded-full px-3 py-1 ${familyRegistrationEnabled ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{familyRegistrationEnabled ? "Family mode" : "One camper"}</span>
+              <span className={`rounded-full px-3 py-1 ${familyRegistrationEnabled ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{familyRegistrationEnabled ? "Family mode" : "One participant"}</span>
             </div>
           </div>
         </div>

@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     const campId = session.metadata?.campId;
     const type = session.metadata?.type;
 
-    if (type === "camper_platform_fee" || type === "camper_registration") {
+    if (type === "participant_platform_fee" || type === "participant_registration") {
       const payments = await prisma.registrationPayment.findMany({
         where: { stripeCheckoutSession: session.id },
         select: { id: true },
@@ -35,13 +35,13 @@ export async function POST(req: NextRequest) {
           data: { status: "paid", stripePaymentIntent: typeof session.payment_intent === "string" ? session.payment_intent : undefined },
         })
       ));
-      const camperIds = typeof session.metadata?.camperIds === "string" && session.metadata.camperIds
-        ? session.metadata.camperIds.split(",").map((id: string) => id.trim()).filter(Boolean)
-        : typeof session.metadata?.camperId === "string" && session.metadata.camperId
-          ? [session.metadata.camperId]
+      const participantIds = typeof session.metadata?.participantIds === "string" && session.metadata.participantIds
+        ? session.metadata.participantIds.split(",").map((id: string) => id.trim()).filter(Boolean)
+        : typeof session.metadata?.participantId === "string" && session.metadata.participantId
+          ? [session.metadata.participantId]
           : [];
-      await Promise.all(camperIds.map((camperId: string) =>
-        prisma.camper.update({ where: { id: camperId }, data: { paymentStatus: "paid" } })
+      await Promise.all(participantIds.map((participantId: string) =>
+        prisma.participant.update({ where: { id: participantId }, data: { paymentStatus: "paid" } })
       ));
     }
 

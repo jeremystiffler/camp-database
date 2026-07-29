@@ -23,14 +23,14 @@ interface Camp {
   myRole?: "owner" | "admin" | "editor" | "viewer";
   startDate?: string;
   endDate?: string;
-  _count?: { campers: number; courses: number };
+  _count?: { participants: number; courses: number };
 }
 
 interface DashboardSummary {
   /** The API has always returned this; the local type just never declared it. */
   camp?: { id: string; name: string; status?: string; registrationOpen?: boolean };
   /** Registration count per age group — the honest stand-in for expected size. */
-  campersByAgeGroup?: Record<string, number>;
+  participantsByAgeGroup?: Record<string, number>;
   stats: {
     registeredStudents: number;
     classes: number;
@@ -334,7 +334,7 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
         </p>
         <div className="flex gap-4 mt-3 pt-3 border-t border-slate-100">
           <div className="text-center">
-            <div className="font-bold text-slate-700">{camp._count?.campers ?? 0}</div>
+            <div className="font-bold text-slate-700">{camp._count?.participants ?? 0}</div>
             <div className="text-xs text-slate-400">Participants</div>
           </div>
           <div className="text-center">
@@ -635,7 +635,7 @@ function DashboardContent() {
               <button type="button" onClick={() => setActionsOpen(v => !v)} aria-expanded={actionsOpen} className="page-banner__action page-banner__action--quiet text-xs">Manage ▾</button>
               {actionsOpen && <div className="absolute right-0 top-10 z-30 w-[min(92vw,340px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
                 {canEditCamp(activeCamp) ? <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="mb-1.5 block text-xs font-extrabold uppercase tracking-wide text-slate-800">Rename event</label><div className="flex gap-2"><input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" /><button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-extrabold text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button></div>{renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}</div> : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800">This shared event is read-only for your account.</p>}
-                <div className="grid gap-1">{(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50 hover:text-slate-950">{label}</Link>)}</div>
+                <div className="grid gap-1">{(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/participants?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50 hover:text-slate-950">{label}</Link>)}</div>
                 {activeCamp && <div className="mt-2 border-t border-slate-200 pt-2"><button type="button" onClick={() => { setActionsOpen(false); setCopyingCamp(activeCamp); }} className="w-full rounded-xl px-3 py-2 text-left text-sm font-extrabold text-slate-800 hover:bg-slate-50">Duplicate</button></div>}
               </div>}
             </div>}
@@ -679,7 +679,7 @@ function DashboardContent() {
                         </div>
                       ) : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800">This shared event is read-only for your account.</p>}
                       <div className="grid gap-1">
-                        {(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => (
+                        {(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/participants?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => (
                           <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:text-slate-950">{label}</Link>
                         ))}
                       </div>
@@ -706,7 +706,7 @@ function DashboardContent() {
           {summary && (state === "ready" || state === "running") && setupPanel}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <StatCard label="Registered Participants" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.campers ?? 0)} icon="R" />
+            <StatCard label="Registered Participants" value={summaryLoading ? "–" : (selectedStats?.registeredStudents ?? activeCamp._count?.participants ?? 0)} icon="R" />
             <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" />
           </div>
 

@@ -9,7 +9,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const guardianEmail = typeof body.guardianEmail === "string" ? body.guardianEmail.trim().toLowerCase() : "";
   const camp = await prisma.camp.findUnique({
     where: { id: campId },
-    select: { camperPriceCents: true, platformFeeCents: true, platformFeePercentBps: true, platformFeeMinCents: true, platformFeeCapCents: true },
+    select: { participantPriceCents: true, platformFeeCents: true, platformFeePercentBps: true, platformFeeMinCents: true, platformFeeCapCents: true },
   });
   if (!camp) return NextResponse.json({ error: "Event not found" }, { status: 404 });
   if (!code) return NextResponse.json({ valid: false, error: "Enter a coupon code" }, { status: 400 });

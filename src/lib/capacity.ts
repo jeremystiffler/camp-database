@@ -32,7 +32,7 @@ export async function capacityForCourse(courseId: string): Promise<number | null
 type ClaimedEnrollment = {
   id: string;
   campId: string;
-  camperId: string;
+  participantId: string;
   sessionId: string;
   status: string;
   createdAt: Date;
@@ -44,7 +44,7 @@ type ClaimedEnrollment = {
  */
 export async function claimSeat(input: {
   campId: string;
-  camperId: string;
+  participantId: string;
   sessionId: string;
   status?: string;
   allowHeldSeat?: boolean;
@@ -63,7 +63,7 @@ export async function claimSeat(input: {
               - (CASE WHEN $3 = 1 THEN GREATEST(COALESCE(c."heldSeats", 0), 0) ELSE 0 END)
         RETURNING s."id"
      ), inserted AS (
-       INSERT INTO "Enrollment" ("id", "campId", "camperId", "sessionId", "status", "createdAt")
+       INSERT INTO "Enrollment" ("id", "campId", "participantId", "sessionId", "status", "createdAt")
        SELECT $4, $2, $5, claimed."id", $6, NOW()
          FROM claimed
        RETURNING *
@@ -73,7 +73,7 @@ export async function claimSeat(input: {
     input.campId,
     heldSeatOffset,
     id,
-    input.camperId,
+    input.participantId,
     input.status || "enrolled",
   );
 
@@ -115,12 +115,12 @@ export async function releaseEnrollment(enrollmentId: string, campId: string): P
   return rows.length > 0;
 }
 
-/** Releases every seat for a camper before deleting the camper record. */
-export async function releaseCamperEnrollments(camperId: string, campId: string): Promise<void> {
+/** Releases every seat for a participant before deleting the participant record. */
+export async function releaseParticipantEnrollments(participantId: string, campId: string): Promise<void> {
   await prisma.$executeRawUnsafe(
     `WITH deleted AS (
        DELETE FROM "Enrollment"
-        WHERE "camperId" = $1 AND "campId" = $2
+        WHERE "participantId" = $1 AND "campId" = $2
         RETURNING "sessionId"
      ), counts AS (
        SELECT "sessionId", COUNT(*)::int AS n FROM deleted GROUP BY "sessionId"
@@ -129,7 +129,7 @@ export async function releaseCamperEnrollments(camperId: string, campId: string)
         SET "enrolledCount" = GREATEST(s."enrolledCount" - counts.n, 0)
        FROM counts
       WHERE s."id" = counts."sessionId"`,
-    camperId,
+    participantId,
     campId,
   );
 }

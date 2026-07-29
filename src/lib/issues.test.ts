@@ -442,7 +442,7 @@ describe("unscheduled age groups and all-ages activities (owner ruling 2026-07-2
       courses: [choir],
       blocks,
       ageGroups: groups,
-      campersByAgeGroup: { older: 5, younger: 5, prek: 9 },
+      participantsByAgeGroup: { older: 5, younger: 5, prek: 9 },
     } as never);
     expect(issues.filter((i) => i.code === "age-group-gap")).toHaveLength(0);
   });
@@ -454,7 +454,7 @@ describe("unscheduled age groups and all-ages activities (owner ruling 2026-07-2
       courses: [choir],
       blocks,
       ageGroups: groups.map((g) => ({ id: g.id, name: g.name })),
-      campersByAgeGroup: { older: 5, younger: 5, prek: 9 },
+      participantsByAgeGroup: { older: 5, younger: 5, prek: 9 },
     } as never);
     const gaps = issues.filter((i) => i.code === "age-group-gap");
     expect(gaps).toHaveLength(2);
@@ -466,7 +466,7 @@ describe("unscheduled age groups and all-ages activities (owner ruling 2026-07-2
       courses: [choir],
       blocks,
       ageGroups: groups,
-      campersByAgeGroup: { prek: 500 },
+      participantsByAgeGroup: { prek: 500 },
     } as never);
     expect(issues.filter((i) => i.code === "seat-shortfall")).toHaveLength(0);
   });
@@ -476,7 +476,7 @@ describe("unscheduled age groups and all-ages activities (owner ruling 2026-07-2
       courses: [choir],
       blocks,
       ageGroups: groups,
-      campersByAgeGroup: { older: 5, younger: 5 },
+      participantsByAgeGroup: { older: 5, younger: 5 },
     } as never);
     expect(issues.filter((i) => i.code === "age-group-gap")).toHaveLength(0);
   });
@@ -509,7 +509,7 @@ describe("whole-event blocks are not coverage gaps", () => {
       courses: [course({ id: "c1", name: "Choir", cap: 1, sessions: [{ id: "s1", sessionTemplateId: "assembly", enrolledCount: 1 }] })],
       blocks: [{ id: "assembly", label: "Opening Assembly", dayOfWeek: 1, startTime: "09:00", endTime: "09:20", mandatory: true }],
       ageGroups: [ageGroups[0]],
-      campersByAgeGroup: { "g-young": 500 },
+      participantsByAgeGroup: { "g-young": 500 },
     };
     expect(detectIssues(input).some((issue) => issue.code === "seat-shortfall")).toBe(false);
   });
@@ -521,7 +521,7 @@ describe("seat shortfall", () => {
       courses: [course({ id: "c1", name: "Choir", cap: 5 })],
       blocks: [blocks[0]],
       ageGroups: [ageGroups[0]],
-      campersByAgeGroup: { "g-young": 12 },
+      participantsByAgeGroup: { "g-young": 12 },
     };
     const shortfall = detectIssues(input).find((issue) => issue.code === "seat-shortfall");
     expect(shortfall).toBeDefined();
@@ -536,7 +536,7 @@ describe("seat shortfall", () => {
       courses: [course({ id: "c1", name: "Choir", cap: 30 })],
       blocks: [blocks[0]],
       ageGroups: [ageGroups[0]],
-      campersByAgeGroup: { "g-young": 12 },
+      participantsByAgeGroup: { "g-young": 12 },
     };
     expect(detectIssues(input).some((issue) => issue.code === "seat-shortfall")).toBe(false);
   });
@@ -549,7 +549,7 @@ describe("seat shortfall", () => {
       ],
       blocks: [blocks[0]],
       ageGroups: [ageGroups[0]],
-      campersByAgeGroup: { "g-young": 500 },
+      participantsByAgeGroup: { "g-young": 500 },
     };
     expect(detectIssues(input).some((issue) => issue.code === "seat-shortfall")).toBe(false);
   });

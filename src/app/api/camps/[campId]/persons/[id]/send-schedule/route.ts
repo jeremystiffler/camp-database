@@ -76,7 +76,7 @@ interface ScheduleData {
     room?: string | null;
     ageGroups: string[];
     timeSlots: Array<{ label?: string | null; dayOfWeek?: number | null; startTime: string; endTime: string }>;
-    campers: Array<{ firstName: string; lastName: string; ageGroup?: string | null; guardianName?: string | null; guardianEmail?: string | null; medicalNotes?: string | null }>;
+    participants: Array<{ firstName: string; lastName: string; ageGroup?: string | null; guardianName?: string | null; guardianEmail?: string | null; medicalNotes?: string | null }>;
   }>;
 }
 
@@ -111,7 +111,7 @@ async function buildScheduleData(campId: string, personId: string): Promise<Sche
     },
   });
 
-  // For each course get enrolled campers via sessions
+  // For each course get enrolled participants via sessions
   const result: ScheduleData["courses"] = [];
   for (const course of courses) {
     // Get all sessions for this course
@@ -121,11 +121,11 @@ async function buildScheduleData(campId: string, personId: string): Promise<Sche
     });
     const sessionIds = sessions.map(s => s.id);
 
-    // Get enrollments with camper details
+    // Get enrollments with participant details
     const enrollments = await prisma.enrollment.findMany({
       where: { sessionId: { in: sessionIds }, status: "enrolled" },
       select: {
-        camper: {
+        participant: {
           select: {
             firstName: true,
             lastName: true,
@@ -138,20 +138,20 @@ async function buildScheduleData(campId: string, personId: string): Promise<Sche
       },
     });
 
-    // Dedupe campers (same camper enrolled in multiple sessions of same course)
+    // Dedupe participants (same participant enrolled in multiple sessions of same course)
     const seenNames = new Set<string>();
-    const campers: ScheduleData["courses"][0]["campers"] = [];
+    const participants: ScheduleData["courses"][0]["participants"] = [];
     for (const e of enrollments) {
-      const key = `${e.camper.firstName}_${e.camper.lastName}`;
+      const key = `${e.participant.firstName}_${e.participant.lastName}`;
       if (!seenNames.has(key)) {
         seenNames.add(key);
-        campers.push({
-          firstName: e.camper.firstName,
-          lastName: e.camper.lastName,
-          ageGroup: e.camper.ageGroup?.name ?? null,
-          guardianName: e.camper.guardianName ?? null,
-          guardianEmail: e.camper.guardianEmail ?? null,
-          medicalNotes: e.camper.medicalNotes ?? null,
+        participants.push({
+          firstName: e.participant.firstName,
+          lastName: e.participant.lastName,
+          ageGroup: e.participant.ageGroup?.name ?? null,
+          guardianName: e.participant.guardianName ?? null,
+          guardianEmail: e.participant.guardianEmail ?? null,
+          medicalNotes: e.participant.medicalNotes ?? null,
         });
       }
     }
@@ -169,7 +169,7 @@ async function buildScheduleData(campId: string, personId: string): Promise<Sche
         startTime: cst.sessionTemplate.startTime,
         endTime: cst.sessionTemplate.endTime,
       })),
-      campers,
+      participants,
     });
   }
 
@@ -184,7 +184,7 @@ function buildEmailHtml(data: ScheduleData, customNote: string): string {
     ? `${new Date(camp.startDate).toLocaleDateString("en-US", { month: "long", day: "numeric" })}${camp.endDate ? ` – ${new Date(camp.endDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}` : ""}`
     : "";
 
-  const totalCampers = courses.reduce((sum, c) => sum + c.campers.length, 0);
+  const totalParticipants = courses.reduce((sum, c) => sum + c.participants.length, 0);
 
   const courseBlocks = courses.map(course => {
     const slotsHtml = course.timeSlots.length
@@ -198,7 +198,7 @@ function buildEmailHtml(data: ScheduleData, customNote: string): string {
       ? course.ageGroups.map(ag => `<span style="display:inline-block;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:3px 10px;font-size:12px;margin:2px 3px 2px 0;color:#92400e;">${ag}</span>`).join("")
       : "";
 
-    const campersHtml = course.campers.length === 0
+    const participantsHtml = course.participants.length === 0
       ? `<p style="color:#9ca3af;font-size:13px;margin:8px 0 0;">No students enrolled yet.</p>`
       : `<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;">
           <thead>
@@ -210,7 +210,7 @@ function buildEmailHtml(data: ScheduleData, customNote: string): string {
             </tr>
           </thead>
           <tbody>
-            ${course.campers.map((c, i) => `
+            ${course.participants.map((c, i) => `
             <tr style="background:${i % 2 === 0 ? "#ffffff" : "#f8fafc"};">
               <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-weight:500;color:#1e293b;">${c.firstName} ${c.lastName}</td>
               <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;color:#64748b;">${c.ageGroup || "—"}</td>
@@ -224,13 +224,13 @@ function buildEmailHtml(data: ScheduleData, customNote: string): string {
       <div style="border:1px solid #e2e8f0;border-left:4px solid ${course.color};border-radius:12px;padding:20px;margin-bottom:20px;background:#ffffff;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
           <h3 style="margin:0;font-size:17px;font-weight:700;color:#1e293b;">${course.name}</h3>
-          <span style="font-size:12px;color:#64748b;">${course.campers.length} student${course.campers.length !== 1 ? "s" : ""}</span>
+          <span style="font-size:12px;color:#64748b;">${course.participants.length} student${course.participants.length !== 1 ? "s" : ""}</span>
         </div>
         ${course.description ? `<p style="margin:0 0 10px;font-size:13px;color:#64748b;">${course.description}</p>` : ""}
         ${course.room ? `<p style="margin:0 0 8px;font-size:13px;color:#475569;">📍 Room: <strong>${course.room}</strong></p>` : ""}
         <div style="margin-bottom:8px;">${ageGroupsHtml}${slotsHtml}</div>
         <h4 style="margin:14px 0 0;font-size:14px;font-weight:600;color:#374151;">Student Roster</h4>
-        ${campersHtml}
+        ${participantsHtml}
       </div>`;
   }).join("");
 
@@ -249,7 +249,7 @@ function buildEmailHtml(data: ScheduleData, customNote: string): string {
     <!-- Greeting -->
     <div style="background:#ffffff;border-radius:12px;padding:20px 24px;margin-bottom:20px;border:1px solid #e2e8f0;">
       <p style="margin:0 0 8px;font-size:15px;color:#1e293b;">Hi <strong>${person.firstName}</strong>,</p>
-      <p style="margin:0;font-size:14px;color:#64748b;">Here's your complete teaching schedule for ${camp.name}. You're assigned to <strong>${courses.length} ${courses.length === 1 ? "activity" : "activities"}</strong> with <strong>${totalCampers} total student${totalCampers !== 1 ? "s" : ""}</strong> enrolled.</p>
+      <p style="margin:0;font-size:14px;color:#64748b;">Here's your complete teaching schedule for ${camp.name}. You're assigned to <strong>${courses.length} ${courses.length === 1 ? "activity" : "activities"}</strong> with <strong>${totalParticipants} total student${totalParticipants !== 1 ? "s" : ""}</strong> enrolled.</p>
       ${customNote ? `<div style="margin-top:12px;padding:12px 16px;background:#fef9c3;border:1px solid #fde047;border-radius:8px;font-size:13px;color:#713f12;">${customNote}</div>` : ""}
     </div>
 

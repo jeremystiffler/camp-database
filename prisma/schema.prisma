@@ -8,23 +8,23 @@ datasource db {
 }
 
 model Organization {
-  id                            String   @id @default(cuid())
-  name                          String
-  slug                          String   @unique
-  plan                          String   @default("free")
-  stripeCustomerId              String?
-  stripeConnectAccountId        String?  @unique
-  stripeConnectDetailsSubmitted Boolean  @default(false)
-  stripeConnectChargesEnabled   Boolean  @default(false)
-  stripeConnectPayoutsEnabled   Boolean  @default(false)
-  stripeConnectCardPaymentsActive Boolean @default(false)
-  stripeConnectDisabledReason   String?
-  stripeConnectCountry          String?
-  stripeConnectUpdatedAt        DateTime?
-  createdAt                     DateTime @default(now())
-  updatedAt                     DateTime @updatedAt
-  users                         User[]
-  camps                         Camp[]
+  id                              String    @id @default(cuid())
+  name                            String
+  slug                            String    @unique
+  plan                            String    @default("free")
+  stripeCustomerId                String?
+  stripeConnectAccountId          String?   @unique
+  stripeConnectDetailsSubmitted   Boolean   @default(false)
+  stripeConnectChargesEnabled     Boolean   @default(false)
+  stripeConnectPayoutsEnabled     Boolean   @default(false)
+  stripeConnectCardPaymentsActive Boolean   @default(false)
+  stripeConnectDisabledReason     String?
+  stripeConnectCountry            String?
+  stripeConnectUpdatedAt          DateTime?
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+  users                           User[]
+  camps                           Camp[]
 }
 
 model User {
@@ -59,23 +59,23 @@ model TrialEmailLog {
 }
 
 model Camp {
-  id                      String                @id @default(cuid())
+  id                      String                  @id @default(cuid())
   organizationId          String
-  organization            Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization            Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   name                    String
-  slug                    String                @unique
+  slug                    String                  @unique
   startDate               DateTime?
   endDate                 DateTime?
-  status                  String                @default("draft")
-  registrationOpen        Boolean               @default(false)
-  billingMode             String                @default("campPays") // campPays | camperFee
-  billingStatus           String                @default("trial") // trial | active | past_due | unpaid | comped
-  platformFeeCents        Int                   @default(300)
-  platformFeePercentBps   Int                   @default(300) // 3.00%
-  platformFeeMinCents     Int                   @default(200)
-  platformFeeCapCents     Int                   @default(2500)
-  camperPriceCents        Int                   @default(0)
-  annualSubscriptionCents Int                   @default(29900)
+  status                  String                  @default("draft")
+  registrationOpen        Boolean                 @default(false)
+  billingMode             String                  @default("campPays") // campPays | participantFee
+  billingStatus           String                  @default("trial") // trial | active | past_due | unpaid | comped
+  platformFeeCents        Int                     @default(300)
+  platformFeePercentBps   Int                     @default(300) // 3.00%
+  platformFeeMinCents     Int                     @default(200)
+  platformFeeCapCents     Int                     @default(2500)
+  participantPriceCents   Int                     @default(0)
+  annualSubscriptionCents Int                     @default(29900)
   stripeSubscriptionId    String?
   stripePriceId           String?
   trialEndsAt             DateTime?
@@ -85,12 +85,12 @@ model Camp {
    * for. primaryColor/accentColor below are kept in sync as the rendered hex —
    * public registration, print material and older clients still read them.
    */
-  themePreset             String                @default("ember")
-  primaryColor            String                @default("#F0894A")
-  accentColor             String                @default("#E8A84C")
-  fontFamily              String                @default("Inter")
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
+  themePreset             String                  @default("ember")
+  primaryColor            String                  @default("#F0894A")
+  accentColor             String                  @default("#E8A84C")
+  fontFamily              String                  @default("Inter")
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
   members                 CampMember[]
   invites                 CampInvite[]
   registrationForms       RegistrationForm[]
@@ -101,13 +101,13 @@ model Camp {
   sessionTemplates        SessionTemplate[]
   sessions                Session[]
   mandatorySessions       MandatorySession[]
-  campers                 Camper[]
+  participants            Participant[]
   enrollments             Enrollment[]
   registrationLinks       RegistrationLink[]
   registrationPayments    RegistrationPayment[]
   coupons                 CampCoupon[]
   printTemplates          PrintTemplate[]
-  camperAttendances       CamperAttendance[]
+  participantAttendances  ParticipantAttendance[]
   checkInEvents           CheckInEvent[]
 }
 
@@ -137,7 +137,7 @@ model AgeGroup {
   courses           Course[]
   courseAgeGroups   CourseAgeGroup[]
   personAgeGroups   PersonAgeGroup[]
-  campers           Camper[]
+  participants      Participant[]
   mandatorySessions MandatorySession[]
 }
 
@@ -306,59 +306,59 @@ model SessionTeacher {
   @@id([sessionId, personId])
 }
 
-model Camper {
-  id                  String             @id @default(cuid())
-  campId              String
-  camp                Camp               @relation(fields: [campId], references: [id], onDelete: Cascade)
-  firstName           String
-  lastName            String
-  dateOfBirth         DateTime?
-  ageGroupId          String?
-  ageGroup            AgeGroup?          @relation(fields: [ageGroupId], references: [id], onDelete: SetNull)
-  guardianName        String?
-  guardianEmail       String?
-  guardianPhone       String?
-  emergencyPhone      String?
-  tshirtSize          String?
-  photoConsent        Boolean            @default(false)
-  medicalNotes        String?
-  dietaryNotes        String?
-  customData          String?
-  couponCode          String?
+model Participant {
+  id                   String                           @id @default(cuid())
+  campId               String
+  camp                 Camp                             @relation(fields: [campId], references: [id], onDelete: Cascade)
+  firstName            String
+  lastName             String
+  dateOfBirth          DateTime?
+  ageGroupId           String?
+  ageGroup             AgeGroup?                        @relation(fields: [ageGroupId], references: [id], onDelete: SetNull)
+  guardianName         String?
+  guardianEmail        String?
+  guardianPhone        String?
+  emergencyPhone       String?
+  tshirtSize           String?
+  photoConsent         Boolean                          @default(false)
+  medicalNotes         String?
+  dietaryNotes         String?
+  customData           String?
+  couponCode           String?
   // Up to three course ids the participant would enjoy. Soft input only: a
   // preference outscores fill-first but never overrides a hard constraint, and
   // skipping it carries no penalty. Course ids are not FK-enforced here because
   // a preference may name a course that is later deleted; readers must tolerate
   // stale ids.
-  preferences         String[]           @default([])
-  campPriceCents      Int                @default(0)
-  discountCents       Int                @default(0)
-  platformFeeCents    Int                @default(0)
-  totalPaidCents      Int                @default(0)
-  paymentStatus       String             @default("not_required")
-  pickupNumber        String?
-  scanCode            String?            @unique
-  scanCodeGeneratedAt DateTime?
-  pickupCardPrintedAt DateTime?
-  badgePrintedAt      DateTime?
-  createdAt           DateTime           @default(now())
-  enrollments         Enrollment[]
-  attendances         CamperAttendance[]
-  checkInEvents       CheckInEvent[]
-  registrationPayments RegistrationPaymentCamper[]
+  preferences          String[]                         @default([])
+  campPriceCents       Int                              @default(0)
+  discountCents        Int                              @default(0)
+  platformFeeCents     Int                              @default(0)
+  totalPaidCents       Int                              @default(0)
+  paymentStatus        String                           @default("not_required")
+  pickupNumber         String?
+  scanCode             String?                          @unique
+  scanCodeGeneratedAt  DateTime?
+  pickupCardPrintedAt  DateTime?
+  badgePrintedAt       DateTime?
+  createdAt            DateTime                         @default(now())
+  enrollments          Enrollment[]
+  attendances          ParticipantAttendance[]
+  checkInEvents        CheckInEvent[]
+  registrationPayments RegistrationPaymentParticipant[]
 
   @@index([campId, pickupNumber])
 }
 
 model Enrollment {
-  id        String   @id @default(cuid())
-  campId    String
-  camp      Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
-  camperId  String
-  camper    Camper   @relation(fields: [camperId], references: [id], onDelete: Cascade)
-  sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  status    String   @default("enrolled")
+  id            String      @id @default(cuid())
+  campId        String
+  camp          Camp        @relation(fields: [campId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  sessionId     String
+  session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status        String      @default("enrolled")
   // auto | family | admin — decides what a rebalance may move.
   //   auto   — the system placed it as a default; a rebalance MAY move it
   //   family — the family chose it; a rebalance must NEVER move it
@@ -367,52 +367,52 @@ model Enrollment {
   // forgets to set source therefore produces an enrolment that rebalancing will
   // not touch. Defaulting to "auto" would make forgotten write paths silently
   // rebalanceable, which is the one outcome that breaks the trust guarantee.
-  source    String   @default("admin")
-  createdAt DateTime @default(now())
+  source        String      @default("admin")
+  createdAt     DateTime    @default(now())
 
-  @@unique([camperId, sessionId])
+  @@unique([participantId, sessionId])
   @@index([sessionId, source])
 }
 
-model CamperAttendance {
-  id                 String    @id @default(cuid())
+model ParticipantAttendance {
+  id                 String      @id @default(cuid())
   campId             String
-  camp               Camp      @relation(fields: [campId], references: [id], onDelete: Cascade)
-  camperId           String
-  camper             Camper    @relation(fields: [camperId], references: [id], onDelete: Cascade)
+  camp               Camp        @relation(fields: [campId], references: [id], onDelete: Cascade)
+  participantId      String
+  participant        Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   campDate           DateTime
-  status             String    @default("not_arrived") // not_arrived | checked_in | checked_out | no_show | blocked
+  status             String      @default("not_arrived") // not_arrived | checked_in | checked_out | no_show | blocked
   checkedInAt        DateTime?
   checkedInByUserId  String?
   checkedOutAt       DateTime?
   checkedOutByUserId String?
   pickupPersonName   String?
   pickupRelationship String?
-  pickupCodeVerified Boolean   @default(false)
-  walkUp             Boolean   @default(false)
+  pickupCodeVerified Boolean     @default(false)
+  walkUp             Boolean     @default(false)
   badgePrintedAt     DateTime?
   shirtPickedUpAt    DateTime?
   notes              String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
-  @@unique([campId, camperId, campDate])
+  @@unique([campId, participantId, campDate])
   @@index([campId, campDate, status])
 }
 
 model CheckInEvent {
-  id               String   @id @default(cuid())
+  id               String      @id @default(cuid())
   campId           String
-  camp             Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
-  camperId         String
-  camper           Camper   @relation(fields: [camperId], references: [id], onDelete: Cascade)
+  camp             Camp        @relation(fields: [campId], references: [id], onDelete: Cascade)
+  participantId    String
+  participant      Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   type             String // check_in | check_out | no_show | reset | payment_collected | badge_printed | shirt_picked_up | note
   note             String?
   pickupPersonName String?
   createdByUserId  String?
-  createdAt        DateTime @default(now())
+  createdAt        DateTime    @default(now())
 
-  @@index([campId, camperId, createdAt])
+  @@index([campId, participantId, createdAt])
   @@index([campId, createdAt])
 }
 
@@ -489,52 +489,52 @@ model CampCoupon {
 }
 
 model RegistrationPayment {
-  id                    String   @id @default(cuid())
-  campId                String
-  camp                  Camp     @relation(fields: [campId], references: [id], onDelete: Cascade)
-  camperId              String?
-  guardianEmail         String?
-  amountCents           Int
-  campPriceCents        Int      @default(0)
-  discountCents         Int      @default(0)
-  platformFeeCents      Int      @default(0)
-  couponCode            String?
-  currency              String   @default("usd")
-  type                  String   @default("registration")
-  status                String   @default("pending")
-  stripeCheckoutSession String?  @unique
-  stripePaymentIntent   String?
+  id                     String                           @id @default(cuid())
+  campId                 String
+  camp                   Camp                             @relation(fields: [campId], references: [id], onDelete: Cascade)
+  participantId          String?
+  guardianEmail          String?
+  amountCents            Int
+  campPriceCents         Int                              @default(0)
+  discountCents          Int                              @default(0)
+  platformFeeCents       Int                              @default(0)
+  couponCode             String?
+  currency               String                           @default("usd")
+  type                   String                           @default("registration")
+  status                 String                           @default("pending")
+  stripeCheckoutSession  String?                          @unique
+  stripePaymentIntent    String?
   stripeConnectAccountId String?
-  checkoutExpiresAt     DateTime?
-  paidAt                DateTime?
-  failedAt              DateTime?
-  refundedAt            DateTime?
-  failureCode           String?
-  failureMessage        String?
-  couponReservedAt      DateTime?
-  couponRedeemedAt      DateTime?
-  campers               RegistrationPaymentCamper[]
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  checkoutExpiresAt      DateTime?
+  paidAt                 DateTime?
+  failedAt               DateTime?
+  refundedAt             DateTime?
+  failureCode            String?
+  failureMessage         String?
+  couponReservedAt       DateTime?
+  couponRedeemedAt       DateTime?
+  participants           RegistrationPaymentParticipant[]
+  createdAt              DateTime                         @default(now())
+  updatedAt              DateTime                         @updatedAt
 }
 
-model RegistrationPaymentCamper {
-  paymentId              String
-  camperId               String
-  allocatedAmountCents   Int      @default(0)
-  payment                RegistrationPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  camper                 Camper   @relation(fields: [camperId], references: [id], onDelete: Cascade)
+model RegistrationPaymentParticipant {
+  paymentId            String
+  participantId        String
+  allocatedAmountCents Int                 @default(0)
+  payment              RegistrationPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  participant          Participant         @relation(fields: [participantId], references: [id], onDelete: Cascade)
 
-  @@id([paymentId, camperId])
-  @@index([camperId])
+  @@id([paymentId, participantId])
+  @@index([participantId])
 }
 
 model StripeWebhookEvent {
-  id               String   @id
+  id               String    @id
   type             String
   stripeAccountId  String?
   payloadCreatedAt DateTime?
-  processedAt      DateTime @default(now())
+  processedAt      DateTime  @default(now())
 }
 
 model PrintTemplate {

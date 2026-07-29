@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-export default function CamperScannableCode({ value, label = "Participant QR", size = 148, className = "" }: Props) {
+export default function ParticipantScannableCode({ value, label = "Participant QR", size = 148, className = "" }: Props) {
   const [src, setSrc] = useState("");
 
   useEffect(() => {
