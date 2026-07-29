@@ -401,7 +401,7 @@ function CamperDrawer({
       <div className="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-2xl">
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-berry-500 flex items-center justify-center text-white font-bold">
+            <div className="w-10 h-10 rounded-full bg-berry-600 flex items-center justify-center text-white font-bold">
               {camper.firstName[0]}{camper.lastName[0]}
             </div>
             <div>
@@ -610,7 +610,7 @@ function CamperDrawer({
           {editing && (
             <div className="sticky bottom-0 bg-white border-t border-slate-100 py-4 flex gap-3">
               <button onClick={() => { if (isNew) onClose(); else setEditing(false); setError(""); }} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button onClick={save} disabled={saving} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60">{saving ? "Saving…" : isNew ? "Add Participant" : "Save Participant"}</button>
+              <button onClick={save} disabled={saving} className="flex-1 px-4 py-2.5 bg-sky-600 text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-60">{saving ? "Saving…" : isNew ? "Add Participant" : "Save Participant"}</button>
             </div>
           )}
         </div>
@@ -834,7 +834,7 @@ function CampersContent() {
                 <tr key={camper.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-berry-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-berry-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                         {camper.firstName[0]}{camper.lastName[0]}
                       </div>
                       <button type="button" onClick={() => setSelectedCamper(camper)} className="truncate rounded px-1 font-medium text-slate-800 hover:bg-sky-50 hover:text-sky-700" title="Open participant editor">{`${camper.firstName} ${camper.lastName}`.trim()}</button>

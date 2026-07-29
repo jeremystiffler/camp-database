@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { PageBanner } from "@/components/PageBanner";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import jsQR from "jsqr";
@@ -663,14 +664,13 @@ function CheckInContent() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">Day-of operations</p>
-          <h1 className="page-title">Fast Check-In / Check-Out</h1>
-          <HelpCopy title="Check in/out workflow" className="mt-1 text-sm text-slate-500">Use Check In for arrivals. Once a child is checked in, they immediately move to Check Out so staff can release them from the still-on-campus list.</HelpCopy>
-        </div>
-        <div className="flex flex-wrap gap-2"><input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" /><button onClick={load} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-700 shadow-sm hover:bg-slate-50">Refresh</button><button onClick={startKioskSetup} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800">Kiosk mode</button></div>
-      </div>
+      <PageBanner
+        eyebrow="Day-of operations"
+        title="Fast Check-In / Check-Out"
+        actions={<div className="flex flex-wrap gap-2"><input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" /><button onClick={load} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-700 shadow-sm hover:bg-slate-50">Refresh</button><button onClick={startKioskSetup} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800">Kiosk mode</button></div>}
+      >
+        <HelpCopy title="Check in/out workflow" className="mt-2 text-sm">Use Check In for arrivals. Once a child is checked in, they immediately move to Check Out so staff can release them from the still-on-campus list.</HelpCopy>
+      </PageBanner>
 
       {settingKioskPassword && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">

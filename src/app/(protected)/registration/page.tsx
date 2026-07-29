@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import { PageBanner } from "@/components/PageBanner";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
@@ -511,12 +512,10 @@ function RegistrationContent() {
 
   return (
     <div className="max-w-5xl">
-      <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
-        <div>
-          <h1 className="page-title">Registration Form</h1>
-          <HelpCopy title="Form builder" className="text-slate-500 text-sm mt-0.5">Drag fields to reorder. Click a field to edit it. Required system fields stay locked; custom fields can be deleted with confirmation.</HelpCopy>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
+      <PageBanner
+        eyebrow="Enrollment"
+        title="Registration Form"
+        actions={<div className="flex items-center gap-3 flex-wrap">
           {formStatus !== "draft" && (
             <Link href={publicUrl} target="_blank"
               className="px-4 py-2.5 border border-forest-200 text-forest-700 bg-forest-50 rounded-xl text-sm font-semibold hover:bg-forest-100 flex items-center gap-2">
@@ -524,12 +523,14 @@ function RegistrationContent() {
             </Link>
           )}
           <button onClick={() => save()} disabled={saving}
-            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-forest-500 text-white" : "bg-gradient-to-r from-berry-500 to-berry-600 text-white hover:opacity-90"} disabled:opacity-60`}>
+            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-forest-500 text-white" : "bg-[var(--brand-strong)] text-[var(--brand-onstrong)] hover:opacity-90"} disabled:opacity-60`}>
             {saved ? "✓ Saved!" : saving ? "Saving..." : "Save Form"}
           </button>
           <span className="basis-full text-right"><SaveState saving={saving} saved={saved} error={saveError} /></span>
-        </div>
-      </div>
+        </div>}
+      >
+        <HelpCopy title="Form builder" className="mt-2 text-sm">Drag fields to reorder. Click a field to edit it. Required system fields stay locked; custom fields can be deleted with confirmation.</HelpCopy>
+      </PageBanner>
 
       <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2" role="tablist" aria-label="Registration workspace">
         <button type="button" role="tab" aria-selected={workspaceTab === "settings"} onClick={() => setWorkspaceTab("settings")} className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${workspaceTab === "settings" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Form Settings</button>
@@ -901,7 +902,7 @@ function RegistrationContent() {
             )}
 
             {currentPreviewPage === previewPages.length - 1 && (
-              <button disabled className="mt-6 w-full py-3 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-bold opacity-60 cursor-not-allowed">
+              <button disabled className="mt-6 w-full py-3 bg-forest-600 text-white rounded-xl text-sm font-bold opacity-60 cursor-not-allowed">
                 Submit Registration
               </button>
             )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { PageBanner } from "@/components/PageBanner";
 import { useSearchParams } from "next/navigation";
 import { RowDeleteButton } from "@/components/InlineEditing";
 
@@ -167,7 +168,7 @@ function TeacherModal({ person, campId, ageGroups, defaultRole = "teacher", onCl
               Cancel
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-berry-500 to-berry-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
+              className="flex-1 px-4 py-2.5 bg-[var(--brand-strong)] text-[var(--brand-onstrong)] rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
               {loading ? "Saving..." : person ? "Save Changes" : "Add Teacher"}
             </button>
           </div>
@@ -331,7 +332,7 @@ function SendScheduleModal({ person, campId, onClose }: {
               Cancel
             </button>
             <button onClick={handleSend} disabled={sending || !person.email}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
+              className="flex-1 px-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2">
               {sending ? (
                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending...</>
               ) : (
@@ -342,7 +343,7 @@ function SendScheduleModal({ person, campId, onClose }: {
         )}
         {sent && (
           <div className="px-6 py-4 border-t border-slate-100 flex-shrink-0">
-            <button onClick={onClose} className="w-full px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+            <button onClick={onClose} className="w-full px-4 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
               Done
             </button>
           </div>
@@ -363,7 +364,7 @@ function PersonRow({ person: p, roleColors, onSchedule, onEdit, onDelete }: {
     <div className="px-4 py-4 md:px-5 hover:bg-slate-50/70 transition-colors">
       <div className="grid gap-3 md:grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] md:items-center md:gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-berry-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm">
             {p.firstName[0]}{p.lastName[0]}
           </div>
           <div className="min-w-0">
@@ -497,22 +498,21 @@ export function TeachersContent() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="page-title">Teachers</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{persons.length} {persons.length === 1 ? "person" : "people"}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <PageBanner
+        eyebrow="People"
+        title="Teachers"
+        description={`${persons.length} ${persons.length === 1 ? "person" : "people"}`}
+        actions={<>
           <button onClick={() => openAddModal("teacher")}
-            className="px-4 py-2.5 bg-gradient-to-r from-berry-500 to-berry-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
+            className="px-4 py-2.5 bg-berry-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
             + Add Teacher
           </button>
           <button onClick={() => openAddModal("assistant")}
-            className="px-4 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
+            className="px-4 py-2.5 bg-sky-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:opacity-90 flex items-center gap-2">
             + Add Assistant
           </button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="mb-5">
         <input type="text" value={search} onChange={e => setSearch(e.target.value)}
@@ -532,11 +532,11 @@ export function TeachersContent() {
           {!search && (
             <div className="flex justify-center gap-2 flex-wrap">
               <button onClick={() => openAddModal("teacher")}
-                className="px-5 py-2.5 bg-gradient-to-r from-berry-500 to-berry-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+                className="px-5 py-2.5 bg-berry-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
                 + Add First Teacher
               </button>
               <button onClick={() => openAddModal("assistant")}
-                className="px-5 py-2.5 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+                className="px-5 py-2.5 bg-sky-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
                 + Add First Assistant
               </button>
             </div>

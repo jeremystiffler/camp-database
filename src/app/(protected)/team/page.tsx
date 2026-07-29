@@ -162,7 +162,7 @@ function TeamContent() {
             <button
               type="submit"
               disabled={inviting}
-              className="px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center gap-2"
+              className="px-4 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center gap-2"
             >
               {inviting ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending...</> : "✉️ Send Invite"}
             </button>
@@ -207,7 +207,7 @@ function TeamContent() {
                 return (
                   <div key={m.id} className="flex items-center gap-3 px-5 py-3.5">
                     {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-berry-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                       {(m.user.name?.[0] || m.user.email[0]).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">

@@ -127,7 +127,7 @@ function ConflictModal({ conflicts, onClose }: { conflicts: SchedulingConflict[]
 
         <div className="px-6 py-4 border-t border-slate-100">
           <button onClick={onClose}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+            className="w-full px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
             Got It — Go Fix It
           </button>
         </div>
@@ -531,7 +531,7 @@ function CourseModal({
                         onChange={() => toggleItem(p.id, selectedTeachers, setSelectedTeachers)}
                         className="w-4 h-4 accent-berry-500 flex-shrink-0" />
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-berry-400 to-sky-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-berry-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {p.firstName[0]}{p.lastName[0]}
                         </div>
                         <div className="min-w-0">
@@ -569,7 +569,7 @@ function CourseModal({
                         onChange={() => toggleItem(p.id, selectedTeachers, setSelectedTeachers)}
                         className="w-4 h-4 accent-sky-500 flex-shrink-0" />
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-sky-400 to-forest-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-berry-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                           {p.firstName[0]}{p.lastName[0]}
                         </div>
                         <div className="min-w-0">
@@ -605,7 +605,7 @@ function CourseModal({
               Cancel
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
+              className="flex-1 px-4 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
               {loading ? "Checking..." : course ? "Save Changes" : "Create Activity"}
             </button>
           </div>
@@ -725,7 +725,7 @@ function MandatorySessionModal({
           </div>
           <div className="flex gap-3 pt-2 border-t border-slate-100">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
-            <button type="submit" disabled={loading} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
+            <button type="submit" disabled={loading} className="flex-1 px-4 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60">
               {loading ? "Checking..." : item ? "Save Assembly" : "Create Assembly"}
             </button>
           </div>
@@ -1218,7 +1218,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
               <span className="mb-4 block text-5xl">A</span>
               <h3 className="mb-2 font-bold text-slate-700">{search || statusFilter !== "all" ? "No activities match" : "No activities yet"}</h3>
               <p className="mb-5 text-sm text-slate-400">Create activities first, then schedule them in the grid above.</p>
-              <button onClick={() => { setEditingCourse(null); setShowModal(true); }} className="rounded-xl bg-gradient-to-r from-forest-500 to-forest-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">+ Add First Activity</button>
+              <button onClick={() => { setEditingCourse(null); setShowModal(true); }} className="rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">+ Add First Activity</button>
             </div>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">

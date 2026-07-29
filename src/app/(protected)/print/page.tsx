@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense } from "react";
+import { PageBanner } from "@/components/PageBanner";
 import { fitName, nameFieldWidthPt } from "@/lib/badgeFit";
 import { DEFAULT_PROGRAM_PALETTE } from "@/lib/programPalettes";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -695,10 +696,7 @@ function PrintContent() {
       `}</style>
 
       <div className="no-print space-y-5">
-        <div>
-          <h1 className="page-title">Print center</h1>
-          <p className="mt-0.5 text-sm text-[var(--text-muted)]">{campName}</p>
-        </div>
+        <PageBanner eyebrow="Documents" title="Print center" description={campName} />
 
         <div className="camp-card flex flex-wrap items-center justify-between gap-4 p-5">
           <div>

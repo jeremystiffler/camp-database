@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { PageBanner } from "@/components/PageBanner";
 import {
   PHASE_OF,
   buildPhases,
@@ -824,16 +825,15 @@ function SetupContent() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="page-title">{"Event Setup"}</h1>
-          {/* One status line (§5.2a). It says how MUCH is left, never what to do
-              now — that is the continue button's job, and §5.2a allows exactly
-              one "what next" signal. If this ever names a section it has become
-              a second one. */}
-          <p className="mt-0.5 text-sm font-semibold text-slate-600">{remainingLine(remainingCount)}</p>
-        </div>
-      </div>
+      <PageBanner
+        eyebrow="Event setup"
+        title="Event Setup"
+        /* One status line (§5.2a). It says how MUCH is left, never what to do
+           now — that is the continue button's job, and §5.2a allows exactly
+           one "what next" signal. If this ever names a section it has become
+           a second one. */
+        description={remainingLine(remainingCount)}
+      />
 
       <div className="camp-card mb-5 overflow-hidden bg-white p-5">
         {/* The three phases (§5.1), replacing the nine-step chevron bar. Nothing

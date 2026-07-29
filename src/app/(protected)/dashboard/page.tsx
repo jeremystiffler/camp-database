@@ -247,7 +247,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
                 Cancel
               </button>
               <button onClick={handleCopy} disabled={copying}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
+                className="flex-1 px-4 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2">
                 {copying
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Copying…</>
                   : "Copy Event"}
@@ -275,7 +275,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
                 Stay Here
               </button>
               <button onClick={() => onCopied(result.campId)}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+                className="flex-1 px-4 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
                 Open New Event →
               </button>
             </div>
@@ -900,7 +900,7 @@ function DashboardContent() {
             <h3 className="font-bold text-slate-700 mb-2">No events yet</h3>
             <p className="text-slate-400 text-sm mb-5">Create your first event to get started.</p>
             <button onClick={() => setShowNewCamp(true)}
-              className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+              className="px-5 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
               + Create Your First Event
             </button>
           </div>

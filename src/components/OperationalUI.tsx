@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PageBanner } from "@/components/PageBanner";
 
 type PageHeaderProps = {
   eyebrow?: string;
@@ -10,8 +11,21 @@ type PageHeaderProps = {
   secondaryAction?: React.ReactNode;
 };
 
+/**
+ * The older header. Kept as a thin wrapper over PageBanner rather than converted
+ * at each call site, so every current and future consumer picks up the branded
+ * banner — and switching the active event changes the header here too, which is
+ * what the §7 gate requires on every route.
+ */
 export function PageHeader({ eyebrow, title, description, primaryAction, secondaryAction }: PageHeaderProps) {
-  return <header className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="minimal-section-title">{eyebrow || "Event workspace"}</p><h1 className="page-title">{title}</h1>{description && <p className="mt-1 max-w-2xl text-sm text-slate-600">{description}</p>}</div>{(primaryAction || secondaryAction) && <div className="flex flex-wrap gap-2">{secondaryAction}{primaryAction}</div>}</header>;
+  return (
+    <PageBanner
+      eyebrow={eyebrow || "Event workspace"}
+      title={title}
+      description={description}
+      actions={(primaryAction || secondaryAction) ? <>{secondaryAction}{primaryAction}</> : undefined}
+    />
+  );
 }
 
 export function EmptyState({ title, description, actionHref, actionLabel }: { title: string; description: string; actionHref?: string; actionLabel?: string }) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { PageBanner } from "@/components/PageBanner";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { RowDeleteButton } from "@/components/InlineEditing";
@@ -246,11 +247,11 @@ function SettingsContent() {
 
   return (
     <div className="max-w-5xl">
-      <div className="mb-6">
-        <p className="minimal-section-title mb-2">Event administration</p>
-        <h1 className="page-title">Settings</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Profile, billing, appearance, utilities, and event-level actions.</p>
-      </div>
+      <PageBanner
+        eyebrow="Account"
+        title="Settings"
+        description="Profile, billing, appearance, utilities, and event-level actions."
+      />
 
       <div className="mb-6 flex flex-wrap gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-2" role="tablist" aria-label="Settings sections">
         {([

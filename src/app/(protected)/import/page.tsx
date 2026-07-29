@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, Suspense } from "react";
+import { PageBanner } from "@/components/PageBanner";
 import { useSearchParams } from "next/navigation";
 import { useConfirmation } from "@/components/ConfirmDialog";
 import * as XLSX from "xlsx";
@@ -448,22 +449,21 @@ function ImportContent() {
   return (
     <div className="max-w-5xl">
       {/* ── Header ── */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="page-title">Import</h1>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full">BETA</span>
-          </div>
-          <p className="text-slate-500 text-sm">Upload a spreadsheet to bulk-create activities and teachers. Assign rooms and time blocks from the Activities tab.</p>
-        </div>
-        <button
-          onClick={async () => { setDlLoading(true); await downloadTemplate(campId); setDlLoading(false); }}
-          disabled={dlLoading}
-          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 shadow-sm flex-shrink-0 disabled:opacity-60"
-        >
-          {dlLoading ? <><div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> Building…</> : <>⬇️ Download Template</>}
-        </button>
-      </div>
+      <PageBanner
+        eyebrow="Data"
+        title="Import"
+        description="Upload a spreadsheet to bulk-create activities and teachers. Assign rooms and time blocks from the Activities tab."
+        actions={<>
+          <span className="text-xs font-semibold px-2.5 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full">BETA</span>
+          <button
+            onClick={async () => { setDlLoading(true); await downloadTemplate(campId); setDlLoading(false); }}
+            disabled={dlLoading}
+            className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2 shadow-sm flex-shrink-0 disabled:opacity-60"
+          >
+            {dlLoading ? <><div className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> Building…</> : <>⬇️ Download Template</>}
+          </button>
+        </>}
+      />
 
       {/* ── Beta warning ── */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 mb-6 flex items-start gap-3">
@@ -584,7 +584,7 @@ function ImportContent() {
 
             {validRows.length > 0 && (
               <button onClick={runImport} disabled={importing}
-                className="px-5 py-2.5 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center gap-2">
+                className="px-5 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60 flex items-center gap-2">
                 {importing
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Importing {validRows.length} rows…</>
                   : <>📥 Import {validRows.length} row{validRows.length !== 1 ? "s" : ""}</>}

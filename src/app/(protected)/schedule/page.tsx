@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { PageBanner } from "@/components/PageBanner";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
@@ -329,14 +330,11 @@ function ScheduleContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Schedule</p>
-          <h1 className="page-title">Schedule</h1>
-          <p className="mt-1 text-sm font-semibold text-slate-500">{scheduleSummary}</p>
-          <HelpCopy title="Schedule views" className="mt-1 text-sm text-slate-500">Switch views using the View menu below: grid, room, teacher, activity, capacity, or list.</HelpCopy>
-        </div>
-        <div className="flex flex-col gap-2 xl:items-end">
+      <PageBanner
+        eyebrow="Planning"
+        title="Schedule"
+        description={scheduleSummary}
+        actions={<div className="flex flex-col gap-2 xl:items-end">
           <button onClick={() => setShowHealth((value) => !value)} className="w-fit rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-600 transition hover:bg-slate-50">
             {showHealth ? "Hide schedule health" : "Show schedule health"}
           </button>
@@ -348,8 +346,10 @@ function ScheduleContent() {
               ))}
             </div>
           )}
-        </div>
-      </div>
+        </div>}
+      >
+        <HelpCopy title="Schedule views" className="mt-2 text-sm">Switch views using the View menu below: grid, room, teacher, activity, capacity, or list.</HelpCopy>
+      </PageBanner>
 
       {loading ? (
         <div className="flex h-48 items-center justify-center">
