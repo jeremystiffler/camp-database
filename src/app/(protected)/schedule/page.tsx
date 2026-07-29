@@ -337,14 +337,14 @@ function ScheduleContent() {
           <HelpCopy title="Schedule views" className="mt-1 text-sm text-slate-500">Switch views using the View menu below: grid, room, teacher, activity, capacity, or list.</HelpCopy>
         </div>
         <div className="flex flex-col gap-2 xl:items-end">
-          <button onClick={() => setShowHealth((value) => !value)} className="w-fit rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50">
+          <button onClick={() => setShowHealth((value) => !value)} className="w-fit rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-600 transition hover:bg-slate-50">
             {showHealth ? "Hide schedule health" : "Show schedule health"}
           </button>
           {activeDays.length > 1 && (
             <div className="flex flex-wrap gap-2 xl:justify-end">
-              <button onClick={() => setFilterDay("")} className={`rounded-xl px-3 py-2 text-xs font-black transition ${filterDay === "" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>All Days</button>
+              <button onClick={() => setFilterDay("")} className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${filterDay === "" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>All Days</button>
               {activeDays.map((day) => (
-                <button key={day} onClick={() => setFilterDay(day)} className={`rounded-xl px-3 py-2 text-xs font-black transition ${filterDay === day ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{DAYS[day]}</button>
+                <button key={day} onClick={() => setFilterDay(day)} className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${filterDay === day ? "bg-slate-900 text-white" : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>{DAYS[day]}</button>
               ))}
             </div>
           )}
@@ -378,10 +378,10 @@ function ScheduleContent() {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-wide text-slate-400">Highest load</p>
+                      <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Highest load</p>
                       <p className="text-sm font-bold text-slate-800">{sessionTitle(busiest)} · {DAYS[sessionDay(busiest)]} {timeRange(busiest)} · {busiest.room?.name || "No room"}</p>
                     </div>
-                    <span className={`w-fit rounded-full border px-3 py-1 text-xs font-black ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{capLabel(busiest.course?.cap)}</span>
+                    <span className={`w-fit rounded-full border px-3 py-1 text-xs font-extrabold ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{capLabel(busiest.course?.cap)}</span>
                   </div>
                 </div>
               )}
@@ -389,7 +389,7 @@ function ScheduleContent() {
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3">
-            <label className="flex items-center gap-2 text-sm font-black text-slate-700">
+            <label className="flex items-center gap-2 text-sm font-extrabold text-slate-700">
               View:
               <select value={view} onChange={(event) => setView(event.target.value as ScheduleView)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
                 {VIEW_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
@@ -429,8 +429,8 @@ function ScheduleContent() {
 function MetricCard({ label, value, sub, tone }: { label: string; value: string | number; sub: string; tone: string }) {
   return (
     <div className={`tile-button ${tone} p-4`}>
-      <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
+      <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-extrabold text-slate-900">{value}</p>
       <p className="mt-1 text-xs font-semibold text-slate-500">{sub}</p>
     </div>
   );
@@ -440,7 +440,7 @@ function PivotShell({ title, subtitle, children }: { title: string; subtitle: st
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-100 p-4">
-        <h2 className="text-sm font-black text-slate-900">{title}</h2>
+        <h2 className="text-sm font-extrabold text-slate-900">{title}</h2>
         <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
       </div>
       <div className="overflow-x-auto">{children}</div>
@@ -455,8 +455,8 @@ function DayTimeGrid({ sessions, displayDayGroups, duplicateDayCount, timeSlots,
       subtitle={duplicateDayCount > 0 ? `${duplicateDayCount} duplicate day${duplicateDayCount === 1 ? "" : "s"} hidden because the daily schedule is identical.` : "Each cell shows the classes happening during that day and time block."}
     >
       <table className="min-w-full border-collapse text-left text-sm">
-        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-36 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Day</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-56 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
-        <tbody>{displayDayGroups.map((group) => <tr key={group.key}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800"><div>{group.label}</div>{group.days.length > 1 && <div className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">shown once</div>}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{dedupeSessions(sessions.filter((s) => group.days.includes(sessionDay(s)) && s.startTime === slot.start && s.endTime === slot.end)).map((s) => sessionCell(s, campId))}</div></td>)}</tr>)}</tbody>
+        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-36 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-extrabold uppercase text-slate-500">Day</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-56 border-b border-slate-200 p-3 text-xs font-extrabold uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
+        <tbody>{displayDayGroups.map((group) => <tr key={group.key}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-extrabold text-slate-800"><div>{group.label}</div>{group.days.length > 1 && <div className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">shown once</div>}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{dedupeSessions(sessions.filter((s) => group.days.includes(sessionDay(s)) && s.startTime === slot.start && s.endTime === slot.end)).map((s) => sessionCell(s, campId))}</div></td>)}</tr>)}</tbody>
       </table>
     </PivotShell>
   );
@@ -466,8 +466,8 @@ function RoomPivot({ sessions, rooms, timeSlots, campId }: { sessions: Session[]
   return (
     <PivotShell title="Room × Time pivot" subtitle="A facilities view: scan room usage, empty rooms, and possible overlaps.">
       <table className="min-w-full border-collapse text-left text-sm">
-        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-40 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Room</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-52 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
-        <tbody>{rooms.map((room) => <tr key={room.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{room.name}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.room?.id === room.id && s.startTime === slot.start && s.endTime === slot.end).map((s) => sessionCell(s, campId, true))}</div></td>)}</tr>)}</tbody>
+        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-40 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-extrabold uppercase text-slate-500">Room</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-52 border-b border-slate-200 p-3 text-xs font-extrabold uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
+        <tbody>{rooms.map((room) => <tr key={room.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-extrabold text-slate-800">{room.name}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.room?.id === room.id && s.startTime === slot.start && s.endTime === slot.end).map((s) => sessionCell(s, campId, true))}</div></td>)}</tr>)}</tbody>
       </table>
     </PivotShell>
   );
@@ -477,8 +477,8 @@ function TeacherPivot({ sessions, teachers, timeSlots, campId }: { sessions: Ses
   return (
     <PivotShell title="Teacher × Time pivot" subtitle="Staffing view: every teacher's assigned classes across the day.">
       <table className="min-w-full border-collapse text-left text-sm">
-        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-44 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-black uppercase text-slate-500">Teacher</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-52 border-b border-slate-200 p-3 text-xs font-black uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
-        <tbody>{teachers.map((teacher) => <tr key={teacher.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-black text-slate-800">{fullName(teacher)}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.startTime === slot.start && s.endTime === slot.end && s.course?.courseTeachers?.some((ct) => ct.person.id === teacher.id)).map((s) => sessionCell(s, campId, true))}</div></td>)}</tr>)}</tbody>
+        <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-44 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-extrabold uppercase text-slate-500">Teacher</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-52 border-b border-slate-200 p-3 text-xs font-extrabold uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
+        <tbody>{teachers.map((teacher) => <tr key={teacher.id}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-extrabold text-slate-800">{fullName(teacher)}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{sessions.filter((s) => s.startTime === slot.start && s.endTime === slot.end && s.course?.courseTeachers?.some((ct) => ct.person.id === teacher.id)).map((s) => sessionCell(s, campId, true))}</div></td>)}</tr>)}</tbody>
       </table>
     </PivotShell>
   );

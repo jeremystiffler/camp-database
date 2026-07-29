@@ -100,10 +100,10 @@ function StatCard({ label, value, icon }: StatCardProps) {
     <div className="tile-button px-4 py-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-2xl font-black tracking-tight text-slate-900">{value}</div>
+          <div className="text-2xl font-extrabold tracking-tight text-slate-900">{value}</div>
           <div className="text-xs font-semibold text-slate-700">{label}</div>
         </div>
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/70 bg-white/55 text-xs font-black text-slate-700 shadow-sm">{icon}</span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/70 bg-white/55 text-xs font-extrabold text-slate-700 shadow-sm">{icon}</span>
       </div>
     </div>
   );
@@ -121,11 +121,11 @@ function QuickAction({ href, icon, title, desc, iconClass }: QuickActionProps) {
   const tileClass = iconClass.includes("forest") ? "tile-sage" : iconClass.includes("sky") ? "tile-denim" : iconClass.includes("sunset") ? "tile-clay" : iconClass.includes("berry") ? "tile-lavender" : "tile-aqua";
   return (
     <Link href={href} className={`tile-button ${tileClass} p-4 flex items-start gap-3 group block`}>
-      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black flex-shrink-0 ${iconClass}`}>
+      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-extrabold flex-shrink-0 ${iconClass}`}>
         {icon}
       </div>
       <div>
-        <h3 className="font-black text-slate-900 group-hover:text-slate-700 transition-colors text-sm">{title}</h3>
+        <h3 className="font-extrabold text-slate-900 group-hover:text-slate-700 transition-colors text-sm">{title}</h3>
         <HelpCopy title={title} className="text-slate-600 text-xs mt-1 leading-relaxed">{desc}</HelpCopy>
       </div>
     </Link>
@@ -289,8 +289,11 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 // ─── Camp Card ────────────────────────────────────────────────────────────────
 
 function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Camp; active: boolean; onCopy: (camp: Camp) => void; onDelete: (camp: Camp) => void; onColorChange: (camp: Camp, themePreset: string) => Promise<boolean> }) {
-  const primaryColor = camp.primaryColor || "#2563EB";
-  const accentColor = camp.accentColor || "#0EA5E9";
+  // Fall back to the event's preset, never to a raw blue that belongs to no
+  // palette (done-gate: #2563EB appears nowhere but the Harbor definition).
+  const cardPalette = paletteForPreset(camp.themePreset, camp.primaryColor, camp.accentColor);
+  const primaryColor = camp.primaryColor || cardPalette.primaryColor;
+  const accentColor = camp.accentColor || cardPalette.accentColor;
   const [colorOpen, setColorOpen] = useState(false);
   const [colorSaving, setColorSaving] = useState(false);
   const statusColors: Record<string, string> = {
@@ -328,7 +331,7 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
           </span>
         </div>
         <h3 className="font-bold text-slate-800 mb-1">{camp.name}</h3>
-        {active && <p className="text-[11px] font-black uppercase tracking-[0.16em] mb-1" style={{ color: primaryColor }}>Active now</p>}
+        {active && <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] mb-1" style={{ color: primaryColor }}>Active now</p>}
         <p className="text-slate-500 text-xs">
           {formatCampDate(camp.startDate)}
         </p>
@@ -351,19 +354,19 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
             onClick={() => setColorOpen(open => !open)}
             title="Change event color"
             aria-expanded={colorOpen}
-            className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-black shadow-sm transition hover:scale-105 hover:ring-2 hover:ring-slate-300"
+            className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-extrabold shadow-sm transition hover:scale-105 hover:ring-2 hover:ring-slate-300"
             style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
           >
             {campInitials(camp.name)}
           </button>
         ) : (
-          <div className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-black shadow-sm" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}>
+          <div className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-extrabold shadow-sm" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}>
             {campInitials(camp.name)}
           </div>
         )}
         {colorOpen && (
           <div className="absolute left-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
-            <p className="mb-2 text-[10px] font-black uppercase tracking-[.1em] text-slate-500">Event color</p>
+            <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[.1em] text-slate-500">Event color</p>
             <div className="grid grid-cols-3 gap-2">
               {PROGRAM_PALETTES.map(palette => {
                 const selected = palette.id === paletteForPreset(camp.themePreset, camp.primaryColor, camp.accentColor).id;
@@ -390,7 +393,7 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
         <button
           type="button"
           onClick={() => onCopy(camp)}
-          className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-black text-slate-800 hover:border-slate-400 hover:bg-slate-50">
+          className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-extrabold text-slate-800 hover:border-slate-400 hover:bg-slate-50">
           Duplicate
         </button>
       )}
@@ -398,7 +401,7 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
         <button
           type="button"
           onClick={() => onDelete(camp)}
-          className="mt-2 w-full rounded-xl border border-red-200 bg-white/80 px-3 py-2 text-xs font-black text-red-600 transition hover:border-red-300 hover:bg-red-50"
+          className="mt-2 w-full rounded-xl border border-red-200 bg-white/80 px-3 py-2 text-xs font-extrabold text-red-600 transition hover:border-red-300 hover:bg-red-50"
         >
           Delete event
         </button>
@@ -407,7 +410,7 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
         <Link
           href={`/dashboard?campId=${camp.id}`}
           onClick={() => localStorage.setItem("activeCampId", camp.id)}
-          className="mt-4 block w-full rounded-xl bg-slate-900 px-3 py-2 text-center text-xs font-black text-white hover:bg-slate-700 transition-colors"
+          className="mt-4 block w-full rounded-xl bg-slate-900 px-3 py-2 text-center text-xs font-extrabold text-white hover:bg-slate-700 transition-colors"
         >
           Switch to this event
         </Link>
@@ -626,7 +629,7 @@ function DashboardContent() {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/50" onClick={() => !deleteSaving && setDeletingCamp(null)} />
       <div role="dialog" aria-modal="true" aria-labelledby="delete-switcher-event-title" className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-        <h2 id="delete-switcher-event-title" className="text-xl font-black text-slate-900">Delete this event?</h2>
+        <h2 id="delete-switcher-event-title" className="text-xl font-extrabold text-slate-900">Delete this event?</h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">This permanently removes <strong>{deletingCamp.name}</strong>, including its schedule, participants, and settings. Type the event name to continue.</p>
         <input autoFocus value={deleteConfirmation} onChange={event => setDeleteConfirmation(event.target.value)} placeholder={deletingCamp.name} className="mt-4 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" />
         {deleteError && <p className="mt-2 text-sm font-semibold text-red-600">{deleteError}</p>}
@@ -731,9 +734,9 @@ function DashboardContent() {
             {activeCamp && <div className="relative">
               <button type="button" onClick={() => setActionsOpen(v => !v)} aria-expanded={actionsOpen} className="page-banner__action page-banner__action--quiet text-xs">Manage ▾</button>
               {actionsOpen && <div className="absolute right-0 top-10 z-30 w-[min(92vw,340px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
-                {canEditCamp(activeCamp) ? <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="mb-1.5 block text-xs font-black uppercase tracking-wide !text-slate-800">Rename event</label><div className="flex gap-2"><input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" /><button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button></div>{renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}</div> : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold !text-slate-800">This shared event is read-only for your account.</p>}
+                {canEditCamp(activeCamp) ? <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><label className="mb-1.5 block text-xs font-extrabold uppercase tracking-wide !text-slate-800">Rename event</label><div className="flex gap-2"><input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" /><button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-extrabold text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button></div>{renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}</div> : <p className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold !text-slate-800">This shared event is read-only for your account.</p>}
                 <div className="grid gap-1">{(canEditCamp(activeCamp) ? [["Setup", `/setup?campId=${activeCamp.id}`], ["Teachers", `/teachers?campId=${activeCamp.id}`], ["Registration", `/registration?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]] : [["Participants", `/campers?campId=${activeCamp.id}`], ["Schedule", `/schedule?campId=${activeCamp.id}`], ["Print", `/print?campId=${activeCamp.id}`], ["Team", `/team?campId=${activeCamp.id}`]]).map(([label, href]) => <Link key={label} href={href} onClick={() => setActionsOpen(false)} className="rounded-xl px-3 py-2 text-sm font-bold !text-slate-800 hover:bg-slate-50 hover:!text-slate-950">{label}</Link>)}</div>
-                {activeCamp && <div className="mt-2 border-t border-slate-200 pt-2"><button type="button" onClick={() => { setActionsOpen(false); setCopyingCamp(activeCamp); }} className="w-full rounded-xl px-3 py-2 text-left text-sm font-black !text-slate-800 hover:bg-slate-50">Duplicate</button></div>}
+                {activeCamp && <div className="mt-2 border-t border-slate-200 pt-2"><button type="button" onClick={() => { setActionsOpen(false); setCopyingCamp(activeCamp); }} className="w-full rounded-xl px-3 py-2 text-left text-sm font-extrabold !text-slate-800 hover:bg-slate-50">Duplicate</button></div>}
               </div>}
             </div>}
 
@@ -749,17 +752,17 @@ function DashboardContent() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <p className="minimal-section-title mb-2">Current event</p>
-                <h2 className="truncate text-2xl font-black tracking-tight text-slate-950">{activeCamp.name}</h2>
+                <h2 className="truncate text-2xl font-extrabold tracking-tight text-slate-950">{activeCamp.name}</h2>
                 <p className="mt-1 text-sm font-semibold text-slate-600">{formatCampDateRange(activeCamp)}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="mr-1 text-xs font-black uppercase tracking-wide text-slate-600">Status: {activeCamp.status} · Registration {activeCamp.registrationOpen ? "open" : "closed"}</p>
+                <p className="mr-1 text-xs font-extrabold uppercase tracking-wide text-slate-600">Status: {activeCamp.status} · Registration {activeCamp.registrationOpen ? "open" : "closed"}</p>
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setActionsOpen(v => !v)}
                     aria-expanded={actionsOpen}
-                    className="rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs font-black text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50"
+                    className="rounded-xl border border-indigo-200 bg-white px-3 py-1.5 text-xs font-extrabold text-indigo-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50"
                   >
                     Manage ▾
                   </button>
@@ -767,10 +770,10 @@ function DashboardContent() {
                     <div className="absolute right-0 top-10 z-30 w-[min(92vw,340px)] rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
                       {canEditCamp(activeCamp) ? (
                         <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                          <label className="mb-1.5 block text-xs font-black uppercase tracking-wide !text-slate-800">Rename event</label>
+                          <label className="mb-1.5 block text-xs font-extrabold uppercase tracking-wide !text-slate-800">Rename event</label>
                           <div className="flex gap-2">
                             <input value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void saveCampName(); }} className="minimal-input min-w-0 flex-1 bg-white" />
-                            <button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button>
+                            <button onClick={saveCampName} disabled={renameSaving} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-extrabold text-white hover:bg-slate-700 disabled:opacity-60">{renameSaving ? "Saving…" : "Save"}</button>
                           </div>
                           {renameMsg && <p className={`mt-2 text-xs font-semibold ${renameMsg?.type === "success" ? "text-forest-700" : "text-red-600"}`}>{renameMsg?.text}</p>}
                         </div>
@@ -802,7 +805,7 @@ function DashboardContent() {
           {summary?.grid && state !== "empty" && (
             <section aria-labelledby="ops-grid-heading" className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="ops-grid-heading" className="text-sm font-black text-slate-900">
+                <h2 id="ops-grid-heading" className="text-sm font-extrabold text-slate-900">
                   Activities by time block
                 </h2>
                 <Link href={`/schedule?campId=${activeCamp.id}`} className="text-xs font-bold text-slate-600 underline-offset-2 hover:underline">
@@ -859,8 +862,8 @@ function DashboardContent() {
         <div className={`camp-card mb-8 p-5 ${needsAttention ? "border-amber-200 bg-amber-50/60" : "border-forest-200 bg-forest-50/60"}`}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className={`mb-2 text-xs font-black uppercase tracking-[0.18em] ${needsAttention ? "text-amber-700" : "text-forest-700"}`}>{needsAttention ? "Needs your attention" : "Event is in good shape"}</p>
-              <h2 className="text-lg font-black text-slate-950">{needsAttention ? "A few activity details need a decision" : "No teacher, schedule, or capacity issues found."}</h2>
+              <p className={`mb-2 text-xs font-extrabold uppercase tracking-[0.18em] ${needsAttention ? "text-amber-700" : "text-forest-700"}`}>{needsAttention ? "Needs your attention" : "Event is in good shape"}</p>
+              <h2 className="text-lg font-extrabold text-slate-950">{needsAttention ? "A few activity details need a decision" : "No teacher, schedule, or capacity issues found."}</h2>
               {/* The issue chips that stood here are deleted (phase 18f). They
                   were a SECOND issue display with its own arithmetic, and it
                   disagreed with the summary strip: on a room+teacher clash it
@@ -883,7 +886,7 @@ function DashboardContent() {
         <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
           <div>
             <p className="minimal-section-title">Event switcher</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Your events</h2>
+            <h2 className="mt-1 text-xl font-extrabold tracking-tight text-slate-950">Your events</h2>
           </div>
           <div className="flex flex-wrap items-center gap-3"><p className="text-sm font-semibold text-slate-500">Choose a card to make it your active workspace or create a new one.</p>{canAdminCamp(activeCamp) && <button onClick={() => setShowNewCamp(true)} className="minimal-button-primary">+ Add Event</button>}</div>
         </div>
@@ -912,8 +915,8 @@ function DashboardContent() {
                 onClick={() => setShowNewCamp(true)}
                 className="flex min-h-72 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/70 p-5 text-center transition hover:border-slate-400 hover:bg-slate-50"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-2xl font-black text-white">+</span>
-                <span className="mt-4 text-base font-black text-slate-800">Add a new event</span>
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-2xl font-extrabold text-white">+</span>
+                <span className="mt-4 text-base font-extrabold text-slate-800">Add a new event</span>
                 <span className="mt-1 text-sm font-semibold text-slate-500">Choose its name, dates, and colors.</span>
               </button>
             )}

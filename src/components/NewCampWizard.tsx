@@ -567,7 +567,7 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
         <div className="px-6 pt-6">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-sky-600">{firstProgram ? "Welcome" : "New Event"}</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-600">{firstProgram ? "Welcome" : "New Event"}</p>
               <h1 className="font-bold text-xl text-slate-800">{firstProgram ? "Name your first event" : "Name your event"}</h1>
             </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 text-sm">✕</button>

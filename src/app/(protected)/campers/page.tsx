@@ -469,7 +469,7 @@ function CamperDrawer({
                 <h3 className="text-xs font-semibold text-indigo-500 uppercase tracking-wider">Pickup / Scannable Codes</h3>
                 <p className="mt-1 text-xs font-semibold text-slate-500">Unique participant QR plus shared family pickup number for car-line cards.</p>
               </div>
-              {!isNew && <button type="button" onClick={() => manageIdentity("ensure_identity")} disabled={saving} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-60">Ensure codes</button>}
+              {!isNew && <button type="button" onClick={() => manageIdentity("ensure_identity")} disabled={saving} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-60">Ensure codes</button>}
             </div>
             {editing ? (
               <label className="mt-3 block text-xs font-bold text-slate-500">Pickup number
@@ -482,8 +482,8 @@ function CamperDrawer({
                   <Info label="Pickup card" value={`${camper.lastName.toUpperCase()} FAMILY`} />
                   <Info label="Scan code" value={camper.scanCode ? "Generated" : "Missing"} tone={camper.scanCode ? "forest" : "red"} />
                   <div className="flex flex-wrap gap-2 pt-2">
-                    <button type="button" onClick={() => navigator.clipboard?.writeText(camper.scanCode || "")} disabled={!camper.scanCode} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600 disabled:opacity-40">Copy scan code</button>
-                    <button type="button" onClick={() => manageIdentity("regenerate_scan_code")} disabled={saving || isNew} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-800 disabled:opacity-40">Regenerate QR</button>
+                    <button type="button" onClick={() => navigator.clipboard?.writeText(camper.scanCode || "")} disabled={!camper.scanCode} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-extrabold text-slate-600 disabled:opacity-40">Copy scan code</button>
+                    <button type="button" onClick={() => manageIdentity("regenerate_scan_code")} disabled={saving || isNew} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-extrabold text-amber-800 disabled:opacity-40">Regenerate QR</button>
                   </div>
                 </div>
                 <CamperScannableCode value={camper.scanCode} label="Participant QR" size={132} />
@@ -858,12 +858,12 @@ function CampersContent() {
                     <div className="text-slate-800">{summarizedEnrollmentChoices(camper.enrollments || []).length} selected</div>
                     <div className="text-slate-400 text-xs max-w-[180px] truncate">{summarizedEnrollmentChoices(camper.enrollments || []).map(choice => choice.title).join(" · ") || "—"}</div>
                   </td>
-                  {showExtraColumns && <><td className="px-4 py-3 hidden lg:table-cell"><div className="text-slate-800">{camper.paymentStatus || "not_required"}</div><div className="text-slate-400 text-xs">{cents(camper.totalPaidCents)}</div></td><td className="px-4 py-3 hidden lg:table-cell"><span className="text-slate-600">{camper.tshirtSize || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700">{camper.pickupNumber || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className={camper.photoConsent ? "text-forest-600" : "text-red-400"}>{camper.photoConsent ? "✓" : "✗"}</span></td></>}
+                  {showExtraColumns && <><td className="px-4 py-3 hidden lg:table-cell"><div className="text-slate-800">{camper.paymentStatus || "not_required"}</div><div className="text-slate-400 text-xs">{cents(camper.totalPaidCents)}</div></td><td className="px-4 py-3 hidden lg:table-cell"><span className="text-slate-600">{camper.tshirtSize || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-extrabold text-indigo-700">{camper.pickupNumber || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className={camper.photoConsent ? "text-forest-600" : "text-red-400"}>{camper.photoConsent ? "✓" : "✗"}</span></td></>}
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => setSelectedCamper(camper)}
-                        className="px-3 py-1 text-xs font-black text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                        className="px-3 py-1 text-xs font-extrabold text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
                       >
                         QR / Pickup
                       </button>

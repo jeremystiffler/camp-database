@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense } from "react";
+import { DEFAULT_PROGRAM_PALETTE } from "@/lib/programPalettes";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/OperationalUI";
 import CamperScannableCode from "@/components/CamperScannableCode";
@@ -67,7 +68,7 @@ interface CampOption { id: string; name: string; primaryColor?: string; accentCo
 
 const BADGE_ROLES: { id: BadgeRole; label: string; printedLabel: string; band: string }[] = [
   { id: "participant", label: "Participant", printedLabel: "", band: "" },
-  { id: "teacher", label: "Teacher", printedLabel: "TEACHER", band: "#2563EB" },
+  { id: "teacher", label: "Teacher", printedLabel: "TEACHER", band: "#1D4FD8" },
   { id: "volunteer", label: "Volunteer", printedLabel: "VOLUNTEER", band: "#059669" },
   { id: "staff", label: "Staff", printedLabel: "STAFF", band: "#7C3AED" },
   { id: "medical", label: "Medical & safety", printedLabel: "MEDICAL", band: "#C42B2B" },
@@ -200,7 +201,7 @@ function PrintContent() {
   const campIdFromUrl = searchParams.get("campId") || "";
   const [campId, setCampId] = useState("");
   const [campName, setCampName] = useState("");
-  const [eventColor, setEventColor] = useState("#2563EB");
+  const [eventColor, setEventColor] = useState(DEFAULT_PROGRAM_PALETTE.primaryColor);
   const [campers, setCampers] = useState<Camper[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
@@ -234,7 +235,7 @@ function PrintContent() {
         }
         setCampId(selected.id);
         setCampName(selected.name || "");
-        setEventColor(selected.primaryColor || "#2563EB");
+        setEventColor(selected.primaryColor || DEFAULT_PROGRAM_PALETTE.primaryColor);
         if (typeof window !== "undefined") localStorage.setItem("activeCampId", selected.id);
         if (campIdFromUrl !== selected.id) router.replace(`/print?campId=${selected.id}`);
       })
@@ -678,10 +679,10 @@ function PrintContent() {
 
         <div className="camp-card flex flex-wrap items-center justify-between gap-4 p-5">
           <div>
-            <p className="text-base font-black text-slate-900">Print everything for opening day</p>
+            <p className="text-base font-extrabold text-slate-900">Print everything for opening day</p>
             <p className="mt-0.5 text-sm text-[var(--text-muted)]"><span className="t-data">5 documents · {packetSheets} sheets</span>{printLog.dayPacket ? ` · Last printed ${formatLogTime(printLog.dayPacket)}` : ""}</p>
           </div>
-          <button type="button" onClick={() => setTask({ job: "dayPacket" })} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-700">Print</button>
+          <button type="button" onClick={() => setTask({ job: "dayPacket" })} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-extrabold text-white hover:bg-slate-700">Print</button>
         </div>
 
         <p className="text-xs font-semibold uppercase tracking-[.12em] text-[var(--text-faint)]">Or print one thing</p>
@@ -692,14 +693,14 @@ function PrintContent() {
             const empty = counts.sheets === 0;
             return (
               <div key={job.id} className="camp-card flex flex-col gap-2 p-5">
-                <p className="text-sm font-black text-slate-900">{job.title}</p>
+                <p className="text-sm font-extrabold text-slate-900">{job.title}</p>
                 <p className="text-sm text-[var(--text-muted)]"><span className="t-data">{counts.primary} · {counts.sheets} sheet{counts.sheets === 1 ? "" : "s"}</span></p>
                 <p className="text-xs text-[var(--text-faint)]">{printLog[job.id] ? `Last printed ${formatLogTime(printLog[job.id])}` : "Not printed yet"}</p>
                 <div className="mt-auto flex items-center gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => empty ? alert("There is nothing to print yet for this document. Add the data in Setup first.") : setTask({ job: job.id })}
-                    className={`rounded-xl px-4 py-2 text-sm font-black ${empty ? "bg-slate-100 text-slate-400" : "bg-slate-900 text-white hover:bg-slate-700"}`}
+                    className={`rounded-xl px-4 py-2 text-sm font-extrabold ${empty ? "bg-slate-100 text-slate-400" : "bg-slate-900 text-white hover:bg-slate-700"}`}
                   >
                     Print
                   </button>
@@ -721,7 +722,7 @@ function PrintContent() {
         <div className="no-print fixed inset-0 z-50 flex justify-end bg-slate-900/30" onClick={() => setDrawerOpen(false)}>
           <div className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-black text-slate-900">Badges & lanyards</h2>
+              <h2 className="text-lg font-extrabold text-slate-900">Badges & lanyards</h2>
               <button type="button" onClick={() => setDrawerOpen(false)} className="rounded-lg px-2 py-1 text-sm font-bold text-slate-500 hover:bg-slate-100">Close</button>
             </div>
             <div className="mt-5 space-y-4">
@@ -757,7 +758,7 @@ function PrintContent() {
               <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--canvas-sunk)] p-4">
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-[.1em] text-[var(--text-faint)]">Preview</p>
                 <div className="mx-auto overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm" style={{ width: 168, height: badgeSize === "5x3" ? 280 : 252 }}>
-                  <div className="flex h-8 items-center justify-center text-[10px] font-black tracking-widest text-white" style={{ background: bandColor }}>
+                  <div className="flex h-8 items-center justify-center text-[10px] font-extrabold tracking-widest text-white" style={{ background: bandColor }}>
                     {badgeRecipients[0] ? fullName(badgeRecipients[0]) : "Name"}
                   </div>
                   <div className="flex flex-col items-center justify-center gap-1 p-3 text-center">
@@ -774,7 +775,7 @@ function PrintContent() {
 
               <div className="flex items-center justify-between gap-2 border-t border-[var(--border-hair)] pt-4">
                 <button type="button" onClick={() => { setDrawerOpen(false); setTask({ job: "badges", testPage: true }); }} className="rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Print one test page</button>
-                <button type="button" onClick={() => { setDrawerOpen(false); setTask({ job: "badges" }); }} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white hover:bg-slate-700">Print all</button>
+                <button type="button" onClick={() => { setDrawerOpen(false); setTask({ job: "badges" }); }} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-extrabold text-white hover:bg-slate-700">Print all</button>
               </div>
             </div>
           </div>

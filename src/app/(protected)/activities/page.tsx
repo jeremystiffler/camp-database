@@ -1115,8 +1115,8 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
       </div>
 
       <div className="flex w-fit gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1" role="tablist" aria-label="Activities workspace">
-        <button type="button" role="tab" aria-selected={workspaceTab === "catalog"} onClick={() => setWorkspaceTab("catalog")} className={`rounded-lg px-4 py-2 text-sm font-black transition ${workspaceTab === "catalog" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Catalog</button>
-        <button type="button" role="tab" aria-selected={workspaceTab === "schedule"} onClick={() => setWorkspaceTab("schedule")} className={`rounded-lg px-4 py-2 text-sm font-black transition ${workspaceTab === "schedule" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Schedule Builder</button>
+        <button type="button" role="tab" aria-selected={workspaceTab === "catalog"} onClick={() => setWorkspaceTab("catalog")} className={`rounded-lg px-4 py-2 text-sm font-extrabold transition ${workspaceTab === "catalog" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Catalog</button>
+        <button type="button" role="tab" aria-selected={workspaceTab === "schedule"} onClick={() => setWorkspaceTab("schedule")} className={`rounded-lg px-4 py-2 text-sm font-extrabold transition ${workspaceTab === "schedule" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Schedule Builder</button>
       </div>
 
       {workspaceTab === "schedule" && (
@@ -1167,7 +1167,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
         <div className="px-5 py-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-sm font-black uppercase tracking-wide text-slate-700">Activity catalog</h2>
+              <h2 className="text-sm font-extrabold uppercase tracking-wide text-slate-700">Activity catalog</h2>
               <HelpCopy title="Activity catalog" className="mt-1 text-xs text-slate-500">Simple rows only: activity, teacher, room, seats, and age groups. Use Schedule Builder for clickable Time Block assignment.</HelpCopy>
             </div>
             <div className="flex items-center gap-2">
@@ -1200,11 +1200,11 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
 
           {selectedCount > 0 && (
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 shadow-sm">
-              <p className="text-sm font-black text-sky-900">{selectedCount} selected</p>
+              <p className="text-sm font-extrabold text-sky-900">{selectedCount} selected</p>
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={duplicateSelectedCourses} disabled={bulkWorking} className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-black text-sky-700 hover:bg-sky-100 disabled:opacity-50">Duplicate</button>
-                <button type="button" onClick={deleteSelectedCourses} disabled={bulkWorking} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50 disabled:opacity-50">Delete</button>
-                <button type="button" onClick={() => setSelectedCourseIds(new Set())} disabled={bulkWorking} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-500 hover:bg-slate-50 disabled:opacity-50">Clear</button>
+                <button type="button" onClick={duplicateSelectedCourses} disabled={bulkWorking} className="rounded-xl border border-sky-200 bg-white px-3 py-2 text-xs font-extrabold text-sky-700 hover:bg-sky-100 disabled:opacity-50">Duplicate</button>
+                <button type="button" onClick={deleteSelectedCourses} disabled={bulkWorking} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-extrabold text-red-600 hover:bg-red-50 disabled:opacity-50">Delete</button>
+                <button type="button" onClick={() => setSelectedCourseIds(new Set())} disabled={bulkWorking} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-500 hover:bg-slate-50 disabled:opacity-50">Clear</button>
               </div>
             </div>
           )}
@@ -1223,7 +1223,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
               <table className="w-full min-w-[760px] text-sm">
-                <thead className="bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
+                <thead className="bg-slate-50 text-xs font-extrabold uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-4 py-3 text-left">
                       <div className="flex items-center gap-3">
@@ -1264,11 +1264,11 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
                             <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-base text-white shadow-sm" style={{ backgroundColor: course.color || "#64748B" }}>{course.icon || "A"}</span>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => { setEditingCourse(course); setShowModal(true); }} className="truncate rounded px-1 font-black text-slate-900 hover:bg-sky-100 hover:text-sky-700" title="Open activity editor">{course.name}</button>
+                                <button type="button" onClick={() => { setEditingCourse(course); setShowModal(true); }} className="truncate rounded px-1 font-extrabold text-slate-900 hover:bg-sky-100 hover:text-sky-700" title="Open activity editor">{course.name}</button>
                                 <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${status.tone}`}>{status.label}</span>
                               </div>
                               {course.description && <p className="mt-0.5 line-clamp-1 max-w-sm text-xs text-slate-500">{course.description}</p>}
-                              {attentionWarnings(course).length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{attentionWarnings(course).map(warning => <span key={warning.key} className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-black text-red-700"><span aria-hidden="true">!</span>{warning.label}<button type="button" onClick={() => void dismissWarning(course, warning.key)} className="ml-0.5 rounded px-1 text-[10px] font-black text-red-700 hover:bg-red-100" title="This is intentional — dismiss until the activity changes">Dismiss</button></span>)}</div>}
+                              {attentionWarnings(course).length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{attentionWarnings(course).map(warning => <span key={warning.key} className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-extrabold text-red-700"><span aria-hidden="true">!</span>{warning.label}<button type="button" onClick={() => void dismissWarning(course, warning.key)} className="ml-0.5 rounded px-1 text-[10px] font-extrabold text-red-700 hover:bg-red-100" title="This is intentional — dismiss until the activity changes">Dismiss</button></span>)}</div>}
                             </div>
                           </div>
                         </td>

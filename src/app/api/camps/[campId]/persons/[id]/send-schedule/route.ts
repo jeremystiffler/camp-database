@@ -241,7 +241,7 @@ function buildEmailHtml(data: ScheduleData, customNote: string): string {
   <div style="max-width:680px;margin:0 auto;padding:24px 16px;">
 
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#22c55e 0%,#0ea5e9 100%);border-radius:16px;padding:28px 32px;margin-bottom:24px;color:#fff;">
+    <div style="background:#1D4FD8;border-radius:16px;padding:28px 32px;margin-bottom:24px;color:#fff;">
       <h1 style="margin:0 0 6px;font-size:24px;font-weight:800;">📋 Your Camp Schedule</h1>
       <p style="margin:0;font-size:16px;opacity:0.9;">${camp.name}${campDateRange ? ` · ${campDateRange}` : ""}</p>
     </div>

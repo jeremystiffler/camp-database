@@ -170,7 +170,7 @@ function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id:
       {field.helpText && <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-sky-800">{field.helpText}</p>}
     </div>
   );
-  if (field.type === "pageBreak") return <div className="my-5 flex items-center gap-3 text-xs font-black uppercase tracking-wide text-amber-700"><span className="h-px flex-1 bg-amber-200" /><span>{sectionBreakLabel(field)}</span><span className="h-px flex-1 bg-amber-200" /></div>;
+  if (field.type === "pageBreak") return <div className="my-5 flex items-center gap-3 text-xs font-extrabold uppercase tracking-wide text-amber-700"><span className="h-px flex-1 bg-amber-200" /><span>{sectionBreakLabel(field)}</span><span className="h-px flex-1 bg-amber-200" /></div>;
   if (field.type === "divider") return <hr className="border-slate-200 my-2" />;
   return (
     <div>
@@ -532,8 +532,8 @@ function RegistrationContent() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2" role="tablist" aria-label="Registration workspace">
-        <button type="button" role="tab" aria-selected={workspaceTab === "settings"} onClick={() => setWorkspaceTab("settings")} className={`rounded-xl px-4 py-2 text-sm font-black transition ${workspaceTab === "settings" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Form Settings</button>
-        <button type="button" role="tab" aria-selected={workspaceTab === "fields"} onClick={() => setWorkspaceTab("fields")} className={`rounded-xl px-4 py-2 text-sm font-black transition ${workspaceTab === "fields" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Fields</button>
+        <button type="button" role="tab" aria-selected={workspaceTab === "settings"} onClick={() => setWorkspaceTab("settings")} className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${workspaceTab === "settings" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Form Settings</button>
+        <button type="button" role="tab" aria-selected={workspaceTab === "fields"} onClick={() => setWorkspaceTab("fields")} className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${workspaceTab === "fields" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>Fields</button>
       </div>
 
       {workspaceTab === "settings" && (
@@ -543,8 +543,8 @@ function RegistrationContent() {
         <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Form setup</p>
-              <h2 className="mt-1 text-lg font-black text-slate-900">Settings</h2>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-slate-400">Form setup</p>
+              <h2 className="mt-1 text-lg font-extrabold text-slate-900">Settings</h2>
               <HelpCopy title="Registration settings" className="mt-1 text-sm text-slate-500">Choose a section on the left, adjust only what matters, then save.</HelpCopy>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-bold">
@@ -572,7 +572,7 @@ function RegistrationContent() {
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-base shadow-sm ring-1 ring-slate-100">{item.icon}</span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-black text-slate-800">{item.title}</span>
+                  <span className="block text-sm font-extrabold text-slate-800">{item.title}</span>
                   <span className="block truncate text-xs text-slate-500">{item.desc}</span>
                 </span>
               </button>
@@ -584,7 +584,7 @@ function RegistrationContent() {
               <div className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                   <label className="block">
-                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Active form</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Active form</span>
                     <select value={selectedFormId} onChange={e => loadForm(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
                       {forms.map(form => <option key={form.id} value={form.id}>{form.title}{form.isDefault ? " · default" : ""}</option>)}
                     </select>
@@ -594,15 +594,15 @@ function RegistrationContent() {
 
                 <div className="grid gap-3 md:grid-cols-[1fr_180px_150px]">
                   <label className="block">
-                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Title</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Title</span>
                     <input value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
                   </label>
                   <label className="block">
-                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Link slug</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Link slug</span>
                     <input value={formSlug} onChange={e => setFormSlug(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
                   </label>
                   <label className="block">
-                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Status</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Status</span>
                     <select value={formStatus} onChange={e => setFormStatus(e.target.value as FormSummary["status"])} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
                       <option value="draft">Draft</option>
                       <option value="public">Public</option>
@@ -629,7 +629,7 @@ function RegistrationContent() {
               <div className="space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
                   <div className="max-w-2xl">
-                    <p className="text-sm font-black text-sky-950">Class choices automation</p>
+                    <p className="text-sm font-extrabold text-sky-950">Class choices automation</p>
                     <HelpCopy title="Class choices" className="mt-1 text-sm text-sky-800">Families pick an <strong>Age Group</strong>, then the form inserts class choices from your Schedule Grid. Full classes hide themselves; opened seats reappear.</HelpCopy>
                     <p className={`mt-2 rounded-xl px-3 py-2 text-xs font-bold ${ageGroupReady ? "bg-forest-50 text-forest-800 border border-forest-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
                       {ageGroupReady ? "✓ Age Group is present and required." : "⚠ Age Group must be on this form and marked required before families can register."}
@@ -637,7 +637,7 @@ function RegistrationContent() {
                   </div>
                   <label className="flex min-w-[220px] items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-white px-4 py-3 shadow-sm">
                     <span>
-                      <span className="block text-sm font-black text-slate-800">Enable class choices</span>
+                      <span className="block text-sm font-extrabold text-slate-800">Enable class choices</span>
                       <span className="block text-xs text-slate-500">Turn off for simple intake.</span>
                     </span>
                     <input type="checkbox" checked={classChoicesEnabled} onChange={e => setClassChoicesEnabled(e.target.checked)} className="h-5 w-5 accent-forest-500" />
@@ -648,10 +648,10 @@ function RegistrationContent() {
                   <div className="rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="max-w-2xl">
-                        <p className="text-sm font-black text-indigo-950">Required class choices by age group</p>
+                        <p className="text-sm font-extrabold text-indigo-950">Required class choices by age group</p>
                         <HelpCopy title="Required class choices" className="mt-1 text-sm leading-relaxed text-indigo-800">Use only when an age group must choose a specific class in any available time block.</HelpCopy>
                       </div>
-                      <button type="button" onClick={addMandatoryRule} disabled={ageGroups.length === 0 || courses.length === 0} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-black text-white hover:bg-indigo-700 disabled:opacity-50">+ Add required class</button>
+                      <button type="button" onClick={addMandatoryRule} disabled={ageGroups.length === 0 || courses.length === 0} className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-indigo-700 disabled:opacity-50">+ Add required class</button>
                     </div>
                     {mandatoryClassRules.length === 0 ? (
                       <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">No required class-choice rules yet.</div>
@@ -662,20 +662,20 @@ function RegistrationContent() {
                           return (
                             <div key={`${rule.ageGroupId}-${rule.courseId}-${index}`} className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
                               <label className="block">
-                                <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Age group</span>
+                                <span className="mb-1 block text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Age group</span>
                                 <select value={rule.ageGroupId} onChange={e => updateMandatoryRule(index, { ageGroupId: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
                                   {ageGroups.map(ageGroup => <option key={ageGroup.id} value={ageGroup.id}>{ageGroup.name}</option>)}
                                 </select>
                               </label>
                               <label className="block">
-                                <span className="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Required class</span>
+                                <span className="mb-1 block text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Required class</span>
                                 <select value={rule.courseId} onChange={e => updateMandatoryRule(index, { courseId: e.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400/30">
                                   <option value="">Select a class…</option>
                                   {eligible.map(course => <option key={course.id} value={course.id}>{course.name}</option>)}
                                 </select>
                                 {eligible.length === 0 && <p className="mt-1 text-[11px] font-bold text-red-600">No classes are assigned to this age group yet.</p>}
                               </label>
-                              <button type="button" onClick={() => removeMandatoryRule(index)} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-600 hover:bg-red-50">Remove</button>
+                              <button type="button" onClick={() => removeMandatoryRule(index)} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-extrabold text-red-600 hover:bg-red-50">Remove</button>
                             </div>
                           );
                         })}
@@ -690,12 +690,12 @@ function RegistrationContent() {
               <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-2xl">
-                    <p className="text-sm font-black text-amber-950">Family registration mode</p>
+                    <p className="text-sm font-extrabold text-amber-950">Family registration mode</p>
                     <HelpCopy title="Family registration" className="mt-1 text-sm text-amber-800">One guardian can add multiple students, choose classes for each child, pay once, and receive one family confirmation email.</HelpCopy>
                   </div>
                   <label className="flex min-w-[240px] items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-white px-4 py-3 shadow-sm">
                     <span>
-                      <span className="block text-sm font-black text-slate-800">Allow multiple students</span>
+                      <span className="block text-sm font-extrabold text-slate-800">Allow multiple students</span>
                       <span className="block text-xs text-slate-500">Best for siblings and households.</span>
                     </span>
                     <input type="checkbox" checked={familyRegistrationEnabled} onChange={e => setFamilyRegistrationEnabled(e.target.checked)} className="h-5 w-5 accent-amber-500" />
@@ -707,16 +707,16 @@ function RegistrationContent() {
             {settingsPanel === "email" && (
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-black text-berry-950">Confirmation email builder</p>
+                  <p className="text-sm font-extrabold text-berry-950">Confirmation email builder</p>
                   <HelpCopy title="Confirmation email" className="mt-1 text-sm text-berry-800">Drag sections into the order you want. Use tokens from event data, guardian data, student data, and your form fields.</HelpCopy>
                 </div>
                 <div className="grid gap-3">
                   <label className="block">
-                    <span className="block text-xs font-black uppercase tracking-wide text-slate-400 mb-1">Subject</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Subject</span>
                     <input value={confirmationEmailSubject} onChange={e => setConfirmationEmailSubject(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30" />
                   </label>
                   <label className="block rounded-2xl border border-amber-100 bg-amber-50/60 p-3">
-                    <span className="block text-xs font-black uppercase tracking-wide text-amber-700 mb-1">Admin notification emails</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-amber-700 mb-1">Admin notification emails</span>
                     <textarea rows={2} value={adminNotificationEmails} onChange={e => setAdminNotificationEmails(e.target.value)} placeholder={"director@example.com\nregistrar@example.com"} className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400/30 resize-none" />
                     <HelpCopy title="Admin notifications" className="mt-1 text-xs font-semibold text-amber-800">Optional. Enter any number of admin emails, separated by commas or new lines.</HelpCopy>
                   </label>
@@ -724,7 +724,7 @@ function RegistrationContent() {
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">Available tokens</p>
+                        <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Available tokens</p>
                         <HelpCopy title="Email tokens" className="text-xs text-slate-500">Click a tag to copy it, then paste it into any editable section.</HelpCopy>
                       </div>
                       <button type="button" onClick={() => setEmailTemplateBlocks(cloneDefaultEmailBlocks())} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Reset default layout</button>
@@ -738,12 +738,12 @@ function RegistrationContent() {
                   <div className="rounded-2xl border border-berry-100 bg-white p-3 shadow-sm">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-sm font-black text-slate-900">Email sections</p>
+                        <p className="text-sm font-extrabold text-slate-900">Email sections</p>
                         <HelpCopy title="Email sections" className="text-xs text-slate-500">Drag with the handle. Toggle sections on/off. Custom text sections can use tokens.</HelpCopy>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => addEmailBlock("text")} className="rounded-xl bg-berry-600 px-3 py-2 text-xs font-black text-white hover:bg-berry-700">+ Text block</button>
-                        <button type="button" onClick={() => addEmailBlock("footer")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:bg-slate-50">+ Footer</button>
+                        <button type="button" onClick={() => addEmailBlock("text")} className="rounded-xl bg-berry-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-berry-700">+ Text block</button>
+                        <button type="button" onClick={() => addEmailBlock("footer")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-600 hover:bg-slate-50">+ Footer</button>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -757,7 +757,7 @@ function RegistrationContent() {
                               <select value={block.type} onChange={e => updateEmailBlock(block.id, { type: e.target.value as EmailBlockType, title: block.title || EMAIL_BLOCK_LABELS[e.target.value as EmailBlockType] })} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-700">
                                 {Object.entries(EMAIL_BLOCK_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                               </select>
-                              <span className="flex-1 text-sm font-black text-slate-800">{EMAIL_BLOCK_LABELS[block.type]}</span>
+                              <span className="flex-1 text-sm font-extrabold text-slate-800">{EMAIL_BLOCK_LABELS[block.type]}</span>
                               <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500"><input type="checkbox" checked={block.enabled !== false} onChange={e => updateEmailBlock(block.id, { enabled: e.target.checked })} /> Show</label>
                               <button type="button" onClick={() => removeEmailBlock(block.id)} className="text-sm text-slate-300 hover:text-red-500">✕</button>
                             </div>
@@ -797,12 +797,12 @@ function RegistrationContent() {
               {showAddMenu && (
                 <div className="absolute right-0 top-9 max-h-[70vh] overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-2xl z-20 p-2 w-80">
                   <div className="px-3 py-2 border-b border-slate-100 mb-1">
-                    <p className="text-sm font-black text-slate-800">Add form element</p>
+                    <p className="text-sm font-extrabold text-slate-800">Add form element</p>
                     <p className="text-xs text-slate-500">Jotform-style blocks: drag it later, tweak it instantly.</p>
                   </div>
                   {ADD_FIELD_CATEGORIES.map(category => (
                     <div key={category} className="py-1">
-                      <p className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">{category}</p>
+                      <p className="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">{category}</p>
                       {ADD_FIELD_TYPES.filter(t => t.category === category).map((t, idx) => (
                         <button key={`${t.type}-${t.label}-${idx}`} onClick={() => addField(t)}
                           className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-sky-50 rounded-xl flex items-start gap-2.5 transition-colors">
@@ -820,7 +820,7 @@ function RegistrationContent() {
             </div>
           </div>
 
-          <button type="button" onClick={() => setSystemFieldsOpen(value => !value)} aria-expanded={systemFieldsOpen} className="mb-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-black text-slate-700 hover:bg-slate-100">
+          <button type="button" onClick={() => setSystemFieldsOpen(value => !value)} aria-expanded={systemFieldsOpen} className="mb-3 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-extrabold text-slate-700 hover:bg-slate-100">
             <span>Required fields ({fields.filter(field => field.system).length})</span><span aria-hidden="true">{systemFieldsOpen ? "▴" : "▾"}</span>
           </button>
           <div className="space-y-1.5">
@@ -843,7 +843,7 @@ function RegistrationContent() {
                   <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${indentField ? "bg-sky-50 text-sky-600" : field.type === "pageBreak" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
                     {FIELD_ICONS[field.type] || field.type}
                   </span>
-                  <span className={`flex-1 text-sm truncate ${indentField ? "font-medium text-slate-800" : "font-black text-slate-700"}`}>{field.type === "pageBreak" ? sectionBreakLabel(field) : field.label}</span>
+                  <span className={`flex-1 text-sm truncate ${indentField ? "font-medium text-slate-800" : "font-extrabold text-slate-700"}`}>{field.type === "pageBreak" ? sectionBreakLabel(field) : field.label}</span>
                   {indentField && <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wide text-sky-500 bg-sky-50 px-2 py-0.5 rounded-full">field</span>}
                   {field.required && <span className="text-red-400 text-xs">*</span>}
                   {field.system && <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-1.5 rounded border border-slate-200">Required event field · locked</span>}
@@ -877,7 +877,7 @@ function RegistrationContent() {
                 <div className="flex items-start gap-3">
                   <div className={`flex h-9 w-9 items-center justify-center rounded-xl text-lg ${classChoicesEnabled ? "bg-forest-100" : "bg-white"}`}>{classChoicesEnabled ? "🎨" : "📝"}</div>
                   <div className="flex-1">
-                    <p className="text-sm font-black text-slate-800">{classChoicesEnabled ? "Auto-added classroom choices step" : "Class choices disabled for this form"}</p>
+                    <p className="text-sm font-extrabold text-slate-800">{classChoicesEnabled ? "Auto-added classroom choices step" : "Class choices disabled for this form"}</p>
                     <p className="mt-1 text-xs leading-relaxed text-slate-600">
                       {classChoicesEnabled
                         ? "Families will see the schedule here after they choose an Age Group. The app shows one choice per session, hides full classes, includes required sessions automatically, and saves enrollments when they submit."

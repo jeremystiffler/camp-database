@@ -33,7 +33,6 @@
   --color-forest-700: #047857;
   --color-sky-50:  #F0F9FF;
   --color-sky-100: #E0F2FE;
-  --color-sky-500: #0EA5E9;
   --color-sky-600: #0284C7;
   --color-sunset-50:  #FFF7ED;
   --color-sunset-100: #FFEDD5;
@@ -119,15 +118,15 @@ body {
 
 /* ===================== Minimal Admin System ===================== */
 .camp-card {
-  background: var(--ui-surface, #fffdf9);
-  border: 1px solid var(--ui-border, #ddd1c3);
+  background: var(--canvas);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md, 12px);
   box-shadow: 0 1px 2px rgba(31, 35, 38, 0.035);
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
 }
 .camp-card:hover {
   transform: translateY(-1px);
-  border-color: var(--ui-border-strong, #c9b8a5);
+  border-color: var(--border-strong);
   box-shadow: var(--shadow-lift, 0 8px 24px rgba(11,18,32,.10));
 }
 
@@ -135,19 +134,13 @@ body {
 .icon-badge-sky,
 .icon-badge-sunset,
 .icon-badge-berry,
-.icon-badge-earth {
-  border: 1px solid rgba(31,35,38,0.08);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
-}
 .icon-badge-forest { background: #e8eee2; color: #637a55; }
 .icon-badge-sky { background: #e5edf3; color: #5f7e99; }
-.icon-badge-sunset { background: var(--ui-clay-soft, #f3e3dc); color: #9b624f; }
 .icon-badge-berry { background: #ece8f4; color: #796fa4; }
-.icon-badge-earth { background: var(--ui-butter-soft, #f5ecd1); color: #92743a; }
 
 .tile-button {
-  background: var(--ui-surface, #fffdf9);
-  border: 1px solid var(--ui-border, #ddd1c3);
+  background: var(--canvas);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md, 12px);
   box-shadow: var(--shadow-md, 0 2px 8px rgba(11,18,32,.06));
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
@@ -157,13 +150,13 @@ body {
   border-color: var(--tile-accent, #74a7a2);
   box-shadow: var(--shadow-lift, 0 8px 24px rgba(11,18,32,.10));
 }
-.tile-sage { --tile-accent: #758966; background: linear-gradient(135deg, #e8eee2, #fffdf9); }
-.tile-denim { --tile-accent: #6f8da8; background: linear-gradient(135deg, #e5edf3, #fffdf9); }
-.tile-clay { --tile-accent: var(--ui-clay); background: linear-gradient(135deg, var(--ui-clay-soft), #fffdf9); }
-.tile-lavender { --tile-accent: #796fa4; background: linear-gradient(135deg, #ece8f4, #fffdf9); }
-.tile-butter { --tile-accent: var(--ui-butter); background: linear-gradient(135deg, var(--ui-butter-soft), #fffdf9); }
-.tile-aqua { --tile-accent: #74a7a2; background: linear-gradient(135deg, #e3efee, #fffdf9); }
-.tile-berry { --tile-accent: #a4708e; background: linear-gradient(135deg, #f0e4ec, #fffdf9); }
+.tile-sage { --tile-accent: #758966; background: linear-gradient(135deg, #e8eee2, var(--canvas)); }
+.tile-denim { --tile-accent: #6f8da8; background: linear-gradient(135deg, #e5edf3, var(--canvas)); }
+.tile-clay { --tile-accent: var(--danger); background: linear-gradient(135deg, var(--danger-wash), var(--canvas)); }
+.tile-lavender { --tile-accent: #796fa4; background: linear-gradient(135deg, #ece8f4, var(--canvas)); }
+.tile-butter { --tile-accent: var(--warning); background: linear-gradient(135deg, var(--warning-wash), var(--canvas)); }
+.tile-aqua { --tile-accent: #74a7a2; background: linear-gradient(135deg, #e3efee, var(--canvas)); }
+.tile-berry { --tile-accent: #a4708e; background: linear-gradient(135deg, #f0e4ec, var(--canvas)); }
 
 .minimal-input {
   width: 100%;
@@ -234,15 +227,6 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
   color: #737373;
 }
 
-/* Shared top-level heading for sidebar workspaces. */
-.page-title {
-  margin-top: 0.25rem;
-  color: #0f172a;
-  font-size: 1.5rem;
-  font-weight: 900;
-  letter-spacing: -0.025em;
-  line-height: 1.2;
-}
 
 /* ===================== Clean Playground Admin Color System ===================== */
 :root {
@@ -263,23 +247,6 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
   --radius-full: 9999px;
   --control-h: 40px;
 
-  --ui-bg: #f1f5f9;
-  --ui-surface: var(--surface);
-  --ui-surface-muted: var(--surface-alt);
-  --ui-border: var(--border);
-  --ui-border-strong: #cbd5e1;
-  --ui-text: var(--text-strong);
-  --ui-text-soft: var(--text);
-  --ui-text-muted: var(--text);
-  --ui-text-faint: var(--text-muted);
-
-  /* Neutral tint tokens (fixed, not theme-driven — decorative chips and stats only). */
-  --ui-butter: #b45309;
-  --ui-butter-soft: #fef3c7;
-  --ui-clay: #be123c;
-  --ui-clay-soft: #ffe4e6;
-  --ui-danger: var(--danger);
-  --ui-danger-soft: #fee2e2;
 
   /* Brand tokens: defaults only. The theme wrapper overrides all of these with
      literal hex values per event (programPalettes.themeTokens). Never alias
@@ -378,16 +345,16 @@ a[class*="bg-slate-900"]:hover {
 .bg-emerald-500, .bg-emerald-600 { background-color: var(--success) !important; }
 .bg-sky-500, .bg-sky-600 { background-color: #6f8da8 !important; }
 .bg-berry-500, .bg-berry-600 { background-color: #796fa4 !important; }
-.bg-sunset-500, .bg-sunset-600, .bg-orange-500 { background-color: var(--ui-clay) !important; }
-.bg-amber-500 { background-color: var(--ui-butter) !important; }
-.bg-red-500, .bg-red-600 { background-color: var(--ui-danger) !important; }
+.bg-sunset-500, .bg-sunset-600, .bg-orange-500 { background-color: var(--danger) !important; }
+.bg-amber-500 { background-color: var(--warning) !important; }
+.bg-red-500, .bg-red-600 { background-color: var(--danger) !important; }
 
 .bg-forest-50, .bg-emerald-50 { background-color: #e8eee2 !important; }
 .bg-sky-50 { background-color: #e5edf3 !important; }
 .bg-berry-50 { background-color: #ece8f4 !important; }
-.bg-sunset-50, .bg-orange-50 { background-color: var(--ui-clay-soft) !important; }
-.bg-amber-50 { background-color: var(--ui-butter-soft) !important; }
-.bg-rose-50, .bg-red-50 { background-color: var(--ui-danger-soft) !important; }
+.bg-sunset-50, .bg-orange-50 { background-color: var(--danger-wash) !important; }
+.bg-amber-50 { background-color: var(--warning-wash) !important; }
+.bg-rose-50, .bg-red-50 { background-color: var(--danger-wash) !important; }
 
 .bg-forest-100, .bg-emerald-100 { background-color: #dce8d5 !important; }
 .bg-sky-100 { background-color: #d7e6ef !important; }
@@ -401,12 +368,12 @@ a[class*="bg-slate-900"]:hover {
 .text-berry-600, .text-berry-700 { color: #4338ca !important; }
 .text-sunset-600, .text-sunset-700, .text-orange-600, .text-orange-700 { color: #be123c !important; }
 .text-amber-600, .text-amber-700 { color: #92400e !important; }
-.text-rose-700, .text-red-500, .text-red-600, .text-red-700 { color: var(--ui-danger) !important; }
+.text-rose-700, .text-red-500, .text-red-600, .text-red-700 { color: var(--danger) !important; }
 
 /* Contrast guardrails: slate-400/500 were too faint in many small labels,
    especially when placed over tinted cards or dark selected states. */
-.text-slate-400 { color: var(--ui-text-faint) !important; }
-.text-slate-500 { color: var(--ui-text-muted) !important; }
+.text-slate-400 { color: var(--text-faint) !important; }
+.text-slate-500 { color: var(--text-muted) !important; }
 .text-white\/75 { color: rgba(255, 255, 255, 0.9) !important; }
 .text-indigo-500\/70 { color: #1d4ed8 !important; }
 
@@ -435,7 +402,7 @@ a[class*="bg-slate-900"]:hover {
 
 .text-red-800, .text-red-900, .text-orange-800, .text-orange-900, .text-amber-800, .text-amber-900,
 .text-emerald-800, .text-sky-800, .text-sky-900, .text-rose-800 {
-  color: var(--ui-text) !important;
+  color: var(--text-strong) !important;
 }
 
 .border-forest-100, .border-forest-200, .border-forest-300, .border-forest-400,
@@ -446,7 +413,7 @@ a[class*="bg-slate-900"]:hover {
 .border-emerald-200, .border-emerald-300,
 .border-red-100, .border-red-200, .border-red-300,
 .border-rose-200, .border-rose-300 {
-  border-color: var(--ui-border) !important;
+  border-color: var(--border) !important;
 }
 
 .focus\:ring-forest-500\/30:focus, .focus\:ring-sky-500\/30:focus, .focus\:ring-berry-500\/30:focus,
@@ -505,9 +472,7 @@ a[class*="bg-slate-900"]:hover {
   --radius-xs: 6px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 9999px;
   --shadow-sm: 0 1px 2px rgba(11,18,32,.04); --shadow-md: 0 2px 8px rgba(11,18,32,.06); --shadow-lift: 0 8px 24px rgba(11,18,32,.10);
   --control-h: 40px; --control-h-sm: 32px;
-  --ui-bg: var(--canvas-sunk); --ui-surface: var(--canvas); --ui-surface-muted: var(--canvas-sunk);
-  --ui-border: var(--border); --ui-border-strong: var(--border-strong); --ui-text: var(--text-strong);
-  --ui-text-soft: var(--text); --ui-text-muted: var(--text-muted); --ui-text-faint: var(--text-faint);
+
   --font-display: var(--font-heading), 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --act-indigo-rail:#6366F1; --act-indigo-wash:#EFF0FE; --act-indigo-ink:#3730A3;
   --act-blue-rail:#3B82F6; --act-blue-wash:#EDF4FE; --act-blue-ink:#1E40AF;
@@ -525,7 +490,19 @@ a[class*="bg-slate-900"]:hover {
 body { background: var(--canvas-sunk); color: var(--text); font-family: var(--font-body); }
 .camp-card { background: var(--canvas); border-color: var(--border); box-shadow: var(--shadow-sm); }
 .camp-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
-.page-title { font-family: var(--font-display); font-weight: 700; color: var(--text-strong); }
+/* Shared top-level heading for sidebar workspaces. Previously declared twice —
+   the earlier block set font-weight:900 and a hardcoded #0f172a, both already
+   dead because this rule won on equal specificity. Its geometry was real, so it
+   is merged here rather than dropped. */
+.page-title {
+  margin-top: 0.25rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text-strong);
+}
 .t-data { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .act-block { position:relative; overflow:hidden; border:1px solid color-mix(in srgb,var(--act-rail) 22%,transparent); border-radius:var(--radius-md); background:var(--act-wash); padding:10px 10px 10px 14px; transition:box-shadow .15s ease,transform .15s ease; }
 .act-block::before { content:''; position:absolute; inset-block:0; inset-inline-start:0; width:3px; background:var(--act-rail); }

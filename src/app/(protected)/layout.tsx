@@ -227,7 +227,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const isKioskShell = pathname.startsWith("/check-in") && searchParams.get("kiosk") === "1";
   // nextSteps / showBuildGuidance deleted with the banner (§5.2).
   const workspaceStyle = {
-    background: "var(--ui-bg)",
+    background: "var(--canvas-sunk)",
     ...themeTokens(activeCamp?.primaryColor, activeCamp?.accentColor, activeCamp?.themePreset),
   } as CSSProperties;
 
@@ -273,7 +273,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
           <div className="px-3 py-4 border-b border-slate-100">
             <p className="minimal-section-title px-2 mb-2">Current event</p>
             <div className="rounded-2xl border border-slate-200 bg-slate-100 p-3 shadow-sm">
-              <p className="text-sm font-black text-slate-900 leading-snug break-words">
+              <p className="text-sm font-extrabold text-slate-900 leading-snug break-words">
                 {activeCamp?.name || "Select an event"}
               </p>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 mt-1">
@@ -282,7 +282,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => setCampSwitcherOpen((open) => !open)}
-                className="mt-3 w-full rounded-xl px-3 py-2 text-xs font-black text-white shadow-sm hover:brightness-105 transition-all"
+                className="mt-3 w-full rounded-xl px-3 py-2 text-xs font-extrabold text-white shadow-sm hover:brightness-105 transition-all"
                 style={{ background: `linear-gradient(135deg, ${activeCamp?.primaryColor || "#075985"}, ${activeCamp?.accentColor || "#0284C7"})` }}
               >
                 Switch events
@@ -300,7 +300,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                       onClick={() => handleCampChange(camp)}
                       className={`w-full text-left rounded-xl px-3 py-2.5 transition-colors ${selected ? "bg-slate-200 text-slate-900" : "text-slate-700 hover:bg-slate-100"}`}
                     >
-                      <span className="block text-sm font-black leading-tight">{camp.name}</span>
+                      <span className="block text-sm font-extrabold leading-tight">{camp.name}</span>
                       <span className={`block text-[11px] mt-0.5 ${selected ? "text-slate-600" : "text-slate-400"}`}>
                         {selected ? `Active now • ${camp.myRole || "viewer"}` : `Switch to ${camp.status} • ${camp.myRole || "viewer"}`}
                       </span>
@@ -336,7 +336,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             })}</div>
           </div>
           <div>
-            <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-50 hover:text-slate-900"><span>More</span><span aria-hidden="true">{moreOpen ? "▴" : "▾"}</span></button>
+            <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-extrabold text-slate-600 hover:bg-slate-50 hover:text-slate-900"><span>More</span><span aria-hidden="true">{moreOpen ? "▴" : "▾"}</span></button>
             {moreOpen && <div className="mt-1 space-y-1 border-l border-slate-200 pl-2">{moreNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
               return <Link key={item.href} href={navHref(item.href)} aria-current={isActive ? "page" : undefined} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive ? "bg-slate-200 text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"}`}><span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isActive ? "bg-white text-slate-700" : "bg-slate-100 text-slate-500"}`}><SidebarIcon name={item.icon} /></span>{item.label}</Link>;
@@ -375,7 +375,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
         </button>
         <span className="ml-3 font-bold text-slate-800">Simple Schedule Pro</span>
       </div>}
-      <main className={`flex-1 min-h-dvh flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`} style={{ background: "var(--ui-bg)" }}>
+      <main className={`flex-1 min-h-dvh flex justify-center ${isKioskShell ? "pt-0" : "lg:ml-64 pt-14 lg:pt-0"}`} style={{ background: "var(--canvas-sunk)" }}>
         <div className={`w-full min-h-dvh px-3 py-5 sm:px-6 sm:py-7 lg:px-8 lg:py-8 ${isKioskShell ? "max-w-none" : "max-w-7xl"}`}>
           {/* The sticky "NEXT STEP · Continue →" banner stood here and is
               deleted (§5.2). It was the fourth element on /setup answering

@@ -62,7 +62,7 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   return (
     <section id={title.toLowerCase().replace(/[^a-z0-9]+/g, "-")} className="camp-card p-6 mb-5 scroll-mt-6">
       <div className="mb-4">
-        <h2 className="font-black text-slate-900 text-base">{title}</h2>
+        <h2 className="font-extrabold text-slate-900 text-base">{title}</h2>
         {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
       </div>
       {children}
@@ -256,7 +256,7 @@ function SettingsContent() {
         {([
           ["profile", "Profile"], ["billing", "Billing"], ["appearance", "Appearance"], ["utilities", "Utilities"],
         ] as const).map(([tab, label]) => (
-          <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={`rounded-xl px-4 py-2 text-sm font-black transition ${activeTab === tab ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>{label}</button>
+          <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${activeTab === tab ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>{label}</button>
         ))}
       </div>
 
@@ -325,13 +325,13 @@ function SettingsContent() {
               <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "campPays" }))}
                 className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "campPays" ? "border-forest-400 bg-forest-50" : "border-slate-200 hover:border-slate-300"}`}>
                 <p className="text-sm font-bold text-slate-800">Event pays yearly</p>
-                <p className="mt-1 text-2xl font-black text-forest-700">{money(billing.annualSubscriptionCents)}<span className="text-xs font-semibold text-slate-500">/year</span></p>
+                <p className="mt-1 text-2xl font-extrabold text-forest-700">{money(billing.annualSubscriptionCents)}<span className="text-xs font-semibold text-slate-500">/year</span></p>
                 <p className="mt-2 text-xs text-slate-500">Best when your event wants registration to feel completely free for families.</p>
               </button>
               <button type="button" onClick={() => setBilling(prev => ({ ...prev, billingMode: "camperFee" }))}
                 className={`rounded-2xl border-2 p-4 text-left transition-all ${billing.billingMode === "camperFee" ? "border-sky-400 bg-sky-50" : "border-slate-200 hover:border-slate-300"}`}>
                 <p className="text-sm font-bold text-slate-800">Participants pay registration</p>
-                <p className="mt-1 text-2xl font-black text-sky-700">{money(billing.camperPriceCents + platformEstimate)}<span className="text-xs font-semibold text-slate-500">/participant</span></p>
+                <p className="mt-1 text-2xl font-extrabold text-sky-700">{money(billing.camperPriceCents + platformEstimate)}<span className="text-xs font-semibold text-slate-500">/participant</span></p>
                 <p className="mt-2 text-xs text-slate-500">Families pay the event price plus our 3% platform fee, capped at {money(billing.platformFeeCapCents)}.</p>
               </button>
             </div>
@@ -488,7 +488,7 @@ function SettingsContent() {
       <div id="utilities" className="camp-card p-5 border border-slate-200 bg-white mb-5 scroll-mt-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white text-sm font-black flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white text-sm font-extrabold flex-shrink-0">
               I
             </div>
             <div>
@@ -515,7 +515,7 @@ function SettingsContent() {
           {deleteConfirmOpen && <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-950/40" onClick={() => setDeleteConfirmOpen(false)} />
             <div role="dialog" aria-modal="true" aria-labelledby="delete-event-title" className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-              <h2 id="delete-event-title" className="text-xl font-black text-slate-900">Delete this event?</h2>
+              <h2 id="delete-event-title" className="text-xl font-extrabold text-slate-900">Delete this event?</h2>
               <p className="mt-2 text-sm text-slate-600">This permanently removes <strong>{campName}</strong>, its schedule, participants, and settings. Type the event name to continue.</p>
               <input autoFocus value={deleteConfirmation} onChange={e => setDeleteConfirmation(e.target.value)} placeholder={campName} className="mt-4 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
               <div className="mt-5 flex justify-end gap-3">

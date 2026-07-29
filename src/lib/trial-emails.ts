@@ -198,16 +198,16 @@ function renderTrialEmail(definition: TrialEmailDefinition, user: TrialEmailUser
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#0f172a;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(definition.preview)}</div>
   <div style="max-width:620px;margin:0 auto;padding:32px 16px;">
-    <div style="background:linear-gradient(135deg,#4f46e5,#0ea5e9);border-radius:24px;padding:30px;color:#fff;text-align:center;">
+    <div style="background:#1D4FD8;border-radius:24px;padding:30px;color:#fff;text-align:center;">
       <div style="font-size:42px;margin-bottom:8px;">Simple Schedule Pro</div>
-      <h1 style="margin:0;font-size:28px;line-height:1.15;font-weight:900;">${escapeHtml(definition.heading)}</h1>
+      <h1 style="margin:0;font-size:28px;line-height:1.15;font-weight:800;">${escapeHtml(definition.heading)}</h1>
       <p style="margin:14px 0 0;color:rgba(255,255,255,.88);font-size:15px;">14-day trial · no credit card required · 50% off first year</p>
     </div>
     <div style="background:#fff;border:1px solid #e2e8f0;border-radius:20px;margin-top:18px;padding:28px;box-shadow:0 18px 45px rgba(15,23,42,.08);">
       <p style="margin:0 0 16px;font-size:16px;color:#334155;">Hi ${escapeHtml(greetingName)},</p>
       <p style="margin:0 0 18px;font-size:16px;line-height:1.65;color:#475569;">${escapeHtml(definition.intro)}</p>
       <ul style="margin:0 0 24px;padding-left:22px;">${bulletHtml}</ul>
-      <a href="${ctaUrl}" style="display:block;background:#0f172a;color:#fff;text-align:center;padding:15px 18px;border-radius:14px;font-weight:900;text-decoration:none;font-size:15px;">${escapeHtml(definition.ctaLabel)}</a>
+      <a href="${ctaUrl}" style="display:block;background:#0f172a;color:#fff;text-align:center;padding:15px 18px;border-radius:14px;font-weight:800;text-decoration:none;font-size:15px;">${escapeHtml(definition.ctaLabel)}</a>
       ${definition.footer ? `<p style="margin:18px 0 0;font-size:14px;line-height:1.55;color:#64748b;">${escapeHtml(definition.footer)}</p>` : ""}
     </div>
     <p style="text-align:center;margin:18px 0 0;font-size:12px;color:#94a3b8;">Simple Schedule Pro — built for event directors, volunteers, and spreadsheet survivors.</p>

@@ -159,16 +159,16 @@ function renderClassGrid(rows: ConfirmationScheduleRow[]) {
   const sortedRows = [...uniqueRows].sort((a, b) => sessionSortValue(a).localeCompare(sessionSortValue(b)));
   return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:separate;border-spacing:0;border:1px solid #dbeafe;border-radius:18px;overflow:hidden;background:#ffffff;box-shadow:0 12px 28px rgba(37,99,235,0.08);">
     <thead>
-      <tr style="background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;">
+      <tr style="background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">
         <th align="left" style="padding:12px 14px;border-right:1px solid #dbeafe;width:150px;">Time</th>
         <th align="left" style="padding:12px 14px;">Session / Class</th>
       </tr>
     </thead>
     <tbody>
       ${sortedRows.map((row, index) => `<tr style="background:${index % 2 === 0 ? "#ffffff" : "#f8fafc"};">
-        <td valign="top" style="padding:14px;border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;font-size:17px;font-weight:900;color:#0f172a;white-space:nowrap;">${escapeHtml(formatSessionTime(row.startTime, row.endTime))}</td>
+        <td valign="top" style="padding:14px;border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;font-size:17px;font-weight:800;color:#0f172a;white-space:nowrap;">${escapeHtml(formatSessionTime(row.startTime, row.endTime))}</td>
         <td valign="top" style="padding:14px;border-top:1px solid #e2e8f0;">
-          <div style="font-size:18px;font-weight:900;color:#0f172a;line-height:1.25;">${escapeHtml(row.className)}</div>
+          <div style="font-size:18px;font-weight:800;color:#0f172a;line-height:1.25;">${escapeHtml(row.className)}</div>
           <div style="font-size:13px;font-weight:700;color:#64748b;margin-top:3px;">${escapeHtml(row.label || "Session")}</div>
         </td>
       </tr>`).join("")}
@@ -266,7 +266,7 @@ async function sendConfirmationEmail({
     ].filter(Boolean).join(" • ");
     const classesHtml = `<h3 style="font-size:16px;margin:16px 0 8px;color:#1e3a8a;">Class Schedule</h3>${renderClassGrid(student.classScheduleRows)}`;
     return `<div style="border:1px solid #bfdbfe;border-radius:18px;padding:16px;margin:14px 0;background:#f8fbff;">
-      <div style="font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#2563eb;margin-bottom:4px;">Student ${index + 1}</div>
+      <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#1D4FD8;margin-bottom:4px;">Student ${index + 1}</div>
       <h2 style="font-size:22px;margin:0;color:#0f172a;line-height:1.2;">${escapeHtml(studentName)}</h2>
       ${detailParts ? `<p style="margin:6px 0 0;color:#475569;font-size:15px;font-weight:700;">${detailParts}</p>` : ""}
       ${classesHtml}
@@ -365,7 +365,7 @@ async function sendAdminNotificationEmail({
       ? Object.entries(student.customData).filter(([, v]) => String(v ?? "").trim()).map(([key, value]) => `<li><strong>${escapeHtml(key)}:</strong> ${escapeHtml(Array.isArray(value) ? value.join(", ") : value)}</li>`).join("")
       : "";
     return `<div style="border:1px solid #bfdbfe;border-radius:18px;padding:16px;margin:14px 0;background:#f8fbff;">
-      <div style="font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#2563eb;margin-bottom:4px;">Student ${index + 1}</div>
+      <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#1D4FD8;margin-bottom:4px;">Student ${index + 1}</div>
       <h2 style="font-size:22px;margin:0;color:#0f172a;line-height:1.2;">${escapeHtml(studentName)}</h2>
       ${detailParts ? `<p style="margin:6px 0 0;color:#475569;font-size:15px;font-weight:700;">${detailParts}</p>` : ""}
       <h3 style="font-size:16px;margin:16px 0 8px;color:#1e3a8a;">Class Schedule</h3>

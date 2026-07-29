@@ -76,7 +76,7 @@ function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc:
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 text-xl shadow-sm">{icon}</div>
-      <h3 className="text-lg font-black text-slate-900">{title}</h3>
+      <h3 className="text-lg font-extrabold text-slate-900">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{desc}</p>
     </div>
   );
@@ -103,13 +103,13 @@ function PricingCard({
 }) {
   return (
     <div className={`rounded-3xl border p-7 shadow-sm ${highlighted ? "border-indigo-200 bg-gradient-to-b from-indigo-50 to-white ring-4 ring-indigo-100" : "border-slate-200 bg-white"}`}>
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-500">{eyebrow}</p>
-      <h3 className="mt-3 text-2xl font-black text-slate-900">{title}</h3>
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-indigo-500">{eyebrow}</p>
+      <h3 className="mt-3 text-2xl font-extrabold text-slate-900">{title}</h3>
       <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
-        <p className="text-4xl font-black tracking-tight text-slate-950">{monthly}</p>
-        <p className="pb-1 text-sm font-black text-emerald-600">or {yearly}</p>
+        <p className="text-4xl font-extrabold tracking-tight text-slate-950">{monthly}</p>
+        <p className="pb-1 text-sm font-extrabold text-emerald-600">or {yearly}</p>
       </div>
-      <p className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800">Founding offer: {founding}</p>
+      <p className="mt-3 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">Founding offer: {founding}</p>
       <p className="mt-3 min-h-12 text-sm leading-relaxed text-slate-600">{desc}</p>
       <div className="mt-6 space-y-3 text-sm font-semibold text-slate-700">{children}</div>
     </div>
@@ -128,10 +128,10 @@ function ProductMockup() {
       <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">Today's event</p>
-            <h3 className="text-lg font-black text-slate-900">Daily schedule</h3>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Today's event</p>
+            <h3 className="text-lg font-extrabold text-slate-900">Daily schedule</h3>
           </div>
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">Ready</span>
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-700">Ready</span>
         </div>
         <div className="grid gap-3 sm:grid-cols-[1fr_0.85fr]">
           <div className="space-y-2">
@@ -139,20 +139,20 @@ function ProductMockup() {
               <div key={item.time} className="rounded-2xl border border-slate-200 bg-white p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black text-slate-400">{item.time}</p>
-                    <p className="text-sm font-black text-slate-800">{item.title}</p>
+                    <p className="text-xs font-extrabold text-slate-400">{item.time}</p>
+                    <p className="text-sm font-extrabold text-slate-800">{item.title}</p>
                   </div>
-                  <span className={`rounded-full px-2 py-1 text-[11px] font-black ${item.color}`}>{item.tag}</span>
+                  <span className={`rounded-full px-2 py-1 text-[11px] font-extrabold ${item.color}`}>{item.tag}</span>
                 </div>
               </div>
             ))}
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-400">Operations</p>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Operations</p>
             <div className="mt-4 space-y-3">
-              <div className="rounded-2xl bg-indigo-50 p-3"><p className="text-2xl font-black text-indigo-600">84</p><p className="text-xs font-bold text-slate-500">registered participants</p></div>
-              <div className="rounded-2xl bg-sky-50 p-3"><p className="text-2xl font-black text-sky-600">6</p><p className="text-xs font-bold text-slate-500">printable packets</p></div>
-              <div className="rounded-2xl bg-emerald-50 p-3"><p className="text-2xl font-black text-emerald-600">0</p><p className="text-xs font-bold text-slate-500">schedule conflicts</p></div>
+              <div className="rounded-2xl bg-indigo-50 p-3"><p className="text-2xl font-extrabold text-indigo-600">84</p><p className="text-xs font-bold text-slate-500">registered participants</p></div>
+              <div className="rounded-2xl bg-sky-50 p-3"><p className="text-2xl font-extrabold text-sky-600">6</p><p className="text-xs font-bold text-slate-500">printable packets</p></div>
+              <div className="rounded-2xl bg-emerald-50 p-3"><p className="text-2xl font-extrabold text-emerald-600">0</p><p className="text-xs font-bold text-slate-500">schedule conflicts</p></div>
             </div>
           </div>
         </div>
@@ -169,31 +169,31 @@ export default function LandingPage() {
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex items-center gap-3">
           <SSPLogo size={40} />
-          <span className="text-lg font-black tracking-tight text-slate-950">Simple Schedule Pro</span>
+          <span className="text-lg font-extrabold tracking-tight text-slate-950">Simple Schedule Pro</span>
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
           <a href="#features" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 sm:inline-block">Features</a>
           <a href="#pricing" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 sm:inline-block">Pricing</a>
           <Link href="/login" className="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900">Log in</Link>
-          <Link href="/signup" className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">Start Free</Link>
+          <Link href="/signup" className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">Start Free</Link>
         </div>
       </nav>
 
       <section className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 pb-16 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pb-24 lg:pt-24">
         <div>
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white px-4 py-2 text-sm font-black text-indigo-600 shadow-sm">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white px-4 py-2 text-sm font-extrabold text-indigo-600 shadow-sm">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             14-day free trial • no credit card required
           </div>
-          <h1 className="max-w-4xl text-5xl font-black tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
+          <h1 className="max-w-4xl text-5xl font-extrabold tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
             Registration, scheduling, and check-in — finally in one place.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl">
             Simple Schedule Pro gives youth events, workshops, leagues, and classes a single command center for family sign-ups, class choices, conflict-safe schedules, rosters, badges, pickup cards, and payments — no spreadsheet required.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/signup" className="rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-7 py-4 text-center text-base font-black text-white shadow-xl shadow-indigo-200 transition hover:-translate-y-1">Start Free Trial</Link>
-            <a href="#pricing" className="rounded-2xl border border-slate-200 bg-transparent px-7 py-4 text-center text-base font-black text-slate-700 transition hover:border-slate-300 hover:bg-white">See pricing</a>
+            <Link href="/signup" className="rounded-2xl bg-[var(--info)] px-7 py-4 text-center text-base font-extrabold text-white shadow-xl shadow-indigo-200 transition hover:-translate-y-1">Start Free Trial</Link>
+            <a href="#pricing" className="rounded-2xl border border-slate-200 bg-transparent px-7 py-4 text-center text-base font-extrabold text-slate-700 transition hover:border-slate-300 hover:bg-white">See pricing</a>
           </div>
         </div>
         <ProductMockup />
@@ -201,8 +201,8 @@ export default function LandingPage() {
 
       <section id="features" className="relative z-10 mx-auto max-w-7xl px-6 py-16">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-black uppercase tracking-[0.22em] text-indigo-500">Everything in one place</p>
-          <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Built for the week when everything usually catches fire.</h2>
+          <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-indigo-500">Everything in one place</p>
+          <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">Built for the week when everything usually catches fire.</h2>
           <p className="mt-4 text-slate-600">Keep setup, registration, schedules, check-in, and printed materials connected instead of spread across ten tabs and one heroic clipboard.</p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -213,15 +213,15 @@ export default function LandingPage() {
       <section id="pricing" className="relative z-10 mx-auto max-w-7xl px-6 py-16">
         <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-black uppercase tracking-[0.22em] text-indigo-500">Pricing</p>
-            <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Simple pricing for events just getting started — and ready to grow.</h2>
+            <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-indigo-500">Pricing</p>
+            <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">Simple pricing for events just getting started — and ready to grow.</h2>
           </div>
           <p className="max-w-2xl text-slate-600">Try Simple Schedule Pro free for 14 days, no credit card required. Founding customers get 50% off their first year. Paid registrations include a simple 3% platform fee, usually paid by the registrant.</p>
         </div>
         <div className="mb-5 grid gap-2 rounded-2xl border border-slate-200 bg-white p-3 sm:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className="px-3 py-2 text-center sm:border-r sm:border-slate-100 last:border-0">
-              <p className="text-lg font-black text-slate-950">{stat.value}</p>
+              <p className="text-lg font-extrabold text-slate-950">{stat.value}</p>
               <p className="mt-0.5 text-xs font-bold text-slate-500">{stat.label}</p>
             </div>
           ))}
@@ -246,10 +246,10 @@ export default function LandingPage() {
       </section>
 
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-20 text-center">
-        <div className="rounded-[2rem] bg-gradient-to-r from-indigo-500 to-sky-500 p-10 text-white shadow-2xl shadow-indigo-200">
-          <h2 className="text-4xl font-black tracking-tight">Ready to run your event without the spreadsheet circus?</h2>
+        <div className="rounded-[2rem] bg-[var(--info)] p-10 text-white shadow-2xl shadow-indigo-200">
+          <h2 className="text-4xl font-extrabold tracking-tight">Ready to run your event without the spreadsheet circus?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/85">Start your 14-day no-card trial today. Founding events get 50% off the first year when they upgrade.</p>
-          <Link href="/signup" className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 text-base font-black text-slate-950 shadow-lg transition hover:-translate-y-1">Start Free Trial</Link>
+          <Link href="/signup" className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 text-base font-extrabold text-slate-950 shadow-lg transition hover:-translate-y-1">Start Free Trial</Link>
         </div>
       </section>
 

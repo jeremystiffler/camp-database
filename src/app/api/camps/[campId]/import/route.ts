@@ -4,11 +4,19 @@ import { getSession } from "@/lib/auth";
 import { checkSchedulingConflicts } from "@/lib/scheduling-conflicts";
 import { storedCapacity, syncCourseSessionCapacities } from "@/lib/capacity";
 
-const ACTIVITY_COLORS  = ["#22C55E","#0EA5E9","#F97316","#A855F7","#EAB308","#EC4899","#14B8A6","#6366F1"];
-const AGE_GROUP_COLORS = ["#6366F1","#22C55E","#0EA5E9","#F97316","#A855F7","#EC4899","#EAB308","#14B8A6"];
+// Age-group swatches. Activities no longer carry a raw hex at all — their
+// colour is derived from the name by resolveActivityHue(), so importing the same
+// CSV twice produces the same colours instead of reshuffling them.
+const AGE_GROUP_COLORS = ["#6366F1","#22C55E","#0891B2","#F97316","#A855F7","#EC4899","#EAB308","#14B8A6"];
 
-function randomColor(palette: string[]): string {
-  return palette[Math.floor(Math.random() * palette.length)];
+/** Deterministic pick: the same name always lands on the same swatch. */
+function stableColor(palette: string[], seed: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return palette[hash % palette.length];
 }
 
 interface ImportRow {
@@ -74,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           ageGroupId = existing.id;
         } else {
           const created = await prisma.ageGroup.create({
-            data: { campId, name: row.age_group_name.trim(), color: randomColor(AGE_GROUP_COLORS) },
+            data: { campId, name: row.age_group_name.trim(), color: stableColor(AGE_GROUP_COLORS, row.age_group_name.trim().toLowerCase()) },
           });
           ageGroupId = created.id;
           ageGroupsCreated++;
@@ -179,8 +187,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
             campId,
             name: row.activity_name.trim(),
             description: row.activity_description?.trim() || undefined,
-            icon: "🎯",
-            color: randomColor(ACTIVITY_COLORS),
+            // No placeholder icon and no stored hex: the colour is derived from
+            // the activity name at render time (resolveActivityHue), so repeated
+            // names share an identity and re-importing is stable.
+            color: undefined,
             cap: targetCap,
             roomId: roomId || undefined,
           },

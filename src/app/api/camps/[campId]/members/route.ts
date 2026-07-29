@@ -109,7 +109,7 @@ function buildInviteEmail({ email, campName, role, inviteUrl, inviterName }: {
   };
   return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
-    <div style="background:linear-gradient(135deg,#22c55e,#0ea5e9);border-radius:16px;padding:28px 32px;margin-bottom:24px;color:#fff;text-align:center;">
+    <div style="background:#1D4FD8;border-radius:16px;padding:28px 32px;margin-bottom:24px;color:#fff;text-align:center;">
       <div style="font-size:48px;margin-bottom:8px;">🏕️</div>
       <h1 style="margin:0 0 6px;font-size:22px;font-weight:800;">You're Invited!</h1>
       <p style="margin:0;opacity:0.9;">${inviterName} invited you to join <strong>${campName}</strong></p>

@@ -803,7 +803,7 @@ function SetupContent() {
     <button
       type="button"
       onClick={advanceToFollowingStep}
-      className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-slate-700"
+      className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-slate-700"
     >
       {continueLabel(stepLabel(followingStep))}
     </button>
@@ -885,7 +885,7 @@ function SetupContent() {
         </div>
 
         <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
-          <h3 className="text-xl font-black text-slate-950">{stepLabel(activeStep)}</h3>
+          <h3 className="text-xl font-extrabold text-slate-950">{stepLabel(activeStep)}</h3>
           <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">{activeStep.help}</p>
         </div>
 
@@ -924,7 +924,7 @@ function SetupContent() {
           </div>
           <div className="flex max-w-md flex-wrap items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
             <span className="font-semibold text-slate-700">Dates drive the schedule grid.</span>
-            <button type="button" onClick={useSampleWeekDates} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-black text-slate-700 hover:border-slate-400">
+            <button type="button" onClick={useSampleWeekDates} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-extrabold text-slate-700 hover:border-slate-400">
               Use next Mon–Fri
             </button>
           </div>
@@ -965,7 +965,7 @@ function SetupContent() {
           {rooms.map(room => (
             <div key={room.id} className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 md:grid-cols-[minmax(180px,1.1fr)_120px_minmax(220px,1.5fr)_auto] md:items-center">
               <label className="block min-w-0">
-                <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Room / location name</span>
+                <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400 mb-1">Room / location name</span>
                 <input
                   type="text"
                   defaultValue={room.name}
@@ -978,7 +978,7 @@ function SetupContent() {
                 />
               </label>
               <label className="block">
-                <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Capacity</span>
+                <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400 mb-1">Capacity</span>
                 <input
                   type="number"
                   min={1}
@@ -989,7 +989,7 @@ function SetupContent() {
                 />
               </label>
               <label className="block min-w-0">
-                <span className="block text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Location / description</span>
+                <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400 mb-1">Location / description</span>
                 <input
                   type="text"
                   defaultValue={room.description || ""}
@@ -1436,14 +1436,14 @@ function SetupContent() {
           <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-wide text-sky-700">Step 6 · Activity Catalog</p>
-                <h2 className="mt-1 text-lg font-black text-slate-900">Add the activity basics. Schedule comes next.</h2>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-sky-700">Step 6 · Activity Catalog</p>
+                <h2 className="mt-1 text-lg font-extrabold text-slate-900">Add the activity basics. Schedule comes next.</h2>
                 <HelpCopy title="Activity basics" className="mt-1 text-sm text-slate-600">Keep this tab simple: activity name, lead teacher, room, and total seats available. The clickable time-slot grid lives on the next tab.</HelpCopy>
               </div>
               <button
                 type="button"
                 onClick={() => refreshAndGo("schedule")}
-                className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
+                className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700"
               >
                 Save and continue to Schedule Grid →
               </button>
@@ -1456,7 +1456,7 @@ function SetupContent() {
             <button
               type="button"
               onClick={() => refreshAndGo("schedule")}
-              className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
+              className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700"
             >
               Save and continue →
             </button>
@@ -1469,8 +1469,8 @@ function SetupContent() {
           <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-wide text-amber-700">Step 7 · Clickable Schedule Grid</p>
-                <h2 className="mt-1 text-lg font-black text-slate-900">Click where each activity belongs.</h2>
+                <p className="text-xs font-extrabold uppercase tracking-wide text-amber-700">Step 7 · Clickable Schedule Grid</p>
+                <h2 className="mt-1 text-lg font-extrabold text-slate-900">Click where each activity belongs.</h2>
                 <HelpCopy title="Clickable schedule grid" className="mt-1 text-sm text-slate-600">Activities are rows. Time blocks are columns. Click a cell to add or remove that activity from that block — simple as setting chairs before service starts.</HelpCopy>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
                   <span className="rounded-full bg-white px-3 py-1 text-slate-600 shadow-sm">{courses.length} activities</span>
@@ -1481,7 +1481,7 @@ function SetupContent() {
               <button
                 type="button"
                 onClick={() => refreshAndGo("registration")}
-                className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
+                className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700"
               >
                 Save and continue to Registration Form →
               </button>
@@ -1494,7 +1494,7 @@ function SetupContent() {
             <button
               type="button"
               onClick={() => refreshAndGo("registration")}
-              className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700"
+              className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700"
             >
               Save and continue →
             </button>
@@ -1513,7 +1513,7 @@ function SetupContent() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 lg:justify-end">
-              <Link href={`/registration?campId=${campId}`} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-slate-700">Manage form →</Link>
+              <Link href={`/registration?campId=${campId}`} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700">Manage form →</Link>
               <Link href={`/register/${campId}`} target="_blank" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Preview public form</Link>
             </div>
           </div>
@@ -1526,7 +1526,7 @@ function SetupContent() {
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {setupSteps.slice(0, 8).map(step => (
                 <button key={step.key} type="button" onClick={() => goToStep(step.key)} className={`rounded-xl border px-3 py-2 text-left text-sm transition ${step.done ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"}`}>
-                  <span className="font-black">{step.done ? "Done" : "Needs"} {step.label}</span>
+                  <span className="font-extrabold">{step.done ? "Done" : "Needs"} {step.label}</span>
                   <span className="mt-0.5 block text-xs opacity-75">{step.done ? "Ready" : step.help}</span>
                 </button>
               ))}
@@ -1538,7 +1538,7 @@ function SetupContent() {
                   type="button"
                   disabled={!registrationReady || saving}
                   onClick={() => saveCamp({ registrationOpen: true, status: "published" })}
-                  className="rounded-xl bg-forest-500 px-4 py-2.5 text-sm font-black text-white shadow-sm hover:bg-forest-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl bg-forest-500 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-forest-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {registrationOpen ? "Registration is open" : saving ? "Opening..." : "Open registration"}
                 </button>

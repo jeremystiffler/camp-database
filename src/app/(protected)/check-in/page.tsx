@@ -568,35 +568,35 @@ function CheckInContent() {
         <button
           type="button"
           onClick={() => { setShowKioskExitPrompt(true); setKioskExitPassword(""); setKioskExitError(""); }}
-          className="fixed right-4 top-4 z-50 rounded-2xl border border-slate-200 bg-white/95 px-4 py-2 text-sm font-black text-slate-700 shadow-sm backdrop-blur hover:bg-slate-50"
+          className="fixed right-4 top-4 z-50 rounded-2xl border border-slate-200 bg-white/95 px-4 py-2 text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur hover:bg-slate-50"
         >
           Exit kiosk
         </button>
         <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-4xl flex-col justify-center space-y-6 py-8">
         <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-700">Kiosk mode</p>
-          <h1 className="mt-2 text-4xl font-black text-slate-950 sm:text-5xl">Self Check In/Out</h1>
+          <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-emerald-700">Kiosk mode</p>
+          <h1 className="mt-2 text-4xl font-extrabold text-slate-950 sm:text-5xl">Self Check In/Out</h1>
           <p className="mx-auto mt-3 max-w-2xl text-base font-semibold text-slate-600">Check children in or out by scanning their QR code, searching for the adult/guardian name, or finding the child's name. Admin menus, participant records, schedules, and private details stay hidden.</p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-48 rounded-[2rem] bg-slate-950 p-8 text-left text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800">
             <span className="text-5xl">▣</span>
-            <span className="mt-5 block text-2xl font-black">Scan QR Code</span>
+            <span className="mt-5 block text-2xl font-extrabold">Scan QR Code</span>
             <span className="mt-2 block text-sm font-semibold text-white/70">Scans check in if not arrived, or check out if already checked in.</span>
           </button>
           <div className="min-h-48 rounded-[2rem] border border-sky-200 bg-sky-50 p-8 text-left text-sky-950 shadow-sm">
             <span className="text-5xl">⌕</span>
-            <span className="mt-5 block text-2xl font-black">Find by Name</span>
+            <span className="mt-5 block text-2xl font-extrabold">Find by Name</span>
             <span className="mt-2 block text-sm font-semibold text-sky-800/70">Type at least two letters of the adult or child name, then tap Check In or Check Out.</span>
           </div>
         </div>
 
         <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-sm">
-          <label className="text-xs font-black uppercase tracking-wide text-slate-400">Scan code or find a name</label>
+          <label className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Scan code or find a name</label>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row">
             <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void kioskSearchSubmit(); }} placeholder="Type adult/guardian name, child name, paste QR text, or scan from a USB scanner..." className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" autoFocus />
-            <button onClick={() => void kioskSearchSubmit()} className="min-h-14 rounded-2xl bg-emerald-600 px-6 text-base font-black text-white hover:bg-emerald-700">Search / Use Scan</button>
+            <button onClick={() => void kioskSearchSubmit()} className="min-h-14 rounded-2xl bg-emerald-600 px-6 text-base font-extrabold text-white hover:bg-emerald-700">Search / Use Scan</button>
           </div>
           {kioskNameMatches.length > 0 && <div className="mt-4 space-y-2">
             {kioskNameMatches.map(camper => {
@@ -605,13 +605,13 @@ function CheckInContent() {
               const done = status === "checked_out";
               return <div key={camper.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-lg font-black text-slate-900">{fullName(camper)}</p>
+                  <p className="text-lg font-extrabold text-slate-900">{fullName(camper)}</p>
                   <p className="text-xs font-bold text-slate-500">Status: {STATUS_COPY[status]?.label || "Not arrived"}</p>
                 </div>
                 <div className="flex gap-2">
-                  {!canCheckOut && !done && <button disabled={savingId === camper.id} onClick={() => void kioskToggleCamper(camper)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Check In</button>}
-                  {canCheckOut && <button disabled={savingId === camper.id} onClick={() => void kioskToggleCamper(camper)} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">Check Out</button>}
-                  {done && <span className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-400">Checked Out</span>}
+                  {!canCheckOut && !done && <button disabled={savingId === camper.id} onClick={() => void kioskToggleCamper(camper)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50">Check In</button>}
+                  {canCheckOut && <button disabled={savingId === camper.id} onClick={() => void kioskToggleCamper(camper)} className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50">Check Out</button>}
+                  {done && <span className="rounded-xl bg-white px-4 py-2 text-sm font-extrabold text-slate-400">Checked Out</span>}
                 </div>
               </div>;
             })}
@@ -627,17 +627,17 @@ function CheckInContent() {
             <div className="w-full max-w-md rounded-[2rem] bg-white p-5 shadow-2xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Staff only</p>
-                  <h2 className="mt-1 text-2xl font-black text-slate-950">Exit kiosk mode</h2>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">Staff only</p>
+                  <h2 className="mt-1 text-2xl font-extrabold text-slate-950">Exit kiosk mode</h2>
                   <p className="mt-2 text-sm font-semibold text-slate-500">Enter the staff password to restore the admin sidebar and navigation.</p>
                 </div>
-                <button onClick={() => { setShowKioskExitPrompt(false); setKioskExitPassword(""); setKioskExitError(""); }} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
+                <button onClick={() => { setShowKioskExitPrompt(false); setKioskExitPassword(""); setKioskExitError(""); }} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-extrabold text-slate-600">Close</button>
               </div>
               <input type="password" value={kioskExitPassword} onChange={e => { setKioskExitPassword(e.target.value); setKioskExitError(""); }} onKeyDown={e => { if (e.key === "Enter") exitKioskMode(); }} placeholder="Password to exit kiosk" className="mt-5 min-h-14 w-full rounded-2xl border border-slate-200 px-4 text-base font-bold text-slate-800 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100" autoFocus />
               {kioskExitError && <p className="mt-2 text-sm font-bold text-rose-600">{kioskExitError}</p>}
               <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <button onClick={() => { setShowKioskExitPrompt(false); setKioskExitPassword(""); setKioskExitError(""); }} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 hover:bg-slate-50">Cancel</button>
-                <button onClick={exitKioskMode} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800">Exit kiosk</button>
+                <button onClick={() => { setShowKioskExitPrompt(false); setKioskExitPassword(""); setKioskExitError(""); }} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-extrabold text-slate-600 hover:bg-slate-50">Cancel</button>
+                <button onClick={exitKioskMode} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white hover:bg-slate-800">Exit kiosk</button>
               </div>
             </div>
           </div>
@@ -647,8 +647,8 @@ function CheckInContent() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
             <div className="w-full max-w-2xl rounded-3xl bg-white p-4 shadow-2xl">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <div><h2 className="text-lg font-black text-slate-900">Scan child QR</h2><p className="text-xs font-semibold text-slate-500">Point the camera at the QR code. No child information will be displayed.</p></div>
-                <button onClick={() => setScannerOpen(false)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
+                <div><h2 className="text-lg font-extrabold text-slate-900">Scan child QR</h2><p className="text-xs font-semibold text-slate-500">Point the camera at the QR code. No child information will be displayed.</p></div>
+                <button onClick={() => setScannerOpen(false)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-extrabold text-slate-600">Close</button>
               </div>
               <video ref={videoRef} className="aspect-video w-full rounded-2xl bg-slate-900 object-cover" playsInline muted autoPlay />
               <canvas ref={canvasRef} className="hidden" />
@@ -665,11 +665,11 @@ function CheckInContent() {
     <div className="space-y-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Day-of operations</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-slate-400">Day-of operations</p>
           <h1 className="page-title">Fast Check-In / Check-Out</h1>
           <HelpCopy title="Check in/out workflow" className="mt-1 text-sm text-slate-500">Use Check In for arrivals. Once a child is checked in, they immediately move to Check Out so staff can release them from the still-on-campus list.</HelpCopy>
         </div>
-        <div className="flex flex-wrap gap-2"><input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" /><button onClick={load} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50">Refresh</button><button onClick={startKioskSetup} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-slate-800">Kiosk mode</button></div>
+        <div className="flex flex-wrap gap-2"><input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" /><button onClick={load} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-slate-700 shadow-sm hover:bg-slate-50">Refresh</button><button onClick={startKioskSetup} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800">Kiosk mode</button></div>
       </div>
 
       {settingKioskPassword && (
@@ -677,40 +677,40 @@ function CheckInContent() {
           <div className="w-full max-w-lg rounded-[2rem] bg-white p-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Kiosk mode</p>
-                <h2 className="mt-1 text-2xl font-black text-slate-950">Start self check in/out</h2>
+                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-emerald-700">Kiosk mode</p>
+                <h2 className="mt-1 text-2xl font-extrabold text-slate-950">Start self check in/out</h2>
                 <p className="mt-2 text-sm font-semibold text-slate-500">Families can scan a QR code or search by adult/guardian name or child name. The app chrome and private admin details will be hidden until staff enters this exit password.</p>
               </div>
-              <button onClick={() => { setSettingKioskPassword(false); setKioskSetupError(""); }} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
+              <button onClick={() => { setSettingKioskPassword(false); setKioskSetupError(""); }} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-extrabold text-slate-600">Close</button>
             </div>
-            <label className="mt-5 block text-xs font-black uppercase tracking-wide text-slate-400">Staff exit password</label>
+            <label className="mt-5 block text-xs font-extrabold uppercase tracking-wide text-slate-400">Staff exit password</label>
             <input type="password" value={newKioskPassword} onChange={e => { setNewKioskPassword(e.target.value); setKioskSetupError(""); }} onKeyDown={e => { if (e.key === "Enter") enterKioskMode(); }} placeholder="Set a password staff can use to exit" className="mt-2 min-h-14 w-full rounded-2xl border border-slate-200 px-4 text-base font-bold text-slate-800 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100" autoFocus />
             {kioskSetupError && <p className="mt-2 text-sm font-bold text-rose-600">{kioskSetupError}</p>}
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button onClick={() => { setSettingKioskPassword(false); setKioskSetupError(""); }} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button onClick={enterKioskMode} className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700">Enter kiosk mode</button>
+              <button onClick={() => { setSettingKioskPassword(false); setKioskSetupError(""); }} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-extrabold text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button onClick={enterKioskMode} className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white hover:bg-emerald-700">Enter kiosk mode</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="grid gap-3 md:grid-cols-4">
-        <button onClick={() => setView("walk_up")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "walk_up" ? "bg-emerald-600 text-white" : "border border-emerald-200 bg-emerald-50 text-emerald-900"}`}><p className="text-3xl font-black">{counts.walk_up}</p><p className="text-sm font-black">Check In</p><p className="text-xs font-semibold opacity-75">Not arrived</p></button>
-        <button onClick={() => setView("checked_in")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "checked_in" ? "bg-slate-900 text-white" : "border border-sky-200 bg-sky-50 text-sky-900"}`}><p className="text-3xl font-black">{counts.checked_in}</p><p className="text-sm font-black">Check Out</p><p className="text-xs font-semibold opacity-75">Still on campus</p></button>
-        <button onClick={() => setView("attention")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "attention" ? "bg-amber-500 text-white" : "border border-amber-200 bg-amber-50 text-amber-900"}`}><p className="text-3xl font-black">{counts.attention}</p><p className="text-sm font-black">Needs Attention</p><p className="text-xs font-semibold opacity-75">Payment/contact gaps</p></button>
-        <button onClick={() => setView("checked_out")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "checked_out" ? "bg-sky-600 text-white" : "border border-slate-200 bg-white text-slate-900"}`}><p className="text-3xl font-black">{counts.checked_out}</p><p className="text-sm font-black">Checked Out</p><p className="text-xs font-semibold opacity-75">Done for the day</p></button>
+        <button onClick={() => setView("walk_up")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "walk_up" ? "bg-emerald-600 text-white" : "border border-emerald-200 bg-emerald-50 text-emerald-900"}`}><p className="text-3xl font-extrabold">{counts.walk_up}</p><p className="text-sm font-extrabold">Check In</p><p className="text-xs font-semibold opacity-75">Not arrived</p></button>
+        <button onClick={() => setView("checked_in")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "checked_in" ? "bg-slate-900 text-white" : "border border-sky-200 bg-sky-50 text-sky-900"}`}><p className="text-3xl font-extrabold">{counts.checked_in}</p><p className="text-sm font-extrabold">Check Out</p><p className="text-xs font-semibold opacity-75">Still on campus</p></button>
+        <button onClick={() => setView("attention")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "attention" ? "bg-amber-500 text-white" : "border border-amber-200 bg-amber-50 text-amber-900"}`}><p className="text-3xl font-extrabold">{counts.attention}</p><p className="text-sm font-extrabold">Needs Attention</p><p className="text-xs font-semibold opacity-75">Payment/contact gaps</p></button>
+        <button onClick={() => setView("checked_out")} className={`rounded-3xl p-4 text-left shadow-sm transition ${view === "checked_out" ? "bg-sky-600 text-white" : "border border-slate-200 bg-white text-slate-900"}`}><p className="text-3xl font-extrabold">{counts.checked_out}</p><p className="text-sm font-extrabold">Checked Out</p><p className="text-xs font-semibold opacity-75">Done for the day</p></button>
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row">
           <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") manualScanSubmit(); }} placeholder={view === "checked_in" ? "Search who is still on campus, guardian phone, or paste/scan QR text..." : "Quick search: participant, guardian, phone, email, or paste/scan QR text..."} className="min-h-14 flex-1 rounded-2xl border border-slate-200 px-4 text-lg font-bold text-slate-800 outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-100" autoFocus />
-          <button onClick={manualScanSubmit} className="min-h-14 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 text-base font-black text-emerald-800 hover:bg-emerald-100">Use as Scan</button>
-          <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-14 rounded-2xl bg-slate-900 px-6 text-base font-black text-white hover:bg-slate-700">Open Camera</button>
-          <Link href={`/campers?campId=${campId}`} className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-6 text-base font-black text-slate-700 hover:bg-slate-100">+ Walk-Up</Link>
+          <button onClick={manualScanSubmit} className="min-h-14 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 text-base font-extrabold text-emerald-800 hover:bg-emerald-100">Use as Scan</button>
+          <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-14 rounded-2xl bg-slate-900 px-6 text-base font-extrabold text-white hover:bg-slate-700">Open Camera</button>
+          <Link href={`/campers?campId=${campId}`} className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-6 text-base font-extrabold text-slate-700 hover:bg-slate-100">+ Walk-Up</Link>
         </div>
         {view === "walk_up" && <div className="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3">
-          <button onClick={() => setActiveLetter("")} className={`rounded-full px-3 py-1.5 text-xs font-black ${!activeLetter ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}>All</button>
-          {LETTERS.map(letter => <button key={letter} disabled={!availableLetters.has(letter)} onClick={() => setActiveLetter(letter)} className={`rounded-full px-3 py-1.5 text-xs font-black ${activeLetter === letter ? "bg-sky-600 text-white" : availableLetters.has(letter) ? "bg-slate-100 text-slate-700 hover:bg-slate-200" : "bg-slate-50 text-slate-300"}`}>{letter}</button>)}
+          <button onClick={() => setActiveLetter("")} className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${!activeLetter ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}>All</button>
+          {LETTERS.map(letter => <button key={letter} disabled={!availableLetters.has(letter)} onClick={() => setActiveLetter(letter)} className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${activeLetter === letter ? "bg-sky-600 text-white" : availableLetters.has(letter) ? "bg-slate-100 text-slate-700 hover:bg-slate-200" : "bg-slate-50 text-slate-300"}`}>{letter}</button>)}
         </div>}
         {scanMessage && <p className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900">{scanMessage}</p>}
         {scanError && <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">{scanError}</p>}
@@ -720,8 +720,8 @@ function CheckInContent() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-2xl rounded-3xl bg-white p-4 shadow-2xl">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <div><h2 className="text-lg font-black text-slate-900">Scan child QR</h2><p className="text-xs font-semibold text-slate-500">Camera uses native QR detection when available, plus a JS fallback for iPad Safari.</p></div>
-              <button onClick={() => setScannerOpen(false)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
+              <div><h2 className="text-lg font-extrabold text-slate-900">Scan child QR</h2><p className="text-xs font-semibold text-slate-500">Camera uses native QR detection when available, plus a JS fallback for iPad Safari.</p></div>
+              <button onClick={() => setScannerOpen(false)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-extrabold text-slate-600">Close</button>
             </div>
             <video ref={videoRef} className="aspect-video w-full rounded-2xl bg-slate-900 object-cover" playsInline muted autoPlay />
             <canvas ref={canvasRef} className="hidden" />
@@ -735,12 +735,12 @@ function CheckInContent() {
         <div className="flex h-48 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-forest-500 border-t-transparent" /></div>
       ) : visibleCampers.length === 0 ? (
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <p className="text-lg font-black text-slate-800">{view === "walk_up" ? "Everyone is either checked in or checked out." : view === "checked_in" ? "No one is currently waiting for checkout." : view === "attention" ? "No participants need attention right now." : "No participants match this view."}</p>
+          <p className="text-lg font-extrabold text-slate-800">{view === "walk_up" ? "Everyone is either checked in or checked out." : view === "checked_in" ? "No one is currently waiting for checkout." : view === "attention" ? "No participants need attention right now." : "No participants match this view."}</p>
           <p className="mt-1 text-sm font-semibold text-slate-400">{query ? "Try clearing the search or switching tabs." : "Nice and tidy — like a clipboard after a miracle."}</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="grid grid-cols-[1.1fr_1fr_1.35fr_0.9fr] gap-4 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-400 max-lg:hidden">
+          <div className="grid grid-cols-[1.1fr_1fr_1.35fr_0.9fr] gap-4 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-extrabold uppercase tracking-wide text-slate-400 max-lg:hidden">
             <div>Participant</div><div>Guardian</div><div>Approved pickup</div><div>Check-in</div>
           </div>
           <div className="divide-y divide-slate-100">
@@ -754,37 +754,37 @@ function CheckInContent() {
               return (
                 <div key={camper.id} className="grid gap-4 px-4 py-4 text-sm lg:grid-cols-[1.1fr_1fr_1.35fr_0.9fr] lg:items-start">
                   <div className="min-w-0 space-y-2">
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 lg:hidden">Participant</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 lg:hidden">Participant</p>
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <h2 className="truncate text-base font-black text-slate-900">{fullName(camper)}</h2>
-                      <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${statusMeta.cls}`}>{statusMeta.label}</span>
+                      <h2 className="truncate text-base font-extrabold text-slate-900">{fullName(camper)}</h2>
+                      <span className={`rounded-full border px-2 py-0.5 text-[11px] font-extrabold ${statusMeta.cls}`}>{statusMeta.label}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
                       <span>Payment needed?</span>
-                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${paymentNeededClass(camper)}`}>{paymentNeededLabel(camper)}</span>
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-extrabold ${paymentNeededClass(camper)}`}>{paymentNeededLabel(camper)}</span>
                     </div>
-                    <p className="text-xs font-bold text-slate-500">Pickup #: <span className="font-black text-slate-800">{camper.pickupNumber || "—"}</span></p>
-                    <p className="text-xs font-bold text-slate-500">Checked in/out: <span className="font-black text-slate-800">{inOut}</span></p>
+                    <p className="text-xs font-bold text-slate-500">Pickup #: <span className="font-extrabold text-slate-800">{camper.pickupNumber || "—"}</span></p>
+                    <p className="text-xs font-bold text-slate-500">Checked in/out: <span className="font-extrabold text-slate-800">{inOut}</span></p>
                   </div>
                   <div className="min-w-0 space-y-2">
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 lg:hidden">Guardian</p>
-                    <p className="truncate text-base font-black text-slate-900">{camper.guardianName || "—"}</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 lg:hidden">Guardian</p>
+                    <p className="truncate text-base font-extrabold text-slate-900">{camper.guardianName || "—"}</p>
                     <p className="text-xs font-bold text-slate-500">Guardian phone</p>
-                    {camper.guardianPhone ? <a className="block truncate font-black text-sky-700 hover:underline" href={`tel:${camper.guardianPhone}`}>{camper.guardianPhone}</a> : <span className="font-bold text-slate-400">—</span>}
+                    {camper.guardianPhone ? <a className="block truncate font-extrabold text-sky-700 hover:underline" href={`tel:${camper.guardianPhone}`}>{camper.guardianPhone}</a> : <span className="font-bold text-slate-400">—</span>}
                   </div>
                   <div className="min-w-0 space-y-2">
-                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-400 lg:hidden">Approved pickup</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-400 lg:hidden">Approved pickup</p>
                     <p className="text-xs font-bold text-slate-500">Approved pickup names</p>
                     <p className="font-semibold leading-6 text-slate-700" title={pickupList}>{pickupList}</p>
-                    <p className="text-[11px] font-black uppercase tracking-wide text-emerald-700">Including guardian</p>
+                    <p className="text-[11px] font-extrabold uppercase tracking-wide text-emerald-700">Including guardian</p>
                   </div>
                   <div className="flex flex-wrap gap-2 lg:flex-col lg:items-stretch">
-                    {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => checkInAndShowCheckout(camper)} className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
-                    {status === "checked_in" && <button disabled={saving} onClick={() => checkout(camper)} className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-black text-white disabled:opacity-50">{saving ? "Saving…" : "Check Out"}</button>}
-                    {status === "checked_out" && <button disabled className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-black text-slate-400">Checked Out</button>}
-                    {!paymentCleared(camper) && <button disabled={saving} onClick={() => updateAttendance(camper, "mark_paid", { note: "Marked paid during check-in" })} className="rounded-2xl bg-amber-500 px-3 py-2.5 text-sm font-black text-white disabled:opacity-50">Mark Paid</button>}
-                    <button type="button" onClick={() => setCodeCamper(camper)} className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-black text-indigo-800 hover:bg-indigo-100">QR / Pickup</button>
-                    {status !== "not_arrived" && <button disabled={saving} onClick={() => updateAttendance(camper, "reset")} className="rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-black text-slate-500 disabled:opacity-50">Reset</button>}
+                    {status !== "checked_in" && status !== "checked_out" && <button disabled={saving} onClick={() => checkInAndShowCheckout(camper)} className="rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">{saving ? "Saving…" : "Check In"}</button>}
+                    {status === "checked_in" && <button disabled={saving} onClick={() => checkout(camper)} className="rounded-2xl bg-sky-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">{saving ? "Saving…" : "Check Out"}</button>}
+                    {status === "checked_out" && <button disabled className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-extrabold text-slate-400">Checked Out</button>}
+                    {!paymentCleared(camper) && <button disabled={saving} onClick={() => updateAttendance(camper, "mark_paid", { note: "Marked paid during check-in" })} className="rounded-2xl bg-amber-500 px-3 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">Mark Paid</button>}
+                    <button type="button" onClick={() => setCodeCamper(camper)} className="rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-extrabold text-indigo-800 hover:bg-indigo-100">QR / Pickup</button>
+                    {status !== "not_arrived" && <button disabled={saving} onClick={() => updateAttendance(camper, "reset")} className="rounded-2xl border border-slate-200 px-3 py-2.5 text-sm font-extrabold text-slate-500 disabled:opacity-50">Reset</button>}
                   </div>
                 </div>
               );
@@ -797,14 +797,14 @@ function CheckInContent() {
           <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Scannable codes</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">{fullName(codeCamper)}</h2>
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-400">Scannable codes</p>
+                <h2 className="mt-1 text-xl font-extrabold text-slate-900">{fullName(codeCamper)}</h2>
                 <p className="mt-1 text-sm font-bold text-slate-500">Pickup #{codeCamper.pickupNumber || "—"} · {codeCamper.lastName.toUpperCase()} FAMILY</p>
               </div>
-              <button onClick={() => setCodeCamper(null)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600">Close</button>
+              <button onClick={() => setCodeCamper(null)} className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-extrabold text-slate-600">Close</button>
             </div>
             <div className="mt-5 flex justify-center"><CamperScannableCode value={codeCamper.scanCode} label="Participant QR" size={180} /></div>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-black">
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-extrabold">
               <Link href={`/print?campId=${campId}`} className="rounded-xl border border-slate-200 px-3 py-2 text-center text-slate-700 hover:bg-slate-50">Open Print Center</Link>
               <button onClick={() => navigator.clipboard?.writeText(codeCamper.scanCode || "")} className="rounded-xl bg-slate-900 px-3 py-2 text-white">Copy scan code</button>
             </div>

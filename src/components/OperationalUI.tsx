@@ -15,7 +15,7 @@ export function PageHeader({ eyebrow, title, description, primaryAction, seconda
 }
 
 export function EmptyState({ title, description, actionHref, actionLabel }: { title: string; description: string; actionHref?: string; actionLabel?: string }) {
-  return <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center"><div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-lg">✦</div><h2 className="text-base font-black text-slate-900">{title}</h2><p className="mx-auto mt-1 max-w-md text-sm text-slate-600">{description}</p>{actionHref && actionLabel && <Link href={actionHref} className="mt-5 inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">{actionLabel}</Link>}</div>;
+  return <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center"><div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-lg">✦</div><h2 className="text-base font-extrabold text-slate-900">{title}</h2><p className="mx-auto mt-1 max-w-md text-sm text-slate-600">{description}</p>{actionHref && actionLabel && <Link href={actionHref} className="mt-5 inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">{actionLabel}</Link>}</div>;
 }
 
 export function SaveState({ saving, saved, error }: { saving?: boolean; saved?: boolean; error?: string }) {

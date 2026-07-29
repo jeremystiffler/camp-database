@@ -627,7 +627,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           )}
           {familyRegistrationEnabled && (
             <div className="mb-5 rounded-2xl border border-sky-200 bg-sky-50 p-3">
-              <p className="text-xs font-black uppercase tracking-wide text-sky-700 mb-2">Students in this family registration</p>
+              <p className="text-xs font-extrabold uppercase tracking-wide text-sky-700 mb-2">Students in this family registration</p>
               <div className="flex flex-wrap gap-2">
                 {students.map((student, idx) => (
                   <button key={student.id} type="button" onClick={() => { setActiveStudentIndex(idx); setStep(1); setSectionPageIndex(0); setErrors({}); }} className={`rounded-xl px-3 py-2 text-sm font-bold border ${idx === activeStudentIndex ? "bg-sky-600 text-white border-sky-600" : "bg-white text-sky-800 border-sky-200"}`}>
@@ -701,7 +701,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
                                       <p className="font-semibold text-slate-800">{option.name}</p>
                                       <div className="flex flex-wrap justify-end gap-2">
                                         {!unavailableBecauseChosen && option.seatsLeft !== null && (
-                                          <span className={`text-xs font-black px-2 py-1 rounded-full whitespace-nowrap ${optionSeatBadgeClass(option, false)}`}>
+                                          <span className={`text-xs font-extrabold px-2 py-1 rounded-full whitespace-nowrap ${optionSeatBadgeClass(option, false)}`}>
                                             {optionCapacityLabel(option)}
                                           </span>
                                         )}

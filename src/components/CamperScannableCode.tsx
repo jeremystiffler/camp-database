@@ -31,7 +31,7 @@ export default function CamperScannableCode({ value, label = "Participant QR", s
 
   return (
     <div className={`inline-flex flex-col items-center rounded-2xl border border-slate-200 bg-white p-3 ${className}`}>
-      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</div>
+      <div className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-400">{label}</div>
       {src ? <img src={src} width={size} height={size} alt={label} className="mt-2 rounded-lg" /> : <div style={{ width: size, height: size }} className="mt-2 animate-pulse rounded-lg bg-slate-100" />}
       <div className="mt-2 max-w-[12rem] break-all rounded-lg bg-slate-50 px-2 py-1 text-center font-mono text-[10px] text-slate-500">{value}</div>
     </div>

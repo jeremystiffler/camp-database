@@ -212,7 +212,7 @@ function TeamContent() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-800 truncate">
-                        {m.user.name || m.user.email}{isMe && <span className="ml-2 text-[11px] font-black uppercase tracking-wide text-sky-600">You</span>}
+                        {m.user.name || m.user.email}{isMe && <span className="ml-2 text-[11px] font-extrabold uppercase tracking-wide text-sky-600">You</span>}
                       </p>
                       <p className="text-xs text-slate-400 truncate">{m.user.email}</p>
                     </div>
