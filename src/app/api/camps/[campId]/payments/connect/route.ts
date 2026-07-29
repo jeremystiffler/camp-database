@@ -55,7 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         controller: {
           requirement_collection: "stripe",
           stripe_dashboard: { type: "express" },
-          fees: { payer: "account" },
+          fees: { payer: "application" },
           losses: { payments: "application" },
         },
         business_profile: {

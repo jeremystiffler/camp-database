@@ -6,6 +6,7 @@ const registrationRoute = fs.readFileSync("src/app/api/camps/[campId]/public-reg
 const campRoute = fs.readFileSync("src/app/api/camps/[campId]/route.ts", "utf8");
 const platformWebhook = fs.readFileSync("src/app/api/stripe/webhook/route.ts", "utf8");
 const connectWebhook = fs.readFileSync("src/app/api/stripe/connect-webhook/route.ts", "utf8");
+const connectRoute = fs.readFileSync("src/app/api/camps/[campId]/payments/connect/route.ts", "utf8");
 const settings = fs.readFileSync("src/app/(protected)/settings/page.tsx", "utf8");
 const lifecycle = fs.readFileSync("src/lib/registration-payment-lifecycle.ts", "utf8");
 const webhookEvents = fs.readFileSync("src/lib/stripe-webhook-events.ts", "utf8");
@@ -38,6 +39,14 @@ describe("Stripe Connect payout readiness", () => {
 });
 
 describe("connected registration checkout wiring", () => {
+  it("uses the Stripe-compatible Express controller liability configuration", () => {
+    expect(connectRoute).toContain('stripe_dashboard: { type: "express" }');
+    expect(connectRoute).toContain('fees: { payer: "application" }');
+    expect(connectRoute).toContain('losses: { payments: "application" }');
+    expect(settings).toContain('role="alert"');
+    expect(settings).toContain("setConnectError");
+  });
+
   it("creates the Checkout Session on the organizer account", () => {
     expect(registrationRoute).toContain("stripeAccount: connectAccountId");
     expect(registrationRoute).toContain("idempotencyKey: `registration-checkout:${payment.id}:v1`");

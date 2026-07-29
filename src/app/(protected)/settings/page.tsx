@@ -118,6 +118,7 @@ function SettingsContent() {
   const [activeTab, setActiveTab] = useState<"profile" | "billing" | "appearance" | "utilities">(searchParams.get("tab") === "billing" ? "billing" : "profile");
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingMsg, setBillingMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
   const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
   const [payments, setPayments] = useState<RegistrationPayment[]>([]);
   const [paymentTotals, setPaymentTotals] = useState({ paidCount: 0, grossCents: 0, eventRevenueCents: 0, platformFeeCents: 0, discountCents: 0 });
@@ -252,7 +253,7 @@ function SettingsContent() {
 
   const startConnectAction = async (action: "onboard" | "dashboard") => {
     if (!campId) return;
-    setBillingSaving(true); setBillingMsg(null);
+    setBillingSaving(true); setConnectError(null);
     const res = await fetch(`/api/camps/${campId}/payments/connect`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -261,7 +262,7 @@ function SettingsContent() {
     const data = await res.json().catch(() => ({}));
     setBillingSaving(false);
     if (res.ok && data.url) window.location.href = data.url;
-    else setBillingMsg({ type: "error", text: data.error || "Stripe payout setup could not be opened." });
+    else setConnectError(data.error || "Stripe payout setup could not be opened.");
   };
 
   const saveCoupon = async () => {
@@ -411,6 +412,11 @@ function SettingsContent() {
                   </div>
                   {connectStatus?.currentlyDue?.length ? <p className="mt-3 text-xs font-semibold text-amber-900">Stripe still requires: {connectStatus.currentlyDue.map(item => item.replaceAll("_", " ")).join(", ")}.</p> : null}
                 </div>
+                {connectError && (
+                  <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                    {connectError}
+                  </div>
+                )}
 
                 <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 space-y-4">
                   <label className="block">
@@ -418,7 +424,7 @@ function SettingsContent() {
                     <input type="number" min="0" step="1" value={billing.participantPriceCents / 100} onChange={e => setBilling(prev => ({ ...prev, participantPriceCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
                   </label>
                   <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 text-sm text-sky-900">
-                    Event price <strong>{money(billing.participantPriceCents)}</strong> + Simple Schedule Pro fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.participantPriceCents + platformEstimate)}</strong>. Stripe processing fees are deducted from the organizer&rsquo;s connected Stripe balance.
+                    Event price <strong>{money(billing.participantPriceCents)}</strong> + Simple Schedule Pro fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.participantPriceCents + platformEstimate)}</strong>. Simple Schedule Pro pays Stripe processing fees from the platform fee.
                   </div>
                   <p className="text-xs text-sky-900">The platform fee is set by Simple Schedule Pro at {(billing.platformFeePercentBps / 100).toFixed(2).replace(/\.00$/, "")}% (minimum {money(billing.platformFeeMinCents)}, capped at {money(billing.platformFeeCapCents)}). Organizers control only their event price.</p>
                 </div>
