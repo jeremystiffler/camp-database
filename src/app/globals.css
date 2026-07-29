@@ -1016,3 +1016,41 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
   .cov--band { position: static; }
   .cov__pop, .cov__listbtn, .cov__actions { display: none; }
 }
+
+/* ─── Print baseline (§12, phase 26) ──────────────────────────────────────────
+   Component-specific print rules stay beside their components above. This block
+   is the app-wide baseline: any route printed directly from the browser should
+   produce the content, not the furniture around it.
+
+   The Print Center has its own stricter rules because it builds documents at
+   fixed geometry. This exists for the other routes — someone hitting Cmd-P on
+   /schedule or /campers, which is a thing organisers do the week of an event. */
+@media print {
+  /* Navigation, action bars and anything explicitly marked. */
+  aside, nav, .no-print { display: none !important; }
+
+  /* The shell centres and pads content for a screen. On paper that becomes a
+     narrow column with an inch of dead space on the left. */
+  main { margin: 0 !important; padding: 0 !important; min-height: 0 !important; }
+
+  /* Backgrounds and rails carry meaning in this product — a capacity bar or an
+     activity hue that drops out is a document that lies by omission. */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  /* Sticky and fixed elements repeat on every sheet or land over content. */
+  .sticky, .fixed { position: static !important; }
+
+  /* Never split a row, card or table row across a page boundary. */
+  tr, .act-block, .camp-card, .ops-row { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Underline links so a printed page still shows what was clickable, but do not
+     append URLs — they wreck table layouts. */
+  a { text-decoration: underline; }
+
+  /* Scroll containers must release their height or content is clipped at the
+     viewport edge and silently lost. */
+  [class*="overflow-auto"], [class*="overflow-y-auto"], [class*="overflow-x-auto"] {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+}
