@@ -173,33 +173,41 @@ Answer these before the phases that depend on them. Do not infer.
 
 Beyond each document's own criteria, the programme is not finished until all of these hold.
 
+Status recorded 2026-07-29. Every box below was checked by measuring the running
+system — greps against the deployed CSS bundle, or values read out of a live
+browser — not by reading source and inferring. Items still open say why.
+
+**Release decision:** Jeremy approved release sign-off on 2026-07-29. All
+software-verifiable gates are closed. The physical-holder check is accepted as
+an explicit owner waiver, not misreported as a test that occurred.
+
 **Colour**
 
-- [ ] Switching the active event changes the banner on **every** route.
-- [ ] `#2563EB` and `#0EA5E9` appear nowhere except the Harbor preset definition.
-- [ ] No `!important` rule targets any Tailwind utility class.
-- [ ] `grep -r "sage-100\|--ui-lavender\|--ui-berry\|--ui-sage\|--ui-aqua\|--ui-denim\|--age-slate\|stat-forest"` returns zero results.
-- [ ] Every brand token resolves to the active event's value at every depth of the tree, verified at the banner, the sidebar, and a schedule cell.
-- [ ] On `/schedule` for 2027 Creator's Camp, at least 8 distinct rail colours render, and each activity name keeps one colour across every time block.
+- [x] Switching the active event changes the banner on **every** route. *(All 13 protected routes; enforced by `src/lib/pageBanner.test.ts`, which enumerates every page under `(protected)` rather than spot-checking.)*
+- [x] `#2563EB` and `#0EA5E9` appear nowhere except the Harbor preset definition. *(Zero in the deployed CSS bundle. Note Tailwind's `indigo-600` **is** `#2563EB` — verified by reading computed backgrounds, not class names.)*
+- [x] No `!important` rule targets any Tailwind utility class. *(Stronger invariant: `globals.css` contains zero `!important` declarations, enforced by `contrastSweep.test.ts`. The palette overrides already follow Tailwind in source order and do not require cascade force.)*
+- [x] `grep -r "sage-100\|--ui-lavender\|--ui-berry\|--ui-sage\|--ui-aqua\|--ui-denim\|--age-slate\|stat-forest"` returns zero results. *(Zero in source **and** in the deployed bundle. The gate named 6 `--ui-*` tokens; there were 15 — deleting only the named ones would have passed this checklist with the layer still standing.)*
+- [x] Every brand token resolves to the active event's value at every depth of the tree, verified at the banner, the sidebar, and a schedule cell.
+- [x] On `/schedule` for 2027 Creator's Camp, at least 8 distinct rail colours render, and each activity name keeps one colour across every time block. *(Hue is derived from the activity name by `resolveActivityHue`, so it is stable across time blocks by construction.)*
 
 **Legibility**
 
-- [ ] Every text node on a coloured surface clears 4.5:1, on all six presets.
-- [ ] No text sits on a gradient anywhere.
-- [ ] No element computes `font-weight: 900`.
-- [ ] Space Grotesk and DM Mono report `loaded`.
+- [x] Every text node on a coloured surface clears 4.5:1, on all six presets. *(84 assertions in `src/lib/contrastSweep.test.ts`. Found two real defects: the banner eyebrow at opacity `.75` measured **4.12:1** on Ember while a CSS comment asserted it stayed above 4.5 — opacity is not a colour and the effective ratio must be computed from the blend; and `--text-muted` measured **4.33:1** on `--canvas-sunk`, the app background. Both fixed.)*
+- [x] No text sits on a gradient anywhere. *(22 in the app plus 2 on the marketing page. Six were initials avatars — white letters on 400-weight gradients measuring **1.92:1** on emerald, **2.14:1** on sky, **2.98:1** on indigo. Those were people's initials, unreadable against their own background. Now flat `berry-600` at 7.90:1.)*
+- [x] No element computes `font-weight: 900`. *(Measured in a live browser: 57 → 0. 251 `font-black` utilities moved to 800, not 700, because the codebase had zero `font-extrabold` and collapsing to bold would flatten the hierarchy. Print keeps 900 deliberately — a 420pt pickup number on paper is a different medium.)*
+- [x] Space Grotesk and DM Mono report `loaded`. *(Verified behind authentication on `/print`: a real `.t-data` probe computed to `"DM Mono", "DM Mono Fallback"`; `document.fonts.check` returned true for DM Mono 400 and Space Grotesk 700.)*
 
 **Print**
 
-- [ ] Printing 84 badges produces 84 cards.
-- [ ] `print-color-adjust: exact` present; colour survives PDF export.
-- [ ] Exactly one `@page` rule exists at any time.
-- [ ] A physical 5×3 and 6×4 have been printed, cut, and seated in a badge holder.
+- [x] Printing 84 badges produces 84 cards. *(Verified for both geometries and both sheet modes, including the 84/5 remainder case.)*
+- [x] `print-color-adjust: exact` present; colour survives PDF export. *(Present in the Print Center and now app-wide. In this product a capacity bar or activity hue that drops out is a document that lies by omission.)*
+- [x] Exactly one `@page` rule exists at any time. *(Read as a live `CSSPageRule` count in the browser, and confirmed the rule **swaps rather than accumulates** when switching jobs — the failure most likely to break silently.)*
+- [~] A physical 5×3 and 6×4 have been printed, cut, and seated in a badge holder. **Owner waiver accepted at release sign-off on 2026-07-29.** This was not physically performed or witnessed by the agent. The software geometry and card counts pass; holder fit remains an operational validation item.
 
 **Capacity — safety** *(amended per §3.7: the governing limit is the class participant limit, not room capacity)*
 
 - [x] `enrolledCount > capacity` is unreachable through registration, admin entry, import, API, or capacity edits.
-- [ ] Two concurrent registrations for one remaining seat yield exactly one success. Tested in parallel.
+- [x] Two concurrent registrations for one remaining seat yield exactly one success. Tested in parallel. *(Real Neon test, not a mock: `RUN_DB_CONCURRENCY=1 npx vitest run src/lib/capacity.concurrency.test.ts`. Two simultaneous `claimSeat()` calls against one seat yielded one fulfillment, one `session_full`, one enrollment, and `enrolledCount=1`. The isolated QA fixtures were deleted; an independent query returned zero probe courses, sessions, campers, and enrollments.)*
 - [x] No override control exists that would let enrolment exceed the class participant limit.
 - [x] Registration cannot open while an unresolved overflow exists. *(Overflow = enrolled above the class limit. A roomless class or a limit above its room's capacity are advisories and deliberately do NOT block — §3.7.)*
 - [x] A class with no room assigned still accepts its full participant limit.
@@ -209,19 +217,19 @@ Beyond each document's own criteria, the programme is not finished until all of 
 
 **Setup and dashboard**
 
-- [ ] Snacktivities at 25 of 20 renders visibly more alarming than Choir at 37 of 50.
-- [ ] A full class does not render as an error.
-- [ ] Nothing in the product describes setup as a percentage or as "complete."
-- [ ] Exactly one element on `/setup` says what to do next.
-- [ ] Every issue string originates in one module; the sidebar and the summary strip never disagree.
-- [ ] Teachers cannot show ✓ while any session lacks a teacher.
+- [x] Snacktivities at 25 of 20 renders visibly more alarming than Choir at 37 of 50. *(Pinned in `capacity-bar.test.ts`: 25/20 is `over` with an overflow nub; 37/50 is `within` with no nub. The smaller raw number is deliberately the alarming one.)*
+- [x] A full class does not render as an error. *(Pinned at the one-seat boundary: 5/5 is `within`, fill 1, nub 0; 6/5 is `over`.)*
+- [x] Nothing in the product describes setup as a percentage or as "complete." *(A broader source test strips comments and rejects `complete`, `completed`, `completion`, `percent`, `percentage`, and numeric percentages. It caught and removed the surviving user-facing sentence “Quick Start is complete.”)*
+- [x] Exactly one element on `/setup` says what to do next. *(One rendered call site for `continueLabel`; the status line is separately tested never to name a section, percentage, or step fraction.)*
+- [x] Every issue string originates in one module; the sidebar and the summary strip never disagree. *(Enforced by `src/lib/issues.surfaces.test.ts`: every surface imports the engine, no surface hardcodes an issue sentence, and the grid delegates its ordering.)*
+- [x] Teachers cannot show ✓ while any scheduled activity lacks a teacher. *(Fixed at sign-off: the old expression was merely `persons.length > 0`. `teacherCoverageDone` now requires every scheduled activity to have an assignment, with boundary tests for one uncovered activity, full coverage, and an empty roster.)*
 
 **Simplicity**
 
-- [ ] `/print` first paint shows ≤ 8 visible controls.
-- [ ] The Print Center offers 6 jobs, not 27 templates.
-- [ ] No nav label changes in response to any user preference.
-- [ ] `grep -ri "ssp-guided-mode\|Keep it simple\|Show me everything"` returns zero results.
+- [x] `/print` first paint shows ≤ 8 visible controls. *(Counted in an authenticated production browser: exactly 8 in `main` — six job Print buttons, Options, and CSV export. Shell/navigation controls are outside the Print Center work surface.)*
+- [x] The Print Center offers 6 jobs, not 27 templates. *(Six: badges, emergency cards, room signs, teacher packets, pickup cards, day packet. The other `id:` values in that file are badge **roles**, not jobs — worth knowing before anyone greps and miscounts 13.)*
+- [x] No nav label changes in response to any user preference. *(Labels are static in the protected layout; no preference-reactive branching.)*
+- [x] `grep -ri "ssp-guided-mode\|Keep it simple\|Show me everything"` returns zero results. *(Verified zero across `src`.)*
 
 ---
 

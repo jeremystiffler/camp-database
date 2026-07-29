@@ -103,6 +103,19 @@ export function totalRemaining(sections: SetupSection[]): number {
 }
 
 /**
+ * A roster is not the same thing as teacher coverage. The old setup page marked
+ * Teachers done as soon as one Person existed, even when a scheduled activity
+ * had nobody assigned. Unscheduled activities do not create a live coverage
+ * gap yet; every scheduled activity does.
+ */
+export function teacherCoverageDone(
+  personCount: number,
+  courses: Array<{ scheduled: boolean; teacherCount: number }>,
+): boolean {
+  return personCount > 0 && courses.every((course) => !course.scheduled || course.teacherCount > 0);
+}
+
+/**
  * The status line (§5.2a).
  *
  * THE TRIPWIRE, recorded because it is easy to violate by accident: this is a

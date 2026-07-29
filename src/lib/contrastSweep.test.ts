@@ -198,3 +198,36 @@ describe("the neutral text ramp clears AA on both canvases", () => {
     expect(ratio).toBeLessThan(4.5);
   });
 });
+
+describe("global CSS ships without cascade-force overrides", () => {
+  const css = fs.readFileSync("src/app/globals.css", "utf8");
+
+  it("contains no !important declarations", () => {
+    // The master done-gate only forbids !important rules aimed at Tailwind
+    // utilities. Enforcing the stronger invariant prevents future exceptions.
+    expect(css).not.toContain("!important");
+  });
+
+  it("contains no Tailwind force-modifier classes in TSX source", () => {
+    const forcedUtilities = fs
+      .readdirSync("src", { recursive: true, encoding: "utf8" })
+      .filter(path => path.endsWith(".tsx"))
+      .flatMap(path => {
+        const source = fs.readFileSync(`src/${path}`, "utf8");
+        return source.match(/(?:^|\s)(?:[a-z-]+:)*![a-z]+-[a-z0-9[]+/g) ?? [];
+      });
+    expect(forcedUtilities).toEqual([]);
+  });
+});
+
+describe("setup language reports readiness, not completion", () => {
+  const setup = fs.readFileSync("src/app/(protected)/setup/page.tsx", "utf8");
+
+  it("does not describe setup as complete or as a percentage", () => {
+    const userFacingSource = setup
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+    expect(userFacingSource).not.toMatch(/\b(?:complete|completed|completion|percent|percentage)\b/i);
+    expect(userFacingSource).not.toMatch(/\d+\s*%/);
+  });
+});

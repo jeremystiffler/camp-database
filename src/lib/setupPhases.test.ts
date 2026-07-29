@@ -9,6 +9,7 @@ import {
   phaseEntrySection,
   remainingLine,
   sidebarCount,
+  teacherCoverageDone,
   totalRemaining,
   type SetupSection,
   type SetupSectionKey,
@@ -97,6 +98,27 @@ describe("first-incomplete routing — the defect underneath (§5.2)", () => {
   it("skips a finished section in the middle", () => {
     const sections = make({ details: true, ages: true, rooms: true, times: true, teachers: true });
     expect(firstIncompleteSection(sections)).toBe("activities");
+  });
+});
+
+describe("teacher coverage controls the Teachers checkmark", () => {
+  it("does not confuse one person on the roster with coverage", () => {
+    expect(teacherCoverageDone(1, [
+      { scheduled: true, teacherCount: 1 },
+      { scheduled: true, teacherCount: 0 },
+    ])).toBe(false);
+  });
+
+  it("passes when every scheduled activity has a teacher", () => {
+    expect(teacherCoverageDone(2, [
+      { scheduled: true, teacherCount: 1 },
+      { scheduled: true, teacherCount: 2 },
+      { scheduled: false, teacherCount: 0 },
+    ])).toBe(true);
+  });
+
+  it("still requires someone on the roster", () => {
+    expect(teacherCoverageDone(0, [])).toBe(false);
   });
 });
 

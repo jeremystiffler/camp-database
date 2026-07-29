@@ -9,6 +9,7 @@ import {
   firstIncompleteSection,
   phaseEntrySection,
   remainingLine,
+  teacherCoverageDone,
   totalRemaining,
   type SetupSection,
 } from "@/lib/setupPhases";
@@ -234,7 +235,7 @@ function SetupContent() {
     }
     if (searchParams.get("from") === "quick-start") {
       setActiveTab("teachers");
-      setSetupNotice("Quick Start is complete. Your event details, age groups, rooms, and time blocks are ready — next, add your staff.");
+      setSetupNotice("Your event details, age groups, rooms, and time blocks are ready — next, add your staff.");
       return;
     }
     // THE DEFECT UNDERNEATH IT ALL (§5.2): with no step parameter this used to
@@ -747,7 +748,13 @@ function SetupContent() {
   const totalPages = Math.ceil(campDates.length / 7);
 
   const detailsDone = Boolean(campName.trim() && startDate && endDate);
-  const teachersDone = persons.length > 0;
+  const teachersDone = teacherCoverageDone(
+    persons.length,
+    courses.map(course => ({
+      scheduled: (course.courseSessionTemplates || []).length > 0,
+      teacherCount: (course.courseTeachers || []).length,
+    })),
+  );
   const activitiesDone = courses.length > 0;
   const scheduledActivities = courses.filter(c => (c.courseSessionTemplates || []).length > 0).length;
   const scheduleDone = activitiesDone && scheduledActivities === courses.length;
