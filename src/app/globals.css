@@ -288,7 +288,8 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
   letter-spacing: .10em;
   text-transform: uppercase;
   color: var(--brand-ink);
-  opacity: .75; /* still ≥4.5:1 on wash — base ratio ≥7.5:1. Do not lower. */
+  opacity: .85; /* worst preset (Ember) measures 5.22:1 on wash at this value;
+     .75 measured 4.12 and failed AA. Do not lower. */
 }
 .page-banner__title {
   font-size: 28px;
@@ -469,7 +470,7 @@ a[class*="bg-slate-900"]:hover {
 :root {
   --canvas: #FFFFFF; --canvas-sunk: #F7F8FA; --canvas-raised: #FFFFFF;
   --border-hair: #E8ECF1; --border: #DCE2EA; --border-strong: #C3CCD8;
-  --text-strong: #0B1220; --text: #37414F; --text-muted: #6B7686; --text-faint: #9AA4B2;
+  --text-strong: #0B1220; --text: #37414F; --text-muted: #646F7E; --text-faint: #9AA4B2;
   --success: #067647; --success-wash: #E8F6EF; --warning: #A65E00; --warning-wash: #FFF4E2;
   --danger: #C42B2B; --danger-wash: #FDECEC; --info: #1D4FD8; --info-wash: #EBF1FE;
   --radius-xs: 6px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 9999px;

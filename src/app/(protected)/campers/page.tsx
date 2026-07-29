@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { PageBanner } from "@/components/PageBanner";
 import { useSearchParams } from "next/navigation";
 import CamperScannableCode from "@/components/CamperScannableCode";
 import { RowDeleteButton } from "@/components/InlineEditing";
@@ -721,13 +722,11 @@ function CampersContent() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="page-title">Participants</h1>
-          <p className="text-slate-500 text-sm mt-0.5">{campers.length} registered</p>
-          {myRole === "viewer" && <p className="mt-1 text-xs font-semibold text-slate-500">You have view-only access to this event.</p>}
-        </div>
-        <div className="flex items-center gap-2">
+      <PageBanner
+        eyebrow="People"
+        title="Participants"
+        description={<>{campers.length} registered{myRole === "viewer" ? " · view-only access" : ""}</>}
+        actions={<>
           {canEdit && <button onClick={assignMissingPickupNumbers} className="px-3 py-2 border border-slate-200 bg-white text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50">Assign Pickup #s</button>}
           {canEdit && <button onClick={() => setAddingCamper(true)} className="px-3 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800">+ Add Participant</button>}
           {<button
@@ -756,8 +755,8 @@ function CampersContent() {
           <button type="button" onClick={() => setShowExtraColumns(value => !value)} aria-pressed={showExtraColumns} className="px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50">
             Columns {showExtraColumns ? "▴" : "▾"}
           </button>
-        </div>
-      </div>
+        </>}
+      />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-5">

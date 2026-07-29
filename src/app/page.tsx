@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { hueVars, resolveActivityHue } from "@/lib/activity-color";
 import { SSPLogo } from "@/components/SSPLogo";
 
 const stats = [
@@ -66,10 +67,10 @@ const features = [
 ];
 
 const timeline = [
-  { time: "9:00", title: "Opening Assembly", tag: "Locked", color: "bg-indigo-100 text-indigo-700" },
-  { time: "9:20", title: "Creative Studio", tag: "12/16", color: "bg-sky-100 text-sky-700" },
-  { time: "9:45", title: "Outdoor Games", tag: "18/20", color: "bg-emerald-100 text-emerald-700" },
-  { time: "10:10", title: "Snack + Small Groups", tag: "All", color: "bg-amber-100 text-amber-700" },
+  { time: "9:00", title: "Opening Assembly", room: "Main Hall", enrolled: null, cap: null },
+  { time: "9:20", title: "Creative Studio", room: "Room 2", enrolled: 12, cap: 16 },
+  { time: "9:45", title: "Outdoor Games", room: "Field", enrolled: 18, cap: 20 },
+  { time: "10:10", title: "Snack + Small Groups", room: "Commons", enrolled: null, cap: null },
 ];
 
 function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
@@ -135,17 +136,31 @@ function ProductMockup() {
         </div>
         <div className="grid gap-3 sm:grid-cols-[1fr_0.85fr]">
           <div className="space-y-2">
-            {timeline.map((item) => (
-              <div key={item.time} className="rounded-2xl border border-slate-200 bg-white p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-extrabold text-slate-400">{item.time}</p>
-                    <p className="text-sm font-extrabold text-slate-800">{item.title}</p>
-                  </div>
-                  <span className={`rounded-full px-2 py-1 text-[11px] font-extrabold ${item.color}`}>{item.tag}</span>
+            {timeline.map((item) => {
+              const vars = hueVars(resolveActivityHue(item.title));
+              const ratio = item.enrolled !== null && item.cap ? item.enrolled / item.cap : 0;
+              const countState = ratio >= 1 ? "is-full" : ratio >= 0.8 ? "is-filling" : "";
+              return (
+                <div
+                  key={item.time}
+                  className="act-block"
+                  style={{ "--act-rail": vars.rail, "--act-wash": vars.wash, "--act-ink": vars.ink } as React.CSSProperties}
+                >
+                  <span className="act-block__title">{item.title}</span>
+                  <span className="act-block__meta">
+                    {item.time} · {item.room}
+                  </span>
+                  {item.enrolled !== null && item.cap ? (
+                    <span className={`act-block__count ${countState}`}>
+                      <span className="capacity-dot" />
+                      {item.enrolled}/{item.cap}
+                    </span>
+                  ) : (
+                    <span className="act-block__meta">All participants</span>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Operations</p>
