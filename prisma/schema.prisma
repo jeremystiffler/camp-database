@@ -71,6 +71,13 @@ model Camp {
   stripeSubscriptionId    String?
   stripePriceId           String?
   trialEndsAt             DateTime?
+  /**
+   * The event's colour scheme, stored by name (§4.7). The six presets each
+   * carry five pre-measured tiers, so contrast is guaranteed rather than hoped
+   * for. primaryColor/accentColor below are kept in sync as the rendered hex —
+   * public registration, print material and older clients still read them.
+   */
+  themePreset             String                @default("ember")
   primaryColor            String                @default("#F0894A")
   accentColor             String                @default("#E8A84C")
   fontFamily              String                @default("Inter")

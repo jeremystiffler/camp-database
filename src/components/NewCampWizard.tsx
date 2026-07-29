@@ -546,7 +546,7 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
       const campRes = await fetch("/api/camps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), startDate: startDate || undefined, endDate: endDate || undefined, primaryColor: palette.primaryColor, accentColor: palette.accentColor }),
+        body: JSON.stringify({ name: name.trim(), startDate: startDate || undefined, endDate: endDate || undefined, themePreset: palette.id }),
       });
       if (!campRes.ok) {
         const d = await campRes.json();

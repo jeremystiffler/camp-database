@@ -69,6 +69,8 @@ interface Camp {
   name: string;
   status: string;
   myRole?: string;
+  /** Preset name — the source of truth for this event's colours. */
+  themePreset?: string;
   primaryColor?: string;
   accentColor?: string;
 }
@@ -226,7 +228,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   // nextSteps / showBuildGuidance deleted with the banner (§5.2).
   const workspaceStyle = {
     background: "var(--ui-bg)",
-    ...themeTokens(activeCamp?.primaryColor, activeCamp?.accentColor),
+    ...themeTokens(activeCamp?.primaryColor, activeCamp?.accentColor, activeCamp?.themePreset),
   } as CSSProperties;
 
   if (checking) {

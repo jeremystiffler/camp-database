@@ -41,19 +41,73 @@ const LEGACY_PRESET_MAP: Record<string, string> = {
   "#334155": "slate", "#1F2937": "slate",
 };
 
+/**
+ * Nearest preset by hue distance, for colours the legacy table never listed.
+ *
+ * Falling through to DEFAULT_PROGRAM_PALETTE silently turns every unmapped
+ * event Harbor blue. Two live events hit that path: an indigo #4F46E5 seeded by
+ * the signup route, and a brown #A1624A. Turning brown into blue without saying
+ * so is worse than picking the closest relative.
+ */
+function nearestPalette(hex: string): ProgramPalette | null {
+  const rgb = (value: string): [number, number, number] | null => {
+    const match = /^#?([0-9a-f]{6})$/i.exec(value.trim());
+    if (!match) return null;
+    const int = parseInt(match[1], 16);
+    return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+  };
+  const target = rgb(hex);
+  if (!target) return null;
+
+  let best: ProgramPalette | null = null;
+  let bestDistance = Infinity;
+  for (const palette of PROGRAM_PALETTES) {
+    const candidate = rgb(palette.primaryColor);
+    if (!candidate) continue;
+    // Weighted euclidean in RGB — close enough for choosing among six hues,
+    // and it keeps this dependency-free.
+    const distance =
+      2 * (target[0] - candidate[0]) ** 2 +
+      4 * (target[1] - candidate[1]) ** 2 +
+      3 * (target[2] - candidate[2]) ** 2;
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = palette;
+    }
+  }
+  return best;
+}
+
+/** Resolve a stored preset id, falling back to colour matching for old rows. */
+export function paletteForPreset(
+  themePreset?: string | null,
+  primaryColor?: string,
+  accentColor?: string,
+): ProgramPalette {
+  const byId = PROGRAM_PALETTES.find((palette) => palette.id === (themePreset || "").toLowerCase());
+  if (byId) return byId;
+  return paletteForColors(primaryColor, accentColor);
+}
+
 export function paletteForColors(primaryColor?: string, accentColor?: string): ProgramPalette {
   const direct = PROGRAM_PALETTES.find((palette) => palette.primaryColor.toLowerCase() === (primaryColor || "").toLowerCase());
   if (direct) return direct;
   const legacy = LEGACY_PRESET_MAP[(primaryColor || "").toUpperCase()];
   if (legacy) return PROGRAM_PALETTES.find((palette) => palette.id === legacy) || DEFAULT_PROGRAM_PALETTE;
   void accentColor;
-  return DEFAULT_PROGRAM_PALETTE;
+  return nearestPalette(primaryColor || "") ?? DEFAULT_PROGRAM_PALETTE;
 }
 
 /** Literal-hex CSS custom properties for the theme wrapper. No var() indirection —
  *  literals are what make the override work at every depth (§3.1). */
-export function themeTokens(primaryColor?: string, accentColor?: string): Record<string, string> {
-  const palette = paletteForColors(primaryColor, accentColor);
+export function themeTokens(
+  primaryColor?: string,
+  accentColor?: string,
+  themePreset?: string | null,
+): Record<string, string> {
+  // Preset name wins when present; hex is the fallback for rows written before
+  // the column existed.
+  const palette = paletteForPreset(themePreset, primaryColor, accentColor);
   return {
     "--brand-wash": palette.wash,
     "--brand-ink": palette.ink,

@@ -12,13 +12,15 @@ import { SummaryStrip } from "@/components/SummaryStrip";
 import { EmptyHome, SetupPanel, type SetupLink } from "@/components/SetupPanel";
 import { homeState, type HomeState } from "@/lib/homeState";
 import type { Issue } from "@/lib/issues";
-import { PROGRAM_PALETTES } from "@/lib/programPalettes";
+import { PROGRAM_PALETTES, paletteForPreset } from "@/lib/programPalettes";
 
 interface Camp {
   id: string;
   name: string;
   status: string;
   registrationOpen?: boolean;
+  /** Preset name — the source of truth for this event's colours. */
+  themePreset?: string;
   primaryColor?: string;
   accentColor?: string;
   myRole?: "owner" | "admin" | "editor" | "viewer";
@@ -286,7 +288,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
 
 // ─── Camp Card ────────────────────────────────────────────────────────────────
 
-function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Camp; active: boolean; onCopy: (camp: Camp) => void; onDelete: (camp: Camp) => void; onColorChange: (camp: Camp, primaryColor: string, accentColor: string) => Promise<boolean> }) {
+function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Camp; active: boolean; onCopy: (camp: Camp) => void; onDelete: (camp: Camp) => void; onColorChange: (camp: Camp, themePreset: string) => Promise<boolean> }) {
   const primaryColor = camp.primaryColor || "#2563EB";
   const accentColor = camp.accentColor || "#0EA5E9";
   const [colorOpen, setColorOpen] = useState(false);
@@ -296,10 +298,10 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
     published:"bg-forest-100 text-forest-700",
     archived: "bg-slate-100 text-slate-400",
   };
-  const pickColor = async (nextPrimary: string, nextAccent: string) => {
+  const pickColor = async (presetId: string) => {
     if (colorSaving) return;
     setColorSaving(true);
-    const ok = await onColorChange(camp, nextPrimary, nextAccent);
+    const ok = await onColorChange(camp, presetId);
     setColorSaving(false);
     if (ok) setColorOpen(false);
   };
@@ -364,14 +366,14 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
             <p className="mb-2 text-[10px] font-black uppercase tracking-[.1em] text-slate-500">Event color</p>
             <div className="grid grid-cols-3 gap-2">
               {PROGRAM_PALETTES.map(palette => {
-                const selected = palette.primaryColor === primaryColor && palette.accentColor === accentColor;
+                const selected = palette.id === paletteForPreset(camp.themePreset, camp.primaryColor, camp.accentColor).id;
                 return (
                   <button
                     key={palette.id}
                     type="button"
                     title={palette.name}
                     disabled={colorSaving}
-                    onClick={() => pickColor(palette.primaryColor, palette.accentColor)}
+                    onClick={() => pickColor(palette.id)}
                     className={`flex flex-col items-center gap-1 rounded-xl border p-2 transition ${selected ? "border-slate-900 bg-slate-50" : "border-transparent hover:border-slate-300"} ${colorSaving ? "opacity-50" : ""}`}
                   >
                     <span className="h-6 w-6 rounded-full" style={{ background: `linear-gradient(135deg, ${palette.preview[0]}, ${palette.preview[1]})` }} />
@@ -573,15 +575,20 @@ function DashboardContent() {
     setDeletingCamp(camp);
   };
 
-  const changeCampColor = async (camp: Camp, primaryColor: string, accentColor: string) => {
+  const changeCampColor = async (camp: Camp, themePreset: string) => {
+    // Send the preset by NAME. The hex columns are its rendered output, derived
+    // server-side, so the two can never drift apart.
     const response = await fetch(`/api/camps/${camp.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ primaryColor, accentColor }),
+      body: JSON.stringify({ themePreset }),
     });
     if (!response.ok) return false;
+    const palette = PROGRAM_PALETTES.find((option) => option.id === themePreset);
+    const primaryColor = palette?.primaryColor ?? camp.primaryColor;
+    const accentColor = palette?.accentColor ?? camp.accentColor;
     // Update the card immediately and let the layout (sidebar, header) pick up the change.
-    setPrograms(prev => prev.map(c => c.id === camp.id ? { ...c, primaryColor, accentColor } : c));
+    setPrograms(prev => prev.map(c => c.id === camp.id ? { ...c, themePreset, primaryColor, accentColor } : c));
     window.dispatchEvent(new Event("camp:list-changed"));
     return true;
   };

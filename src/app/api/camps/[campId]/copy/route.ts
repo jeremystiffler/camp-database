@@ -72,6 +72,7 @@ export async function POST(
       name:           name.trim(),
       slug,
       status:         "draft",
+      themePreset:    source.themePreset,
       primaryColor:   source.primaryColor,
       accentColor:    source.accentColor,
       fontFamily:     source.fontFamily,

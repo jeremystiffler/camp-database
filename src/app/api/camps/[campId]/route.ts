@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PROGRAM_PALETTES, paletteForColors } from "@/lib/programPalettes";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
@@ -67,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     const ALLOWED_KEYS = [
       "name", "startDate", "endDate", "status", "registrationOpen",
       "billingMode", "billingStatus", "platformFeeCents", "platformFeePercentBps", "platformFeeMinCents", "platformFeeCapCents", "camperPriceCents", "annualSubscriptionCents",
-      "primaryColor", "accentColor", "fontFamily",
+      "themePreset", "primaryColor", "accentColor", "fontFamily",
     ];
     for (const key of ALLOWED_KEYS) {
       if (key in body) allowed[key] = body[key];
@@ -78,14 +79,42 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     if (allowed.endDate)   allowed.endDate   = allowed.endDate   ? new Date(allowed.endDate   as string) : null;
     if (allowed.billingMode && !["campPays", "camperFee"].includes(String(allowed.billingMode))) delete allowed.billingMode;
     if (allowed.billingStatus && !["trial", "active", "past_due", "unpaid", "comped"].includes(String(allowed.billingStatus))) delete allowed.billingStatus;
-    // Appearance is rendered on public registration and printable material. Keep these
-    // values constrained here so a program setting cannot inject arbitrary CSS.
-    const colorValue = /^#[0-9a-fA-F]{6}$/;
-    for (const key of ["primaryColor", "accentColor"] as const) {
-      if (allowed[key] !== undefined) {
-        const value = String(allowed[key]).trim();
-        if (!colorValue.test(value)) return NextResponse.json({ error: `Invalid ${key}` }, { status: 400 });
-        allowed[key] = value.toUpperCase();
+    // Appearance is rendered on public registration and printable material.
+    // Phase 23: colours come from the six presets only. Free hex entry is gone
+    // from the UI, but the API is the actual boundary — an arbitrary colour
+    // cannot guarantee the measured contrast ratios the presets exist to
+    // provide, and #FFFF00 with white text is unreadable no matter which screen
+    // chose it.
+    if (allowed.themePreset !== undefined) {
+      const preset = PROGRAM_PALETTES.find(
+        (palette) => palette.id === String(allowed.themePreset).trim().toLowerCase(),
+      );
+      if (!preset) return NextResponse.json({ error: "Unknown theme preset" }, { status: 400 });
+      allowed.themePreset = preset.id;
+      // The hex columns are the rendered output of the preset, kept in step so
+      // registration and print never show a colour outside the six.
+      allowed.primaryColor = preset.primaryColor;
+      allowed.accentColor = preset.accentColor;
+    } else {
+      for (const key of ["primaryColor", "accentColor"] as const) {
+        if (allowed[key] === undefined) continue;
+        const value = String(allowed[key]).trim().toUpperCase();
+        const known = PROGRAM_PALETTES.some(
+          (palette) =>
+            palette.primaryColor.toUpperCase() === value ||
+            palette.accentColor.toUpperCase() === value,
+        );
+        if (!known) {
+          return NextResponse.json(
+            { error: `${key} must come from a theme preset` },
+            { status: 400 },
+          );
+        }
+        allowed[key] = value;
+      }
+      // A colour pair implies its preset; keep the stored name truthful.
+      if (allowed.primaryColor !== undefined) {
+        allowed.themePreset = paletteForColors(String(allowed.primaryColor)).id;
       }
     }
     if (allowed.fontFamily !== undefined) {

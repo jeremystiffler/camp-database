@@ -27,8 +27,12 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, startDate, endDate, primaryColor, accentColor } = await req.json();
-  const palette = PROGRAM_PALETTES.find((option) => option.primaryColor === primaryColor && option.accentColor === accentColor) || DEFAULT_PROGRAM_PALETTE;
+  const { name, startDate, endDate, primaryColor, accentColor, themePreset } = await req.json();
+  // Preset name first; fall back to matching the hex pair for older clients.
+  const palette =
+    PROGRAM_PALETTES.find((option) => option.id === String(themePreset || "").toLowerCase()) ||
+    PROGRAM_PALETTES.find((option) => option.primaryColor === primaryColor && option.accentColor === accentColor) ||
+    DEFAULT_PROGRAM_PALETTE;
   if (!name) return NextResponse.json({ error: "Name required" }, { status: 400 });
 
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
@@ -45,6 +49,7 @@ export async function POST(req: NextRequest) {
       slug,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
+      themePreset: palette.id,
       primaryColor: palette.primaryColor,
       accentColor: palette.accentColor,
       billingStatus: "trial",

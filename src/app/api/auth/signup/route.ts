@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { DEFAULT_PROGRAM_PALETTE } from "@/lib/programPalettes";
 import { prisma } from "@/lib/db";
 import { signToken, setSessionCookie, hashPassword } from "@/lib/auth";
 import { sendWelcomeTrialEmail } from "@/lib/trial-emails";
@@ -35,8 +36,9 @@ export async function POST(req: NextRequest) {
         name: "My Event",
         slug: campSlug,
         status: "draft",
-        primaryColor: "#4F46E5",
-        accentColor: "#0EA5E9",
+        themePreset: DEFAULT_PROGRAM_PALETTE.id,
+          primaryColor: DEFAULT_PROGRAM_PALETTE.primaryColor,
+        accentColor: DEFAULT_PROGRAM_PALETTE.accentColor,
       },
     });
     // Separate create — nested creates use implicit transactions (not supported in HTTP mode)
