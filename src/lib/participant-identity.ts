@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 
 export function generateParticipantScanCode() {
-  return `campdb:participant:${randomUUID().replace(/-/g, "")}`;
+  return `ssp:participant:${randomUUID().replace(/-/g, "")}`;
 }
 
 export function normalizePickupNumber(value: unknown) {

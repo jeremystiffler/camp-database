@@ -9,6 +9,7 @@ import ParticipantScannableCode from "@/components/ParticipantScannableCode";
 import { HelpCopy } from "@/components/HelpMode";
 import { EmptyState } from "@/components/OperationalUI";
 import { MoreOptions } from "@/components/GuidedMode";
+import { participantScanTokenSuffix } from "@/lib/participant-scan-token";
 
 interface AgeGroup { id: string; name: string; }
 interface Attendance {
@@ -188,13 +189,16 @@ function tokensFromScan(raw: string) {
       }
     }
   } catch {}
-  return [...values].map(normalize).filter(Boolean);
+  const normalized = [...values].map(normalize).filter(Boolean);
+  const suffixes = [...values].map(participantScanTokenSuffix).filter((value): value is string => Boolean(value));
+  return [...new Set([...normalized, ...suffixes])];
 }
 function scanMatches(participant: Participant, raw: string) {
   const scanTokens = tokensFromScan(raw);
   if (!scanTokens.length) return false;
   const haystacks = [
     participant.scanCode || "",
+    participantScanTokenSuffix(participant.scanCode) || "",
     participant.pickupNumber || "",
     participant.id,
     fullName(participant),
