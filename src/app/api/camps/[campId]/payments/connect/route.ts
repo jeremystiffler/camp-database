@@ -50,10 +50,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   try {
     if (!accountId) {
       const account = await stripe.accounts.create({
-        type: "express",
         country: process.env.STRIPE_CONNECT_COUNTRY || "US",
         email: session.email,
+        controller: {
+          requirement_collection: "stripe",
+          stripe_dashboard: { type: "express" },
+          fees: { payer: "account" },
+          losses: { payments: "application" },
+        },
         business_profile: {
+          name: context.organization.name,
           product_description: "Event registrations sold with Simple Schedule Pro",
           url: getBaseUrl(),
         },
@@ -79,6 +85,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       type: "account_onboarding",
+      collection_options: { fields: "eventually_due", future_requirements: "include" },
       refresh_url: `${baseUrl}/settings?campId=${encodeURIComponent(campId)}&tab=billing&connect=refresh`,
       return_url: `${baseUrl}/settings?campId=${encodeURIComponent(campId)}&tab=billing&connect=complete`,
     });

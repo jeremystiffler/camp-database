@@ -1,81 +1,103 @@
 import Stripe from "stripe";
 import { prisma } from "@/lib/db";
+import { completePendingRegistrationPayment, failPendingRegistrationPayment } from "@/lib/registration-payment-lifecycle";
 
-function camperIdsFromMetadata(metadata: Stripe.Metadata | null | undefined) {
-  if (metadata?.camperIds) return metadata.camperIds.split(",").map(id => id.trim()).filter(Boolean);
-  return metadata?.camperId ? [metadata.camperId] : [];
+function paymentIdFromMetadata(metadata: Stripe.Metadata | null | undefined) {
+  return metadata?.registrationPaymentId || null;
 }
 
-async function setCampersPaymentStatus(camperIds: string[], paymentStatus: string) {
-  if (camperIds.length === 0) return;
-  await prisma.camper.updateMany({ where: { id: { in: camperIds } }, data: { paymentStatus } });
+async function recordEvent(event: Stripe.Event, stripeAccountId: string | null) {
+  try {
+    await prisma.stripeWebhookEvent.create({
+      data: {
+        id: event.id,
+        type: event.type,
+        stripeAccountId,
+        payloadCreatedAt: event.created ? new Date(event.created * 1000) : null,
+      },
+    });
+    return true;
+  } catch (error) {
+    if (typeof error === "object" && error && "code" in error && error.code === "P2002") return false;
+    throw error;
+  }
 }
 
-async function completeCheckout(session: Stripe.Checkout.Session, connectAccountId: string | null) {
-  if (session.metadata?.type !== "camper_registration") return;
-  if (session.payment_status !== "paid") return;
-  const paymentIntent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
-  await prisma.registrationPayment.updateMany({
-    where: { stripeCheckoutSession: session.id },
-    data: {
-      status: "paid",
-      stripePaymentIntent: paymentIntent || undefined,
-      stripeConnectAccountId: connectAccountId || undefined,
-    },
+async function completeCheckout(session: Stripe.Checkout.Session, stripeAccountId: string | null) {
+  const paymentId = paymentIdFromMetadata(session.metadata);
+  if (session.metadata?.type !== "camper_registration" || !paymentId || !stripeAccountId || session.payment_status !== "paid") return;
+  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+  await completePendingRegistrationPayment({ paymentId, stripeAccountId, checkoutSessionId: session.id, paymentIntentId });
+}
+
+async function failCheckout(session: Stripe.Checkout.Session, stripeAccountId: string | null, code: string) {
+  const paymentId = paymentIdFromMetadata(session.metadata);
+  if (session.metadata?.type !== "camper_registration" || !paymentId || !stripeAccountId) return;
+  await failPendingRegistrationPayment({ paymentId, stripeAccountId, code });
+}
+
+async function updatePaymentAndCampersByIntent(paymentIntentId: string, stripeAccountId: string, status: string, fullyRefunded = false) {
+  const payments = await prisma.registrationPayment.findMany({
+    where: { stripePaymentIntent: paymentIntentId, stripeConnectAccountId: stripeAccountId },
+    select: { id: true, campers: { select: { camperId: true } } },
   });
-  await setCampersPaymentStatus(camperIdsFromMetadata(session.metadata), "paid");
-}
-
-async function failCheckout(session: Stripe.Checkout.Session) {
-  if (session.metadata?.type !== "camper_registration") return;
+  if (payments.length === 0) return;
   await prisma.registrationPayment.updateMany({
-    where: { stripeCheckoutSession: session.id, status: "pending" },
-    data: { status: "failed" },
+    where: { id: { in: payments.map(payment => payment.id) } },
+    data: { status, ...(fullyRefunded ? { refundedAt: new Date() } : {}) },
   });
-  await setCampersPaymentStatus(camperIdsFromMetadata(session.metadata), "failed");
+  await prisma.camper.updateMany({
+    where: { id: { in: payments.flatMap(payment => payment.campers.map(link => link.camperId)) } },
+    data: { paymentStatus: status, ...(fullyRefunded ? { totalPaidCents: 0 } : {}) },
+  });
 }
 
 export async function handleConnectWebhookEvent(event: Stripe.Event) {
-  const connectAccountId = typeof event.account === "string" ? event.account : null;
+  const stripeAccountId = typeof event.account === "string" ? event.account : null;
+  const firstAttempt = await recordEvent(event, stripeAccountId);
+  if (!firstAttempt) return;
 
-  switch (event.type) {
-    case "account.updated": {
-      const account = event.data.object as Stripe.Account;
-      await prisma.organization.updateMany({
-        where: { stripeConnectAccountId: account.id },
-        data: {
-          stripeConnectDetailsSubmitted: Boolean(account.details_submitted),
-          stripeConnectChargesEnabled: Boolean(account.charges_enabled),
-          stripeConnectPayoutsEnabled: Boolean(account.payouts_enabled),
-          stripeConnectCountry: account.country || null,
-          stripeConnectUpdatedAt: new Date(),
-        },
-      });
-      break;
+  try {
+    switch (event.type) {
+      case "account.updated": {
+        const account = event.data.object as Stripe.Account;
+        await prisma.organization.updateMany({
+          where: { stripeConnectAccountId: account.id },
+          data: {
+            stripeConnectDetailsSubmitted: Boolean(account.details_submitted),
+            stripeConnectChargesEnabled: Boolean(account.charges_enabled),
+            stripeConnectPayoutsEnabled: Boolean(account.payouts_enabled),
+            stripeConnectCardPaymentsActive: account.capabilities?.card_payments === "active",
+            stripeConnectDisabledReason: account.requirements?.disabled_reason || null,
+            stripeConnectCountry: account.country || null,
+            stripeConnectUpdatedAt: new Date(),
+          },
+        });
+        break;
+      }
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded":
+        await completeCheckout(event.data.object as Stripe.Checkout.Session, stripeAccountId);
+        break;
+      case "checkout.session.expired":
+      case "checkout.session.async_payment_failed":
+        await failCheckout(event.data.object as Stripe.Checkout.Session, stripeAccountId, event.type);
+        break;
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
+        if (paymentIntentId && stripeAccountId) await updatePaymentAndCampersByIntent(paymentIntentId, stripeAccountId, charge.refunded ? "refunded" : "partially_refunded", charge.refunded);
+        break;
+      }
+      case "charge.dispute.created": {
+        const dispute = event.data.object as Stripe.Dispute;
+        const paymentIntentId = typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id;
+        if (paymentIntentId && stripeAccountId) await updatePaymentAndCampersByIntent(paymentIntentId, stripeAccountId, "disputed");
+        break;
+      }
     }
-    case "checkout.session.completed":
-    case "checkout.session.async_payment_succeeded":
-      await completeCheckout(event.data.object as Stripe.Checkout.Session, connectAccountId);
-      break;
-    case "checkout.session.expired":
-    case "checkout.session.async_payment_failed":
-      await failCheckout(event.data.object as Stripe.Checkout.Session);
-      break;
-    case "charge.refunded": {
-      const charge = event.data.object as Stripe.Charge;
-      const paymentIntent = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
-      if (!paymentIntent) break;
-      const status = charge.refunded ? "refunded" : "partially_refunded";
-      const payments = await prisma.registrationPayment.findMany({ where: { stripePaymentIntent: paymentIntent }, select: { camperId: true } });
-      await prisma.registrationPayment.updateMany({ where: { stripePaymentIntent: paymentIntent }, data: { status } });
-      await setCampersPaymentStatus(payments.map(payment => payment.camperId).filter((id): id is string => Boolean(id)), status);
-      break;
-    }
-    case "charge.dispute.created": {
-      const dispute = event.data.object as Stripe.Dispute;
-      const paymentIntent = typeof dispute.payment_intent === "string" ? dispute.payment_intent : dispute.payment_intent?.id;
-      if (paymentIntent) await prisma.registrationPayment.updateMany({ where: { stripePaymentIntent: paymentIntent }, data: { status: "disputed" } });
-      break;
-    }
+  } catch (error) {
+    await prisma.stripeWebhookEvent.delete({ where: { id: event.id } }).catch(() => undefined);
+    throw error;
   }
 }

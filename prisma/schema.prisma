@@ -17,6 +17,8 @@ model Organization {
   stripeConnectDetailsSubmitted Boolean  @default(false)
   stripeConnectChargesEnabled   Boolean  @default(false)
   stripeConnectPayoutsEnabled   Boolean  @default(false)
+  stripeConnectCardPaymentsActive Boolean @default(false)
+  stripeConnectDisabledReason   String?
   stripeConnectCountry          String?
   stripeConnectUpdatedAt        DateTime?
   createdAt                     DateTime @default(now())
@@ -343,6 +345,7 @@ model Camper {
   enrollments         Enrollment[]
   attendances         CamperAttendance[]
   checkInEvents       CheckInEvent[]
+  registrationPayments RegistrationPaymentCamper[]
 
   @@index([campId, pickupNumber])
 }
@@ -502,8 +505,36 @@ model RegistrationPayment {
   stripeCheckoutSession String?  @unique
   stripePaymentIntent   String?
   stripeConnectAccountId String?
+  checkoutExpiresAt     DateTime?
+  paidAt                DateTime?
+  failedAt              DateTime?
+  refundedAt            DateTime?
+  failureCode           String?
+  failureMessage        String?
+  couponReservedAt      DateTime?
+  couponRedeemedAt      DateTime?
+  campers               RegistrationPaymentCamper[]
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+model RegistrationPaymentCamper {
+  paymentId              String
+  camperId               String
+  allocatedAmountCents   Int      @default(0)
+  payment                RegistrationPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  camper                 Camper   @relation(fields: [camperId], references: [id], onDelete: Cascade)
+
+  @@id([paymentId, camperId])
+  @@index([camperId])
+}
+
+model StripeWebhookEvent {
+  id               String   @id
+  type             String
+  stripeAccountId  String?
+  payloadCreatedAt DateTime?
+  processedAt      DateTime @default(now())
 }
 
 model PrintTemplate {

@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { getBaseUrl, getStripe } from "@/lib/billing";
+import { connectReady, syncConnectedAccount } from "@/lib/stripe-connect";
+import { failPendingRegistrationPayment } from "@/lib/registration-payment-lifecycle";
 import { calculateRegistrationTotal, couponAllowsEmail, normalizeCouponCode, type PricingCoupon } from "@/lib/registration-pricing";
 import { generateCamperScanCode } from "@/lib/camper-identity";
-import { CapacityError, claimSeat, storedCapacity, releaseEnrollment } from "@/lib/capacity";
+import { CapacityError, claimSeat, storedCapacity, releaseEnrollment, releaseCamperEnrollments } from "@/lib/capacity";
 
 interface StudentPayload {
   firstName: string;
@@ -415,10 +417,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       camperPriceCents: true,
       organization: {
         select: {
+          id: true,
           stripeConnectAccountId: true,
           stripeConnectDetailsSubmitted: true,
           stripeConnectChargesEnabled: true,
           stripeConnectPayoutsEnabled: true,
+          stripeConnectCardPaymentsActive: true,
+          stripeConnectDisabledReason: true,
         },
       },
     },
@@ -495,11 +500,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const paymentRequired = camp.billingMode === "camperFee" && familyTotals.totalCents > 0;
   const registrationStripe = paymentRequired ? getStripe() : null;
   const connectAccountId = camp.organization.stripeConnectAccountId;
-  if (paymentRequired && (!registrationStripe || !connectAccountId || !camp.organization.stripeConnectDetailsSubmitted || !camp.organization.stripeConnectChargesEnabled || !camp.organization.stripeConnectPayoutsEnabled)) {
-    return NextResponse.json({ error: "This event is not ready to accept online payments. Please contact the event organizer." }, { status: 503 });
+  if (paymentRequired) {
+    if (!registrationStripe || !connectAccountId) return NextResponse.json({ error: "This event is not ready to accept online payments. Please contact the event organizer." }, { status: 503 });
+    try {
+      const liveState = await syncConnectedAccount(registrationStripe, camp.organization.id, connectAccountId);
+      if (!connectReady(liveState)) return NextResponse.json({ error: "This event's Stripe payout account is not currently able to accept payments. Please contact the event organizer." }, { status: 503 });
+    } catch {
+      return NextResponse.json({ error: "This event's Stripe payout account could not be verified. Please try again later." }, { status: 503 });
+    }
   }
   const createdStudents: Array<{ camperId: string; firstName: string; lastName: string; dateOfBirth?: string; ageGroupName?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }> = [];
   const createdCamperIds: string[] = [];
+  const rollbackCreatedCampers = async () => {
+    for (const camperId of [...createdCamperIds].reverse()) {
+      const pending = await prisma.camper.findFirst({ where: { id: camperId, campId, paymentStatus: "pending" }, select: { id: true } });
+      if (!pending) continue;
+      await releaseCamperEnrollments(camperId, campId);
+      await prisma.camper.deleteMany({ where: { id: camperId, campId, paymentStatus: "pending" } });
+    }
+  };
   let anyUpdating = false;
 
   for (const student of campers) {
@@ -634,7 +653,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       campPriceCents: perCamperTotals.campPriceCents,
       discountCents: familyRegistrationEnabled ? 0 : familyTotals.discountCents,
       platformFeeCents: familyRegistrationEnabled ? 0 : familyTotals.platformFeeCents,
-      totalPaidCents: familyRegistrationEnabled ? 0 : familyTotals.totalCents,
+      totalPaidCents: 0,
       paymentStatus: familyTotals.totalCents > 0 && !updating ? "pending" : "not_required",
     };
 
@@ -661,6 +680,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         try {
           await claimSeat({ campId, camperId: camper.id, sessionId: session.id, status: "enrolled", allowHeldSeat: false });
         } catch (error) {
+          await rollbackCreatedCampers();
           if (error instanceof CapacityError) return NextResponse.json({ error: `${selection.course.name} just filled up. Please choose a different class for ${firstName}.`, code: error.code }, { status: 409 });
           throw error;
         }
@@ -671,7 +691,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       let session = assignment.sessions[0] ? await prisma.session.findUnique({ where: { id: assignment.sessions[0].id } }) : null;
       if (!session) {
         const capacity = assignment.room?.capacity ?? 0;
-        if (capacity <= 0) return NextResponse.json({ error: `${assignment.title} has no room capacity and cannot accept registration.` }, { status: 409 });
+        if (capacity <= 0) {
+          await rollbackCreatedCampers();
+          return NextResponse.json({ error: `${assignment.title} has no room capacity and cannot accept registration.` }, { status: 409 });
+        }
         session = await prisma.session.create({ data: { campId, courseId: null, mandatorySessionId: assignment.id, sessionTemplateId: assignment.sessionTemplateId, roomId: assignment.roomId, startTime: assignment.sessionTemplate.startTime, endTime: assignment.sessionTemplate.endTime, capacity } });
       }
       if (enrolledSessionIds.has(session.id)) continue;
@@ -681,6 +704,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         try {
           await claimSeat({ campId, camperId: camper.id, sessionId: session.id, status: "enrolled", allowHeldSeat: false });
         } catch (error) {
+          await rollbackCreatedCampers();
           if (error instanceof CapacityError) return NextResponse.json({ error: `${assignment.title} just filled up. Please contact the event administrator.`, code: error.code }, { status: 409 });
           throw error;
         }
@@ -722,9 +746,107 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
   const emailPaymentRequired = camp.billingMode === "camperFee" && !anyUpdating && familyTotals.totalCents > 0;
 
+  if (emailPaymentRequired && registrationStripe && connectAccountId) {
+    try {
+      const liveState = await syncConnectedAccount(registrationStripe, camp.organization.id, connectAccountId);
+      if (!connectReady(liveState)) {
+        await rollbackCreatedCampers();
+        return NextResponse.json({ error: "The organizer's Stripe account became unavailable before checkout. No registration or seat was retained." }, { status: 503 });
+      }
+    } catch {
+      await rollbackCreatedCampers();
+      return NextResponse.json({ error: "The organizer's Stripe account could not be re-verified before checkout. No registration or seat was retained." }, { status: 503 });
+    }
+    const baseAllocation = Math.floor(familyTotals.totalCents / Math.max(createdCamperIds.length, 1));
+    const remainder = familyTotals.totalCents - baseAllocation * createdCamperIds.length;
+    let payment;
+    try {
+      payment = await prisma.registrationPayment.create({
+        data: {
+          campId,
+          camperId: createdCamperIds[0] || undefined,
+          guardianEmail,
+          amountCents: familyTotals.totalCents,
+          campPriceCents: familyTotals.campPriceCents,
+          discountCents: familyTotals.discountCents,
+          platformFeeCents: familyTotals.platformFeeCents,
+          couponCode: coupon?.code,
+          status: "pending",
+          stripeConnectAccountId: connectAccountId,
+          type: createdStudents.length > 1 ? "family_registration" : "registration",
+          campers: {
+            create: createdCamperIds.map((camperId, index) => ({
+              camperId,
+              allocatedAmountCents: baseAllocation + (index < remainder ? 1 : 0),
+            })),
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Registration payment reservation failed", error);
+      await rollbackCreatedCampers();
+      return NextResponse.json({ error: "Payment checkout could not be prepared. No registration or seat was retained. Please try again." }, { status: 500 });
+    }
+
+    if (coupon?.id) {
+      const reserved = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        `WITH reserved_coupon AS (
+           UPDATE "CampCoupon"
+              SET "redeemedCount" = "redeemedCount" + 1, "updatedAt" = NOW()
+            WHERE "id" = $1
+              AND "active" = true
+              AND ("maxRedemptions" IS NULL OR "redeemedCount" < "maxRedemptions")
+          RETURNING "id"
+         )
+         UPDATE "RegistrationPayment"
+            SET "couponReservedAt" = NOW(), "updatedAt" = NOW()
+           FROM reserved_coupon
+          WHERE "RegistrationPayment"."id" = $2
+        RETURNING "RegistrationPayment"."id"`,
+        coupon.id,
+        payment.id,
+      );
+      if (reserved.length === 0) {
+        await failPendingRegistrationPayment({ paymentId: payment.id, stripeAccountId: connectAccountId, code: "coupon_unavailable", message: "Coupon redemption limit reached before checkout." });
+        return NextResponse.json({ error: "Coupon code has just reached its redemption limit. Please register again without it." }, { status: 409 });
+      }
+    }
+
+    const checkoutExpiresAt = new Date(Date.now() + 31 * 60 * 1000);
+    let checkoutId: string | null = null;
+    try {
+      const checkout = await registrationStripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        customer_email: guardianEmail,
+        client_reference_id: payment.id,
+        expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
+        line_items: [{ price_data: { currency: "usd", unit_amount: familyTotals.totalCents, product_data: { name: `${camp.name} registration${createdStudents.length > 1 ? ` (${createdStudents.length} students)` : ""}` } }, quantity: 1 }],
+        payment_intent_data: {
+          ...(familyTotals.platformFeeCents > 0 ? { application_fee_amount: familyTotals.platformFeeCents } : {}),
+          metadata: { registrationPaymentId: payment.id, campId, type: "camper_registration" },
+        },
+        success_url: `${getBaseUrl()}/register/${campId}?payment=success`,
+        cancel_url: `${getBaseUrl()}/register/${campId}?payment=cancelled`,
+        metadata: { registrationPaymentId: payment.id, campId, type: "camper_registration" },
+      }, { stripeAccount: connectAccountId, idempotencyKey: `registration-checkout:${payment.id}:v1` });
+      checkoutId = checkout.id;
+      await prisma.registrationPayment.update({
+        where: { id: payment.id },
+        data: { stripeCheckoutSession: checkout.id, checkoutExpiresAt },
+      });
+      return NextResponse.json({ success: true, updated: false, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent: false, adminEmailSent: false, adminEmailCount: 0, paymentRequired: true, checkoutUrl: checkout.url, totals: familyTotals });
+    } catch (error) {
+      console.error("Registration Checkout creation failed", error);
+      if (checkoutId) await registrationStripe.checkout.sessions.expire(checkoutId, {}, { stripeAccount: connectAccountId }).catch(() => undefined);
+      await failPendingRegistrationPayment({ paymentId: payment.id, stripeAccountId: connectAccountId, code: "checkout_creation_failed", message: "Stripe Checkout could not be created." });
+      return NextResponse.json({ error: "Payment checkout could not be created. No registration or seat was retained. Please try again." }, { status: 502 });
+    }
+  }
+
   let emailSent = false;
   try {
-    const result = await sendConfirmationEmail({ campName: camp.name, guardian: { name: guardianName, email: guardianEmail, phone: guardianPhone }, students: createdStudents, totals: familyTotals, paymentRequired: emailPaymentRequired, settings: selectedForm || {}, updated: anyUpdating });
+    const result = await sendConfirmationEmail({ campName: camp.name, guardian: { name: guardianName, email: guardianEmail, phone: guardianPhone }, students: createdStudents, totals: familyTotals, paymentRequired: false, settings: selectedForm || {}, updated: anyUpdating });
     emailSent = result.sent;
   } catch (error) {
     console.error("Registration confirmation email failed", error);
@@ -734,7 +856,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   let adminEmailCount = 0;
   const adminRecipients = parseNotificationEmails(selectedForm?.adminNotificationEmails);
   try {
-    const result = await sendAdminNotificationEmail({ campName: camp.name, guardian: { name: guardianName, email: guardianEmail, phone: guardianPhone }, students: createdStudents, totals: familyTotals, paymentRequired: emailPaymentRequired, recipients: adminRecipients, updated: anyUpdating });
+    const result = await sendAdminNotificationEmail({ campName: camp.name, guardian: { name: guardianName, email: guardianEmail, phone: guardianPhone }, students: createdStudents, totals: familyTotals, paymentRequired: false, recipients: adminRecipients, updated: anyUpdating });
     adminEmailSent = result.sent;
     adminEmailCount = result.count;
   } catch (error) {
@@ -743,28 +865,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
   if (coupon?.id && !anyUpdating) {
     await prisma.campCoupon.update({ where: { id: coupon.id }, data: { redeemedCount: { increment: 1 } } });
-  }
-
-  if (camp.billingMode === "camperFee" && !anyUpdating && familyTotals.totalCents > 0) {
-    if (registrationStripe && connectAccountId) {
-      const checkout = await registrationStripe.checkout.sessions.create({
-        mode: "payment",
-        customer_email: guardianEmail,
-        line_items: [{ price_data: { currency: "usd", unit_amount: familyTotals.totalCents, product_data: { name: `${camp.name} registration${createdStudents.length > 1 ? ` (${createdStudents.length} students)` : ""}` } }, quantity: 1 }],
-        payment_intent_data: {
-          ...(familyTotals.platformFeeCents > 0 ? { application_fee_amount: familyTotals.platformFeeCents } : {}),
-          metadata: { campId, camperIds: createdCamperIds.join(","), type: "camper_registration" },
-        },
-        success_url: `${getBaseUrl()}/register/${campId}?payment=success`,
-        cancel_url: `${getBaseUrl()}/register/${campId}?payment=cancelled`,
-        metadata: { campId, camperId: createdCamperIds[0] || "", camperIds: createdCamperIds.join(","), type: "camper_registration", couponCode: coupon?.code || "" },
-      }, { stripeAccount: connectAccountId });
-      await prisma.registrationPayment.create({
-        data: { campId, camperId: createdCamperIds[0] || undefined, guardianEmail, amountCents: familyTotals.totalCents, campPriceCents: familyTotals.campPriceCents, discountCents: familyTotals.discountCents, platformFeeCents: familyTotals.platformFeeCents, couponCode: coupon?.code, status: "pending", stripeCheckoutSession: checkout.id, stripeConnectAccountId: connectAccountId, type: createdStudents.length > 1 ? "family_registration" : "registration" },
-      });
-      return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, adminEmailSent, adminEmailCount, paymentRequired: true, checkoutUrl: checkout.url, totals: familyTotals });
-    }
-    return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, adminEmailSent, adminEmailCount, paymentRequired: true, paymentUnavailable: true, totals: familyTotals });
   }
 
   return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, adminEmailSent, adminEmailCount, paymentRequired: false, totals: familyTotals });

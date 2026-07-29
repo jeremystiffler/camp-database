@@ -4,6 +4,7 @@ import { publicCapacity } from "@/lib/capacity";
 import { blockingIssues, detectIssues } from "@/lib/issues";
 import { getSession } from "@/lib/auth";
 import { getStripe } from "@/lib/billing";
+import { connectReady, connectStateFromOrganization } from "@/lib/stripe-connect";
 
 async function checkAccess(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -157,6 +158,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
           stripeConnectDetailsSubmitted: true,
           stripeConnectChargesEnabled: true,
           stripeConnectPayoutsEnabled: true,
+          stripeConnectCardPaymentsActive: true,
+          stripeConnectDisabledReason: true,
+          stripeConnectCountry: true,
         },
       },
       registrationForms: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
@@ -264,13 +268,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
     .filter((issue) => issue.severity === "advisory")
     .map((issue) => issue.message);
   const paidRegistration = camp.billingMode === "camperFee" && camp.camperPriceCents > 0;
-  const paymentReady = !paidRegistration || Boolean(
-    getStripe()
-    && camp.organization.stripeConnectAccountId
-    && camp.organization.stripeConnectDetailsSubmitted
-    && camp.organization.stripeConnectChargesEnabled
-    && camp.organization.stripeConnectPayoutsEnabled,
-  );
+  const paymentReady = !paidRegistration || Boolean(getStripe() && connectReady(connectStateFromOrganization(camp.organization)));
   const formOpen = selectedForm ? camp.registrationOpen && selectedForm.status !== "draft" && capacityViolations.length === 0 && paymentReady : false;
   return NextResponse.json({
     campName: camp.name,

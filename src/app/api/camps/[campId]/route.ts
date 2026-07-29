@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { getStripe } from "@/lib/billing";
+import { connectReady, connectStateFromOrganization } from "@/lib/stripe-connect";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -138,7 +139,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
           registrationOpen: true,
           billingMode: true,
           camperPriceCents: true,
-          organization: { select: { stripeConnectAccountId: true, stripeConnectDetailsSubmitted: true, stripeConnectChargesEnabled: true, stripeConnectPayoutsEnabled: true } },
+          organization: { select: { stripeConnectAccountId: true, stripeConnectDetailsSubmitted: true, stripeConnectChargesEnabled: true, stripeConnectPayoutsEnabled: true, stripeConnectCardPaymentsActive: true, stripeConnectDisabledReason: true, stripeConnectCountry: true } },
         },
       });
       if (!current) return NextResponse.json({ error: "Event not found" }, { status: 404 });
@@ -146,9 +147,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
       const nextMode = allowed.billingMode === undefined ? current.billingMode : String(allowed.billingMode);
       const nextPrice = allowed.camperPriceCents === undefined ? current.camperPriceCents : Number(allowed.camperPriceCents);
       const connect = current.organization;
-      const paidRegistrationReady = Boolean(getStripe() && connect.stripeConnectAccountId && connect.stripeConnectDetailsSubmitted && connect.stripeConnectChargesEnabled && connect.stripeConnectPayoutsEnabled);
-      if (nextOpen && nextMode === "camperFee" && nextPrice > 0 && !paidRegistrationReady) {
-        return NextResponse.json({ error: "Connect a verified Stripe payout account before opening paid registration." }, { status: 409 });
+      const paidRegistrationReady = Boolean(getStripe() && connectReady(connectStateFromOrganization(connect)));
+      if (nextMode === "camperFee" && nextPrice > 0 && !paidRegistrationReady && (nextOpen || allowed.billingMode === "camperFee")) {
+        return NextResponse.json({ error: "Connect a verified Stripe payout account before selecting paid registration or opening it to families." }, { status: 409 });
       }
     }
 
