@@ -5,10 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import NewCampWizard from "@/components/NewCampWizard";
 import { HelpCopy } from "@/components/HelpMode";
-import { OperationsGrid, foldBlocks, type GridAgeGroup, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
-import { CoverageMatrixView } from "@/components/CoverageMatrixView";
-import { buildCoverage } from "@/lib/coverage";
-import { SummaryStrip } from "@/components/SummaryStrip";
+import type { GridAgeGroup, GridBlock, GridCourse } from "@/components/OperationsGrid";
 import { EmptyHome, SetupPanel, type SetupLink } from "@/components/SetupPanel";
 import { homeState, type HomeState } from "@/lib/homeState";
 import type { Issue } from "@/lib/issues";
@@ -436,51 +433,7 @@ function DashboardContent() {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [actionsOpen,  setActionsOpen]  = useState(false);
 
-  /**
-   * Scroll the offending cell into view and highlight it for 1.2s (spec §2.2).
-   * Returns false when the issue has no cell — an unscheduled activity has a row
-   * but no session, and a block-level clash has no single owning row. The strip
-   * says so rather than appearing broken.
-   */
-  const jumpToIssue = useCallback((issue: Issue): boolean => {
-    if (typeof document === "undefined") return false;
-    const escape = (value: string) =>
-      typeof CSS !== "undefined" && CSS.escape ? CSS.escape(value) : value.replace(/"/g, '\\"');
 
-    let target: HTMLElement | null = null;
-    if (issue.courseId && issue.blockId) {
-      target = document.querySelector<HTMLElement>(
-        `td.ops-cell[data-course-id="${escape(issue.courseId)}"][data-block-ids~="${escape(issue.blockId)}"]`,
-      );
-    }
-    // Fall back to the activity's row header, then to any cell in that block.
-    if (!target && issue.courseId) {
-      target = document.querySelector<HTMLElement>(
-        `th.ops-rowhead[data-course-id="${escape(issue.courseId)}"]`,
-      );
-    }
-    if (!target && issue.blockId) {
-      target = document.querySelector<HTMLElement>(
-        `td.ops-cell[data-block-ids~="${escape(issue.blockId)}"]`,
-      );
-    }
-    if (!target) return false;
-
-    const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    target.scrollIntoView({
-      behavior: reduced ? "auto" : "smooth",
-      block: "center",
-      inline: "center",
-    });
-    // Restart the highlight if the same target is clicked twice.
-    target.classList.remove("is-jump-target");
-    void target.offsetWidth;
-    target.classList.add("is-jump-target");
-    window.setTimeout(() => target?.classList.remove("is-jump-target"), 1400);
-    return true;
-  }, []);
   const [renameValue,  setRenameValue]  = useState("");
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameMsg,    setRenameMsg]    = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -511,16 +464,6 @@ function DashboardContent() {
     if (activeCamp?.id) localStorage.setItem("activeCampId", activeCamp.id);
   }, [activeCamp?.id, activeCamp?.name]);
 
-  const refreshSummary = useCallback(async () => {
-    if (!activeCamp?.id) return;
-    try {
-      const response = await fetch(`/api/camps/${activeCamp.id}/dashboard`);
-      const data = response.ok ? await response.json() : null;
-      setSummary(data && data.stats ? data : null);
-    } catch {
-      /* Leave the current view in place rather than blanking the grid. */
-    }
-  }, [activeCamp?.id]);
 
   useEffect(() => {
     if (!activeCamp?.id) {
@@ -535,38 +478,6 @@ function DashboardContent() {
       .finally(() => setSummaryLoading(false));
   }, [activeCamp?.id]);
 
-  /**
-   * Grid edits (§3). Both stay on the page: they call the API, refresh the
-   * summary in place, and never navigate. Returning false leaves the popover
-   * open so the organiser can see the action did not take.
-   */
-  const removeSession = useCallback(
-    async ({ sessionId }: { courseId: string; sessionId: string }) => {
-      if (!activeCamp?.id) return false;
-      const response = await fetch(`/api/camps/${activeCamp.id}/sessions/${sessionId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) return false;
-      await refreshSummary();
-      return true;
-    },
-    [activeCamp?.id, refreshSummary],
-  );
-
-  const addSession = useCallback(
-    async ({ courseId, blockId, startTime, endTime }: { courseId: string; blockId: string; startTime: string; endTime: string }) => {
-      if (!activeCamp?.id) return false;
-      const response = await fetch(`/api/camps/${activeCamp.id}/sessions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId, sessionTemplateId: blockId, startTime, endTime }),
-      });
-      if (!response.ok) return false;
-      await refreshSummary();
-      return true;
-    },
-    [activeCamp?.id, refreshSummary],
-  );
 
   const reloadPrograms = () => {
     fetch("/api/camps").then(r => r.json()).then(d => { if (Array.isArray(d)) setPrograms(d); });
@@ -673,17 +584,6 @@ function DashboardContent() {
   // Home's four states (spec §5, phase 18g). Derived every render — never
   // stored, so it cannot fall out of step with the event it describes.
   const registrationOpen = Boolean(summary?.camp?.registrationOpen);
-  // Coverage (§4.3). Shares the grid's folded columns so the band lines up with
-  // the table above it — column alignment is the whole point of the placement.
-  const coverage = summary?.grid
-    ? buildCoverage({
-        courses: summary.grid.courses,
-        blocks: summary.grid.blocks,
-        columns: foldBlocks(summary.grid.blocks).columns,
-        ageGroups: summary.grid.ageGroups,
-        campersByAgeGroup: summary.campersByAgeGroup ?? {},
-      })
-    : null;
 
   const state: HomeState = homeState({
     activityCount: summary?.grid?.courses.length ?? 0,
@@ -695,12 +595,12 @@ function DashboardContent() {
 
   const setupLinks: SetupLink[] = activeCamp
     ? [
-        { label: "Age groups", href: `/setup?campId=${activeCamp.id}&step=age-groups`, done: (summary?.stats?.ageGroups ?? 0) > 0 },
+        { label: "Age groups", href: `/setup?campId=${activeCamp.id}&step=ages`, done: (summary?.stats?.ageGroups ?? 0) > 0 },
         { label: "Rooms", href: `/setup?campId=${activeCamp.id}&step=rooms`, done: (summary?.stats?.rooms ?? 0) > 0 },
-        { label: "Time blocks", href: `/setup?campId=${activeCamp.id}&step=schedule`, done: (summary?.stats?.scheduleBlocks ?? 0) > 0 },
-        { label: "Teachers", href: `/teachers?campId=${activeCamp.id}`, done: (summary?.stats?.teachers ?? 0) > 0 },
-        { label: "Activities", href: `/activities?campId=${activeCamp.id}`, done: (summary?.stats?.classes ?? 0) > 0 },
-        { label: "Registration form", href: `/registration?campId=${activeCamp.id}`, done: registrationOpen },
+        { label: "Time blocks", href: `/setup?campId=${activeCamp.id}&step=times`, done: (summary?.stats?.scheduleBlocks ?? 0) > 0 },
+        { label: "Teachers", href: `/setup?campId=${activeCamp.id}&step=teachers`, done: (summary?.stats?.teachers ?? 0) > 0 },
+        { label: "Activities", href: `/setup?campId=${activeCamp.id}&step=activities`, done: (summary?.stats?.classes ?? 0) > 0 },
+        { label: "Registration form", href: `/setup?campId=${activeCamp.id}&step=registration`, done: registrationOpen },
       ]
     : [];
 
@@ -802,47 +702,6 @@ function DashboardContent() {
 
           {summary && state === "building" && setupPanel}
 
-          {summary?.grid && state !== "empty" && (
-            <section aria-labelledby="ops-grid-heading" className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="ops-grid-heading" className="text-sm font-extrabold text-slate-900">
-                  Activities by time block
-                </h2>
-                <Link href={`/schedule?campId=${activeCamp.id}`} className="text-xs font-bold text-slate-600 underline-offset-2 hover:underline">
-                  Open the schedule
-                </Link>
-              </div>
-              {/* No isEmptyEvent prop (phase 18g): this section only renders when
-                  the state is not "empty", so that branch was dead the moment I
-                  wrote it in 18e. EmptyHome owns the empty state — two components
-                  answering "what now?" is how they end up disagreeing. */}
-              <SummaryStrip issues={summary.issues ?? []} onJump={jumpToIssue} />
-              <OperationsGrid
-                courses={summary.grid.courses}
-                blocks={summary.grid.blocks}
-                ageGroups={summary.grid.ageGroups}
-                interactive
-                onRemoveSession={removeSession}
-                onAddSession={addSession}
-                footer={
-                  coverage ? (
-                    <CoverageMatrixView
-                      matrix={coverage}
-                      courses={summary.grid.courses}
-                      variant="band"
-                      onAddClass={(columnKey, groupId) => {
-                        const column = coverage.columns.find((c) => c.key === columnKey);
-                        const blockId = column?.blockIds[0] ?? "";
-                        router.push(`/activities?new=1&blockId=${blockId}&ageGroupId=${groupId}`);
-                      }}
-                      onRaiseCap={(courseId) => router.push(`/activities?activityId=${courseId}`)}
-                      onUnhide={(courseId) => router.push(`/activities?activityId=${courseId}`)}
-                    />
-                  ) : null
-                }
-              />
-            </section>
-          )}
 
           {summary && (state === "ready" || state === "running") && setupPanel}
 
@@ -851,9 +710,7 @@ function DashboardContent() {
             <StatCard label="Payments Collected" value={summaryLoading ? "–" : formatCurrency(selectedStats?.paymentCollectedCents)} icon="$" />
           </div>
 
-          {/* The "Health details" accordion that stood here is deleted (spec
-              §2.3): a health summary hidden behind a click is not a callout. Its
-              content is now the always-visible summary strip above the grid. */}
+
         </div>
       )}
 

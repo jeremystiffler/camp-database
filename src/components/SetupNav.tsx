@@ -3,9 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  PHASE_OF,
-  buildPhases,
-  phaseEntrySection,
   sidebarCount,
   type SetupSection,
   type SetupSectionKey,
@@ -14,13 +11,12 @@ import {
 /**
  * Sidebar setup navigation — dashboard spec §5.3, Slice 5.
  *
- * `Event setup` expands into its phases, each with a status dot. This REPLACES
- * the in-page chevron bar: one navigation system, not two. The sidebar is
- * reachable from anywhere, which matters because the moment you want to jump to
- * Rooms is usually while you are staring at the schedule.
+ * `Event setup` expands directly into every setup section, each with a status
+ * dot. The sidebar is reachable from anywhere, which matters because the moment
+ * you want to jump to Rooms is usually while you are staring at the schedule.
  *
  * No hard locks. A volunteer may legitimately enter activities before rooms, so
- * every phase is a live link regardless of what came before it.
+ * every section is a live link regardless of what came before it.
  */
 
 export type SetupNavState = {
@@ -41,7 +37,6 @@ export function SetupNav({
   state: SetupNavState | null;
   onNavigate?: () => void;
 }) {
-  const phases = state ? buildPhases(state.sections) : [];
   const remaining = state ? state.sections.filter((section) => !section.done).length : 0;
   const count = sidebarCount(remaining);
 
@@ -69,7 +64,7 @@ export function SetupNav({
         </Link>
         {/* Zero remaining shows no count at all — a "0 left" badge is noise. */}
         {count && <span className="setupnav__count">{count}</span>}
-        {phases.length > 0 && (
+        {state?.sections.length ? (
           <button
             type="button"
             className="setupnav__toggle"
@@ -79,37 +74,34 @@ export function SetupNav({
           >
             <span aria-hidden="true">{open ? "▾" : "▸"}</span>
           </button>
-        )}
+        ) : null}
       </div>
 
-      {open && phases.length > 0 && (
+      {open && state?.sections.length ? (
         <ul className="setupnav__list">
-          {phases.map((phase) => {
-            const entry = phaseEntrySection(phase);
+          {state.sections.map((section) => {
             // Hover copy comes from the issue engine, never a second string
             // table — one source for what is wrong, everywhere it is shown.
-            const reason = phase.sections
-              .map((section) => state?.reasons?.[section.key])
-              .find(Boolean);
-            const dot = reason ? "attention" : phase.done ? "done" : "todo";
+            const reason = state.reasons?.[section.key];
+            const dot = reason ? "attention" : section.done ? "done" : "todo";
             return (
-              <li key={phase.key}>
+              <li key={section.key}>
                 <Link
-                  href={entry ? `${href}${sep}step=${entry}` : href}
+                  href={`${href}${sep}step=${section.key}`}
                   className="setupnav__item"
-                  title={reason ?? (phase.done ? `${phase.label} is done` : `${phase.remaining} left in ${phase.label}`)}
+                  title={reason ?? (section.done ? `${section.label} is done` : `${section.label} needs attention`)}
                   onClick={onNavigate}
                 >
                   <span className={`setupnav__dot is-${dot}`} aria-hidden="true">
                     {dot === "done" ? "✓" : dot === "attention" ? "!" : ""}
                   </span>
-                  <span className="setupnav__label">{phase.label}</span>
+                  <span className="setupnav__label">{section.label}</span>
                 </Link>
               </li>
             );
           })}
         </ul>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -154,7 +146,6 @@ export function sectionsFromStats(
   return (Object.keys(labels) as SetupSectionKey[]).map((key) => ({
     key,
     label: labels[key],
-    phase: PHASE_OF[key],
     done: done[key],
   }));
 }

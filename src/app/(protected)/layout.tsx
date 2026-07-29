@@ -84,7 +84,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const [camps, setPrograms] = useState<Camp[]>([]);
   const [activeCamp, setActiveCamp] = useState<Camp | null>(null);
   const [lastKnownCampId, setLastKnownCampId] = useState("");
-  // Setup phase completion for the sidebar dots (§5.3). Sourced from the same
+  // Setup section completion for the sidebar dots (§5.3). Sourced from the same
   // dashboard endpoint the issue engine feeds, so the sidebar and /setup cannot
   // form two different opinions about what is finished.
   const [setupNavState, setSetupNavState] = useState<SetupNavState | null>(null);
@@ -112,8 +112,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             registrationOpen: Boolean(data.camp?.registrationOpen),
           }),
           // Hover copy comes from the issue engine (§5.3), never a second
-          // string table. Blocking issues surface on the Build phase, which is
-          // where every schedulable thing now lives.
+          // string table. Blocking schedule issues surface on Activities.
           reasons: (data.issues ?? []).some((issue: { severity?: string }) => issue.severity === "blocking")
             ? { activities: (data.issues ?? []).find((issue: { severity?: string; message?: string }) => issue.severity === "blocking")?.message }
             : {},
@@ -318,9 +317,8 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             <p className="minimal-section-title px-3 mb-1.5">Build your event</p>
             <div className="space-y-1">{primaryNav.filter((item) => roleRank(activeCamp?.myRole) >= roleRank(item.minRole)).map((item) => {
               const isActive = pathname.startsWith(item.href);
-              // Event setup expands into its three phases with status dots
-              // (§5.3). This replaces the in-page chevron bar — one navigation
-              // system, not two.
+              // Event setup expands directly into all setup sections with
+              // status dots, so any destination is one click away.
               if (item.href === "/setup") {
                 return (
                   <SetupNav

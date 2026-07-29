@@ -211,15 +211,15 @@ describe("nothing to report", () => {
 });
 
 describe("§4.5 acceptance, against the live wiring", () => {
-  const dashboard = fs.readFileSync("src/app/(protected)/dashboard/page.tsx", "utf8");
+  const schedule = fs.readFileSync("src/app/(protected)/schedule/page.tsx", "utf8");
   const activities = fs.readFileSync("src/app/(protected)/activities/page.tsx", "utf8");
   const grid = fs.readFileSync("src/components/OperationsGrid.tsx", "utf8");
 
   it("the band shares the grid's own columns", () => {
     // Passed as the grid's footer, INSIDE its scroll wrapper, built from the
     // same foldBlocks() columns the table uses.
-    expect(dashboard).toContain("variant=\"band\"");
-    expect(dashboard).toContain("foldBlocks(summary.grid.blocks).columns");
+    expect(schedule).toContain("variant=\"band\"");
+    expect(schedule).toContain("foldBlocks(gridBlocks).columns");
     expect(grid).toContain("{footer}");
   });
 
@@ -238,13 +238,13 @@ describe("§4.5 acceptance, against the live wiring", () => {
   });
 
   it("both placements use the one component", () => {
-    expect(dashboard).toContain("CoverageMatrixView");
+    expect(schedule).toContain("CoverageMatrixView");
     expect(activities).toContain("CoverageMatrixView");
   });
 
   it("a flagged cell pre-fills the new-class form with block and group", () => {
-    expect(dashboard).toContain("new=1&blockId=");
-    expect(dashboard).toContain("ageGroupId=");
+    expect(schedule).toContain("new=1&blockId=");
+    expect(schedule).toContain("ageGroupId=");
     expect(activities).toContain("prefill?.ageGroupId ? [prefill.ageGroupId] : []");
     expect(activities).toContain("prefill?.blockId");
   });

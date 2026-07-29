@@ -4,8 +4,6 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SetupNav, sectionsFromStats } from "@/components/SetupNav";
 
-/** Sidebar setup navigation — dashboard spec §5.3, Slice 5. */
-
 const render = (element: React.ReactElement) => renderToStaticMarkup(element);
 
 const partial = sectionsFromStats(
@@ -17,15 +15,28 @@ const complete = sectionsFromStats(
   { detailsDone: true, scheduleDone: true, registrationOpen: true },
 );
 
-describe("the collapsed row (§5.3)", () => {
+const sectionLabels = [
+  "Event Info",
+  "Age Groups",
+  "Rooms",
+  "Time Blocks",
+  "Teachers",
+  "Activities",
+  "Schedule Grid",
+  "Registration Form",
+  "Review &amp; Open",
+];
+
+describe("the Event setup dropdown", () => {
   it("shows a count while work remains", () => {
     const html = render(<SetupNav href="/setup?campId=x" active={false} state={{ sections: partial }} />);
     expect(html).toContain("5 left");
   });
 
-  it("shows no count when everything is green", () => {
+  it("shows no count and collapses when everything is ready", () => {
     const html = render(<SetupNav href="/setup?campId=x" active={false} state={{ sections: complete }} />);
     expect(html).not.toContain("left</span>");
+    expect(html).toContain('aria-expanded="false"');
   });
 
   it("auto-expands when something needs attention", () => {
@@ -33,51 +44,31 @@ describe("the collapsed row (§5.3)", () => {
     expect(html).toContain('aria-expanded="true"');
   });
 
-  it("auto-collapses when nothing remains", () => {
-    const html = render(<SetupNav href="/setup?campId=x" active={false} state={{ sections: complete }} />);
-    expect(html).toContain('aria-expanded="false"');
-  });
-});
-
-describe("three phases, not nine steps (§5.1)", () => {
-  it("lists exactly Start, Build and Open", () => {
+  it("lists all nine setup sections directly, with no Start / Build / Open buckets", () => {
     const html = render(<SetupNav href="/setup?campId=x" active state={{ sections: partial }} />);
-    expect(html).toContain(">Start<");
-    expect(html).toContain(">Build<");
-    expect(html).toContain(">Open<");
-    // The nine section names belong on the page, not in the sidebar.
-    expect(html).not.toContain("Time Blocks");
-    expect(html).not.toContain("Schedule Grid");
+    for (const label of sectionLabels) expect(html).toContain(`>${label}<`);
+    expect(html.match(/class="setupnav__item"/g)).toHaveLength(9);
+    expect(html).not.toMatch(/>Start<|>Build<|>Open</);
   });
 
-  it("links each phase to its first unfinished section", () => {
-    const html = render(<SetupNav href="/setup?campId=x" active state={{ sections: partial }} />);
-    // Start is finished, so it opens at its first section.
-    expect(html).toContain("step=details");
-    // Build's first gap is teachers.
-    expect(html).toContain("step=teachers");
-  });
-
-  it("keeps the campId when appending the step", () => {
+  it("links every section directly and preserves campId", () => {
     const html = render(<SetupNav href="/setup?campId=abc" active state={{ sections: partial }} />);
-    expect(html).toContain("campId=abc&amp;step=");
+    for (const section of partial) {
+      expect(html).toContain(`campId=abc&amp;step=${section.key}`);
+    }
   });
 });
 
-describe("status dots (§5.3)", () => {
-  it("marks a finished phase done", () => {
+describe("section status dots", () => {
+  it("marks finished and unfinished sections independently", () => {
     const html = render(<SetupNav href="/setup" active state={{ sections: partial }} />);
     expect(html).toContain("setupnav__dot is-done");
-  });
-
-  it("marks an unfinished phase todo, never locked", () => {
-    const html = render(<SetupNav href="/setup" active state={{ sections: partial }} />);
     expect(html).toContain("setupnav__dot is-todo");
     expect(html).not.toContain("is-locked");
-    expect(html).not.toContain("disabled");
+    expect(html).not.toContain("aria-disabled");
   });
 
-  it("hover copy comes from the issue engine, not a second string table", () => {
+  it("puts an issue on its owning section rather than a phase bucket", () => {
     const html = render(
       <SetupNav
         href="/setup"
@@ -89,26 +80,16 @@ describe("status dots (§5.3)", () => {
     expect(html).toContain("setupnav__dot is-attention");
   });
 
-  it("an issue on a finished phase still expands the nav and flags the dot", () => {
+  it("an issue still expands an otherwise complete dropdown", () => {
     const html = render(
       <SetupNav href="/setup" active state={{ sections: complete, reasons: { rooms: "Sanctuary double-booked" } }} />,
     );
+    expect(html).toContain('aria-expanded="true"');
     expect(html).toContain("is-attention");
   });
 });
 
-describe("no hard locks (§5.3)", () => {
-  it("renders every phase as a live link regardless of order", () => {
-    // A volunteer may legitimately enter activities before rooms.
-    const nothingDone = sectionsFromStats(null, { detailsDone: false });
-    const html = render(<SetupNav href="/setup" active state={{ sections: nothingDone }} />);
-    const links = html.match(/class="setupnav__item"/g) ?? [];
-    expect(links).toHaveLength(3);
-    expect(html).not.toContain("aria-disabled");
-  });
-});
-
-describe("the sticky banner is gone (§5.2)", () => {
+describe("the sticky guidance banner remains deleted", () => {
   const layout = fs.readFileSync("src/app/(protected)/layout.tsx", "utf8");
 
   it("has no NEXT STEP banner", () => {
@@ -116,7 +97,7 @@ describe("the sticky banner is gone (§5.2)", () => {
     expect(layout).not.toMatch(/showBuildGuidance\s*&&/);
   });
 
-  it("nothing in setup navigates out to /activities", () => {
+  it("nothing in setup navigation redirects to /activities", () => {
     expect(layout).not.toMatch(/"\/setup":\s*\{\s*label:[^}]*\/activities/);
   });
 });

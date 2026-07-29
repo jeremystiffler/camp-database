@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import {
-  PHASE_OF,
-  buildPhases,
   continueLabel,
   firstIncompleteSection,
-  phaseDot,
-  phaseEntrySection,
   remainingLine,
   sidebarCount,
   teacherCoverageDone,
@@ -15,7 +11,7 @@ import {
   type SetupSectionKey,
 } from "@/lib/setupPhases";
 
-/** Setup's three phases — dashboard spec §5, Slice 5. */
+/** Setup section routing and readiness. */
 
 const SECTION_LABELS: Record<SetupSectionKey, string> = {
   details: "Event Info",
@@ -33,48 +29,8 @@ const make = (done: Partial<Record<SetupSectionKey, boolean>>): SetupSection[] =
   (Object.keys(SECTION_LABELS) as SetupSectionKey[]).map((key) => ({
     key,
     label: SECTION_LABELS[key],
-    phase: PHASE_OF[key],
     done: done[key] ?? false,
   }));
-
-describe("nine sections collapse to three phases (§5.1)", () => {
-  it("produces exactly three phases", () => {
-    const phases = buildPhases(make({}));
-    expect(phases.map((p) => p.key)).toEqual(["start", "build", "open"]);
-  });
-
-  it("puts all five grid-absorbed sections in Build", () => {
-    // The grid shows rooms, blocks, teachers, activities and scheduling, so
-    // they stop being separate destinations.
-    const build = buildPhases(make({})).find((p) => p.key === "build")!;
-    expect(build.sections.map((s) => s.key)).toEqual([
-      "rooms",
-      "times",
-      "teachers",
-      "activities",
-      "schedule",
-    ]);
-  });
-
-  it("keeps Start to the short form and Open to the gate", () => {
-    const phases = buildPhases(make({}));
-    expect(phases[0].sections.map((s) => s.key)).toEqual(["details", "ages"]);
-    expect(phases[2].sections.map((s) => s.key)).toEqual(["registration", "review"]);
-  });
-
-  it("counts what remains per phase", () => {
-    const phases = buildPhases(make({ details: true, ages: true, rooms: true }));
-    expect(phases[0].remaining).toBe(0);
-    expect(phases[0].done).toBe(true);
-    expect(phases[1].remaining).toBe(4);
-    expect(phases[1].done).toBe(false);
-  });
-
-  it("never reports a phase as done while work remains", () => {
-    const phases = buildPhases(make({ rooms: true, times: true }));
-    expect(phases.find((p) => p.key === "build")!.done).toBe(false);
-  });
-});
 
 describe("first-incomplete routing — the defect underneath (§5.2)", () => {
   it("opens the first unfinished section, not step 1", () => {
@@ -172,28 +128,9 @@ describe("sidebar navigation (§5.3)", () => {
     expect(sidebarCount(0)).toBeNull();
   });
 
-  it("has no locked dot state", () => {
-    // §5.3: no hard locks. A volunteer may enter activities before rooms.
-    const phase = buildPhases(make({}))[1];
-    expect(phaseDot(phase, false)).toBe("todo");
-    expect(phaseDot(phase, true)).toBe("attention");
-    expect(phaseDot(buildPhases(make({ rooms: true, times: true, teachers: true, activities: true, schedule: true }))[1], false)).toBe("done");
-  });
-
-  it("an issue outranks completion in the dot", () => {
-    const done = buildPhases(make({ registration: true, review: true }))[2];
-    expect(done.done).toBe(true);
-    expect(phaseDot(done, true)).toBe("attention");
-  });
-
-  it("enters a phase at its first unfinished section", () => {
-    const phases = buildPhases(make({ rooms: true, times: true }));
-    expect(phaseEntrySection(phases[1])).toBe("teachers");
-  });
-
-  it("enters a finished phase at its first section", () => {
-    const phases = buildPhases(make({ details: true, ages: true }));
-    expect(phaseEntrySection(phases[0])).toBe("details");
+  it("keeps every section independently reachable", () => {
+    expect(make({})).toHaveLength(9);
+    expect(make({}).map((section) => section.key)).toEqual(Object.keys(SECTION_LABELS));
   });
 });
 
@@ -239,5 +176,11 @@ describe("§5.4 acceptance, against the live setup page", () => {
 
   it("routes to the first incomplete section", () => {
     expect(page).toContain("firstIncompleteSection");
+  });
+
+  it("renders every setup section without phase filtering", () => {
+    expect(page).toContain("visibleSetupSteps.map");
+    expect(page).not.toContain("activePhase");
+    expect(page).not.toContain("setupphase");
   });
 });

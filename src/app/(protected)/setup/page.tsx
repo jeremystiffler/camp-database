@@ -3,11 +3,8 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { PageBanner } from "@/components/PageBanner";
 import {
-  PHASE_OF,
-  buildPhases,
   continueLabel,
   firstIncompleteSection,
-  phaseEntrySection,
   remainingLine,
   teacherCoverageDone,
   totalRemaining,
@@ -162,7 +159,7 @@ function SetupContent() {
   const [saveError, setSaveError] = useState("");
   const [activeTab, setActiveTab]  = useState<SetupTab>("details");
   // Latest section-completion snapshot, for first-incomplete routing (§5.2).
-  const phaseSectionsRef = useRef<SetupSection[]>([]);
+  const setupSectionsRef = useRef<SetupSection[]>([]);
   const [requiredRoomDrafts, setRequiredRoomDrafts] = useState<Record<string, string>>({});
   const [overrideDraftRows, setOverrideDraftRows] = useState<Record<string, boolean>>({});
   const [sessionRowDrafts, setSessionRowDrafts] = useState<Record<string, SessionRowEditDraft>>({});
@@ -244,7 +241,7 @@ function SetupContent() {
     // felt like it was not paying attention. Wait for data before deciding, or
     // every section looks unfinished and we route to step 1 anyway.
     if (loading) return;
-    setActiveTab(firstIncompleteSection(phaseSectionsRef.current));
+    setActiveTab(firstIncompleteSection(setupSectionsRef.current));
   }, [searchParams, loading]);
 
   const goToStep = (tab: SetupTab) => {
@@ -776,23 +773,18 @@ function SetupContent() {
   // explain itself. Dependencies are soft notes now, never closed doors.
   const visibleSetupSteps = setupSteps;
 
-  // The three phases (§5.1). The grid absorbed rooms, blocks, teachers,
-  // activities and scheduling, so those five stop being separate destinations.
-  const phaseSections: SetupSection[] = setupSteps.map((step) => ({
+  const setupSections: SetupSection[] = setupSteps.map((step) => ({
     key: step.key,
     label: step.label,
-    phase: PHASE_OF[step.key],
     done: Boolean(step.done),
   }));
-  const phases = buildPhases(phaseSections);
-  const remainingCount = totalRemaining(phaseSections);
+  const remainingCount = totalRemaining(setupSections);
   // Kept in a ref so the routing effect can read the latest completion state
   // without re-running every time a count changes.
-  phaseSectionsRef.current = phaseSections;
+  setupSectionsRef.current = setupSections;
   const activeStep = visibleSetupSteps.find(step => step.key === activeTab) || visibleSetupSteps[0];
   const stepLabel = (step: typeof activeStep) => step.label;
   const followingStep = visibleSetupSteps[visibleSetupSteps.findIndex(step => step.key === activeStep.key) + 1];
-  const activePhase = PHASE_OF[activeStep.key];
 
   const advanceToFollowingStep = async () => {
     // Event details are the only card with unsaved local form state.
@@ -843,52 +835,21 @@ function SetupContent() {
       />
 
       <div className="camp-card mb-5 overflow-hidden bg-white p-5">
-        {/* The three phases (§5.1), replacing the nine-step chevron bar. Nothing
-            is locked (§5.3): every phase is reachable in any order. */}
-        <div className="setupphase">
-          {phases.map((phase) => {
-            const isActive = phase.key === activePhase;
-            const entry = phaseEntrySection(phase);
-            return (
-              <button
-                key={phase.key}
-                type="button"
-                className={`setupphase__item ${isActive ? "is-active" : ""} ${phase.done ? "is-done" : ""}`}
-                aria-current={isActive ? "step" : undefined}
-                onClick={() => entry && goToStep(entry)}
-              >
-                <span className="setupphase__dot" aria-hidden="true">
-                  {phase.done ? "✓" : ""}
-                </span>
-                <span className="setupphase__body">
-                  <span className="setupphase__label">{phase.label}</span>
-                  <span className="setupphase__meta">
-                    {phase.done
-                      ? "Done"
-                      : `${phase.remaining} of ${phase.sections.length}`}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Sections within the active phase. Plain reachable buttons — a
-            disabled link cannot explain itself. */}
+        {/* Every setup destination stays visible and reachable. There are no
+            Start / Build / Open buckets and no hard locks. */}
         <div className="setupsec">
-          {visibleSetupSteps
-            .filter((step) => PHASE_OF[step.key] === activePhase)
-            .map((step) => (
-              <button
-                key={step.key}
-                type="button"
-                onClick={() => goToStep(step.key)}
-                className={`setupsec__item ${step.key === activeTab ? "is-active" : ""}`}
-              >
-                <span className={`setupsec__dot ${step.done ? "is-done" : ""}`} aria-hidden="true" />
-                <span>{step.label}</span>
-              </button>
-            ))}
+          {visibleSetupSteps.map((step) => (
+            <button
+              key={step.key}
+              type="button"
+              onClick={() => goToStep(step.key)}
+              className={`setupsec__item ${step.key === activeTab ? "is-active" : ""}`}
+              aria-current={step.key === activeTab ? "step" : undefined}
+            >
+              <span className={`setupsec__dot ${step.done ? "is-done" : ""}`} aria-hidden="true" />
+              <span>{step.label}</span>
+            </button>
+          ))}
         </div>
 
         <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
@@ -896,10 +857,8 @@ function SetupContent() {
           <p className="mt-1 max-w-2xl text-sm font-semibold leading-relaxed text-slate-600">{activeStep.help}</p>
         </div>
 
-        {/* "Already have a spreadsheet?" appears ONCE, in Start only (§5.2). It
-            used to repeat on all nine steps, which is noise everywhere except
-            the moment you are first entering data. */}
-        {activePhase === "start" && (
+        {/* The import shortcut appears once, at the first setup destination. */}
+        {activeTab === "details" && (
           <div className="mt-3 flex justify-end px-1">
             <Link href={`/import?campId=${campId}`} className="text-xs font-bold text-sky-700 underline decoration-sky-300 underline-offset-4 hover:text-sky-900">
               Already have a spreadsheet? Import it

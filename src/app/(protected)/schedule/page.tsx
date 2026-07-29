@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { PageBanner } from "@/components/PageBanner";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HelpCopy } from "@/components/HelpMode";
 import { EmptyState } from "@/components/OperationalUI";
 import { RowDeleteButton } from "@/components/InlineEditing";
-import { OperationsGrid, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
+import { OperationsGrid, foldBlocks, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
+import { CoverageMatrixView } from "@/components/CoverageMatrixView";
+import { buildCoverage } from "@/lib/coverage";
 import { hueVars, normalizeActivityName, resolveActivityHue } from "@/lib/activity-color";
 import { effectiveCapacity } from "@/lib/capacity-rules";
 
@@ -86,7 +88,7 @@ const VIEW_OPTIONS: { id: ScheduleView; label: string; description: string }[] =
   { id: "roomPivot", label: "Room × Time", description: "See room usage and collisions by time." },
   { id: "teacherPivot", label: "Teacher × Time", description: "Teacher assignments across the schedule." },
   // Replaces the two capacity views this supersedes (build order 18d).
-  { id: "grid", label: "Activity × Time", description: "Enrollment against each class limit, by time block." },
+  { id: "grid", label: "Activities by time block", description: "Enrollment against each class limit, by time block." },
   { id: "list", label: "List", description: "Clean operational list of sessions." },
 ];
 
@@ -233,6 +235,7 @@ function sessionCell(session: Session, campId: string, compact = false) {
 
 function ScheduleContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const campId = searchParams.get("campId") || "";
 
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -240,29 +243,58 @@ function ScheduleContent() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [ageGroups, setAgeGroups] = useState<{ id: string; name: string; color?: string }[]>([]);
+  const [campersByAgeGroup, setCampersByAgeGroup] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<ScheduleView>("dayGrid");
+  const [view, setView] = useState<ScheduleView>("grid");
   const [filterDay, setFilterDay] = useState<number | "">("");
   const [showHealth, setShowHealth] = useState(false);
 
-  useEffect(() => {
+  const loadSchedule = useCallback(async () => {
     if (!campId) return;
     setLoading(true);
-    Promise.all([
+    try {
+      const [s, t, c, r, g, dashboard] = await Promise.all([
       fetch(`/api/camps/${campId}/sessions`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/session-templates`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/courses`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/rooms`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/age-groups`).then((r) => r.json()),
-    ]).then(([s, t, c, r, g]) => {
+      fetch(`/api/camps/${campId}/dashboard`).then((r) => r.ok ? r.json() : null),
+      ]);
       setSessions(Array.isArray(s) ? s : []);
       setTemplates(Array.isArray(t) ? t : []);
       setCourses(Array.isArray(c) ? c : []);
       setRooms(Array.isArray(r) ? r : []);
       setAgeGroups(Array.isArray(g) ? g : []);
+      setCampersByAgeGroup(dashboard?.campersByAgeGroup ?? {});
+    } catch {
+      // Keep the current view in place if one endpoint fails.
+    } finally {
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }
   }, [campId]);
+
+  useEffect(() => { void loadSchedule(); }, [loadSchedule]);
+
+  const removeSession = useCallback(async ({ sessionId }: { courseId: string; sessionId: string }) => {
+    if (!campId) return false;
+    const response = await fetch(`/api/camps/${campId}/sessions/${sessionId}`, { method: "DELETE" });
+    if (!response.ok) return false;
+    await loadSchedule();
+    return true;
+  }, [campId, loadSchedule]);
+
+  const addSession = useCallback(async ({ courseId, blockId, startTime, endTime }: { courseId: string; blockId: string; startTime: string; endTime: string }) => {
+    if (!campId) return false;
+    const response = await fetch(`/api/camps/${campId}/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ courseId, sessionTemplateId: blockId, startTime, endTime }),
+    });
+    if (!response.ok) return false;
+    await loadSchedule();
+    return true;
+  }, [campId, loadSchedule]);
 
   if (!campId) return <EmptyState title="Choose an event first" description="Schedules are built for one event at a time." actionHref="/dashboard" actionLabel="Go to dashboard" />;
 
@@ -289,7 +321,11 @@ function ScheduleContent() {
   const overloaded = displaySessions.filter((session) => capacityPercent(session) >= 100).length;
   const unassignedRooms = displaySessions.filter((session) => !session.room).length;
   const unassignedTeachers = displaySessions.filter((session) => !session.course?.courseTeachers?.length).length;
-  const busiest = [...displaySessions].sort((a, b) => capacityPercent(b) - capacityPercent(a))[0];
+  const courseSessions = displaySessions.filter((session) => Boolean(session.course));
+  const busiest = [...courseSessions].sort((a, b) => capacityPercent(b) - capacityPercent(a))[0];
+  const lowestAttended = [...courseSessions]
+    .sort((a, b) => a.enrolledCount - b.enrolledCount || capacityPercent(a) - capacityPercent(b) || sessionTitle(a).localeCompare(sessionTitle(b)))
+    .slice(0, 3);
   const scheduleSummary = activeDays.length > 0
     ? `${dayRangeLabel(activeDays)} · ${timeSlots.length} time block${timeSlots.length === 1 ? "" : "s"}${duplicateDayCount > 0 ? ` · ${duplicateDayCount} duplicate day${duplicateDayCount === 1 ? "" : "s"} hidden` : ""}`
     : `${timeSlots.length} time block${timeSlots.length === 1 ? "" : "s"}`;
@@ -327,6 +363,13 @@ function ScheduleContent() {
         enrolledCount: session.enrolledCount,
       })),
   }));
+  const coverage = buildCoverage({
+    courses: gridCourses,
+    blocks: gridBlocks,
+    columns: foldBlocks(gridBlocks).columns,
+    ageGroups,
+    campersByAgeGroup,
+  });
 
   return (
     <div className="space-y-6">
@@ -348,7 +391,7 @@ function ScheduleContent() {
           )}
         </div>}
       >
-        <HelpCopy title="Schedule views" className="mt-2 text-sm">Switch views using the View menu below: grid, room, teacher, activity, capacity, or list.</HelpCopy>
+        <HelpCopy title="Schedule views" className="mt-2 text-sm">Start with activities by time block, then switch to the day, room, teacher, or list view when you need a different angle.</HelpCopy>
       </PageBanner>
 
       {loading ? (
@@ -374,8 +417,8 @@ function ScheduleContent() {
                 <MetricCard label="No room" value={unassignedRooms} sub="needs placement" tone="tile-lavender" />
                 <MetricCard label="No teacher" value={unassignedTeachers} sub="needs staffing" tone="tile-berry" />
               </div>
-              {busiest && (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="grid gap-3 lg:grid-cols-2">
+                {busiest && <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Highest load</p>
@@ -383,19 +426,30 @@ function ScheduleContent() {
                     </div>
                     <span className={`w-fit rounded-full border px-3 py-1 text-xs font-extrabold ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{capLabel(busiest.course?.cap)}</span>
                   </div>
-                </div>
-              )}
+                </div>}
+                {lowestAttended.length > 0 && <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Lowest attendance</p>
+                  <div className="mt-2 divide-y divide-slate-200">
+                    {lowestAttended.map((session) => (
+                      <div key={session.id} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                        <p className="min-w-0 truncate text-sm font-bold text-slate-800">{sessionTitle(session)} · {DAYS[sessionDay(session)]} {timeRange(session)}</p>
+                        <span className="flex-none rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-extrabold text-slate-700">{session.enrolledCount} enrolled</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>}
+              </div>
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3">
-            <label className="flex items-center gap-2 text-sm font-extrabold text-slate-700">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[var(--brand-primary)] bg-[var(--brand-strong)] p-4 shadow-md">
+            <label className="flex items-center gap-3 text-sm font-extrabold uppercase tracking-[0.12em] text-white">
               View:
-              <select value={view} onChange={(event) => setView(event.target.value as ScheduleView)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+              <select value={view} onChange={(event) => setView(event.target.value as ScheduleView)} className="min-w-64 rounded-xl border-2 border-white bg-white px-4 py-3 text-base font-extrabold normal-case tracking-normal text-slate-900 shadow-sm focus:outline-none focus:ring-4 focus:ring-white/40">
                 {VIEW_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
               </select>
             </label>
-            <p className="text-xs font-semibold text-slate-500">{VIEW_OPTIONS.find((option) => option.id === view)?.description}</p>
+            <p className="max-w-xl text-sm font-semibold text-white/85">{VIEW_OPTIONS.find((option) => option.id === view)?.description}</p>
           </div>
 
           <div className="rounded-xl border border-[var(--border)] bg-white px-4 py-3">
@@ -413,9 +467,28 @@ function ScheduleContent() {
           {view === "roomPivot" && <RoomPivot sessions={filteredSessions} rooms={roomRows} timeSlots={timeSlots} campId={campId} />}
           {view === "teacherPivot" && <TeacherPivot sessions={filteredSessions} teachers={teacherRows} timeSlots={timeSlots} campId={campId} />}
           {view === "grid" && (
-            <PivotShell title="Activity × Time" subtitle="Enrollment against each class limit. Bar length is the load; a full class is not an error.">
+            <PivotShell title="Activities by time block" subtitle="Enrollment against each class limit. Bar length is the load; a full class is not an error.">
               <div className="p-4">
-                <OperationsGrid courses={gridCourses} blocks={gridBlocks} ageGroups={ageGroups} />
+                <OperationsGrid
+                  courses={gridCourses}
+                  blocks={gridBlocks}
+                  ageGroups={ageGroups}
+                  interactive
+                  onRemoveSession={removeSession}
+                  onAddSession={addSession}
+                  footer={<CoverageMatrixView
+                    matrix={coverage}
+                    courses={gridCourses}
+                    variant="band"
+                    onAddClass={(columnKey, groupId) => {
+                      const column = coverage.columns.find((entry) => entry.key === columnKey);
+                      const blockId = column?.blockIds[0] ?? "";
+                      router.push(`/activities?new=1&blockId=${blockId}&ageGroupId=${groupId}`);
+                    }}
+                    onRaiseCap={(courseId) => router.push(`/activities?activityId=${courseId}`)}
+                    onUnhide={(courseId) => router.push(`/activities?activityId=${courseId}`)}
+                  />}
+                />
               </div>
             </PivotShell>
           )}

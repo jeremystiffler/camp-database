@@ -175,6 +175,7 @@ describe("the empty state offers exactly one action (§5)", () => {
 
 describe("§5.4 acceptance, against the dashboard", () => {
   const dashboard = fs.readFileSync("src/app/(protected)/dashboard/page.tsx", "utf8");
+  const schedule = fs.readFileSync("src/app/(protected)/schedule/page.tsx", "utf8");
 
   it("derives the state rather than storing a mode", () => {
     expect(dashboard).toContain("homeState({");
@@ -185,14 +186,16 @@ describe("§5.4 acceptance, against the dashboard", () => {
   it("renders the setup panel in both positions, not two different panels", () => {
     // One panel, two placements — the ORDER changes, the component does not.
     // Counting `&& setupPanel` catches the real property: the same variable is
-    // used above the grid and below it.
+    // used for both building and ready/running states.
     const occurrences = dashboard.match(/&&\s*setupPanel\}/g) ?? [];
     expect(occurrences).toHaveLength(2);
     // And it is defined once.
     expect(dashboard.match(/const setupPanel =/g) ?? []).toHaveLength(1);
   });
 
-  it("shows the grid in every state but empty", () => {
-    expect(dashboard).toContain('state !== "empty"');
+  it("moves the grid to Schedule and makes it the default view", () => {
+    expect(dashboard).not.toContain("<OperationsGrid");
+    expect(schedule).toContain("<OperationsGrid");
+    expect(schedule).toContain('useState<ScheduleView>("grid")');
   });
 });

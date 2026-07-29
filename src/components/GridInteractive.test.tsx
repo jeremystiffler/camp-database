@@ -178,6 +178,7 @@ describe("filtered views dim rather than remove (§3)", () => {
 
 describe("the duplicate issue display is gone (phase 18f)", () => {
   const dashboard = fs.readFileSync("src/app/(protected)/dashboard/page.tsx", "utf8");
+  const schedule = fs.readFileSync("src/app/(protected)/schedule/page.tsx", "utf8");
 
   it("no longer runs a second attention tally", () => {
     // It disagreed with the engine: on a room+teacher clash it reported 1 issue
@@ -195,10 +196,11 @@ describe("the duplicate issue display is gone (phase 18f)", () => {
     expect(dashboard).not.toContain("activityId=${issue.courseId}");
   });
 
-  it("turns the dashboard grid interactive", () => {
-    expect(dashboard).toContain("interactive");
-    expect(dashboard).toContain("onRemoveSession");
-    expect(dashboard).toContain("onAddSession");
+  it("keeps the moved Schedule grid interactive", () => {
+    expect(dashboard).not.toContain("<OperationsGrid");
+    expect(schedule).toContain("interactive");
+    expect(schedule).toContain("onRemoveSession");
+    expect(schedule).toContain("onAddSession");
   });
 });
 

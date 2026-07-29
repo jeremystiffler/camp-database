@@ -163,6 +163,7 @@ describe("the strip's empty branch moved to EmptyHome (phase 18g)", () => {
 
 describe("the accordion is gone (§2.3)", () => {
   const dashboard = fs.readFileSync("src/app/(protected)/dashboard/page.tsx", "utf8");
+  const schedule = fs.readFileSync("src/app/(protected)/schedule/page.tsx", "utf8");
 
   it("has no Health details toggle", () => {
     // A comment recording the deletion is fine; a live control is not.
@@ -176,9 +177,9 @@ describe("the accordion is gone (§2.3)", () => {
     expect(dashboard).not.toContain("setHealthOpen");
   });
 
-  it("renders the strip above the grid, not behind a click", () => {
-    expect(dashboard).toContain("<SummaryStrip");
-    expect(dashboard.indexOf("<SummaryStrip")).toBeLessThan(dashboard.indexOf("<OperationsGrid"));
+  it("moves the operations grid off Dashboard and onto Schedule", () => {
+    expect(dashboard).not.toContain("<OperationsGrid");
+    expect(schedule).toContain("<OperationsGrid");
   });
 });
 
@@ -194,10 +195,6 @@ describe("jump links have something to aim at", () => {
     expect(grid).toContain('className="ops-rowhead" data-course-id={course.id}');
   });
 
-  it("the dashboard honours prefers-reduced-motion when scrolling", () => {
-    const dashboard = fs.readFileSync("src/app/(protected)/dashboard/page.tsx", "utf8");
-    expect(dashboard).toContain("prefers-reduced-motion");
-  });
 
   it("the highlight survives reduced motion in CSS, dropping only the animation", () => {
     const css = fs.readFileSync("src/app/globals.css", "utf8");

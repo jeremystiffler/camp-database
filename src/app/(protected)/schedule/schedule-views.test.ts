@@ -57,7 +57,21 @@ describe("/schedule offers five views, down from six", () => {
 
   it("adds the grid as the fifth", () => {
     expect(source).toContain('id: "grid"');
-    expect(source).toContain("Activity × Time");
+    expect(source).toContain("Activities by time block");
+  });
+
+  it("opens on Activities by time block by default", () => {
+    expect(source).toContain('useState<ScheduleView>("grid")');
+  });
+
+  it("keeps Day × Time one selection away", () => {
+    expect(source).toContain('{ id: "dayGrid", label: "Day × Time"');
+  });
+
+  it("makes the View control a prominent branded control", () => {
+    expect(source).toContain("bg-[var(--brand-strong)]");
+    expect(source).toContain("min-w-64");
+    expect(source).toContain("text-base font-extrabold");
   });
 
   it("declares the view union with exactly those five ids", () => {
@@ -90,6 +104,24 @@ describe("the grid is wired to real data", () => {
 
   it("maps nested age-group objects down to the ids the grid filters on", () => {
     expect(source).toContain("ageGroupId: entry.ageGroup?.id");
+  });
+
+  it("is interactive in its new Schedule home", () => {
+    expect(source).toContain("interactive");
+    expect(source).toContain("onRemoveSession={removeSession}");
+    expect(source).toContain("onAddSession={addSession}");
+  });
+});
+
+describe("schedule health balances high load with low attendance", () => {
+  it("keeps Highest load", () => {
+    expect(source).toContain("Highest load");
+  });
+
+  it("shows the three lowest-attended class sessions", () => {
+    expect(source).toContain("Lowest attendance");
+    expect(source).toContain("a.enrolledCount - b.enrolledCount");
+    expect(source).toContain(".slice(0, 3)");
   });
 });
 

@@ -1,19 +1,4 @@
-/**
- * Setup's three phases — dashboard spec §5.1, Slice 5.
- *
- * Nine steps became three because the operations grid absorbed five of them.
- * Rooms, time blocks, teachers, activities and scheduling are all visible and
- * editable on the grid now, so they stop being separate destinations and become
- * one phase: Build.
- *
- *   Start   name, dates, age groups        short form; dates generate columns
- *   Build   rooms, blocks, teachers,       all five live in the grid
- *           activities, scheduling
- *   Open    registration form, review      the gate before families see it
- *
- * Pure functions, no React: the phase model and the first-incomplete rule are
- * the part most likely to break quietly, so they are testable without a DOM.
- */
+/** Setup section routing and readiness helpers. Pure functions, no React. */
 
 export type SetupSectionKey =
   | "details"
@@ -26,62 +11,11 @@ export type SetupSectionKey =
   | "registration"
   | "review";
 
-export type PhaseKey = "start" | "build" | "open";
-
 export type SetupSection = {
   key: SetupSectionKey;
   label: string;
-  /** Where this section lives now. */
-  phase: PhaseKey;
   done: boolean;
 };
-
-export type SetupPhase = {
-  key: PhaseKey;
-  label: string;
-  sections: SetupSection[];
-  done: boolean;
-  /** Sections in this phase that are not finished. */
-  remaining: number;
-};
-
-/** Which phase each of the nine original sections belongs to (§5.1). */
-export const PHASE_OF: Record<SetupSectionKey, PhaseKey> = {
-  details: "start",
-  ages: "start",
-  rooms: "build",
-  times: "build",
-  teachers: "build",
-  activities: "build",
-  schedule: "build",
-  registration: "open",
-  review: "open",
-};
-
-export const PHASE_ORDER: PhaseKey[] = ["start", "build", "open"];
-
-export const PHASE_LABEL: Record<PhaseKey, string> = {
-  start: "Start",
-  build: "Build",
-  open: "Open",
-};
-
-/** Group sections into the three phases, preserving section order. */
-export function buildPhases(sections: SetupSection[]): SetupPhase[] {
-  return PHASE_ORDER.map((key) => {
-    const own = sections.filter((section) => section.phase === key);
-    const remaining = own.filter((section) => !section.done).length;
-    return {
-      key,
-      label: PHASE_LABEL[key],
-      sections: own,
-      // A phase with no sections is not "done" in any meaningful sense, but it
-      // must not report outstanding work either.
-      done: own.length > 0 && remaining === 0,
-      remaining,
-    };
-  });
-}
 
 /**
  * The defect §5.2 names: `/setup` with no step parameter always opened step 1,
@@ -140,24 +74,6 @@ export function remainingLine(remaining: number): string {
 export function continueLabel(nextLabel: string | null): string | null {
   if (!nextLabel) return null;
   return `Save and continue to ${nextLabel} →`;
-}
-
-/** The section a phase should open at: its first unfinished one, else its first. */
-export function phaseEntrySection(phase: SetupPhase): SetupSectionKey | null {
-  const pending = phase.sections.find((section) => !section.done);
-  return pending?.key ?? phase.sections[0]?.key ?? null;
-}
-
-/**
- * Sidebar dot state (§5.3). Three states only: done, needs attention, or in
- * progress. There is deliberately no "locked" state — §5.3 forbids hard locks,
- * because a volunteer may legitimately enter activities before rooms.
- */
-export type DotState = "done" | "attention" | "todo";
-
-export function phaseDot(phase: SetupPhase, hasIssue: boolean): DotState {
-  if (hasIssue) return "attention";
-  return phase.done ? "done" : "todo";
 }
 
 /** Collapsed sidebar count. Zero remaining shows no count at all (§5.3). */
