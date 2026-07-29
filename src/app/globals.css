@@ -231,9 +231,12 @@ textarea { border-radius: var(--radius-sm, 8px) !important; }
 /* ===================== Clean Playground Admin Color System ===================== */
 :root {
   /* Product design tokens: semantic roles, not page-specific colors. */
-  --brand-primary: #2563eb;
-  --brand-primary-hover: #1d4ed8;
-  --accent: #0ea5e9;
+  /* Base fallbacks, used only before an event's theme wrapper mounts. Set to
+     the default preset (Harbor) rather than the raw blues the done-gate
+     forbids — an unthemed flash should still be a real palette colour. */
+  --brand-primary: #2F6FB8;
+  --brand-primary-hover: #1B4470;
+  --accent: #7FB6D4;
   --success: #16a34a;
   --danger: #dc2626;
   --text-strong: #0f172a;

@@ -164,7 +164,7 @@ function ProductMockup() {
 export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-hidden bg-slate-50 text-slate-900">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.20),transparent_34%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.22),transparent_30%),linear-gradient(180deg,#ffffff,rgba(248,250,252,0))]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(47,111,184,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(127,182,212,0.26),transparent_30%),linear-gradient(180deg,#ffffff,rgba(248,250,252,0))]" />
 
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex items-center gap-3">
