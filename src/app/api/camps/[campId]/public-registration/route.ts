@@ -413,6 +413,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
       platformFeeMinCents: true,
       platformFeeCapCents: true,
       camperPriceCents: true,
+      organization: {
+        select: {
+          stripeConnectAccountId: true,
+          stripeConnectDetailsSubmitted: true,
+          stripeConnectChargesEnabled: true,
+          stripeConnectPayoutsEnabled: true,
+        },
+      },
     },
   });
   if (!camp) return NextResponse.json({ error: "Event not found" }, { status: 404 });
@@ -484,6 +492,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
   const familyTotals = calculateRegistrationTotal(camp, coupon, campers.length);
   const perCamperTotals = calculateRegistrationTotal(camp, null, 1);
+  const paymentRequired = camp.billingMode === "camperFee" && familyTotals.totalCents > 0;
+  const registrationStripe = paymentRequired ? getStripe() : null;
+  const connectAccountId = camp.organization.stripeConnectAccountId;
+  if (paymentRequired && (!registrationStripe || !connectAccountId || !camp.organization.stripeConnectDetailsSubmitted || !camp.organization.stripeConnectChargesEnabled || !camp.organization.stripeConnectPayoutsEnabled)) {
+    return NextResponse.json({ error: "This event is not ready to accept online payments. Please contact the event organizer." }, { status: 503 });
+  }
   const createdStudents: Array<{ camperId: string; firstName: string; lastName: string; dateOfBirth?: string; ageGroupName?: string; emergencyPhone?: string; photoConsent?: boolean; courseNames: string[]; classScheduleRows: ConfirmationScheduleRow[]; customData?: Record<string, unknown> }> = [];
   const createdCamperIds: string[] = [];
   let anyUpdating = false;
@@ -732,18 +746,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   }
 
   if (camp.billingMode === "camperFee" && !anyUpdating && familyTotals.totalCents > 0) {
-    const stripe = getStripe();
-    if (stripe) {
-      const checkout = await stripe.checkout.sessions.create({
+    if (registrationStripe && connectAccountId) {
+      const checkout = await registrationStripe.checkout.sessions.create({
         mode: "payment",
         customer_email: guardianEmail,
         line_items: [{ price_data: { currency: "usd", unit_amount: familyTotals.totalCents, product_data: { name: `${camp.name} registration${createdStudents.length > 1 ? ` (${createdStudents.length} students)` : ""}` } }, quantity: 1 }],
+        payment_intent_data: {
+          ...(familyTotals.platformFeeCents > 0 ? { application_fee_amount: familyTotals.platformFeeCents } : {}),
+          metadata: { campId, camperIds: createdCamperIds.join(","), type: "camper_registration" },
+        },
         success_url: `${getBaseUrl()}/register/${campId}?payment=success`,
         cancel_url: `${getBaseUrl()}/register/${campId}?payment=cancelled`,
         metadata: { campId, camperId: createdCamperIds[0] || "", camperIds: createdCamperIds.join(","), type: "camper_registration", couponCode: coupon?.code || "" },
-      });
+      }, { stripeAccount: connectAccountId });
       await prisma.registrationPayment.create({
-        data: { campId, camperId: createdCamperIds[0] || undefined, guardianEmail, amountCents: familyTotals.totalCents, campPriceCents: familyTotals.campPriceCents, discountCents: familyTotals.discountCents, platformFeeCents: familyTotals.platformFeeCents, couponCode: coupon?.code, status: "pending", stripeCheckoutSession: checkout.id, type: createdStudents.length > 1 ? "family_registration" : "registration" },
+        data: { campId, camperId: createdCamperIds[0] || undefined, guardianEmail, amountCents: familyTotals.totalCents, campPriceCents: familyTotals.campPriceCents, discountCents: familyTotals.discountCents, platformFeeCents: familyTotals.platformFeeCents, couponCode: coupon?.code, status: "pending", stripeCheckoutSession: checkout.id, stripeConnectAccountId: connectAccountId, type: createdStudents.length > 1 ? "family_registration" : "registration" },
       });
       return NextResponse.json({ success: true, updated: anyUpdating, camperIds: createdCamperIds, studentCount: createdStudents.length, emailSent, adminEmailSent, adminEmailCount, paymentRequired: true, checkoutUrl: checkout.url, totals: familyTotals });
     }

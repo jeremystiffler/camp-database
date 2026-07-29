@@ -8,15 +8,21 @@ datasource db {
 }
 
 model Organization {
-  id               String   @id @default(cuid())
-  name             String
-  slug             String   @unique
-  plan             String   @default("free")
-  stripeCustomerId String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  users            User[]
-  camps            Camp[]
+  id                            String   @id @default(cuid())
+  name                          String
+  slug                          String   @unique
+  plan                          String   @default("free")
+  stripeCustomerId              String?
+  stripeConnectAccountId        String?  @unique
+  stripeConnectDetailsSubmitted Boolean  @default(false)
+  stripeConnectChargesEnabled   Boolean  @default(false)
+  stripeConnectPayoutsEnabled   Boolean  @default(false)
+  stripeConnectCountry          String?
+  stripeConnectUpdatedAt        DateTime?
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+  users                         User[]
+  camps                         Camp[]
 }
 
 model User {
@@ -495,6 +501,7 @@ model RegistrationPayment {
   status                String   @default("pending")
   stripeCheckoutSession String?  @unique
   stripePaymentIntent   String?
+  stripeConnectAccountId String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }

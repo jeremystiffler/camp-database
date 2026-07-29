@@ -32,6 +32,28 @@ interface CampBilling {
   annualSubscriptionCents: number;
 }
 
+interface ConnectStatus {
+  configured: boolean;
+  connected: boolean;
+  detailsSubmitted: boolean;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  ready: boolean;
+  country: string | null;
+  currentlyDue: string[];
+}
+
+interface RegistrationPayment {
+  id: string;
+  guardianEmail: string | null;
+  amountCents: number;
+  campPriceCents: number;
+  discountCents: number;
+  platformFeeCents: number;
+  status: string;
+  createdAt: string;
+}
+
 interface Coupon {
   id?: string;
   code: string;
@@ -93,9 +115,12 @@ function SettingsContent() {
   const [appearanceSaving, setAppearanceSaving] = useState(false);
   const [appearanceMsg,   setAppearanceMsg]   = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [billing, setBilling] = useState<CampBilling>({ billingMode: "campPays", billingStatus: "trial", platformFeeCents: 300, platformFeePercentBps: 300, platformFeeMinCents: 200, platformFeeCapCents: 2500, camperPriceCents: 0, annualSubscriptionCents: 29900 });
-  const [activeTab, setActiveTab] = useState<"profile" | "billing" | "appearance" | "utilities">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "billing" | "appearance" | "utilities">(searchParams.get("tab") === "billing" ? "billing" : "profile");
   const [billingSaving, setBillingSaving] = useState(false);
   const [billingMsg, setBillingMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
+  const [payments, setPayments] = useState<RegistrationPayment[]>([]);
+  const [paymentTotals, setPaymentTotals] = useState({ paidCount: 0, grossCents: 0, eventRevenueCents: 0, platformFeeCents: 0, discountCents: 0 });
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [couponDraft, setCouponDraft] = useState<Coupon>({ code: "", description: "", discountType: "percent", percentOff: 10, amountOffCents: null, restrictedEmails: "", maxRedemptions: null, active: true, expiresAt: "" });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -141,6 +166,17 @@ function SettingsContent() {
       .then(r => r.json())
       .then(d => setCoupons(Array.isArray(d.coupons) ? d.coupons : []))
       .catch(() => setCoupons([]));
+    fetch(`/api/camps/${campId}/payments/connect`)
+      .then(r => r.json())
+      .then(d => { if (!d.error) setConnectStatus(d); })
+      .catch(() => setConnectStatus(null));
+    fetch(`/api/camps/${campId}/payments`)
+      .then(r => r.json())
+      .then(d => {
+        setPayments(Array.isArray(d.payments) ? d.payments : []);
+        if (d.totals) setPaymentTotals(d.totals);
+      })
+      .catch(() => setPayments([]));
   }, [campId]);
 
   const saveProfile = async () => {
@@ -196,7 +232,7 @@ function SettingsContent() {
     const res = await fetch(`/api/camps/${campId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(billing),
+      body: JSON.stringify({ billingMode: billing.billingMode, camperPriceCents: billing.camperPriceCents }),
     });
     const data = await res.json().catch(() => ({}));
     setBillingSaving(false);
@@ -212,6 +248,20 @@ function SettingsContent() {
     setBillingSaving(false);
     if (res.ok && data.url) window.location.href = data.url;
     else setBillingMsg({ type: "error", text: data.error || "Stripe checkout is not ready yet." });
+  };
+
+  const startConnectAction = async (action: "onboard" | "dashboard") => {
+    if (!campId) return;
+    setBillingSaving(true); setBillingMsg(null);
+    const res = await fetch(`/api/camps/${campId}/payments/connect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBillingSaving(false);
+    if (res.ok && data.url) window.location.href = data.url;
+    else setBillingMsg({ type: "error", text: data.error || "Stripe payout setup could not be opened." });
   };
 
   const saveCoupon = async () => {
@@ -338,27 +388,39 @@ function SettingsContent() {
             </div>
 
             {billing.billingMode === "camperFee" && (
-              <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-4">
+                <div className={`rounded-2xl border p-4 ${connectStatus?.ready ? "border-forest-200 bg-forest-50" : "border-amber-200 bg-amber-50"}`}>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className={`text-sm font-extrabold ${connectStatus?.ready ? "text-forest-900" : "text-amber-950"}`}>Organizer payouts</p>
+                      <p className={`mt-1 text-xs ${connectStatus?.ready ? "text-forest-800" : "text-amber-900"}`}>
+                        {!connectStatus ? "Checking Stripe payout status…"
+                          : !connectStatus.configured ? "Simple Schedule Pro must finish its Stripe platform configuration before organizers can connect."
+                          : connectStatus.ready ? "Ready — Stripe can accept registration payments and deposit event proceeds into your bank account."
+                          : connectStatus.connected ? "Continue Stripe onboarding. Paid registration stays closed until charges and payouts are enabled."
+                          : "Connect a Stripe payout account before opening paid registration. Stripe securely collects your identity, tax, and bank details."}
+                      </p>
+                    </div>
+                    {connectStatus?.ready ? (
+                      <button type="button" onClick={() => startConnectAction("dashboard")} disabled={billingSaving} className="minimal-button-secondary whitespace-nowrap">Open Stripe dashboard</button>
+                    ) : (
+                      <button type="button" onClick={() => startConnectAction("onboard")} disabled={billingSaving || !connectStatus?.configured} className="minimal-button-primary whitespace-nowrap">
+                        {connectStatus?.connected ? "Continue Stripe setup" : "Connect with Stripe"}
+                      </button>
+                    )}
+                  </div>
+                  {connectStatus?.currentlyDue?.length ? <p className="mt-3 text-xs font-semibold text-amber-900">Stripe still requires: {connectStatus.currentlyDue.map(item => item.replaceAll("_", " ")).join(", ")}.</p> : null}
+                </div>
+
+                <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4 space-y-4">
                   <label className="block">
                     <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Event price per participant</span>
                     <input type="number" min="0" step="1" value={billing.camperPriceCents / 100} onChange={e => setBilling(prev => ({ ...prev, camperPriceCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
                   </label>
-                  <label className="block">
-                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Our percentage</span>
-                    <input type="number" min="0" max="100" step="0.1" value={billing.platformFeePercentBps / 100} onChange={e => setBilling(prev => ({ ...prev, platformFeePercentBps: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
-                  </label>
-                  <label className="block">
-                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Minimum platform fee</span>
-                    <input type="number" min="0" step="1" value={billing.platformFeeMinCents / 100} onChange={e => setBilling(prev => ({ ...prev, platformFeeMinCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
-                  </label>
-                  <label className="block">
-                    <span className="block text-xs font-bold uppercase tracking-wide text-sky-800 mb-1">Maximum platform fee cap</span>
-                    <input type="number" min="0" step="1" value={billing.platformFeeCapCents / 100} onChange={e => setBilling(prev => ({ ...prev, platformFeeCapCents: Math.max(0, Math.round(Number(e.target.value) * 100 || 0)) }))} className={inputCls} />
-                  </label>
-                </div>
-                <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 text-sm text-sky-900">
-                  Example checkout today: event price <strong>{money(billing.camperPriceCents)}</strong> + platform fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.camperPriceCents + platformEstimate)}</strong>.
+                  <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 text-sm text-sky-900">
+                    Event price <strong>{money(billing.camperPriceCents)}</strong> + Simple Schedule Pro fee <strong>{money(platformEstimate)}</strong> = family pays <strong>{money(billing.camperPriceCents + platformEstimate)}</strong>. Stripe processing fees are deducted from the organizer&rsquo;s connected Stripe balance.
+                  </div>
+                  <p className="text-xs text-sky-900">The platform fee is set by Simple Schedule Pro at {(billing.platformFeePercentBps / 100).toFixed(2).replace(/\.00$/, "")}% (minimum {money(billing.platformFeeMinCents)}, capped at {money(billing.platformFeeCapCents)}). Organizers control only their event price.</p>
                 </div>
               </div>
             )}
@@ -403,6 +465,31 @@ function SettingsContent() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {billing.billingMode === "camperFee" && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-4">
+                <div>
+                  <p className="text-sm font-extrabold text-slate-900">Registration payments</p>
+                  <p className="text-xs text-slate-500">Payment status is synchronized from Stripe webhooks. Bank payout timing is managed in the Stripe Express dashboard.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs font-bold text-slate-500">Paid orders</p><p className="mt-1 text-lg font-extrabold text-slate-900">{paymentTotals.paidCount}</p></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs font-bold text-slate-500">Gross collected</p><p className="mt-1 text-lg font-extrabold text-slate-900">{money(paymentTotals.grossCents)}</p></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs font-bold text-slate-500">Event revenue</p><p className="mt-1 text-lg font-extrabold text-slate-900">{money(paymentTotals.eventRevenueCents)}</p></div>
+                  <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs font-bold text-slate-500">Platform fees</p><p className="mt-1 text-lg font-extrabold text-slate-900">{money(paymentTotals.platformFeeCents)}</p></div>
+                </div>
+                {payments.length > 0 ? (
+                  <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <table className="min-w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-600"><tr><th className="px-3 py-2">Date</th><th className="px-3 py-2">Guardian</th><th className="px-3 py-2">Total</th><th className="px-3 py-2">Event</th><th className="px-3 py-2">Status</th></tr></thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {payments.map(payment => <tr key={payment.id}><td className="px-3 py-2 text-slate-600">{new Date(payment.createdAt).toLocaleDateString()}</td><td className="px-3 py-2 text-slate-700">{payment.guardianEmail || "—"}</td><td className="px-3 py-2 font-bold text-slate-900">{money(payment.amountCents)}</td><td className="px-3 py-2 text-slate-700">{money(Math.max(0, payment.campPriceCents - payment.discountCents))}</td><td className="px-3 py-2 font-bold capitalize text-slate-700">{payment.status.replaceAll("_", " ")}</td></tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p className="rounded-xl bg-slate-50 px-3 py-4 text-center text-xs text-slate-500">No registration payments yet.</p>}
               </div>
             )}
 

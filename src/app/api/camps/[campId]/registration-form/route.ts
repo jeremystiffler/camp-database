@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { publicCapacity } from "@/lib/capacity";
 import { blockingIssues, detectIssues } from "@/lib/issues";
 import { getSession } from "@/lib/auth";
+import { getStripe } from "@/lib/billing";
 
 async function checkAccess(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -150,6 +151,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
       platformFeeCapCents: true,
       camperPriceCents: true,
       annualSubscriptionCents: true,
+      organization: {
+        select: {
+          stripeConnectAccountId: true,
+          stripeConnectDetailsSubmitted: true,
+          stripeConnectChargesEnabled: true,
+          stripeConnectPayoutsEnabled: true,
+        },
+      },
       registrationForms: { orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] },
       ageGroups: { select: { id: true, name: true, minAge: true, maxAge: true, noSchedule: true } },
       sessionTemplates: {
@@ -254,14 +263,27 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
   const capacityWarnings = formIssues
     .filter((issue) => issue.severity === "advisory")
     .map((issue) => issue.message);
-  const formOpen = selectedForm ? camp.registrationOpen && selectedForm.status !== "draft" && capacityViolations.length === 0 : false;
+  const paidRegistration = camp.billingMode === "camperFee" && camp.camperPriceCents > 0;
+  const paymentReady = !paidRegistration || Boolean(
+    getStripe()
+    && camp.organization.stripeConnectAccountId
+    && camp.organization.stripeConnectDetailsSubmitted
+    && camp.organization.stripeConnectChargesEnabled
+    && camp.organization.stripeConnectPayoutsEnabled,
+  );
+  const formOpen = selectedForm ? camp.registrationOpen && selectedForm.status !== "draft" && capacityViolations.length === 0 && paymentReady : false;
   return NextResponse.json({
     campName: camp.name,
     primaryColor: camp.primaryColor,
     accentColor: camp.accentColor,
     fontFamily: camp.fontFamily,
     registrationOpen: formOpen,
-    registrationBlockedReason: capacityViolations.length ? "Registration is paused until event capacity issues are resolved." : null,
+    registrationBlockedReason: capacityViolations.length
+      ? "Registration is paused until event capacity issues are resolved."
+      : !paymentReady
+        ? "Registration is paused until the event organizer finishes Stripe payout setup."
+        : null,
+    paymentReady,
     capacityWarnings,
     billingMode: camp.billingMode,
     billingStatus: camp.billingStatus,

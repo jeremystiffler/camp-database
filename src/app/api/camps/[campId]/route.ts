@@ -3,6 +3,7 @@ import { PROGRAM_PALETTES, paletteForColors } from "@/lib/programPalettes";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { getStripe } from "@/lib/billing";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -63,11 +64,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   try {
     const body = await req.json();
 
+    const billingKeys = ["billingMode", "billingStatus", "platformFeeCents", "platformFeePercentBps", "platformFeeMinCents", "platformFeeCapCents", "camperPriceCents", "annualSubscriptionCents"];
+    if (billingKeys.some(key => key in body) && !hasPermission(member.role, "admin")) {
+      return NextResponse.json({ error: "Only admins can manage billing" }, { status: 403 });
+    }
+
     // Whitelist all known Camp fields — never spread unknown keys into Prisma
     const allowed: Record<string, unknown> = {};
     const ALLOWED_KEYS = [
       "name", "startDate", "endDate", "status", "registrationOpen",
-      "billingMode", "billingStatus", "platformFeeCents", "platformFeePercentBps", "platformFeeMinCents", "platformFeeCapCents", "camperPriceCents", "annualSubscriptionCents",
+      "billingMode", "camperPriceCents",
       "themePreset", "primaryColor", "accentColor", "fontFamily",
     ];
     for (const key of ALLOWED_KEYS) {
@@ -78,7 +84,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
     if (allowed.startDate) allowed.startDate = allowed.startDate ? new Date(allowed.startDate as string) : null;
     if (allowed.endDate)   allowed.endDate   = allowed.endDate   ? new Date(allowed.endDate   as string) : null;
     if (allowed.billingMode && !["campPays", "camperFee"].includes(String(allowed.billingMode))) delete allowed.billingMode;
-    if (allowed.billingStatus && !["trial", "active", "past_due", "unpaid", "comped"].includes(String(allowed.billingStatus))) delete allowed.billingStatus;
+
     // Appearance is rendered on public registration and printable material.
     // Phase 23: colours come from the six presets only. Free hex entry is gone
     // from the UI, but the API is the actual boundary — an arbitrary colour
@@ -123,12 +129,28 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
       if (!allowedFonts.includes(value)) return NextResponse.json({ error: "Invalid font family" }, { status: 400 });
       allowed.fontFamily = value;
     }
-    if (allowed.platformFeeCents !== undefined) allowed.platformFeeCents = Math.max(0, Number(allowed.platformFeeCents) || 300);
-    if (allowed.platformFeePercentBps !== undefined) allowed.platformFeePercentBps = Math.min(10000, Math.max(0, Number(allowed.platformFeePercentBps) || 300));
-    if (allowed.platformFeeMinCents !== undefined) allowed.platformFeeMinCents = Math.max(0, Number(allowed.platformFeeMinCents) || 200);
-    if (allowed.platformFeeCapCents !== undefined) allowed.platformFeeCapCents = Math.max(0, Number(allowed.platformFeeCapCents) || 2500);
     if (allowed.camperPriceCents !== undefined) allowed.camperPriceCents = Math.max(0, Number(allowed.camperPriceCents) || 0);
-    if (allowed.annualSubscriptionCents !== undefined) allowed.annualSubscriptionCents = Math.max(0, Number(allowed.annualSubscriptionCents) || 29900);
+
+    if (allowed.registrationOpen === true || allowed.billingMode !== undefined || allowed.camperPriceCents !== undefined) {
+      const current = await prisma.camp.findUnique({
+        where: { id: campId },
+        select: {
+          registrationOpen: true,
+          billingMode: true,
+          camperPriceCents: true,
+          organization: { select: { stripeConnectAccountId: true, stripeConnectDetailsSubmitted: true, stripeConnectChargesEnabled: true, stripeConnectPayoutsEnabled: true } },
+        },
+      });
+      if (!current) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      const nextOpen = allowed.registrationOpen === undefined ? current.registrationOpen : Boolean(allowed.registrationOpen);
+      const nextMode = allowed.billingMode === undefined ? current.billingMode : String(allowed.billingMode);
+      const nextPrice = allowed.camperPriceCents === undefined ? current.camperPriceCents : Number(allowed.camperPriceCents);
+      const connect = current.organization;
+      const paidRegistrationReady = Boolean(getStripe() && connect.stripeConnectAccountId && connect.stripeConnectDetailsSubmitted && connect.stripeConnectChargesEnabled && connect.stripeConnectPayoutsEnabled);
+      if (nextOpen && nextMode === "camperFee" && nextPrice > 0 && !paidRegistrationReady) {
+        return NextResponse.json({ error: "Connect a verified Stripe payout account before opening paid registration." }, { status: 409 });
+      }
+    }
 
     await prisma.camp.update({ where: { id: campId }, data: allowed });
     return NextResponse.json({ success: true });
