@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Suspense } from "react";
+import { fitName, nameFieldWidthPt } from "@/lib/badgeFit";
 import { DEFAULT_PROGRAM_PALETTE } from "@/lib/programPalettes";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/OperationalUI";
@@ -69,12 +70,12 @@ interface CampOption { id: string; name: string; primaryColor?: string; accentCo
 const BADGE_ROLES: { id: BadgeRole; label: string; printedLabel: string; band: string }[] = [
   { id: "participant", label: "Participant", printedLabel: "", band: "" },
   { id: "teacher", label: "Teacher", printedLabel: "TEACHER", band: "#1D4FD8" },
-  { id: "volunteer", label: "Volunteer", printedLabel: "VOLUNTEER", band: "#059669" },
+  { id: "volunteer", label: "Volunteer", printedLabel: "VOLUNTEER", band: "#047857" },
   { id: "staff", label: "Staff", printedLabel: "STAFF", band: "#7C3AED" },
   { id: "medical", label: "Medical & safety", printedLabel: "MEDICAL", band: "#C42B2B" },
   { id: "visitor", label: "Parent visitor", printedLabel: "VISITOR", band: "#475569" },
-  { id: "media", label: "Photo & media", printedLabel: "MEDIA", band: "#0891B2" },
-  { id: "crew", label: "Crew", printedLabel: "CREW", band: "#EA580C" },
+  { id: "media", label: "Photo & media", printedLabel: "MEDIA", band: "#0E7490" },
+  { id: "crew", label: "Crew", printedLabel: "CREW", band: "#C2410C" },
 ];
 
 // Card geometry (inches). 5×3 portrait = 3in wide × 5in tall.
@@ -84,6 +85,26 @@ const BADGE_GEOMETRY: Record<BadgeSize, { w: number; h: number; margin: string; 
 };
 
 function fullName(p: { firstName: string; lastName: string }) { return `${p.firstName} ${p.lastName}`.trim(); }
+
+/**
+ * Renders a name at the largest size that fits, wrapping to two lines before
+ * shrinking small. A printed badge cannot be scrolled or hovered, so losing
+ * characters to an ellipsis is never acceptable (doc C §4).
+ */
+function BadgeName({ name, widthIn }: { name: string; widthIn: number }) {
+  const fit = fitName(name, nameFieldWidthPt(widthIn));
+  return (
+    <span
+      className="badge-band-name"
+      data-wrapped={fit.wrapped || undefined}
+      style={{ fontSize: `${fit.fontSizePt}pt` }}
+    >
+      {fit.lines.map((line, index) => (
+        <span key={index} className="badge-band-line">{line}</span>
+      ))}
+    </span>
+  );
+}
 function formatTime(value?: string | null) {
   if (!value) return "";
   const [rawHour, rawMinute = "00"] = value.split(":");
@@ -391,7 +412,7 @@ function PrintContent() {
     return (
       <div key={key} className="badge-card-v2" style={{ width: `${geometry.w}in`, height: `${geometry.h}in` }}>
         <div className="badge-band" style={{ background: bandColor }}>
-          <span className="badge-band-name">{fullName(record)}</span>
+          <BadgeName name={fullName(record)} widthIn={geometry.w} />
         </div>
         {roleMeta.printedLabel && <div className="badge-role-strip">{roleMeta.printedLabel}</div>}
         <div className="badge-body badge-body-schedule">
@@ -415,7 +436,7 @@ function PrintContent() {
   const badgeBackCard = (record: Camper, key: string) => (
     <div key={key} className="badge-card-v2 badge-card-back" style={{ width: `${geometry.w}in`, height: `${geometry.h}in` }}>
       <div className="badge-band" style={{ background: bandColor }}>
-        <span className="badge-band-name">{fullName(record)}</span>
+        <BadgeName name={fullName(record)} widthIn={geometry.w} />
       </div>
       <div className="badge-body">
         <div className="badge-back-block">
@@ -627,7 +648,9 @@ function PrintContent() {
         .badge-slot { position: absolute; }
         .badge-card-v2 { display: flex; flex-direction: column; background: #fff; overflow: hidden; box-sizing: border-box; }
         .badge-band { height: 0.35in; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10pt; font-weight: 800; letter-spacing: .08em; }
-        .badge-band-name { font-size: 13pt; font-weight: 900; letter-spacing: 0; padding: 0 0.1in; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* Size comes from fitName() inline; no ellipsis — every character prints. */
+        .badge-band-name { display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 900; letter-spacing: 0; padding: 0 0.1in; line-height: 1.05; }
+        .badge-band-line { display: block; white-space: nowrap; }
         .badge-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.08in; padding: 0.3in; text-align: center; box-sizing: border-box; min-height: 0; }
         .badge-body-schedule { justify-content: flex-start; padding: 0.3in 0.3in 0.3in; align-items: stretch; text-align: left; }
         .badge-first { font-weight: 900; line-height: 1; white-space: nowrap; }
