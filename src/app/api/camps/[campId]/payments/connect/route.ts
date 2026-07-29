@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           transfers: { requested: true },
         },
         metadata: { organizationId: context.organization.id, platform: "simple-schedule-pro" },
-      }, { idempotencyKey: `connect-organization-${context.organization.id}` });
+      }, { idempotencyKey: `connect-organization-${context.organization.id}:express-app-liability-v1` });
       accountId = account.id;
       await prisma.organization.update({
         where: { id: context.organization.id },

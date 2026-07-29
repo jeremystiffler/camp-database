@@ -43,6 +43,7 @@ describe("connected registration checkout wiring", () => {
     expect(connectRoute).toContain('stripe_dashboard: { type: "express" }');
     expect(connectRoute).toContain('fees: { payer: "application" }');
     expect(connectRoute).toContain('losses: { payments: "application" }');
+    expect(connectRoute).toContain('connect-organization-${context.organization.id}:express-app-liability-v1');
     expect(settings).toContain('role="alert"');
     expect(settings).toContain("setConnectError");
   });
