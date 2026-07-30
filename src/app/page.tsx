@@ -184,7 +184,7 @@ export default function LandingPage() {
           <a href="#features" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 sm:inline-block">Features</a>
           <a href="#pricing" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 sm:inline-block">Pricing</a>
           <Link href="/login" className="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900">Log in</Link>
-          <Link href="/signup" className="rounded-xl bg-[var(--brand-primary)] px-4 py-2 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[var(--brand-primary-hover)] hover:shadow-lg">Start Free</Link>
+          <Link href="/signup" className="rounded-xl border border-slate-300 bg-transparent px-4 py-2 text-sm font-extrabold text-slate-800 transition hover:border-slate-400 hover:bg-white">Start Free</Link>
         </div>
       </nav>
 

@@ -122,6 +122,7 @@ describe("deep audit shared system regressions", () => {
     expect(landing).toContain('label: "Time Block 1"');
     expect(landing.indexOf("14-day free trial")).toBeGreaterThan(landing.indexOf('id="pricing"'));
     expect(landing).toContain('bg-[var(--brand-primary)] px-7 py-4');
+    expect(landing).toContain('border border-slate-300 bg-transparent px-4');
     expect(landing).not.toContain("bg-gradient-to-br from-indigo-500 to-sky-500");
   });
 
