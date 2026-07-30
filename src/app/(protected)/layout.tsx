@@ -9,6 +9,7 @@ import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
 import { themeTokens } from "@/lib/programPalettes";
 import { getJson, invalidateJson } from "@/lib/request-cache";
+import { resolveAccessibleCamp } from "@/lib/camp-selection";
 
 // Navigation vocabulary is frozen: one name per route, sentence case, no
 // preference-driven variants. See simpleschedulepro-nav-and-toggle-removal.md.
@@ -92,6 +93,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [campSwitcherOpen, setCampSwitcherOpen] = useState(false);
+  const [accessDenied, setAccessDenied] = useState<{ requestedCampId: string; fallback: Camp | null } | null>(null);
 
   // Never let a stale bookmarked/local-storage program ID drive protected API calls.
   // Until the accessible program list has loaded, use the validated active program only.
@@ -130,21 +132,26 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const urlCampId = searchParams.get("campId");
-    if (!urlCampId || camps.length === 0 || activeCamp?.id === urlCampId) return;
-    const campFromUrl = camps.find((camp) => camp.id === urlCampId);
-    if (!campFromUrl) {
-      // A stale/dead tenant id must fail once, then disappear. Leaving it in the
-      // URL makes every child component faithfully retry an event it cannot use.
-      localStorage.removeItem("activeCampId");
-      const fallback = camps[0];
-      setActiveCamp(fallback);
-      setLastKnownCampId(fallback.id);
-      localStorage.setItem("activeCampId", fallback.id);
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("campId", fallback.id);
-      router.replace(`${pathname}?${params.toString()}`);
+    if (!urlCampId || camps.length === 0) {
+      if (!urlCampId) setAccessDenied(null);
       return;
     }
+    const campFromUrl = camps.find((camp) => camp.id === urlCampId);
+    if (!campFromUrl) {
+      // A stale/dead tenant id may fail once while the accessible event list is
+      // loading, but it must never be retried or masquerade as an empty event.
+      localStorage.removeItem("activeCampId");
+      const fallback = camps[0] ?? null;
+      setAccessDenied({ requestedCampId: urlCampId, fallback });
+      if (fallback) {
+        setActiveCamp(fallback);
+        setLastKnownCampId(fallback.id);
+        localStorage.setItem("activeCampId", fallback.id);
+      }
+      return;
+    }
+    setAccessDenied(null);
+    if (activeCamp?.id === urlCampId) return;
     setActiveCamp(campFromUrl);
     setLastKnownCampId(campFromUrl.id);
     localStorage.setItem("activeCampId", campFromUrl.id);
@@ -185,9 +192,14 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
             setPrograms(data);
             const urlCampId = new URLSearchParams(window.location.search).get("campId");
             const saved = localStorage.getItem("activeCampId");
-            const found = data.find((c: Camp) => c.id === urlCampId) || data.find((c: Camp) => c.id === saved) || data[0];
+            const selection = resolveAccessibleCamp(data, urlCampId || "", saved || "");
+            const found = selection.selected!;
             setActiveCamp(found);
             setLastKnownCampId(found.id);
+            if (selection.deniedRequestedId) {
+              localStorage.removeItem("activeCampId");
+              setAccessDenied({ requestedCampId: selection.deniedRequestedId, fallback: found });
+            }
             localStorage.setItem("activeCampId", found.id);
           } else {
             setPrograms([]);
@@ -393,7 +405,26 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
               /activities, away from the flow it claimed to be guiding. The one
               surviving signal is the Save-and-continue button at the bottom of
               the setup body, which names its destination and stays put. */}
-          {children}
+          {accessDenied ? (
+            <section role="alert" className="mx-auto mt-10 max-w-xl rounded-2xl border border-[var(--border)] bg-white p-8 text-center shadow-sm">
+              <h1 className="text-xl font-extrabold text-[var(--text-strong)]">You don&apos;t have access to this event</h1>
+              <p className="mx-auto mt-2 max-w-[48ch] text-sm leading-6 text-[var(--text-muted)]">
+                The event may have been removed, or your account may not be part of its team. No event data was shown.
+              </p>
+              {accessDenied.fallback ? (
+                <Link
+                  href={`${pathname}?campId=${accessDenied.fallback.id}`}
+                  className="mt-5 inline-flex rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-extrabold text-white"
+                >
+                  Open {accessDenied.fallback.name}
+                </Link>
+              ) : (
+                <Link href="/dashboard" className="mt-5 inline-flex rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white">
+                  Go to your events
+                </Link>
+              )}
+            </section>
+          ) : children}
         </div>
       </main>
     </div>

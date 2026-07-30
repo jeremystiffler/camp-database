@@ -129,7 +129,7 @@ function capacityTone(percent: number) {
   if (percent >= 85) return "border-[color-mix(in_srgb,var(--warning)_35%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,white)] text-[var(--warning)]";
   if (percent >= 60) return "border-[color-mix(in_srgb,var(--warning)_25%,transparent)] bg-[color-mix(in_srgb,var(--warning)_6%,white)] text-[var(--text)]";
   if (percent > 0) return "border-[var(--border)] bg-white text-[var(--text)]";
-  return "border-[var(--border)] bg-[var(--canvas-sunk)] text-[var(--text-faint)]";
+  return "border-[var(--border)] bg-[var(--canvas-sunk)] text-[var(--text-muted)]";
 }
 /** Class limit for display. A blank limit is unlimited, not unknown. */
 function capLabel(cap?: number | null) {

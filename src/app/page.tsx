@@ -129,7 +129,7 @@ function ProductMockup() {
       <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Today's event</p>
+            <p className="inline-flex rounded-md bg-[var(--brand-wash)] px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-wide text-[var(--brand-ink)]">Today&apos;s event</p>
             <h3 className="text-lg font-extrabold text-slate-900">Daily schedule</h3>
           </div>
           <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-700">Ready</span>
@@ -163,11 +163,11 @@ function ProductMockup() {
             })}
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Operations</p>
+            <p className="inline-flex rounded-md bg-[var(--brand-wash)] px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-wide text-[var(--brand-ink)]">Operations</p>
             <div className="mt-4 space-y-3">
               <div className="rounded-2xl bg-indigo-50 p-3"><p className="text-2xl font-extrabold text-indigo-600">84</p><p className="text-xs font-bold text-slate-500">registered participants</p></div>
-              <div className="rounded-2xl bg-sky-50 p-3"><p className="text-2xl font-extrabold text-sky-600">6</p><p className="text-xs font-bold text-slate-500">printable packets</p></div>
-              <div className="rounded-2xl bg-emerald-50 p-3"><p className="text-2xl font-extrabold text-emerald-600">0</p><p className="text-xs font-bold text-slate-500">schedule conflicts</p></div>
+              <div className="rounded-2xl bg-sky-50 p-3"><p className="text-2xl font-extrabold text-sky-600">6</p><p className="text-[13px] font-bold text-slate-600">printable packets</p></div>
+              <div className="rounded-2xl bg-emerald-50 p-3"><p className="text-2xl font-extrabold text-emerald-600">0</p><p className="text-[13px] font-bold text-slate-600">schedule conflicts</p></div>
             </div>
           </div>
         </div>
