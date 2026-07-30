@@ -36,7 +36,7 @@ export function InlineText({ value, onSave, placeholder = "—", className = "",
     if (event.key === "Enter" && !multiline) { event.preventDefault(); void save(); }
   };
   if (editing) return multiline ? <textarea autoFocus aria-label={ariaLabel} value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => void save()} onKeyDown={keyDown} className={`min-h-20 w-full rounded border border-forest-400 bg-white px-2 py-1 outline-none ${inputClassName}`} /> : <input autoFocus aria-label={ariaLabel} value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => void save()} onKeyDown={keyDown} className={`w-full rounded border border-forest-400 bg-white px-2 py-1 outline-none ${inputClassName}`} />;
-  return <button type="button" aria-label={ariaLabel || "Edit value"} onClick={() => setEditing(true)} className={`min-h-7 rounded px-1 text-left hover:bg-forest-50 focus:bg-forest-50 focus:outline-none ${saving ? "opacity-50" : ""} ${className}`} title="Click to edit">{value || <span className="text-slate-400">{placeholder}</span>}</button>;
+  return <button type="button" aria-label={ariaLabel || "Edit value"} onClick={() => setEditing(true)} className={`min-h-7 rounded px-1 text-left hover:bg-forest-50 focus:bg-forest-50 focus:outline-none ${saving ? "opacity-50" : ""} ${className}`} title="Click to edit">{value || <span className="text-slate-500">{placeholder}</span>}</button>;
 }
 
 type RowDeleteButtonProps = { onDelete: () => Promise<void> | void; label: string; disabled?: boolean; className?: string };

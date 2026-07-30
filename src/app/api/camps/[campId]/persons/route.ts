@@ -29,18 +29,6 @@ function normalizePersonPayload(data: Record<string, unknown>) {
   } as const;
 }
 
-export async function GET(_: NextRequest, { params }: { params: Promise<{ campId: string }> }) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { campId } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const items = await prisma.person.findMany({
-    where: { campId },
-    orderBy: { lastName: "asc" },
-    include: { personAgeGroups: { include: { ageGroup: true } } },
-  });
-  return NextResponse.json(items);
-}
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ campId: string }> }) {
   const session = await getSession();

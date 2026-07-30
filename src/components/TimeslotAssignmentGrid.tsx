@@ -51,21 +51,14 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   const loadGridData = () => {
     if (!campId) return;
     setLoading(true);
-    Promise.all([
-      fetch(`/api/camps/${campId}/courses`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/rooms`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/age-groups`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/persons`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/mandatory-sessions`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/session-templates`).then(r => r.json()),
-    ]).then(([c, r, ag, p, ms, st]) => {
-      const sorted = Array.isArray(c) ? [...c].sort((a: Course, b: Course) => a.name.localeCompare(b.name)) : [];
+    fetch(`/api/camps/${campId}`).then(r => r.json()).then((camp) => {
+      const sorted = Array.isArray(camp?.courses) ? [...camp.courses].sort((a: Course, b: Course) => a.name.localeCompare(b.name)) : [];
       setCourses(sorted);
-      setRooms(Array.isArray(r) ? r : []);
-      setAgeGroups(Array.isArray(ag) ? ag : []);
-      setPersons(Array.isArray(p) ? p : []);
-      setMandatorySessions(Array.isArray(ms) ? ms : []);
-      setSessionTemplates(Array.isArray(st) ? st : []);
+      setRooms(Array.isArray(camp?.rooms) ? camp.rooms : []);
+      setAgeGroups(Array.isArray(camp?.ageGroups) ? camp.ageGroups : []);
+      setPersons(Array.isArray(camp?.persons) ? camp.persons : []);
+      setMandatorySessions(Array.isArray(camp?.mandatorySessions) ? camp.mandatorySessions : []);
+      setSessionTemplates(Array.isArray(camp?.sessionTemplates) ? camp.sessionTemplates : []);
       setBlockedCells(new Set());
     }).finally(() => setLoading(false));
   };
@@ -171,7 +164,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
         status: "blocked",
         label: "×",
         title: conflicts.join(" • "),
-        className: "cursor-not-allowed border-slate-200 bg-slate-100/70 text-slate-400 opacity-65 shadow-none",
+        className: "cursor-not-allowed border-slate-200 bg-slate-100/70 text-slate-500 opacity-65 shadow-none",
         conflicts,
       };
     }
@@ -488,9 +481,9 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
         <>
           <div className="mb-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 xl:grid-cols-[minmax(220px,1fr)_auto] xl:items-center">
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">/</span>
-              <input type="text" value={activityFilter} onChange={e => setActivityFilter(e.target.value)} placeholder="Search activity, teacher, room, or age…" className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white" />
-              {activityFilter && <button onClick={() => setActivityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>}
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">/</span>
+              <input type="text" value={activityFilter} onChange={e => setActivityFilter(e.target.value)} placeholder="Search activity, teacher, room, or age…" className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white" />
+              {activityFilter && <button onClick={() => setActivityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 text-xs">✕</button>}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <select value={rowSort} onChange={e => setRowSort(e.target.value as "name" | "teacher" | "ageGroup")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
@@ -515,9 +508,9 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                 {availableOnly ? "Can schedule only" : "Show all classes"}
               </button>
               {(activityFilter || focusAgeGroupId || roomFilter || teacherFilter || availableOnly || rowSort !== "name" || rowSortDir !== "asc") && (
-                <button type="button" onClick={() => { setActivityFilter(""); setFocusAgeGroupId(""); setRoomFilter(""); setTeacherFilter(""); setAvailableOnly(false); setRowSort("name"); setRowSortDir("asc"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-400 hover:text-slate-700">Reset</button>
+                <button type="button" onClick={() => { setActivityFilter(""); setFocusAgeGroupId(""); setRoomFilter(""); setTeacherFilter(""); setAvailableOnly(false); setRowSort("name"); setRowSortDir("asc"); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-500 hover:text-slate-700">Reset</button>
               )}
-              <span className="text-xs font-semibold text-slate-400">{filteredCourses.length}/{courses.length}</span>
+              <span className="text-xs font-semibold text-slate-500">{filteredCourses.length}/{courses.length}</span>
             </div>
           </div>
 
@@ -542,7 +535,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                 <h3 className="text-sm font-extrabold text-slate-800">Activity scheduling grid</h3>
                 <HelpCopy title="Scheduling grid" className="text-xs text-slate-500">One row per activity. Pick room, teacher, seats, and time cells without opening extra blocks.</HelpCopy>
               </div>
-              <span className="text-xs font-bold text-slate-400">{filteredCourses.length} rows × {visibleSessionGroups.length}/{sessionGroups.length} blocks</span>
+              <span className="text-xs font-bold text-slate-500">{filteredCourses.length} rows × {visibleSessionGroups.length}/{sessionGroups.length} blocks</span>
             </div>
             {totalColumnPages > 1 && (
               <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2 text-xs">
@@ -568,7 +561,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                       <th key={sg.key} className={`text-center py-3 px-2 border-b w-[96px] align-top ${columnHeatClass(stats)}`}>
                         <div className="font-extrabold text-slate-800 text-[11px] leading-tight truncate" title={sg.label}>{sg.label}</div>
                         <div className="text-slate-500 text-[10px] font-semibold">{sg.startTime}–{sg.endTime}</div>
-                        {days && <div className="text-slate-400 text-[10px] font-normal truncate" title={days}>{days}</div>}
+                        {days && <div className="text-slate-500 text-[10px] font-normal truncate" title={days}>{days}</div>}
                         <div className="mt-1 text-xs font-extrabold text-slate-700">{stats.registered}/{stats.totalCap} · {stats.remaining} open</div>
                         <div className="mt-1 h-1 rounded-full bg-white/80 overflow-hidden"><div className="h-full rounded-full bg-current transition-all" style={{ width: `${Math.min(Math.max(hasRegistrations ? fillPct : stats.totalCap > 0 ? 100 : 0, 0), 100)}%` }} /></div>
                       </th>
@@ -633,7 +626,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                           onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") { e.currentTarget.value = String(course.cap || 20); e.currentTarget.blur(); } }}
                           className="mx-auto w-14 rounded-lg border border-slate-200 bg-white px-1.5 py-1.5 text-center text-[11px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
                         />
-                        {course.room?.capacity ? <div className="text-[9px] text-slate-400">room {course.room.capacity}</div> : null}
+                        {course.room?.capacity ? <div className="text-[9px] text-slate-500">room {course.room.capacity}</div> : null}
                       </td>
                       {visibleSessionGroups.map(sg => {
                         const saveKey = cellKey(course.id, sg.key);
@@ -659,7 +652,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                                   isChecked
                                     ? activeCellClass(course, sg)
                                     : isBlocked
-                                      ? (serverBlocked ? "cursor-not-allowed border-slate-200 bg-slate-100/70 text-slate-400 opacity-60 shadow-none" : availability.className)
+                                      ? (serverBlocked ? "cursor-not-allowed border-slate-200 bg-slate-100/70 text-slate-500 opacity-60 shadow-none" : availability.className)
                                       : isAvailable
                                         ? availability.className
                                         : "border-dashed border-slate-200 bg-slate-50 text-slate-300 hover:border-stone-300 hover:bg-stone-50 hover:text-stone-700"
@@ -685,8 +678,8 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             </div>
           </section>
 
-          <div className="text-xs text-slate-400 mt-3 flex items-center gap-4 flex-wrap">
-            <HelpCopy title="Dense schedule sheet" className="text-xs text-slate-400">Rows are the default view: edit room, teacher, assistant, capacity, and schedule cells in one dense sheet</HelpCopy>
+          <div className="text-xs text-slate-500 mt-3 flex items-center gap-4 flex-wrap">
+            <HelpCopy title="Dense schedule sheet" className="text-xs text-slate-500">Rows are the default view: edit room, teacher, assistant, capacity, and schedule cells in one dense sheet</HelpCopy>
             <span className="basis-full h-0" />
             <span className="font-semibold text-slate-500">Capacity colors:</span>
             <span><span className="inline-block w-4 h-3 rounded bg-emerald-100 border border-emerald-300 align-middle" /> 0–49% full · roomy</span>

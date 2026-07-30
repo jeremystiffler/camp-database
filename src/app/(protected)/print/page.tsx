@@ -275,13 +275,9 @@ function PrintContent() {
     };
     Promise.all([
       getJson(`/api/camps/${campId}/participants`),
-      getJson(`/api/camps/${campId}/courses`),
-      getJson(`/api/camps/${campId}/persons`),
-      getJson(`/api/camps/${campId}/mandatory-sessions`),
-      getJson(`/api/camps/${campId}/rooms`),
-      getJson(`/api/camps/${campId}/session-templates`),
-    ]).then(([c, co, p, ms, r, st]) => {
-      const denied = [c, co, p, ms, r].find(result => result.response.status === 401 || result.response.status === 403);
+      getJson(`/api/camps/${campId}`),
+    ]).then(([participantResult, campResult]) => {
+      const denied = [participantResult, campResult].find(result => result.response.status === 401 || result.response.status === 403);
       if (denied) {
         setAccessError(denied.response.status === 401
           ? "Your session expired. Sign in again, then return to the print center."
@@ -289,12 +285,13 @@ function PrintContent() {
         setLoading(false);
         return;
       }
-      setParticipants(Array.isArray(c.data) ? c.data : []);
-      setCourses(Array.isArray(co.data) ? co.data : []);
-      setPersons(Array.isArray(p.data) ? p.data : []);
-      setMandatorySessions(Array.isArray(ms.data) ? ms.data : []);
-      setRooms(Array.isArray(r.data) ? r.data : []);
-      setSessionTemplates(Array.isArray(st.data) ? st.data : []);
+      const camp = campResult.data;
+      setParticipants(Array.isArray(participantResult.data) ? participantResult.data : []);
+      setCourses(Array.isArray(camp?.courses) ? camp.courses : []);
+      setPersons(Array.isArray(camp?.persons) ? camp.persons : []);
+      setMandatorySessions(Array.isArray(camp?.mandatorySessions) ? camp.mandatorySessions : []);
+      setRooms(Array.isArray(camp?.rooms) ? camp.rooms : []);
+      setSessionTemplates(Array.isArray(camp?.sessionTemplates) ? camp.sessionTemplates : []);
       setPrintLog(readPrintLog(campId));
       setLoading(false);
     }).catch(() => {
@@ -706,7 +703,7 @@ function PrintContent() {
           <button type="button" onClick={() => setTask({ job: "dayPacket" })} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-extrabold text-white hover:bg-slate-700">Print</button>
         </div>
 
-        <p className="text-xs font-semibold uppercase tracking-[.12em] text-[var(--text-faint)]">Or print one thing</p>
+        <p className="text-xs font-semibold uppercase tracking-[.12em] text-[var(--text-muted)]">Or print one thing</p>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {jobs.map(job => {
@@ -716,12 +713,12 @@ function PrintContent() {
               <div key={job.id} className="camp-card flex flex-col gap-2 p-5">
                 <p className="text-sm font-extrabold text-slate-900">{job.title}</p>
                 <p className="text-sm text-[var(--text-muted)]"><span className="t-data">{counts.primary} · {counts.sheets} sheet{counts.sheets === 1 ? "" : "s"}</span></p>
-                <p className="text-xs text-[var(--text-faint)]">{printLog[job.id] ? `Last printed ${formatLogTime(printLog[job.id])}` : "Not printed yet"}</p>
+                <p className="text-xs text-[var(--text-muted)]">{printLog[job.id] ? `Last printed ${formatLogTime(printLog[job.id])}` : "Not printed yet"}</p>
                 <div className="mt-auto flex items-center gap-2 pt-2">
                   <button
                     type="button"
                     onClick={() => empty ? alert("There is nothing to print yet for this document. Add the data in Setup first.") : setTask({ job: job.id })}
-                    className={`rounded-xl px-4 py-2 text-sm font-extrabold ${empty ? "bg-slate-100 text-slate-400" : "bg-slate-900 text-white hover:bg-slate-700"}`}
+                    className={`rounded-xl px-4 py-2 text-sm font-extrabold ${empty ? "bg-slate-100 text-slate-500" : "bg-slate-900 text-white hover:bg-slate-700"}`}
                   >
                     Print
                   </button>
@@ -777,7 +774,7 @@ function PrintContent() {
               )}
 
               <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--canvas-sunk)] p-4">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-[.1em] text-[var(--text-faint)]">Preview</p>
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[.1em] text-[var(--text-muted)]">Preview</p>
                 <div className="mx-auto overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm" style={{ width: 168, height: badgeSize === "5x3" ? 280 : 252 }}>
                   <div className="flex h-8 items-center justify-center text-[10px] font-extrabold tracking-widest text-white" style={{ background: bandColor }}>
                     {badgeRecipients[0] ? fullName(badgeRecipients[0]) : "Name"}

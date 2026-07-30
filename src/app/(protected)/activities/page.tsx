@@ -214,12 +214,12 @@ function QuickAddPerson({
       {error && <p className="text-xs text-red-500">{error}</p>}
       <div className="grid grid-cols-2 gap-2">
         <input value={firstName} onChange={e => setFirst(e.target.value)} placeholder="First name *"
-          className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
+          className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
         <input value={lastName} onChange={e => setLast(e.target.value)} placeholder="Last name *"
-          className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
+          className="px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
       </div>
       <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address (optional — add details later)"
-        className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
+        className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-forest-500/40" />
       <div className="flex items-center gap-2">
         <select value={role} onChange={e => setRole(e.target.value as "teacher" | "assistant")}
           className="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-800 focus:outline-none">
@@ -231,7 +231,7 @@ function QuickAddPerson({
           {saving ? "..." : "Add"}
         </button>
         <button type="button" onClick={() => { setOpen(false); setError(""); }}
-          className="text-slate-400 hover:text-red-400 text-xs px-1">✕</button>
+          className="text-slate-500 hover:text-red-400 text-xs px-1">✕</button>
       </div>
     </div>
   );
@@ -433,7 +433,7 @@ function CourseModal({
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Activity Name *</label>
               <input type="text" value={name} onChange={e => setName(e.target.value)} required
                 placeholder="e.g. Watercolor Painting"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Icon</label>
@@ -449,7 +449,7 @@ function CourseModal({
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2}
               placeholder="Optional description..."
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 resize-none" />
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30 resize-none" />
           </div>
 
           {/* Room + Cap */}
@@ -480,10 +480,10 @@ function CourseModal({
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Age Groups
-              <span className="ml-1 text-xs font-normal text-slate-400">(select all that apply)</span>
+              <span className="ml-1 text-xs font-normal text-slate-500">(select all that apply)</span>
             </label>
             {schedulableAgeGroups.length === 0 ? (
-              <p className="text-xs text-slate-400 italic">No schedulable age groups set up yet — age groups marked “No class schedule” do not need activities.</p>
+              <p className="text-xs text-slate-500 italic">No schedulable age groups set up yet — age groups marked “No class schedule” do not need activities.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {schedulableAgeGroups.map(ag => {
@@ -514,10 +514,10 @@ function CourseModal({
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Lead Teacher(s)
-              <span className="ml-1 text-xs font-normal text-slate-400">(teaches the class)</span>
+              <span className="ml-1 text-xs font-normal text-slate-500">(teaches the class)</span>
             </label>
             {leadTeachers.length === 0 ? (
-              <p className="text-xs text-slate-400 italic mb-1">No teachers added yet.</p>
+              <p className="text-xs text-slate-500 italic mb-1">No teachers added yet.</p>
             ) : (
               <div className="space-y-1.5 mb-2">
                 {leadTeachers.map(p => {
@@ -536,7 +536,7 @@ function CourseModal({
                         </div>
                         <div className="min-w-0">
                           <span className="text-sm font-medium text-slate-800">{p.firstName} {p.lastName}</span>
-                          {p.email && <span className="text-xs text-slate-400 ml-1.5 truncate">{p.email}</span>}
+                          {p.email && <span className="text-xs text-slate-500 ml-1.5 truncate">{p.email}</span>}
                           {!p.email && <span className="text-xs text-amber-500 ml-1.5"> no email</span>}
                         </div>
                       </div>
@@ -552,10 +552,10 @@ function CourseModal({
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Teaching Assistants
-              <span className="ml-1 text-xs font-normal text-slate-400">(helpers, aides)</span>
+              <span className="ml-1 text-xs font-normal text-slate-500">(helpers, aides)</span>
             </label>
             {assistants.length === 0 ? (
-              <p className="text-xs text-slate-400 italic mb-1">No assistants added yet.</p>
+              <p className="text-xs text-slate-500 italic mb-1">No assistants added yet.</p>
             ) : (
               <div className="space-y-1.5 mb-2">
                 {assistants.map(p => {
@@ -574,7 +574,7 @@ function CourseModal({
                         </div>
                         <div className="min-w-0">
                           <span className="text-sm font-medium text-slate-800">{p.firstName} {p.lastName}</span>
-                          {p.email && <span className="text-xs text-slate-400 ml-1.5 truncate">{p.email}</span>}
+                          {p.email && <span className="text-xs text-slate-500 ml-1.5 truncate">{p.email}</span>}
                           {!p.email && <span className="text-xs text-amber-500 ml-1.5"> no email</span>}
                         </div>
                       </div>
@@ -810,13 +810,10 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
     if (!campId) return;
     setLoading(true);
     Promise.all([
-      fetch(`/api/camps/${campId}/courses`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/mandatory-sessions`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/age-groups`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/rooms`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/persons`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/session-templates`).then(r => r.json()),
-    ]).then(([c, ms, ag, r, p, st]) => {
+      fetch(`/api/camps/${campId}`).then(r => r.json()),
+    ]).then(([camp]) => {
+      const c = camp?.courses, ms = camp?.mandatorySessions, ag = camp?.ageGroups;
+      const r = camp?.rooms, p = camp?.persons, st = camp?.sessionTemplates;
       setCourses(Array.isArray(c) ? c : []);
       setMandatorySessions(Array.isArray(ms) ? ms : []);
       setAgeGroups(Array.isArray(ag) ? ag : []);
@@ -1109,7 +1106,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
           <button key={item.label} onClick={item.action} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-left font-bold text-slate-600 transition hover:border-sky-200 hover:bg-sky-50">
             <span className={`mr-1 ${item.tone}`}>{item.value}</span>
             <span>{item.label}</span>
-            <span className="ml-1 font-medium text-slate-400">· {item.detail}</span>
+            <span className="ml-1 font-medium text-slate-500">· {item.detail}</span>
           </button>
         ))}
       </div>
@@ -1179,10 +1176,10 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
         <div className="border-t border-slate-100 p-4">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
             <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
               <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search activities..."
-                className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+                className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-4 text-sm text-slate-800 placeholder:text-slate-500 focus:border-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
             </div>
             <div className="flex flex-wrap gap-2">
               {[
@@ -1217,7 +1214,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
             <div className="camp-card p-12 text-center">
               <span className="mb-4 block text-5xl">A</span>
               <h3 className="mb-2 font-bold text-slate-700">{search || statusFilter !== "all" ? "No activities match" : "No activities yet"}</h3>
-              <p className="mb-5 text-sm text-slate-400">Create activities first, then schedule them in the grid above.</p>
+              <p className="mb-5 text-sm text-slate-500">Create activities first, then schedule them in the grid above.</p>
               <button onClick={() => { setEditingCourse(null); setShowModal(true); }} className="rounded-xl bg-forest-600 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90">+ Add First Activity</button>
             </div>
           ) : (
@@ -1361,14 +1358,14 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
                                   onClick={() => toggleInlineAgeGroup(course, ageGroup.id)}
                                   title={`${checked ? "Remove" : "Add"} ${ageGroup.name}`}
                                   className={`rounded-full border px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-all disabled:opacity-60 ${
-                                    checked ? "border-transparent text-white shadow-sm" : "border-slate-200 bg-white text-slate-400 hover:border-sky-200 hover:text-sky-700"
+                                    checked ? "border-transparent text-white shadow-sm" : "border-slate-200 bg-white text-slate-500 hover:border-sky-200 hover:text-sky-700"
                                   }`}
                                   style={checked ? { backgroundColor: ageGroup.color } : {}}
                                 >
                                   {checked ? "✓ " : "+ "}{ageGroup.name}
                                 </button>
                               );
-                            }) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-400">No ages set up</span>}
+                            }) : <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">No ages set up</span>}
                           </div>
                         </td>
                         <td className="px-3 py-3 text-right align-middle">

@@ -253,14 +253,12 @@ function ScheduleContent() {
     if (!campId) return;
     setLoading(true);
     try {
-      const [s, t, c, r, g, dashboard] = await Promise.all([
+      const [s, camp, dashboard] = await Promise.all([
       fetch(`/api/camps/${campId}/sessions`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/session-templates`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/courses`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/rooms`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/age-groups`).then((r) => r.json()),
+      fetch(`/api/camps/${campId}`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/dashboard`).then((r) => r.ok ? r.json() : null),
       ]);
+      const t = camp?.sessionTemplates, c = camp?.courses, r = camp?.rooms, g = camp?.ageGroups;
       setSessions(Array.isArray(s) ? s : []);
       setTemplates(Array.isArray(t) ? t : []);
       setCourses(Array.isArray(c) ? c : []);
@@ -402,7 +400,7 @@ function ScheduleContent() {
         <div className="camp-card p-12 text-center">
           <span className="mb-4 block text-5xl">Date</span>
           <h3 className="mb-2 font-bold text-slate-700">No activities scheduled yet</h3>
-          <p className="mb-5 text-sm text-slate-400">Create Time Blocks in Setup, then assign activities in the Schedule Builder.</p>
+          <p className="mb-5 text-sm text-slate-500">Create Time Blocks in Setup, then assign activities in the Schedule Builder.</p>
           <Link href={`/setup?campId=${campId}&step=times`} className="minimal-button-primary inline-flex">Set up Time Blocks</Link>
         </div>
       ) : (
@@ -421,14 +419,14 @@ function ScheduleContent() {
                 {busiest && <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Highest load</p>
+                      <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Highest load</p>
                       <p className="text-sm font-bold text-slate-800">{sessionTitle(busiest)} · {DAYS[sessionDay(busiest)]} {timeRange(busiest)} · {busiest.room?.name || "No room"}</p>
                     </div>
                     <span className={`w-fit rounded-full border px-3 py-1 text-xs font-extrabold ${capacityTone(capacityPercent(busiest))}`}>{capacityPercent(busiest)}% full · {busiest.enrolledCount}/{capLabel(busiest.course?.cap)}</span>
                   </div>
                 </div>}
                 {lowestAttended.length > 0 && <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Lowest attendance</p>
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Lowest attendance</p>
                   <div className="mt-2 divide-y divide-slate-200">
                     {lowestAttended.map((session) => (
                       <div key={session.id} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
@@ -453,7 +451,7 @@ function ScheduleContent() {
           </div>
 
           <div className="rounded-xl border border-[var(--border)] bg-white px-4 py-3">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[.1em] text-[var(--text-faint)]">Activities</p>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[.1em] text-[var(--text-muted)]">Activities</p>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {uniqueBy(courses, (course) => normalizeActivityName(course.name)).sort((a, b) => a.name.localeCompare(b.name)).map((course) => {
                 const hue = resolveActivityHue(course.name);
@@ -529,7 +527,7 @@ function DayTimeGrid({ sessions, displayDayGroups, duplicateDayCount, timeSlots,
     >
       <table className="min-w-full border-collapse text-left text-sm">
         <thead><tr className="bg-slate-50"><th className="sticky left-0 z-10 w-36 border-b border-r border-slate-200 bg-slate-50 p-3 text-xs font-extrabold uppercase text-slate-500">Day</th>{timeSlots.map((slot) => <th key={slot.key} className="min-w-56 border-b border-slate-200 p-3 text-xs font-extrabold uppercase text-slate-500">{slot.label}</th>)}</tr></thead>
-        <tbody>{displayDayGroups.map((group) => <tr key={group.key}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-extrabold text-slate-800"><div>{group.label}</div>{group.days.length > 1 && <div className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">shown once</div>}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{dedupeSessions(sessions.filter((s) => group.days.includes(sessionDay(s)) && s.startTime === slot.start && s.endTime === slot.end)).map((s) => sessionCell(s, campId))}</div></td>)}</tr>)}</tbody>
+        <tbody>{displayDayGroups.map((group) => <tr key={group.key}><th className="sticky left-0 z-10 border-r border-slate-200 bg-white p-3 text-sm font-extrabold text-slate-800"><div>{group.label}</div>{group.days.length > 1 && <div className="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">shown once</div>}</th>{timeSlots.map((slot) => <td key={slot.key} className="border-b border-slate-100 p-2 align-top"><div className="space-y-2">{dedupeSessions(sessions.filter((s) => group.days.includes(sessionDay(s)) && s.startTime === slot.start && s.endTime === slot.end)).map((s) => sessionCell(s, campId))}</div></td>)}</tr>)}</tbody>
       </table>
     </PivotShell>
   );
@@ -569,7 +567,7 @@ function ListView({ sessions, campId }: { sessions: Session[]; campId: string })
         <div key={session.id} className="camp-card flex items-center gap-4 p-4">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white" style={{ backgroundColor: session.course?.color || "#94a3b8" }}>{session.course?.icon || "Sc"}</div>
           <div className="min-w-0 flex-1">{session.course ? <Link href={activityHref(campId, session.course.id)} className="truncate font-semibold text-slate-800 underline-offset-2 hover:underline">{sessionTitle(session)}</Link> : <p className="truncate font-semibold text-slate-800">{sessionTitle(session)}</p>}<p className="text-xs text-slate-500">{DAYS[sessionDay(session)]} · {timeRange(session)} · {session.room?.name || "No room"}{session.course ? ` · ${teacherNames(session.course)}` : ""}</p></div>
-          <div className="flex-shrink-0 text-right"><div className="text-sm font-semibold text-slate-700">{session.enrolledCount}/{capLabel(session.course?.cap)}</div><div className="text-xs text-slate-400">enrolled</div></div>
+          <div className="flex-shrink-0 text-right"><div className="text-sm font-semibold text-slate-700">{session.enrolledCount}/{capLabel(session.course?.cap)}</div><div className="text-xs text-slate-500">enrolled</div></div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[session.status] || "bg-slate-100 text-slate-600"}`}>{session.status}</span>
           <RowDeleteButton onDelete={() => deleteSession(session)} label={sessionTitle(session)} />
         </div>

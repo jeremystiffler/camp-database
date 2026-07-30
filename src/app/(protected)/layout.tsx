@@ -8,6 +8,7 @@ import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
 import { themeTokens } from "@/lib/programPalettes";
+import { getJson, invalidateJson } from "@/lib/request-cache";
 
 // Navigation vocabulary is frozen: one name per route, sentence case, no
 // preference-driven variants. See simpleschedulepro-nav-and-toggle-removal.md.
@@ -131,11 +132,23 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     const urlCampId = searchParams.get("campId");
     if (!urlCampId || camps.length === 0 || activeCamp?.id === urlCampId) return;
     const campFromUrl = camps.find((camp) => camp.id === urlCampId);
-    if (!campFromUrl) return;
+    if (!campFromUrl) {
+      // A stale/dead tenant id must fail once, then disappear. Leaving it in the
+      // URL makes every child component faithfully retry an event it cannot use.
+      localStorage.removeItem("activeCampId");
+      const fallback = camps[0];
+      setActiveCamp(fallback);
+      setLastKnownCampId(fallback.id);
+      localStorage.setItem("activeCampId", fallback.id);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("campId", fallback.id);
+      router.replace(`${pathname}?${params.toString()}`);
+      return;
+    }
     setActiveCamp(campFromUrl);
     setLastKnownCampId(campFromUrl.id);
     localStorage.setItem("activeCampId", campFromUrl.id);
-  }, [searchParams, camps, activeCamp?.id]);
+  }, [searchParams, camps, activeCamp?.id, pathname, router]);
 
   // A shared program selection should also survive a bookmarked operational URL.
   // Do this only after the program list is known so an invalid URL is never masked.
@@ -147,10 +160,9 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   }, [activeCamp?.id, pathname, router, searchParams]);
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.user) {
+    getJson<{ user?: AuthUser }>("/api/auth/me", 30_000)
+      .then(({ data }) => {
+        if (data?.user) {
           setUser(data.user);
         } else {
           router.push("/login");
@@ -167,9 +179,8 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     const loadPrograms = () => {
-      fetch("/api/camps")
-        .then((r) => r.json())
-        .then((data) => {
+      getJson<Camp[]>("/api/camps")
+        .then(({ data }) => {
           if (Array.isArray(data) && data.length > 0) {
             setPrograms(data);
             const urlCampId = new URLSearchParams(window.location.search).get("campId");
@@ -187,17 +198,18 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
     };
 
     loadPrograms();
-    window.addEventListener("camp:list-changed", loadPrograms);
+    const refreshPrograms = () => { invalidateJson("/api/camps"); loadPrograms(); };
+    window.addEventListener("camp:list-changed", refreshPrograms);
     window.addEventListener("focus", loadPrograms);
     return () => {
-      window.removeEventListener("camp:list-changed", loadPrograms);
+      window.removeEventListener("camp:list-changed", refreshPrograms);
       window.removeEventListener("focus", loadPrograms);
     };
   }, [user]);
 
   useEffect(() => {
     if (!campId) return;
-    fetch(`/api/camps/${campId}/dashboard`).then((response) => response.ok ? response.json() : null).then((data) => {
+    getJson<{ stats: { rooms: number; teachers: number; classes: number; scheduleBlocks: number } }>(`/api/camps/${campId}/dashboard`).then(({ data }) => {
       if (!data?.stats) return;
       // Help remains opt-out, but begins on only while the program is still early in setup.
       const setupSignals = [data.stats.rooms, data.stats.teachers, data.stats.classes, data.stats.scheduleBlocks];
@@ -244,7 +256,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-dvh w-full flex items-stretch text-slate-900" style={workspaceStyle}>
+    <div className="protected-shell min-h-dvh w-full flex items-stretch text-slate-900" style={workspaceStyle}>
       {/* Mobile overlay */}
       {sidebarOpen && !isKioskShell && (
         <div
@@ -300,7 +312,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                       className={`w-full text-left rounded-xl px-3 py-2.5 transition-colors ${selected ? "bg-slate-200 text-slate-900" : "text-slate-700 hover:bg-slate-100"}`}
                     >
                       <span className="block text-sm font-extrabold leading-tight">{camp.name}</span>
-                      <span className={`block text-[11px] mt-0.5 ${selected ? "text-slate-600" : "text-slate-400"}`}>
+                      <span className={`block text-[11px] mt-0.5 ${selected ? "text-slate-600" : "text-slate-500"}`}>
                         {selected ? `Active now • ${camp.myRole || "viewer"}` : `Switch to ${camp.status} • ${camp.myRole || "viewer"}`}
                       </span>
                     </button>
@@ -357,7 +369,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                   await fetch("/api/auth/me", { method: "DELETE" });
                   router.push("/login");
                 }}
-                className="text-xs text-slate-400 hover:text-rose-500 transition-colors"
+                className="text-xs text-slate-500 hover:text-rose-500 transition-colors"
               >
                 Sign out
               </button>
@@ -368,7 +380,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Mobile top bar */}
       {!isKioskShell && <div className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center px-4 z-20 lg:hidden">
-        <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg text-slate-600 hover:bg-slate-100">
+        <button aria-label="Open navigation" onClick={() => setSidebarOpen(true)} className="p-2 rounded-lg text-slate-600 hover:bg-slate-100">
           ☰
         </button>
         <span className="ml-3 font-bold text-slate-800">Simple Schedule Pro</span>

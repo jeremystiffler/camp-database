@@ -15,35 +15,29 @@ const links: SetupLink[] = [
   { label: "Activities", href: "/activities", done: false },
 ];
 
-describe("the header never contradicts the checklist", () => {
-  it("does not say complete while a row still reads Not yet", () => {
-    // The state machine reasons about blocking ISSUES; the checklist reasons
-    // about DATA. An event can be free of blocking issues while a section is
-    // still empty. Claiming "complete" over a list of "Not yet" is the exact
-    // contradiction deleted from the dashboard in 18f.
+describe("the header uses the canonical issue-engine count", () => {
+  it("does not recompute a second count from checklist rows", () => {
     const html = render(
       <SetupPanel state="ready" blockingCount={0} links={links} firstIncompleteHref="/setup" />,
     );
-    // Collapsed, so only the header line is in the DOM — and that is precisely
-    // the string that must not overclaim.
-    expect(html).not.toContain("Setup complete");
-    expect(html).toContain("Nothing blocking · 2 sections still open");
+    expect(html).toContain("Nothing left before you can open");
+    expect(html).not.toContain("2 sections still open");
   });
 
-  it("says complete only when every section is genuinely done", () => {
+  it("uses the same zero count even when every checklist row is done", () => {
     const allDone = links.map((link) => ({ ...link, done: true }));
     const html = render(
       <SetupPanel state="ready" blockingCount={0} links={allDone} firstIncompleteHref="/setup" />,
     );
-    expect(html).toContain("Setup complete · ready to open");
+    expect(html).toContain("Nothing left before you can open");
   });
 
-  it("uses the singular for one open section", () => {
+  it("uses the singular for one engine issue", () => {
     const oneLeft = links.map((link, index) => ({ ...link, done: index !== 2 }));
     const html = render(
-      <SetupPanel state="running" blockingCount={0} links={oneLeft} firstIncompleteHref="/setup" />,
+      <SetupPanel state="running" blockingCount={1} links={oneLeft} firstIncompleteHref="/setup" />,
     );
-    expect(html).toContain("Nothing blocking · 1 section still open");
+    expect(html).toContain("1 thing left before you can open");
   });
 });
 
@@ -64,7 +58,7 @@ describe("setup collapses but is never hidden (§5)", () => {
     );
     expect(html).toContain('aria-expanded="false"');
     // Collapsed is not hidden: the header still says where things stand.
-    expect(html).toContain("Setup complete · ready to open");
+    expect(html).toContain("Nothing left before you can open");
   });
 
   it("stays collapsed while Running", () => {
@@ -73,7 +67,7 @@ describe("setup collapses but is never hidden (§5)", () => {
       <SetupPanel state="running" blockingCount={0} links={allDone} firstIncompleteHref="/setup" />,
     );
     expect(html).toContain('aria-expanded="false"');
-    expect(html).toContain("Registration is open");
+    expect(html).toContain("Nothing left before you can open");
   });
 
   it("is always expandable — the header is a real button", () => {
@@ -193,8 +187,9 @@ describe("§5.4 acceptance, against the dashboard", () => {
     expect(dashboard.match(/const setupPanel =/g) ?? []).toHaveLength(1);
   });
 
-  it("moves the grid to Schedule and makes it the default view", () => {
-    expect(dashboard).not.toContain("<OperationsGrid");
+  it("puts the grid on Dashboard immediately below event identity and keeps Schedule interactive", () => {
+    expect(dashboard).toContain("<OperationsGrid");
+    expect(dashboard.indexOf("<OperationsGrid")).toBeLessThan(dashboard.indexOf("{/* Selected program stats */}"));
     expect(schedule).toContain("<OperationsGrid");
     expect(schedule).toContain('useState<ScheduleView>("grid")');
   });

@@ -54,7 +54,7 @@ function StepIndicator({ current }: { current: number }) {
               ? "bg-slate-900 text-white shadow-sm"
               : s.num < current
               ? "bg-stone-200 text-stone-700"
-              : "bg-slate-100 text-slate-400"
+              : "bg-slate-100 text-slate-500"
           }`}>
             <span>{s.icon}</span>
             <span className="hidden sm:inline">{s.label}</span>
@@ -97,7 +97,7 @@ function Step1({
           required
           aria-describedby={!name.trim() ? "event-name-required" : undefined}
           placeholder="e.g. Creator's Event 2027"
-          className={`w-full px-4 py-2.5 border rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-slate-800 placeholder:text-slate-400 ${name.trim() ? "border-slate-200 focus:border-forest-400" : "border-red-300 focus:border-red-400"}`}
+          className={`w-full px-4 py-2.5 border rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30 text-slate-800 placeholder:text-slate-500 ${name.trim() ? "border-slate-200 focus:border-forest-400" : "border-red-300 focus:border-red-400"}`}
         />
         {!name.trim() && <p id="event-name-required" className="mt-1.5 text-xs font-semibold text-red-700">Add an event name to continue.</p>}
       </div>
@@ -166,7 +166,7 @@ function Step2({
                 <div className="ui-age-dot w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: g.color }} />
                 <span className="font-medium text-slate-800 text-sm">{g.name}</span>
                 {(g.minAge || g.maxAge) && (
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-500">
                     {g.minAge || "?"} – {g.maxAge || "?"} yrs
                   </span>
                 )}
@@ -188,7 +188,7 @@ function Step2({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && add()}
               placeholder="Group name *"
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-500"
             />
           </div>
           <div>
@@ -198,7 +198,7 @@ function Step2({
               onChange={(e) => setMinAge(e.target.value)}
               placeholder="Min age"
               min={1} max={99}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-500"
             />
           </div>
           <div>
@@ -208,7 +208,7 @@ function Step2({
               onChange={(e) => setMaxAge(e.target.value)}
               placeholder="Max age"
               min={1} max={99}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-500"
             />
           </div>
         </div>
@@ -280,7 +280,7 @@ function Step3({
           {rooms.map((r, i) => (
             <div key={i} className="grid gap-2 bg-slate-50 rounded-xl px-4 py-3 sm:grid-cols-[1fr_90px_auto] sm:items-end">
               <label className="block">
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Room / location name</span>
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Room / location name</span>
                 <input
                   type="text"
                   value={r.name}
@@ -289,7 +289,7 @@ function Step3({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-400">Capacity</span>
+                <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500">Capacity</span>
                 <input
                   type="number"
                   min={1}
@@ -313,7 +313,7 @@ function Step3({
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && add()}
             placeholder="Room name (e.g. Main Hall) *"
-            className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
+            className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-500"
           />
           <input
             type="number"
@@ -321,7 +321,7 @@ function Step3({
             onChange={(e) => setCapacity(e.target.value)}
             min={1}
             placeholder="Cap"
-            className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
+            className="w-20 px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-500"
           />
           <button
             type="button"
@@ -432,7 +432,7 @@ function Step4({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Morning session"
-            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
+            className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-500"
           />
         </div>
 
@@ -443,7 +443,7 @@ function Step4({
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-500"
             />
           </div>
           <div>
@@ -452,7 +452,7 @@ function Step4({
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-400"
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-forest-500/30 bg-white text-slate-800 placeholder:text-slate-500"
             />
           </div>
         </div>
@@ -570,7 +570,7 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-sky-600">{firstProgram ? "Welcome" : "New Event"}</p>
               <h1 className="font-bold text-xl text-slate-800">{firstProgram ? "Name your first event" : "Name your event"}</h1>
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 text-sm">✕</button>
+            <button aria-label="Close new event dialog" onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 text-sm">✕</button>
           </div>
           <p className="mb-5 text-sm text-slate-500">{firstProgram ? "Start by giving it a title. You can add dates and everything else as you go." : "Create the draft now, then complete age groups, rooms, time blocks, staff, activities, and registration in one guided Setup flow."}</p>
         </div>
@@ -600,7 +600,7 @@ export default function NewCampWizard({ onClose, onCreated, firstProgram = false
 
         {/* Footer */}
         <div className="px-6 py-5 border-t border-slate-100 flex items-center justify-between">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-600">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-600">Cancel</button>
           <div className="text-right">
             {!name.trim() && <p id="event-name-required" className="mb-1 text-xs font-semibold text-red-700">Add an event name to continue.</p>}
             {name.trim() && !paletteId && <p id="event-palette-required" className="mb-1 text-xs font-semibold text-red-700">Choose a color palette to continue.</p>}

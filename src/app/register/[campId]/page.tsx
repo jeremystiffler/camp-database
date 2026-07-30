@@ -534,7 +534,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
     </div>
   );
 
-  const inputCls = (id: string) => `w-full px-4 py-2.5 border rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-colors ${
+  const inputCls = (id: string) => `w-full px-4 py-2.5 border rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 transition-colors ${
     errors[id] ? "border-red-400 focus:ring-red-300" : "border-slate-200 focus:ring-slate-300"
   }`;
 
@@ -558,7 +558,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
         <label className="block text-sm font-medium text-slate-700 mb-1.5">
           {field.label}{field.required && <span className="text-red-400 ml-0.5">*</span>}
         </label>
-        {field.helpText && <p className="text-xs text-slate-400 mb-1.5">{field.helpText}</p>}
+        {field.helpText && <p className="text-xs text-slate-500 mb-1.5">{field.helpText}</p>}
         {field.type === "textarea" ? (
           <textarea rows={3} placeholder={field.placeholder} value={(activeValues[field.id] as string) || ""} onChange={e => setValue(field.id, e.target.value)} className={inputCls(field.id) + " resize-none"} />
         ) : field.type === "checkbox" ? (
@@ -609,7 +609,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
             const num = classChoicesEnabled ? idx + 1 : (idx === 0 ? 1 : 3);
             const active = step === num;
             const done = step > num;
-            return <div key={label} style={active ? brandStyle : done ? { backgroundColor: `${appearance.primaryColor}18`, color: appearance.primaryColor } : undefined} className={`flex-1 rounded-full px-3 py-2 text-center text-xs font-bold ${active ? "text-white" : done ? "" : "bg-white text-slate-400 border border-slate-200"}`}>{done ? "✓ " : ""}{label}</div>;
+            return <div key={label} style={active ? brandStyle : done ? { backgroundColor: `${appearance.primaryColor}18`, color: appearance.primaryColor } : undefined} className={`flex-1 rounded-full px-3 py-2 text-center text-xs font-bold ${active ? "text-white" : done ? "" : "bg-white text-slate-500 border border-slate-200"}`}>{done ? "✓ " : ""}{label}</div>;
           })}
         </div>
 

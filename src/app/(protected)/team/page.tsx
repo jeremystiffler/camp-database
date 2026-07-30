@@ -148,7 +148,7 @@ function TeamContent() {
               onChange={e => setInviteEmail(e.target.value)}
               placeholder="colleague@example.com"
               required
-              className="flex-1 min-w-48 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400"
+              className="flex-1 min-w-48 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400"
             />
             <select
               value={inviteRole}
@@ -198,7 +198,7 @@ function TeamContent() {
         <>
           <div className="camp-card overflow-hidden mb-4">
             <div className="px-5 py-3 border-b border-slate-100">
-              <h2 className="text-sm font-semibold text-slate-700">Members <span className="text-slate-400 font-normal">({members.length})</span></h2>
+              <h2 className="text-sm font-semibold text-slate-700">Members <span className="text-slate-500 font-normal">({members.length})</span></h2>
             </div>
             <div className="divide-y divide-slate-50">
               {members.map(m => {
@@ -214,7 +214,7 @@ function TeamContent() {
                       <p className="text-sm font-semibold text-slate-800 truncate">
                         {m.user.name || m.user.email}{isMe && <span className="ml-2 text-[11px] font-extrabold uppercase tracking-wide text-sky-600">You</span>}
                       </p>
-                      <p className="text-xs text-slate-400 truncate">{m.user.email}</p>
+                      <p className="text-xs text-slate-500 truncate">{m.user.email}</p>
                     </div>
                     {/* Role selector */}
                     {canManage && !isOwner && !isMe ? (
@@ -250,17 +250,17 @@ function TeamContent() {
           {invites.length > 0 && (
             <div className="camp-card overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-100">
-                <h2 className="text-sm font-semibold text-slate-700">Pending Invites <span className="text-slate-400 font-normal">({invites.length})</span></h2>
+                <h2 className="text-sm font-semibold text-slate-700">Pending Invites <span className="text-slate-500 font-normal">({invites.length})</span></h2>
               </div>
               <div className="divide-y divide-slate-50">
                 {invites.map(inv => (
                   <div key={inv.id} className="flex items-center gap-3 px-5 py-3.5">
-                    <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-sm flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-sm flex-shrink-0">
                       ✉️
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-700 truncate">{inv.email}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-500">
                         Invite sent · {inv.expiresAt ? `expires ${new Date(inv.expiresAt).toLocaleDateString()}` : "no expiry"}
                       </p>
                     </div>

@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import NewCampWizard from "@/components/NewCampWizard";
 import { HelpCopy } from "@/components/HelpMode";
-import type { GridAgeGroup, GridBlock, GridCourse } from "@/components/OperationsGrid";
+import { OperationsGrid, type GridAgeGroup, type GridBlock, type GridCourse } from "@/components/OperationsGrid";
 import { EmptyHome, SetupPanel, type SetupLink } from "@/components/SetupPanel";
 import { homeState, type HomeState } from "@/lib/homeState";
 import type { Issue } from "@/lib/issues";
 import { PROGRAM_PALETTES, paletteForPreset } from "@/lib/programPalettes";
+import { getJson, invalidateJson } from "@/lib/request-cache";
 
 interface Camp {
   id: string;
@@ -53,6 +54,7 @@ interface DashboardSummary {
   };
   /** Every issue, from the one engine (phase 18b). Drives the summary strip. */
   issues?: Issue[];
+  issueSummary?: { blocking: number; warning: number; advisory: number; canOpenRegistration: boolean };
   grid?: {
     courses: GridCourse[];
     blocks: GridBlock[];
@@ -232,7 +234,7 @@ function CopyCampModal({ sourceCamp, onClose, onCopied }: {
                     </label>
                   ))}
                 </div>
-                <p className="text-xs text-slate-400 mt-2 pl-1">
+                <p className="text-xs text-slate-500 mt-2 pl-1">
                   💡 Participants & enrollments are never copied — those are specific to each event run.
                 </p>
               </div>
@@ -296,7 +298,7 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
   const statusColors: Record<string, string> = {
     draft:    "bg-slate-100 text-slate-600",
     published:"bg-forest-100 text-forest-700",
-    archived: "bg-slate-100 text-slate-400",
+    archived: "bg-slate-100 text-slate-500",
   };
   const pickColor = async (presetId: string) => {
     if (colorSaving) return;
@@ -335,11 +337,11 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
         <div className="flex gap-4 mt-3 pt-3 border-t border-slate-100">
           <div className="text-center">
             <div className="font-bold text-slate-700">{camp._count?.participants ?? 0}</div>
-            <div className="text-xs text-slate-400">Participants</div>
+            <div className="text-xs text-slate-500">Participants</div>
           </div>
           <div className="text-center">
             <div className="font-bold text-slate-700">{camp._count?.courses ?? 0}</div>
-            <div className="text-xs text-slate-400">Activities</div>
+            <div className="text-xs text-slate-500">Activities</div>
           </div>
         </div>
       </Link>
@@ -451,9 +453,8 @@ function DashboardContent() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/camps")
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setPrograms(data); setLoading(false); })
+    getJson<Camp[]>("/api/camps")
+      .then(({ data }) => { if (Array.isArray(data)) setPrograms(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -471,16 +472,16 @@ function DashboardContent() {
       return;
     }
     setSummaryLoading(true);
-    fetch(`/api/camps/${activeCamp.id}/dashboard`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => setSummary(data && data.stats ? data : null))
+    getJson<DashboardSummary>(`/api/camps/${activeCamp.id}/dashboard`)
+      .then(({ data }) => setSummary(data && data.stats ? data : null))
       .catch(() => setSummary(null))
       .finally(() => setSummaryLoading(false));
   }, [activeCamp?.id]);
 
 
   const reloadPrograms = () => {
-    fetch("/api/camps").then(r => r.json()).then(d => { if (Array.isArray(d)) setPrograms(d); });
+    invalidateJson("/api/camps");
+    getJson<Camp[]>("/api/camps").then(({ data }) => { if (Array.isArray(data)) setPrograms(data); });
   };
 
   const requestDeleteCamp = (camp: Camp) => {
@@ -591,7 +592,7 @@ function DashboardContent() {
     issues: summary?.issues ?? [],
     registrationOpen,
   });
-  const blockingCount = (summary?.issues ?? []).filter((issue) => issue.severity === "blocking").length;
+  const readinessCount = summary?.issueSummary?.warning ?? 0;
 
   const setupLinks: SetupLink[] = activeCamp
     ? [
@@ -611,7 +612,7 @@ function DashboardContent() {
   const setupPanel = activeCamp ? (
     <SetupPanel
       state={state}
-      blockingCount={blockingCount}
+      blockingCount={readinessCount}
       links={setupLinks}
       registrationOpen={registrationOpen}
       firstIncompleteHref={firstIncomplete?.href ?? `/setup?campId=${activeCamp.id}`}
@@ -643,6 +644,18 @@ function DashboardContent() {
           </div>
         </div>
       </div>
+
+      {/* The schedule is the operational heart of the event. Keep it directly
+          beneath event identity and above setup/status tiles. */}
+      {activeCamp && summary?.grid && summary.grid.courses.length > 0 && (
+        <section aria-labelledby="dashboard-grid-heading" className="mb-8 rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="dashboard-grid-heading" className="text-sm font-extrabold text-[var(--text-strong)]">Activities by time block</h2>
+            <Link href={`/schedule?campId=${activeCamp.id}`} className="text-xs font-bold text-[var(--text-muted)] underline-offset-2 hover:underline">Open schedule</Link>
+          </div>
+          <OperationsGrid courses={summary.grid.courses} blocks={summary.grid.blocks} ageGroups={summary.grid.ageGroups} />
+        </section>
+      )}
 
       {/* Selected program stats */}
       {activeCamp && (
@@ -755,7 +768,7 @@ function DashboardContent() {
           <div className="camp-card p-12 text-center">
             <span className="text-5xl mb-4 block"></span>
             <h3 className="font-bold text-slate-700 mb-2">No events yet</h3>
-            <p className="text-slate-400 text-sm mb-5">Create your first event to get started.</p>
+            <p className="text-slate-500 text-sm mb-5">Create your first event to get started.</p>
             <button onClick={() => setShowNewCamp(true)}
               className="px-5 py-2.5 bg-forest-600 text-white rounded-xl text-sm font-semibold hover:opacity-90">
               + Create Your First Event

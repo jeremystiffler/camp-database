@@ -87,6 +87,8 @@ body {
   input, select, textarea { font-size: 16px; }
   button, a, input, select, textarea { touch-action: manipulation; }
   .camp-card, .tile-button { border-radius: 14px; }
+  .protected-shell button,
+  .protected-shell [role="button"] { min-width: 44px; min-height: 44px; }
 }
 
 /* ===================== Dark theme (public/auth) ===================== */

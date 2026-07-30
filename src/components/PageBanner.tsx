@@ -38,7 +38,7 @@ export function PageBanner({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           {eyebrow && <p className="page-banner__eyebrow">{eyebrow}</p>}
-          <h1 className="page-banner__title">{title}</h1>
+          <h1 id="page-title" className="page-banner__title">{title}</h1>
           {description && <p className="page-banner__desc">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

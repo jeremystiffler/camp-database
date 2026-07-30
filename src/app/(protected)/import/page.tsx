@@ -66,15 +66,10 @@ const DAY_ABBR = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 // ── Template download — pre-populated with existing data ──────────────────────
 async function downloadTemplate(campId: string) {
-  const [courseRes, agRes, roomRes] = await Promise.all([
-    fetch(`/api/camps/${campId}/courses`).then(r => r.json()),
-    fetch(`/api/camps/${campId}/age-groups`).then(r => r.json()),
-    fetch(`/api/camps/${campId}/rooms`).then(r => r.json()),
-  ]);
-
-  const courses: Course[]    = Array.isArray(courseRes) ? courseRes : [];
-  const ageGroups: AgeGroup[] = Array.isArray(agRes) ? agRes : [];
-  const rooms: Room[]         = Array.isArray(roomRes) ? roomRes : [];
+  const camp = await fetch(`/api/camps/${campId}`).then(r => r.json());
+  const courses: Course[] = Array.isArray(camp?.courses) ? camp.courses : [];
+  const ageGroups: AgeGroup[] = Array.isArray(camp?.ageGroups) ? camp.ageGroups : [];
+  const rooms: Room[] = Array.isArray(camp?.rooms) ? camp.rooms : [];
 
   // ── Sheet 1: Activities ───────────────────────────────────────────────────
   const rows: (string | number)[][] = [IMPORT_HEADERS];
@@ -171,11 +166,8 @@ function ImportContent() {
 
   const loadGridData = () => {
     if (!campId) return;
-    Promise.all([
-      fetch(`/api/camps/${campId}/courses`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/rooms`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/session-templates`).then(r => r.json()),
-    ]).then(([c, r, st]) => {
+    fetch(`/api/camps/${campId}`).then(r => r.json()).then((camp) => {
+      const c = camp?.courses, r = camp?.rooms, st = camp?.sessionTemplates;
       // Sort alphabetically once on load — never reorders on room/slot changes
       const sorted = Array.isArray(c) ? [...c].sort((a: Course, b: Course) => a.name.localeCompare(b.name)) : [];
       setCourses(sorted);
@@ -483,7 +475,7 @@ function ImportContent() {
           <span className="w-6 h-6 rounded-full bg-forest-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
           Upload Activities
         </h2>
-        <p className="text-xs text-slate-400 mb-5 ml-8">
+        <p className="text-xs text-slate-500 mb-5 ml-8">
           Download the template above (pre-filled with your existing activities), fill in new rows, and upload it here.
           No session columns needed — assign time blocks on the Activities tab after upload.
         </p>
@@ -507,7 +499,7 @@ function ImportContent() {
                   <tr key={h} className={i % 2 === 0 ? "bg-slate-50/50" : ""}>
                     <td className="py-1.5 pr-4 font-mono text-forest-700 whitespace-nowrap">{h}</td>
                     <td className="py-1.5 pr-4 text-slate-500">{COLUMN_NOTES[h] || "Text"}</td>
-                    <td className="py-1.5 text-slate-400">{EXAMPLE_ROW[i] || "—"}</td>
+                    <td className="py-1.5 text-slate-500">{EXAMPLE_ROW[i] || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -530,7 +522,7 @@ function ImportContent() {
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); }} />
               <span className="text-4xl mb-2 block">📂</span>
               <p className="text-sm font-semibold text-slate-700 mb-1">Drop your file here or click to browse</p>
-              <p className="text-xs text-slate-400">Supports .xlsx, .xls, .csv</p>
+              <p className="text-xs text-slate-500">Supports .xlsx, .xls, .csv</p>
               {fileName && <p className="text-xs text-forest-600 font-semibold mt-2">File: {fileName}</p>}
             </div>
 
@@ -545,13 +537,13 @@ function ImportContent() {
                     <span className="text-xs text-forest-600 ml-3"> {validRows.length} valid</span>
                     {invalidRows.length > 0 && <span className="text-xs text-red-500 ml-2"> {invalidRows.length} missing activity_name</span>}
                   </div>
-                  <button onClick={reset} className="text-xs text-slate-400 hover:text-slate-600">✕ Clear</button>
+                  <button onClick={reset} className="text-xs text-slate-500 hover:text-slate-600">✕ Clear</button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="px-3 py-2 text-left text-slate-400 font-semibold">#</th>
+                        <th className="px-3 py-2 text-left text-slate-500 font-semibold">#</th>
                         {IMPORT_HEADERS.map(h => (
                           <th key={h} className="px-3 py-2 text-left text-slate-500 font-semibold whitespace-nowrap">{h}</th>
                         ))}
@@ -574,7 +566,7 @@ function ImportContent() {
                     </tbody>
                   </table>
                   {rows.length > 50 && (
-                    <p className="px-4 py-2 text-xs text-slate-400 border-t border-slate-100">
+                    <p className="px-4 py-2 text-xs text-slate-500 border-t border-slate-100">
                       Showing first 50 of {rows.length} rows. All {rows.length} will be imported.
                     </p>
                   )}

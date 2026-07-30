@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { HomeState } from "@/lib/homeState";
-import { readinessBroke, setupSummaryLine } from "@/lib/homeState";
+import { readinessBroke } from "@/lib/homeState";
 
 /**
  * The setup panel — dashboard spec §5, build order phase 18g.
@@ -55,13 +55,14 @@ export function SetupPanel({
    * showing "Not yet" — that contradiction is the exact defect deleted from the
    * dashboard in phase 18f, and it would be silly to reintroduce it here.
    */
-  const claimsComplete = state === "ready" || state === "running";
-  const line =
-    claimsComplete && remaining > 0
-      ? remaining === 1
-        ? "Nothing blocking · 1 section still open"
-        : `Nothing blocking · ${remaining} sections still open`
-      : setupSummaryLine(state, blockingCount || remaining);
+  const claimsComplete = (state === "ready" || state === "running") && blockingCount === 0;
+  // This number comes from dashboard.issueSummary.warning. /setup consumes the
+  // same field, so the two surfaces cannot publish competing readiness totals.
+  const line = blockingCount === 0
+    ? "Nothing left before you can open"
+    : blockingCount === 1
+      ? "1 thing left before you can open"
+      : `${blockingCount} things left before you can open`;
 
   return (
     <section

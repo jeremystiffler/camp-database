@@ -102,26 +102,26 @@ function TeacherModal({ person, campId, ageGroups, defaultRole = "teacher", onCl
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">First Name *</label>
               <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} required
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Last Name *</label>
               <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} required
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
               placeholder="teacher@example.com"
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
               <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                 placeholder="(555) 555-5555"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
@@ -135,12 +135,12 @@ function TeacherModal({ person, campId, ageGroups, defaultRole = "teacher", onCl
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Bio / Notes</label>
             <textarea value={bio} onChange={e => setBio(e.target.value)} rows={2}
               placeholder="Optional bio or notes..."
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30 resize-none" />
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30 resize-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Assigned Age Group(s)</label>
             {ageGroups.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-400">
+              <div className="rounded-xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500">
                 Add age groups in Setup first, then assign teachers here.
               </div>
             ) : (
@@ -160,7 +160,7 @@ function TeacherModal({ person, campId, ageGroups, defaultRole = "teacher", onCl
                 })}
               </div>
             )}
-            <p className="mt-1.5 text-xs text-slate-400">Use this as the teacher's primary student group hint. Activities still control actual schedules.</p>
+            <p className="mt-1.5 text-xs text-slate-500">Use this as the teacher's primary student group hint. Activities still control actual schedules.</p>
           </div>
           <div className="flex gap-3 pt-2 border-t border-slate-100">
             <button type="button" onClick={onClose}
@@ -228,7 +228,7 @@ function SendScheduleModal({ person, campId, onClose }: {
                 : <span className="text-amber-600 font-medium"> No email on file — edit teacher to add one</span>}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 text-lg">✕</button>
+          <button onClick={onClose} className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 text-lg">✕</button>
         </div>
 
         {/* Body */}
@@ -270,7 +270,7 @@ function SendScheduleModal({ person, campId, onClose }: {
               {/* Course list preview */}
               <div className="space-y-3">
                 {preview.courses.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                  <div className="text-center py-8 text-slate-500 border border-dashed border-slate-200 rounded-xl">
                     No activities assigned to this teacher yet.
                   </div>
                 ) : preview.courses.map(course => (
@@ -289,7 +289,7 @@ function SendScheduleModal({ person, campId, onClose }: {
                       </div>
                       <div className="ml-auto text-right flex-shrink-0">
                         <p className="text-sm font-semibold text-slate-800">{course.participants.length}</p>
-                        <p className="text-xs text-slate-400">students</p>
+                        <p className="text-xs text-slate-500">students</p>
                       </div>
                     </div>
                     {course.participants.length > 0 && (
@@ -312,11 +312,11 @@ function SendScheduleModal({ person, campId, onClose }: {
               {/* Optional note */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  Add a personal note <span className="text-slate-400 font-normal">(optional)</span>
+                  Add a personal note <span className="text-slate-500 font-normal">(optional)</span>
                 </label>
                 <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
                   placeholder="e.g. Please arrive 15 minutes early on the first day..."
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/30 resize-none" />
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 resize-none" />
               </div>
             </>
           )}
@@ -378,21 +378,21 @@ function PersonRow({ person: p, roleColors, onSchedule, onEdit, onDelete }: {
         </div>
 
         <div className="text-sm md:text-xs min-w-0">
-          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Email</span>
+          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-0.5">Email</span>
           {p.email
             ? <span className="text-slate-600 truncate block">{p.email}</span>
             : <span className="text-amber-500 italic">No email — add one to send schedule</span>}
         </div>
 
         <div className="text-sm md:text-xs min-w-0">
-          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Phone</span>
+          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-0.5">Phone</span>
           {p.phone
             ? <span className="text-slate-500 truncate block">{p.phone}</span>
             : <span className="text-slate-300 italic">—</span>}
         </div>
 
         <div className="text-sm md:text-xs min-w-0">
-          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Age Groups</span>
+          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-0.5">Age Groups</span>
           {p.personAgeGroups && p.personAgeGroups.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {p.personAgeGroups.map(({ ageGroup }) => (
@@ -407,7 +407,7 @@ function PersonRow({ person: p, roleColors, onSchedule, onEdit, onDelete }: {
         </div>
 
         <div className="text-sm md:text-xs min-w-0">
-          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Notes</span>
+          <span className="md:hidden block text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-0.5">Notes</span>
           {p.bio
             ? <span className="text-slate-500 italic line-clamp-2">{p.bio}</span>
             : <span className="text-slate-300 italic">—</span>}
@@ -419,7 +419,7 @@ function PersonRow({ person: p, roleColors, onSchedule, onEdit, onDelete }: {
             className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs font-semibold transition-colors">Email Schedule</button>
           <button onClick={() => onEdit(p)}
             title="Edit person"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 text-sm">Edit</button>
+            className="p-1.5 rounded-lg text-slate-500 hover:text-sky-600 hover:bg-sky-50 text-sm">Edit</button>
           <RowDeleteButton onDelete={() => onDelete(p.id)} label={`${p.firstName} ${p.lastName}`} />
         </div>
       </div>
@@ -444,11 +444,9 @@ export function TeachersContent() {
   const load = () => {
     if (!campId) return;
     setLoading(true);
-    Promise.all([
-      fetch(`/api/camps/${campId}/persons`).then(r => r.json()),
-      fetch(`/api/camps/${campId}/age-groups`).then(r => r.json()),
-    ])
-      .then(([people, groups]) => {
+    fetch(`/api/camps/${campId}`).then(r => r.json())
+      .then((camp) => {
+        const people = camp?.persons, groups = camp?.ageGroups;
         setPersons(Array.isArray(people) ? people : []);
         setAgeGroups(Array.isArray(groups) ? groups : []);
         setLoading(false);
@@ -491,7 +489,7 @@ export function TeachersContent() {
   };
 
   if (!campId) return (
-    <div className="flex items-center justify-center h-64 text-slate-400">
+    <div className="flex items-center justify-center h-64 text-slate-500">
       <div className="text-center"><span className="text-4xl mb-3 block">🧑‍🏫</span><p>Select an event to manage teachers.</p></div>
     </div>
   );
@@ -517,7 +515,7 @@ export function TeachersContent() {
       <div className="mb-5">
         <input type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search teachers..."
-          className="w-full max-w-sm px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400" />
+          className="w-full max-w-sm px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400" />
       </div>
 
       {loading ? (
@@ -528,7 +526,7 @@ export function TeachersContent() {
         <div className="camp-card p-12 text-center">
           <span className="text-5xl mb-4 block">🧑‍🏫</span>
           <h3 className="font-bold text-slate-700 mb-2">{search ? "No people match" : "No teachers or assistants yet"}</h3>
-          <p className="text-slate-400 text-sm mb-5">Add teachers and assistants to assign them to activities.</p>
+          <p className="text-slate-500 text-sm mb-5">Add teachers and assistants to assign them to activities.</p>
           {!search && (
             <div className="flex justify-center gap-2 flex-wrap">
               <button onClick={() => openAddModal("teacher")}
@@ -553,7 +551,7 @@ export function TeachersContent() {
               <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-berry-700 border border-berry-100">{leadPeople.length}</span>
             </div>
             {leadPeople.length === 0 ? (
-              <div className="px-5 py-8 text-sm text-slate-400 text-center">No lead teachers match this view.</div>
+              <div className="px-5 py-8 text-sm text-slate-500 text-center">No lead teachers match this view.</div>
             ) : (
               <>
                 <div className="hidden md:grid grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -577,7 +575,7 @@ export function TeachersContent() {
               <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-sky-700 border border-sky-100">{assistantPeople.length}</span>
             </div>
             {assistantPeople.length === 0 ? (
-              <div className="px-5 py-8 text-sm text-slate-400 text-center">No assistants match this view.</div>
+              <div className="px-5 py-8 text-sm text-slate-500 text-center">No assistants match this view.</div>
             ) : (
               <>
                 <div className="hidden md:grid grid-cols-[minmax(210px,1.3fr)_minmax(150px,1fr)_minmax(130px,0.8fr)_minmax(170px,1fr)_minmax(160px,1fr)_130px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold uppercase tracking-wide text-slate-500">

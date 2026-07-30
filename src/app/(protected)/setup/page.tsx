@@ -7,7 +7,7 @@ import {
   firstIncompleteSection,
   remainingLine,
   teacherCoverageDone,
-  totalRemaining,
+
   type SetupSection,
 } from "@/lib/setupPhases";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -29,6 +29,12 @@ interface Camp {
   registrationOpen: boolean;
   primaryColor: string;
   accentColor: string;
+  ageGroups?: AgeGroup[];
+  rooms?: Room[];
+  sessionTemplates?: SessionTemplate[];
+  persons?: PersonSummary[];
+  courses?: CourseSummary[];
+  mandatorySessions?: MandatorySessionSummary[];
 }
 
 interface AgeGroup {
@@ -152,6 +158,7 @@ function SetupContent() {
   const [persons,   setPersons]   = useState<PersonSummary[]>([]);
   const [courses,   setCourses]   = useState<CourseSummary[]>([]);
   const [mandatorySessions, setMandatorySessions] = useState<MandatorySessionSummary[]>([]);
+  const [readinessCount, setReadinessCount] = useState(0);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -196,13 +203,8 @@ function SetupContent() {
     setLoading(true);
     return Promise.all([
       fetch(`/api/camps/${campId}`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/age-groups`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/rooms`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/session-templates`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/persons`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/courses`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/mandatory-sessions`).then((r) => r.json()),
-    ]).then(([c, ag, r, st, people, courseList, requiredList]) => {
+      fetch(`/api/camps/${campId}/dashboard`).then((r) => r.ok ? r.json() : null),
+    ]).then(([c, dashboard]) => {
       if (c && !c.error) {
         setCamp(c);
         setCampName(c.name || "");
@@ -211,12 +213,13 @@ function SetupContent() {
         setRegistrationOpen(c.registrationOpen || false);
         setStatus(c.status || "draft");
       }
-      setAgeGroups(Array.isArray(ag) ? ag : []);
-      setRooms(Array.isArray(r) ? r : []);
-      setSlots(Array.isArray(st) ? st : []);
-      setPersons(Array.isArray(people) ? people : []);
-      setCourses(Array.isArray(courseList) ? courseList : []);
-      setMandatorySessions(Array.isArray(requiredList) ? requiredList : []);
+      setAgeGroups(Array.isArray(c?.ageGroups) ? c.ageGroups : []);
+      setRooms(Array.isArray(c?.rooms) ? c.rooms : []);
+      setSlots(Array.isArray(c?.sessionTemplates) ? c.sessionTemplates : []);
+      setPersons(Array.isArray(c?.persons) ? c.persons : []);
+      setCourses(Array.isArray(c?.courses) ? c.courses : []);
+      setMandatorySessions(Array.isArray(c?.mandatorySessions) ? c.mandatorySessions : []);
+      setReadinessCount(Number(dashboard?.issueSummary?.warning || 0));
       setLoading(false);
     }).catch(() => setLoading(false));
   };
@@ -778,7 +781,7 @@ function SetupContent() {
     label: step.label,
     done: Boolean(step.done),
   }));
-  const remainingCount = totalRemaining(setupSections);
+  const remainingCount = readinessCount;
   // Kept in a ref so the routing effect can read the latest completion state
   // without re-running every time a count changes.
   setupSectionsRef.current = setupSections;
@@ -927,11 +930,11 @@ function SetupContent() {
       {activeTab === "rooms" && (
       <Section title="Rooms & Locations" footer={nextCardButton}>
         <div className="space-y-3 mb-4">
-          {rooms.length === 0 && <p className="text-slate-400 text-sm">No rooms yet. Add your first room below.</p>}
+          {rooms.length === 0 && <p className="text-slate-500 text-sm">No rooms yet. Add your first room below.</p>}
           {rooms.map(room => (
             <div key={room.id} className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 md:grid-cols-[minmax(180px,1.1fr)_120px_minmax(220px,1.5fr)_auto] md:items-center">
               <label className="block min-w-0">
-                <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400 mb-1">Room / location name</span>
+                <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-500 mb-1">Room / location name</span>
                 <input
                   type="text"
                   defaultValue={room.name}
@@ -944,7 +947,7 @@ function SetupContent() {
                 />
               </label>
               <label className="block">
-                <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400 mb-1">Capacity</span>
+                <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-500 mb-1">Capacity</span>
                 <input
                   type="number"
                   min={1}
@@ -955,7 +958,7 @@ function SetupContent() {
                 />
               </label>
               <label className="block min-w-0">
-                <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-400 mb-1">Location / description</span>
+                <span className="block text-[10px] font-extrabold uppercase tracking-wide text-slate-500 mb-1">Location / description</span>
                 <input
                   type="text"
                   defaultValue={room.description || ""}
@@ -998,7 +1001,7 @@ function SetupContent() {
       {activeTab === "ages" && (
       <Section title="Age Groups" footer={nextCardButton}>
         <div className="space-y-3 mb-4">
-          {ageGroups.length === 0 && <p className="text-slate-400 text-sm">No age groups yet. Add your first group below.</p>}
+          {ageGroups.length === 0 && <p className="text-slate-500 text-sm">No age groups yet. Add your first group below.</p>}
           {ageGroups
             .sort((a, b) => a.displayOrder - b.displayOrder)
             .map(ag => (
@@ -1031,7 +1034,7 @@ function SetupContent() {
                       <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: ag.color }} />
                       <span className="font-medium text-slate-800 text-sm truncate">{ag.name}</span>
                       {(ag.minAge || ag.maxAge) && (
-                        <span className="text-slate-400 text-xs whitespace-nowrap">{ag.minAge ?? "?"}-{ag.maxAge ?? "?"} yrs</span>
+                        <span className="text-slate-500 text-xs whitespace-nowrap">{ag.minAge ?? "?"}-{ag.maxAge ?? "?"} yrs</span>
                       )}
                       {ag.noSchedule && (
                         <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
@@ -1094,7 +1097,7 @@ function SetupContent() {
       {/* ── Time Blocks ── */}
       {activeTab === "times" && (
       <Section title="Time Blocks" footer={nextCardButton}>
-        <HelpCopy title="Time blocks" className="text-xs text-slate-400 mb-4">
+        <HelpCopy title="Time blocks" className="text-xs text-slate-500 mb-4">
           Each row is a session block (e.g. "Opening Assembly" or "Morning Session"). Check the specific days it runs, or use <strong>All dates</strong> for every day of the event. Use <strong>All Schedule Lock</strong> when that time block belongs on every scheduled age group&apos;s schedule with one location; locked blocks are removed from activity scheduling so nothing else can be booked then.
         </HelpCopy>
 
@@ -1121,7 +1124,7 @@ function SetupContent() {
                 <span className="text-sm font-semibold text-slate-600">
                   Week {weekOffset + 1} of {totalPages}
                   {visibleDates.length > 0 && (
-                    <span className="font-normal text-slate-400 ml-2">
+                    <span className="font-normal text-slate-500 ml-2">
                       ({(visibleDates[0].getMonth()+1)}/{visibleDates[0].getDate()} – {(visibleDates[visibleDates.length-1].getMonth()+1)}/{visibleDates[visibleDates.length-1].getDate()})
                     </span>
                   )}
@@ -1152,7 +1155,7 @@ function SetupContent() {
                     {visibleDates.map(d => (
                       <th key={d.toISOString()} className="text-center py-3 px-2 border-b border-slate-200 min-w-[72px]">
                         <div className="font-semibold text-slate-700 text-xs">{DAY_ABBR[d.getDay()]}</div>
-                        <div className="text-slate-400 text-xs font-normal">{d.getMonth()+1}/{d.getDate()}</div>
+                        <div className="text-slate-500 text-xs font-normal">{d.getMonth()+1}/{d.getDate()}</div>
                       </th>
                     ))}
                   </tr>
@@ -1322,7 +1325,7 @@ function SetupContent() {
                               <button
                                 type="button"
                                 onClick={() => removeDraft(draft.id)}
-                                className="text-xs text-slate-400 hover:text-red-400 transition-colors"
+                                className="text-xs text-slate-500 hover:text-red-400 transition-colors"
                               >
                                 ✕ Cancel
                               </button>
@@ -1358,7 +1361,7 @@ function SetupContent() {
                   {/* Empty state */}
                   {sessionRows.length === 0 && draftRows.length === 0 && (
                     <tr>
-                      <td colSpan={visibleDates.length + 2} className="text-center py-8 text-slate-400 text-sm">
+                      <td colSpan={visibleDates.length + 2} className="text-center py-8 text-slate-500 text-sm">
                         No sessions yet — click <strong>+ Add Session</strong> below to get started.
                       </td>
                     </tr>
@@ -1381,7 +1384,7 @@ function SetupContent() {
             </div>
 
             {/* Legend */}
-            <p className="text-xs text-slate-400 mt-3 flex items-center gap-4">
+            <p className="text-xs text-slate-500 mt-3 flex items-center gap-4">
               <span><strong>All</strong> = every day of the event</span>
               <span>day checkboxes save instantly</span>
             </p>

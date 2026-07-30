@@ -87,8 +87,9 @@ describe("the grid is wired to real data", () => {
     expect(source).toContain("<OperationsGrid");
   });
 
-  it("fetches age groups, which the grid's filter needs", () => {
-    expect(source).toContain("/age-groups");
+  it("loads age groups from the canonical event payload", () => {
+    expect(source).toContain("camp?.ageGroups");
+    expect(source).not.toContain("/age-groups");
   });
 
   it("feeds the grid RAW sessions, not the deduped display list", () => {

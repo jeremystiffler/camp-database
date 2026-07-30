@@ -21,16 +21,18 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
     include: {
       ageGroups: { orderBy: [{ displayOrder: "asc" }, { name: "asc" }] },
       rooms: true,
-      persons: true,
+      persons: { include: { personAgeGroups: { include: { ageGroup: true } } } },
+      mandatorySessions: { include: { ageGroup: true, room: true, leader: true, sessionTemplate: true } },
       // The operations grid needs each course's sessions with their block and
       // occupancy. Extended here rather than behind a new endpoint so the grid
       // has one source of truth (dashboard spec §1.1).
       courses: {
         include: {
-          courseTeachers: { include: { person: { select: { id: true, firstName: true, lastName: true, role: true } } } },
-          courseAgeGroups: { select: { ageGroupId: true } },
-          courseSessionTemplates: { select: { sessionTemplateId: true } },
-          room: { select: { id: true, name: true, capacity: true } },
+          ageGroup: true,
+          courseTeachers: { include: { person: true } },
+          courseAgeGroups: { include: { ageGroup: true } },
+          courseSessionTemplates: { include: { sessionTemplate: true } },
+          room: true,
           sessions: {
             select: {
               id: true,
@@ -40,8 +42,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
               endTime: true,
               status: true,
               enrolledCount: true,
-              capacity: true,
+
               sessionTeachers: { select: { personId: true } },
+              enrollments: { select: { participantId: true } },
             },
           },
         },

@@ -129,7 +129,7 @@ function ProductMockup() {
       <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Today's event</p>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Today's event</p>
             <h3 className="text-lg font-extrabold text-slate-900">Daily schedule</h3>
           </div>
           <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-700">Ready</span>
@@ -163,7 +163,7 @@ function ProductMockup() {
             })}
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-400">Operations</p>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Operations</p>
             <div className="mt-4 space-y-3">
               <div className="rounded-2xl bg-indigo-50 p-3"><p className="text-2xl font-extrabold text-indigo-600">84</p><p className="text-xs font-bold text-slate-500">registered participants</p></div>
               <div className="rounded-2xl bg-sky-50 p-3"><p className="text-2xl font-extrabold text-sky-600">6</p><p className="text-xs font-bold text-slate-500">printable packets</p></div>
@@ -222,6 +222,26 @@ export default function LandingPage() {
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => <FeatureCard key={feature.title} {...feature} />)}
+        </div>
+      </section>
+
+      <section aria-labelledby="real-programs-heading" className="relative z-10 mx-auto max-w-7xl px-6 py-10">
+        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
+          <div className="grid md:grid-cols-[0.9fr_1.1fr]">
+            <div className="flex flex-col justify-center p-8 lg:p-12">
+              <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-sky-600">Made for real people</p>
+              <h2 id="real-programs-heading" className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">Less time wrestling spreadsheets. More time running the day.</h2>
+              <p className="mt-4 leading-7 text-slate-600">From the first welcome to the final pickup, your team gets one clear schedule and families get a smoother experience.</p>
+            </div>
+            <div className="grid min-h-80 grid-cols-2 gap-2 bg-slate-100 p-2">
+              <img src="https://images.unsplash.com/photo-1472162072942-cd5147eb3902?auto=format&fit=crop&w=900&q=82" alt="Children collaborating at an outdoor program" className="h-full min-h-80 w-full rounded-2xl object-cover" />
+              <div className="grid gap-2">
+                <img src="https://images.unsplash.com/photo-1504151932400-72d4384f04b3?auto=format&fit=crop&w=700&q=82" alt="Child enjoying a hands-on activity" className="h-full min-h-0 w-full rounded-2xl object-cover" />
+                <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=700&q=82" alt="Friends gathered together outdoors" className="h-full min-h-0 w-full rounded-2xl object-cover" />
+              </div>
+            </div>
+          </div>
+          <p className="px-5 py-2 text-right text-[10px] font-semibold text-slate-500">Photography via <a href="https://unsplash.com/license" target="_blank" rel="noreferrer" className="underline">Unsplash</a></p>
         </div>
       </section>
 

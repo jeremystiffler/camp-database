@@ -412,7 +412,7 @@ function ParticipantDrawer({
           <div className="flex items-center gap-2">
             {canEdit && !editing && <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100">Edit Participant</button>}
             {canEdit && !editing && !isNew && <button onClick={remove} disabled={deleting} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 disabled:opacity-50">{deleting ? "Deleting…" : "Delete"}</button>}
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-400">✕</button>
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">✕</button>
           </div>
         </div>
 
@@ -420,7 +420,7 @@ function ParticipantDrawer({
           {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
           <section className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Parent / Guardian Info</h3>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Parent / Guardian Info</h3>
             {editing ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <input className={inputCls} placeholder="Guardian name" value={form.guardianName} onChange={e => update("guardianName", e.target.value)} />
@@ -437,7 +437,7 @@ function ParticipantDrawer({
           </section>
 
           <section className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Student Info</h3>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Student Info</h3>
             {editing ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <input className={inputCls} placeholder="First name" value={form.firstName} onChange={e => update("firstName", e.target.value)} />
@@ -493,7 +493,7 @@ function ParticipantDrawer({
           </section>
 
           <section className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Contact and Emergency Info</h3>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Contact and Emergency Info</h3>
             {editing ? (
               <div className="space-y-3">
                 <input className={inputCls} placeholder="Emergency phone" value={form.emergencyPhone} onChange={e => update("emergencyPhone", e.target.value)} />
@@ -505,7 +505,7 @@ function ParticipantDrawer({
                 <Info label="Emergency Phone" value={participant.emergencyPhone || "—"} href={participant.emergencyPhone ? `tel:${participant.emergencyPhone}` : undefined} tone="red" />
                 {participant.medicalNotes && <Note label="Medical" value={participant.medicalNotes} tone="red" />}
                 {participant.dietaryNotes && <Note label="Dietary" value={participant.dietaryNotes} tone="sunset" />}
-                {!participant.medicalNotes && !participant.dietaryNotes && <p className="text-sm text-slate-400">No medical or dietary notes submitted.</p>}
+                {!participant.medicalNotes && !participant.dietaryNotes && <p className="text-sm text-slate-500">No medical or dietary notes submitted.</p>}
               </div>
             )}
           </section>
@@ -513,7 +513,7 @@ function ParticipantDrawer({
           <section className="rounded-2xl border border-slate-200 p-4">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Registration Choices</h3>
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Registration Choices</h3>
                 <p className="mt-1 text-xs text-slate-500">
                   {editing
                     ? showSessionCatalog
@@ -536,7 +536,7 @@ function ParticipantDrawer({
               <div>
                 {showSessionCatalog && <p className="mb-2 rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold text-sky-800">{form.ageGroupId ? `${availableSessionChoices.length} open class option${availableSessionChoices.length === 1 ? "" : "s"} available for this age group. Full classes are hidden.` : "Choose an age group above to show all eligible open class options."}</p>}
                 <div className="max-h-[32rem] overflow-y-auto rounded-xl border border-slate-100">
-                {sessionGroupsToRender.length === 0 ? <p className="text-sm text-slate-400 p-3">{form.ageGroupId ? "No open class options are available for this age group." : "Choose an age group to see registration choices."}</p> : sessionGroupsToRender.map((group) => (
+                {sessionGroupsToRender.length === 0 ? <p className="text-sm text-slate-500 p-3">{form.ageGroupId ? "No open class options are available for this age group." : "Choose an age group to see registration choices."}</p> : sessionGroupsToRender.map((group) => (
                   <div key={group.key} className="border-b border-slate-100 last:border-b-0">
                     <div className="bg-slate-50 px-4 py-3 border-b border-slate-100">
                       <p className="font-bold text-slate-800 text-sm">{group.time}</p>
@@ -570,7 +570,7 @@ function ParticipantDrawer({
               </div>
             ) : (
               <div className="space-y-2">
-                {summarizedEnrollmentChoices(participant.enrollments || []).length === 0 ? <p className="text-sm text-slate-400">No registration choices selected.</p> : summarizedEnrollmentChoices(participant.enrollments || []).map((choice) => (
+                {summarizedEnrollmentChoices(participant.enrollments || []).length === 0 ? <p className="text-sm text-slate-500">No registration choices selected.</p> : summarizedEnrollmentChoices(participant.enrollments || []).map((choice) => (
                   <div key={choice.key} className="rounded-xl border border-slate-100 px-3 py-2">
                     <div className="text-sm font-semibold text-slate-800">{choice.title}</div>
                     <div className="text-xs text-slate-500">{choiceSummaryLine(choice)}</div>
@@ -581,7 +581,7 @@ function ParticipantDrawer({
           </section>
 
           <section className="rounded-2xl border border-slate-200 p-4">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Payment and Custom Data</h3>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Payment and Custom Data</h3>
             {editing ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <input className={inputCls} placeholder="Coupon code" value={form.couponCode} onChange={e => update("couponCode", e.target.value)} />
@@ -653,16 +653,17 @@ function ParticipantsContent() {
     setLoading(true);
     Promise.all([
       fetch(`/api/camps/${campId}/participants`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/age-groups`).then((r) => r.json()),
+      fetch(`/api/camps/${campId}`).then((r) => r.json()),
       fetch(`/api/camps/${campId}/sessions`).then((r) => r.json()),
-      fetch(`/api/camps/${campId}/courses`).then((r) => r.json()),
-    ]).then(([c, ag, sess, courseList]) => {
-      setParticipants(Array.isArray(c) ? c : []);
-      setAgeGroups(Array.isArray(ag) ? ag : []);
-      setSessions(Array.isArray(sess) ? sess : []);
-      setCourses(Array.isArray(courseList) ? courseList : []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    ])
+      .then(([p, camp, s]) => {
+        const ag = camp?.ageGroups, c = camp?.courses;
+        setParticipants(Array.isArray(p) ? p : []);
+        setAgeGroups(Array.isArray(ag) ? ag : []);
+        setSessions(Array.isArray(s) ? s : []);
+        setCourses(Array.isArray(c) ? c : []);
+        setLoading(false);
+      }).catch(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, [campId]);
@@ -814,7 +815,7 @@ function ParticipantsContent() {
         <div className="camp-card p-12 text-center">
           <span className="text-5xl mb-4 block">👦</span>
           <h3 className="font-bold text-slate-700 mb-2">{search || filterAge || filterSize ? "No participants match your filters" : "No participants yet"}</h3>
-          <p className="text-slate-400 text-sm">Participants will appear here once they register through the public registration form.</p>
+          <p className="text-slate-500 text-sm">Participants will appear here once they register through the public registration form.</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -851,13 +852,13 @@ function ParticipantsContent() {
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <div className="text-slate-800">{participant.guardianName || "—"}</div>
-                    <div className="text-slate-400 text-xs">{participant.guardianEmail || "—"}</div>
+                    <div className="text-slate-500 text-xs">{participant.guardianEmail || "—"}</div>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <div className="text-slate-800">{summarizedEnrollmentChoices(participant.enrollments || []).length} selected</div>
-                    <div className="text-slate-400 text-xs max-w-[180px] truncate">{summarizedEnrollmentChoices(participant.enrollments || []).map(choice => choice.title).join(" · ") || "—"}</div>
+                    <div className="text-slate-500 text-xs max-w-[180px] truncate">{summarizedEnrollmentChoices(participant.enrollments || []).map(choice => choice.title).join(" · ") || "—"}</div>
                   </td>
-                  {showExtraColumns && <><td className="px-4 py-3 hidden lg:table-cell"><div className="text-slate-800">{participant.paymentStatus || "not_required"}</div><div className="text-slate-400 text-xs">{cents(participant.totalPaidCents)}</div></td><td className="px-4 py-3 hidden lg:table-cell"><span className="text-slate-600">{participant.tshirtSize || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-extrabold text-indigo-700">{participant.pickupNumber || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className={participant.photoConsent ? "text-forest-600" : "text-red-400"}>{participant.photoConsent ? "✓" : "✗"}</span></td></>}
+                  {showExtraColumns && <><td className="px-4 py-3 hidden lg:table-cell"><div className="text-slate-800">{participant.paymentStatus || "not_required"}</div><div className="text-slate-500 text-xs">{cents(participant.totalPaidCents)}</div></td><td className="px-4 py-3 hidden lg:table-cell"><span className="text-slate-600">{participant.tshirtSize || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-extrabold text-indigo-700">{participant.pickupNumber || "—"}</span></td><td className="px-4 py-3 hidden md:table-cell"><span className={participant.photoConsent ? "text-forest-600" : "text-red-400"}>{participant.photoConsent ? "✓" : "✗"}</span></td></>}
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
                       <button

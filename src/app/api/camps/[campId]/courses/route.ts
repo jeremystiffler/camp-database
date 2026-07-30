@@ -8,25 +8,6 @@ async function checkAccess(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
 }
 
-export async function GET(_: NextRequest, { params }: { params: Promise<{ campId: string }> }) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { campId } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const items = await prisma.course.findMany({
-    where: { campId },
-    include: {
-      ageGroup: true,
-      courseAgeGroups: { include: { ageGroup: true } },
-      room: true,
-      courseTeachers: { include: { person: true } },
-      courseSessionTemplates: { include: { sessionTemplate: true } },
-      sessions: { select: { id: true, sessionTemplateId: true, enrolledCount: true, enrollments: { select: { participantId: true } } } },
-    },
-    orderBy: { name: "asc" },
-  });
-  return NextResponse.json(items);
-}
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ campId: string }> }) {
   const session = await getSession();

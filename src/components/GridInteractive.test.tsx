@@ -189,7 +189,7 @@ describe("the duplicate issue display is gone (phase 18f)", () => {
   });
 
   it("derives its headline from the one engine", () => {
-    expect(dashboard).toContain("summary?.issues?.length");
+    expect(dashboard).toContain("summary?.issueSummary?.warning");
   });
 
   it("no longer pushes to the activities page from an issue chip", () => {
@@ -197,7 +197,7 @@ describe("the duplicate issue display is gone (phase 18f)", () => {
   });
 
   it("keeps the moved Schedule grid interactive", () => {
-    expect(dashboard).not.toContain("<OperationsGrid");
+    expect(dashboard).toContain("<OperationsGrid");
     expect(schedule).toContain("interactive");
     expect(schedule).toContain("onRemoveSession");
     expect(schedule).toContain("onAddSession");

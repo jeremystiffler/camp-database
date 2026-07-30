@@ -6,7 +6,7 @@
 
 export function MoreOptions({ children, label = "More options", className = "" }: { children: React.ReactNode; label?: string; className?: string }) {
   return <details className={`rounded-xl border border-slate-200 bg-slate-50/70 ${className}`}>
-    <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-slate-600 marker:text-slate-400">▸ {label}</summary>
+    <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-slate-600 marker:text-slate-500">▸ {label}</summary>
     <div className="border-t border-slate-200 p-4">{children}</div>
   </details>;
 }

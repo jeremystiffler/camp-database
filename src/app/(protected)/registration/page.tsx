@@ -178,7 +178,7 @@ function FieldPreview({ field, ageGroups }: { field: FormField; ageGroups: { id:
       <label className="block text-sm font-medium text-slate-700 mb-1">
         {field.label}{field.required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
-      {field.helpText && <p className="text-xs text-slate-400 mb-1">{field.helpText}</p>}
+      {field.helpText && <p className="text-xs text-slate-500 mb-1">{field.helpText}</p>}
       {field.type === "textarea" ? (
         <textarea rows={2} placeholder={field.placeholder || ""} disabled className={inputCls + " resize-none"} />
       ) : field.type === "checkbox" ? (
@@ -232,7 +232,7 @@ function FieldEditor({ field, onChange }: { field: FormField; onChange: (f: Form
             <input value={field.checkboxDescription || ""} onChange={e => onChange({ ...field, checkboxDescription: e.target.value })}
               placeholder="Text shown beside the checkbox"
               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-400" />
-            <p className="mt-1 text-[11px] text-slate-400">Used when the options box below is empty.</p>
+            <p className="mt-1 text-[11px] text-slate-500">Used when the options box below is empty.</p>
           </div>
         </div>
       )}
@@ -544,7 +544,7 @@ function RegistrationContent() {
         <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-sky-50 px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-slate-400">Form setup</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-slate-500">Form setup</p>
               <h2 className="mt-1 text-lg font-extrabold text-slate-900">Settings</h2>
               <HelpCopy title="Registration settings" className="mt-1 text-sm text-slate-500">Choose a section on the left, adjust only what matters, then save.</HelpCopy>
             </div>
@@ -585,7 +585,7 @@ function RegistrationContent() {
               <div className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                   <label className="block">
-                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Active form</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">Active form</span>
                     <select value={selectedFormId} onChange={e => loadForm(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
                       {forms.map(form => <option key={form.id} value={form.id}>{form.title}{form.isDefault ? " · default" : ""}</option>)}
                     </select>
@@ -595,15 +595,15 @@ function RegistrationContent() {
 
                 <div className="grid gap-3 md:grid-cols-[1fr_180px_150px]">
                   <label className="block">
-                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Title</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">Title</span>
                     <input value={formTitle} onChange={e => setFormTitle(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
                   </label>
                   <label className="block">
-                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Link slug</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">Link slug</span>
                     <input value={formSlug} onChange={e => setFormSlug(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-400/30" />
                   </label>
                   <label className="block">
-                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Status</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">Status</span>
                     <select value={formStatus} onChange={e => setFormStatus(e.target.value as FormSummary["status"])} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-forest-400/30">
                       <option value="draft">Draft</option>
                       <option value="public">Public</option>
@@ -713,7 +713,7 @@ function RegistrationContent() {
                 </div>
                 <div className="grid gap-3">
                   <label className="block">
-                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-400 mb-1">Subject</span>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-1">Subject</span>
                     <input value={confirmationEmailSubject} onChange={e => setConfirmationEmailSubject(e.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30" />
                   </label>
                   <label className="block rounded-2xl border border-amber-100 bg-amber-50/60 p-3">
@@ -803,14 +803,14 @@ function RegistrationContent() {
                   </div>
                   {ADD_FIELD_CATEGORIES.map(category => (
                     <div key={category} className="py-1">
-                      <p className="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">{category}</p>
+                      <p className="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{category}</p>
                       {ADD_FIELD_TYPES.filter(t => t.category === category).map((t, idx) => (
                         <button key={`${t.type}-${t.label}-${idx}`} onClick={() => addField(t)}
                           className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-sky-50 rounded-xl flex items-start gap-2.5 transition-colors">
-                          <span className="mt-0.5 text-slate-400 w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center font-mono text-xs">{t.icon}</span>
+                          <span className="mt-0.5 text-slate-500 w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center font-mono text-xs">{t.icon}</span>
                           <span className="flex-1 min-w-0">
                             <span className="block font-semibold text-slate-800">{t.label}</span>
-                            {t.description && <span className="block text-xs text-slate-400 leading-snug">{t.description}</span>}
+                            {t.description && <span className="block text-xs text-slate-500 leading-snug">{t.description}</span>}
                           </span>
                         </button>
                       ))}
@@ -849,7 +849,7 @@ function RegistrationContent() {
                   {field.required && <span className="text-red-400 text-xs">*</span>}
                   {field.system && <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-1.5 rounded border border-slate-200">Required event field · locked</span>}
                   {field.type === "pageBreak" && <button type="button" onClick={e => { e.stopPropagation(); }} className="text-xs font-bold text-amber-700">Section divider</button>}
-                  <span className="text-slate-400 text-xs">{editingId === field.id ? "▲" : "▼"}</span>
+                  <span className="text-slate-500 text-xs">{editingId === field.id ? "▲" : "▼"}</span>
                   {field.system ? <span title="Required event fields cannot be deleted" className="text-slate-300 text-sm px-1" aria-label="Required event field is locked">🔒</span> : <button aria-label={`Delete custom field ${field.label || "Untitled field"}`} onClick={e => { e.stopPropagation(); removeField(field.id); }} className="text-slate-300 hover:text-red-400 text-sm px-1">✕</button>}
                 </div>
                 {editingId === field.id && field.type !== "divider" && field.type !== "pageBreak" && (
@@ -871,7 +871,7 @@ function RegistrationContent() {
             <div className="space-y-4">
               {previewPages[currentPreviewPage]?.length ? previewPages[currentPreviewPage].map(field => (
                 <FieldPreview key={field.id} field={field} ageGroups={ageGroups} />
-              )) : <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">This preview page is empty. Drag fields below the page break to fill it.</div>}
+              )) : <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">This preview page is empty. Drag fields below the page break to fill it.</div>}
             </div>
             {currentPreviewPage === previewPages.length - 1 && (
               <div className={`mt-5 rounded-2xl border p-4 ${classChoicesEnabled ? "border-forest-200 bg-forest-50" : "border-slate-200 bg-slate-50"}`}>

@@ -83,7 +83,7 @@ export function HelpTip({ title = "Help", children }: { title?: string; children
       </button>
       {open && (
         <span className="absolute right-0 top-6 z-50 w-72 rounded-2xl border border-slate-200 bg-white p-3 text-left text-xs font-semibold leading-5 text-slate-600 shadow-xl">
-          <span className="mb-1 block text-[11px] font-extrabold uppercase tracking-wide text-slate-400">{title}</span>
+          <span className="mb-1 block text-[11px] font-extrabold uppercase tracking-wide text-slate-500">{title}</span>
           {children}
         </span>
       )}

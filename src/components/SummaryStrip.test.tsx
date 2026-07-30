@@ -177,8 +177,8 @@ describe("the accordion is gone (§2.3)", () => {
     expect(dashboard).not.toContain("setHealthOpen");
   });
 
-  it("moves the operations grid off Dashboard and onto Schedule", () => {
-    expect(dashboard).not.toContain("<OperationsGrid");
+  it("keeps the operations grid on Dashboard and Schedule", () => {
+    expect(dashboard).toContain("<OperationsGrid");
     expect(schedule).toContain("<OperationsGrid");
   });
 });

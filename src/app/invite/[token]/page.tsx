@@ -123,14 +123,14 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder="Your name"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
               />
               <input
                 type="password"
                 value={pass}
                 onChange={e => setPass(e.target.value)}
                 placeholder="Choose a password"
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
               />
             </div>
           )}
@@ -147,7 +147,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
               : needsSignup ? "Create Account & Join Event" : "Accept Invitation & Join Event"}
           </button>
 
-          <p className="text-center text-xs text-slate-400 space-y-2">
+          <p className="text-center text-xs text-slate-500 space-y-2">
             <span className="block">Already have an account?{" "}
               <Link href={`/login?next=${encodeURIComponent(`/invite/${token}`)}`} className="text-forest-600 hover:underline font-medium">
                 Log in first

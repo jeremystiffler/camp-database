@@ -323,7 +323,7 @@ function SettingsContent() {
               <p className="font-semibold text-slate-800">{user.name || "—"}</p>
               <p className="text-sm text-slate-500">{user.email}</p>
               <span className="text-xs bg-berry-100 text-berry-700 border border-berry-200 px-2 py-0.5 rounded-full font-semibold capitalize">Platform role: {user.role}</span>
-              <p className="mt-1 text-[11px] font-medium text-slate-400">Your event access level is shown in the event switcher.</p>
+              <p className="mt-1 text-[11px] font-medium text-slate-500">Your event access level is shown in the event switcher.</p>
             </div>
           </div>
         )}
@@ -343,7 +343,7 @@ function SettingsContent() {
           </div>
 
           <div className="pt-3 border-t border-slate-100">
-            <p className="text-sm font-medium text-slate-700 mb-3">Change Password <span className="text-xs text-slate-400 font-normal">(leave blank to keep current)</span></p>
+            <p className="text-sm font-medium text-slate-700 mb-3">Change Password <span className="text-xs text-slate-500 font-normal">(leave blank to keep current)</span></p>
             <div className="grid grid-cols-1 gap-3">
               <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
                 placeholder="Current password" className={inputCls} />
@@ -463,7 +463,7 @@ function SettingsContent() {
                     {coupons.map(coupon => (
                       <div key={coupon.id || coupon.code} className="flex items-center justify-between gap-3 p-3 text-sm">
                         <div>
-                          <p className="font-bold text-slate-800">{coupon.code} <span className="text-xs font-medium text-slate-400">{coupon.active ? "active" : "inactive"}</span></p>
+                          <p className="font-bold text-slate-800">{coupon.code} <span className="text-xs font-medium text-slate-500">{coupon.active ? "active" : "inactive"}</span></p>
                           <p className="text-xs text-slate-500">{coupon.discountType === "percent" ? `${coupon.percentOff}% off` : coupon.discountType === "amount" ? `${money(coupon.amountOffCents || 0)} off` : coupon.discountType === "free" ? "Free registration" : "BOGO / half off"} · redeemed {coupon.redeemedCount || 0}{coupon.maxRedemptions ? `/${coupon.maxRedemptions}` : ""}</p>
                         </div>
                         <RowDeleteButton onDelete={() => deleteCoupon(coupon.id)} label={`coupon ${coupon.code}`} />
