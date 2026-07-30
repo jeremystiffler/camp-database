@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   sidebarCount,
   type SetupSection,
@@ -40,16 +40,10 @@ export function SetupNav({
   const remaining = state ? state.sections.filter((section) => !section.done).length : 0;
   const count = sidebarCount(remaining);
 
-  // Auto-collapses when everything is green; auto-expands when something needs
-  // attention (§5.3). "Attention" is not only unfinished work — a blocking
-  // issue on a FINISHED section counts too, otherwise a double-booked room
-  // hides behind a collapsed row precisely because setup looks complete.
-  const hasReason = Object.values(state?.reasons ?? {}).some(Boolean);
-  const needsAttention = remaining > 0 || hasReason;
-  const [open, setOpen] = useState(needsAttention);
-  useEffect(() => {
-    setOpen(needsAttention);
-  }, [needsAttention]);
+  // Setup is open when the signed-in shell first mounts. After that, the user
+  // owns this choice: changing completion data must not reopen a section they
+  // deliberately collapsed or collapse one they are actively reviewing.
+  const [open, setOpen] = useState(true);
 
   const sep = href.includes("?") ? "&" : "?";
 
@@ -83,7 +77,7 @@ export function SetupNav({
             // Hover copy comes from the issue engine, never a second string
             // table — one source for what is wrong, everywhere it is shown.
             const reason = state.reasons?.[section.key];
-            const dot = reason ? "attention" : section.done ? "done" : "todo";
+            const dot = section.done && !reason ? "done" : "attention";
             return (
               <li key={section.key}>
                 <Link
@@ -93,7 +87,7 @@ export function SetupNav({
                   onClick={onNavigate}
                 >
                   <span className={`setupnav__dot is-${dot}`} aria-hidden="true">
-                    {dot === "done" ? "✓" : dot === "attention" ? "!" : ""}
+                    {dot === "done" ? "✓" : "!"}
                   </span>
                   <span className="setupnav__label">{section.label}</span>
                 </Link>
@@ -118,19 +112,24 @@ export function sectionsFromStats(
     scheduleBlocks?: number;
     teachers?: number;
     classes?: number;
+    detailsReady?: boolean;
+    teachersReady?: boolean;
+    activitiesReady?: boolean;
+    scheduleReady?: boolean;
+    registrationReady?: boolean;
+    reviewReady?: boolean;
   } | null,
-  extras: { detailsDone?: boolean; scheduleDone?: boolean; registrationOpen?: boolean } = {},
 ): SetupSection[] {
   const done: Record<SetupSectionKey, boolean> = {
-    details: extras.detailsDone ?? true,
+    details: stats?.detailsReady ?? false,
     ages: (stats?.ageGroups ?? 0) > 0,
     rooms: (stats?.rooms ?? 0) > 0,
     times: (stats?.scheduleBlocks ?? 0) > 0,
-    teachers: (stats?.teachers ?? 0) > 0,
-    activities: (stats?.classes ?? 0) > 0,
-    schedule: extras.scheduleDone ?? false,
-    registration: extras.registrationOpen ?? false,
-    review: extras.registrationOpen ?? false,
+    teachers: stats?.teachersReady ?? false,
+    activities: stats?.activitiesReady ?? false,
+    schedule: stats?.scheduleReady ?? false,
+    registration: stats?.registrationReady ?? false,
+    review: stats?.reviewReady ?? false,
   };
   const labels: Record<SetupSectionKey, string> = {
     details: "Event Info",

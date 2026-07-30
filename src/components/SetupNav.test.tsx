@@ -7,12 +7,30 @@ import { SetupNav, sectionsFromStats } from "@/components/SetupNav";
 const render = (element: React.ReactElement) => renderToStaticMarkup(element);
 
 const partial = sectionsFromStats(
-  { ageGroups: 3, rooms: 5, scheduleBlocks: 40, teachers: 0, classes: 0 },
-  { detailsDone: true, scheduleDone: false, registrationOpen: false },
+  {
+    ageGroups: 3,
+    rooms: 5,
+    scheduleBlocks: 40,
+    detailsReady: true,
+    teachersReady: false,
+    activitiesReady: false,
+    scheduleReady: false,
+    registrationReady: false,
+    reviewReady: false,
+  },
 );
 const complete = sectionsFromStats(
-  { ageGroups: 3, rooms: 5, scheduleBlocks: 40, teachers: 9, classes: 31 },
-  { detailsDone: true, scheduleDone: true, registrationOpen: true },
+  {
+    ageGroups: 3,
+    rooms: 5,
+    scheduleBlocks: 40,
+    detailsReady: true,
+    teachersReady: true,
+    activitiesReady: true,
+    scheduleReady: true,
+    registrationReady: true,
+    reviewReady: true,
+  },
 );
 
 const sectionLabels = [
@@ -33,13 +51,13 @@ describe("the Event setup dropdown", () => {
     expect(html).toContain("5 left");
   });
 
-  it("shows no count and collapses when everything is ready", () => {
+  it("shows no count but still opens by default when everything is ready", () => {
     const html = render(<SetupNav href="/setup?campId=x" active={false} state={{ sections: complete }} />);
     expect(html).not.toContain("left</span>");
-    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain('aria-expanded="true"');
   });
 
-  it("auto-expands when something needs attention", () => {
+  it("opens by default when something needs attention", () => {
     const html = render(<SetupNav href="/setup?campId=x" active={false} state={{ sections: partial }} />);
     expect(html).toContain('aria-expanded="true"');
   });
@@ -60,10 +78,33 @@ describe("the Event setup dropdown", () => {
 });
 
 describe("section status dots", () => {
+  it("does not award green checks from raw counts or a page visit", () => {
+    const countOnly = sectionsFromStats({
+      ageGroups: 3,
+      rooms: 5,
+      scheduleBlocks: 40,
+      teachers: 9,
+      classes: 31,
+    });
+    const byKey = Object.fromEntries(countOnly.map((section) => [section.key, section.done]));
+    expect(byKey).toEqual({
+      details: false,
+      ages: true,
+      rooms: true,
+      times: true,
+      teachers: false,
+      activities: false,
+      schedule: false,
+      registration: false,
+      review: false,
+    });
+  });
+
   it("marks finished and unfinished sections independently", () => {
     const html = render(<SetupNav href="/setup" active state={{ sections: partial }} />);
     expect(html).toContain("setupnav__dot is-done");
-    expect(html).toContain("setupnav__dot is-todo");
+    expect(html).toContain("setupnav__dot is-attention");
+    expect(html).toContain(">!</span>");
     expect(html).not.toContain("is-locked");
     expect(html).not.toContain("aria-disabled");
   });
@@ -80,7 +121,7 @@ describe("section status dots", () => {
     expect(html).toContain("setupnav__dot is-attention");
   });
 
-  it("an issue still expands an otherwise complete dropdown", () => {
+  it("an issue turns an otherwise complete section orange", () => {
     const html = render(
       <SetupNav href="/setup" active state={{ sections: complete, reasons: { rooms: "Sanctuary double-booked" } }} />,
     );

@@ -80,3 +80,22 @@ export function continueLabel(nextLabel: string | null): string | null {
 export function sidebarCount(remaining: number): string | null {
   return remaining > 0 ? `${remaining} left` : null;
 }
+
+/** Put a blocking configuration problem on the section where it can be fixed. */
+export function setupReasonsFromIssues(
+  issues: Array<{ code?: string; severity?: string; message?: string }>,
+): Partial<Record<SetupSectionKey, string>> {
+  const sectionForCode: Record<string, SetupSectionKey> = {
+    "teacher-clash": "teachers",
+    "room-clash": "schedule",
+    "over-capacity": "activities",
+    "seat-shortfall": "activities",
+  };
+  const reasons: Partial<Record<SetupSectionKey, string>> = {};
+  for (const issue of issues) {
+    if (issue.severity !== "blocking" || !issue.message) continue;
+    const section = sectionForCode[issue.code || ""] || "review";
+    reasons[section] ??= issue.message;
+  }
+  return reasons;
+}

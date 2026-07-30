@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { SetupNav, sectionsFromStats, type SetupNavState } from "@/components/SetupNav";
+import { setupReasonsFromIssues } from "@/lib/setupPhases";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
@@ -105,26 +106,27 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!activeCamp?.id) { setSetupNavState(null); return; }
     let cancelled = false;
-    fetch(`/api/camps/${activeCamp.id}/dashboard`)
+    const loadSetupStatus = () => fetch(`/api/camps/${activeCamp.id}/dashboard`, { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
         if (cancelled || !data?.stats) return;
         setSetupNavState({
-          sections: sectionsFromStats(data.stats, {
-            detailsDone: true,
-            scheduleDone: (data.stats.classes ?? 0) > 0,
-            registrationOpen: Boolean(data.camp?.registrationOpen),
-          }),
-          // Hover copy comes from the issue engine (§5.3), never a second
-          // string table. Blocking schedule issues surface on Activities.
-          reasons: (data.issues ?? []).some((issue: { severity?: string }) => issue.severity === "blocking")
-            ? { activities: (data.issues ?? []).find((issue: { severity?: string; message?: string }) => issue.severity === "blocking")?.message }
-            : {},
+          sections: sectionsFromStats(data.stats),
+          reasons: setupReasonsFromIssues(data.issues ?? []),
         });
       })
       .catch(() => { if (!cancelled) setSetupNavState(null); });
-    return () => { cancelled = true; };
-  }, [activeCamp?.id]);
+    const refreshSetupStatus = (event: Event) => {
+      const changedCampId = (event as CustomEvent<{ campId?: string }>).detail?.campId;
+      if (!changedCampId || changedCampId === activeCamp.id) void loadSetupStatus();
+    };
+    void loadSetupStatus();
+    window.addEventListener("camp:setup-changed", refreshSetupStatus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("camp:setup-changed", refreshSetupStatus);
+    };
+  }, [activeCamp?.id, pathname]);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";

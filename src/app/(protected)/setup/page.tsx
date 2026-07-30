@@ -221,6 +221,7 @@ function SetupContent() {
       setCourses(Array.isArray(c?.courses) ? c.courses : []);
       setMandatorySessions(Array.isArray(c?.mandatorySessions) ? c.mandatorySessions : []);
       setReadinessCount(Number(dashboard?.issueSummary?.warning || 0));
+      window.dispatchEvent(new CustomEvent("camp:setup-changed", { detail: { campId } }));
       setLoading(false);
     }).catch(() => setLoading(false));
   };
@@ -769,7 +770,7 @@ function SetupContent() {
     { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning activities.", done: teachersDone, actionLabel: "Add teachers" },
     { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of activities.", done: activitiesDone, actionLabel: "Create activities" },
     { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time blocks with room, teacher, and capacity visible.", done: scheduleDone, actionLabel: "Schedule activities" },
-    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", done: registrationOpen && registrationReady, actionLabel: "Prepare registration" },
+    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", done: registrationReady, actionLabel: "Prepare registration" },
     { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", done: registrationOpen && registrationReady, actionLabel: registrationOpen ? "Review live event" : "Open registration" },
   ];
   // NO HARD LOCKS (§5.3). Every section stays reachable: a volunteer may

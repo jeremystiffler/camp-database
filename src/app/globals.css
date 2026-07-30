@@ -950,8 +950,7 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
   width: 14px; height: 14px; border-radius: 50%; font-size: 9px; font-weight: 800; color: #fff;
 }
 .setupnav__dot.is-done { background: var(--success); }
-.setupnav__dot.is-attention { background: var(--danger); }
-.setupnav__dot.is-todo { background: #cbd5e1; }
+.setupnav__dot.is-attention { background: #ea580c; }
 
 @media print { .setupnav { display: none; } }
 

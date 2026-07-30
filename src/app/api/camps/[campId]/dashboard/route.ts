@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { effectiveCapacity } from "@/lib/capacity-rules";
 import { canOpenRegistration, countsByCode, detectIssues, issueCounts } from "@/lib/issues";
 import { countTimeBlockGroups } from "@/lib/timeBlocks";
+import { teacherCoverageDone } from "@/lib/setupPhases";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -101,6 +102,26 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   });
   const byCode = countsByCode(issues);
   const severity = issueCounts(issues);
+  const detailsReady = Boolean(camp.name.trim() && camp.startDate && camp.endDate);
+  const activitiesReady = courses.length > 0;
+  const teachersReady = teacherCoverageDone(
+    camp._count.persons,
+    courses.map((course) => ({
+      scheduled: course.courseSessionTemplates.length > 0,
+      teacherCount: course.courseTeachers.length,
+    })),
+  );
+  const scheduleReady = activitiesReady && courses.every((course) => course.courseSessionTemplates.length > 0);
+  const registrationReady = Boolean(
+    detailsReady &&
+    camp._count.ageGroups > 0 &&
+    camp._count.rooms > 0 &&
+    countTimeBlockGroups(timeBlocks) > 0 &&
+    teachersReady &&
+    activitiesReady &&
+    scheduleReady
+  );
+  const reviewReady = Boolean(camp.registrationOpen && registrationReady);
 
   const withMessages = (code: string) =>
     issues
@@ -116,6 +137,12 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       ageGroups: camp._count.ageGroups,
       rooms: camp._count.rooms,
       scheduleBlocks: countTimeBlockGroups(timeBlocks),
+      detailsReady,
+      teachersReady,
+      activitiesReady,
+      scheduleReady,
+      registrationReady,
+      reviewReady,
       paymentCollectedCents: paidPayments._sum.amountCents || 0,
       paidPaymentCount: paidPayments._count,
       pendingPaymentCount: pendingPayments,

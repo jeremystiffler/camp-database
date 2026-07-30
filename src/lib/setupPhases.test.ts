@@ -5,6 +5,7 @@ import {
   firstIncompleteSection,
   remainingLine,
   sidebarCount,
+  setupReasonsFromIssues,
   teacherCoverageDone,
   totalRemaining,
   type SetupSection,
@@ -131,6 +132,26 @@ describe("sidebar navigation (§5.3)", () => {
   it("keeps every section independently reachable", () => {
     expect(make({})).toHaveLength(9);
     expect(make({}).map((section) => section.key)).toEqual(Object.keys(SECTION_LABELS));
+  });
+});
+
+describe("blocking issues point to the section that can fix them", () => {
+  it("maps teacher, room, and capacity problems independently", () => {
+    expect(setupReasonsFromIssues([
+      { code: "teacher-clash", severity: "blocking", message: "Jamie is in two rooms" },
+      { code: "room-clash", severity: "blocking", message: "Gym is double-booked" },
+      { code: "over-capacity", severity: "blocking", message: "Robotics is over capacity" },
+    ])).toEqual({
+      teachers: "Jamie is in two rooms",
+      schedule: "Gym is double-booked",
+      activities: "Robotics is over capacity",
+    });
+  });
+
+  it("does not turn advisory information into a setup failure", () => {
+    expect(setupReasonsFromIssues([
+      { code: "empty", severity: "warning", message: "Nobody has registered yet" },
+    ])).toEqual({});
   });
 });
 
