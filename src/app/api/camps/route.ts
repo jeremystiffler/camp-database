@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { DEFAULT_PROGRAM_PALETTE, PROGRAM_PALETTES } from "@/lib/programPalettes";
+import { parseProgramDate } from "@/lib/programDates";
 
 export async function GET() {
   const session = await getSession();
@@ -34,6 +35,14 @@ export async function POST(req: NextRequest) {
     PROGRAM_PALETTES.find((option) => option.primaryColor === primaryColor && option.accentColor === accentColor) ||
     DEFAULT_PROGRAM_PALETTE;
   if (!name) return NextResponse.json({ error: "Name required" }, { status: 400 });
+  const parsedStartDate = parseProgramDate(startDate);
+  const parsedEndDate = parseProgramDate(endDate);
+  if ((startDate && !parsedStartDate) || (endDate && !parsedEndDate)) {
+    return NextResponse.json({ error: "Dates must use YYYY-MM-DD format" }, { status: 400 });
+  }
+  if (parsedStartDate && parsedEndDate && parsedEndDate < parsedStartDate) {
+    return NextResponse.json({ error: "End date must be on or after start date" }, { status: 400 });
+  }
 
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user?.organizationId) return NextResponse.json({ error: "No organization" }, { status: 400 });
@@ -47,8 +56,8 @@ export async function POST(req: NextRequest) {
       organizationId: user.organizationId,
       name,
       slug,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate: parsedStartDate,
+      endDate: parsedEndDate,
       themePreset: palette.id,
       primaryColor: palette.primaryColor,
       accentColor: palette.accentColor,

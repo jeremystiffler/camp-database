@@ -115,9 +115,5 @@ export function themeTokens(
     "--brand-strong": palette.primaryColor,
     "--brand-accent": palette.accentColor,
     "--brand-onstrong": palette.onStrong,
-    // Back-compat aliases, emitted as literals on the same wrapper.
-    "--brand-primary": palette.primaryColor,
-    "--brand-primary-hover": palette.ink,
-    "--accent": palette.accentColor,
   };
 }

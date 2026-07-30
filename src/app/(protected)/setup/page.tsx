@@ -10,6 +10,8 @@ import {
 
   type SetupSection,
 } from "@/lib/setupPhases";
+import { timeBlockGroupKey } from "@/lib/timeBlocks";
+import { programDateInputValue } from "@/lib/programDates";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { TeachersContent } from "../teachers/page";
@@ -194,7 +196,7 @@ function SetupContent() {
   const [editingAgeGroupId, setEditingAgeGroupId] = useState<string | null>(null);
   const [editAgeName, setEditAgeName] = useState("");
 
-  // Time Slots grid state
+  // Time Blocks grid state
   const [weekOffset, setWeekOffset] = useState(0);
   const [draftRows,  setDraftRows]  = useState<DraftRow[]>([]);
 
@@ -208,8 +210,8 @@ function SetupContent() {
       if (c && !c.error) {
         setCamp(c);
         setCampName(c.name || "");
-        setStartDate(c.startDate ? c.startDate.slice(0, 10) : "");
-        setEndDate(c.endDate ? c.endDate.slice(0, 10) : "");
+        setStartDate(programDateInputValue(c.startDate));
+        setEndDate(programDateInputValue(c.endDate));
         setRegistrationOpen(c.registrationOpen || false);
         setStatus(c.status || "draft");
       }
@@ -296,7 +298,7 @@ function SetupContent() {
   const sessionRows = useMemo((): SessionRow[] => {
     const map = new Map<string, SessionRow>();
     for (const slot of slots) {
-      const key = `${slot.label ?? ""}|${slot.startTime}|${slot.endTime}`;
+      const key = timeBlockGroupKey(slot);
       if (!map.has(key)) {
         map.set(key, {
           key,
@@ -1407,7 +1409,7 @@ function SetupContent() {
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-wide text-sky-700">Step 6 · Activity Catalog</p>
                 <h2 className="mt-1 text-lg font-extrabold text-slate-900">Add the activity basics. Schedule comes next.</h2>
-                <HelpCopy title="Activity basics" className="mt-1 text-sm text-slate-600">Keep this tab simple: activity name, lead teacher, room, and total seats available. The clickable time-slot grid lives on the next tab.</HelpCopy>
+                <HelpCopy title="Activity basics" className="mt-1 text-sm text-slate-600">Keep this tab simple: activity name, lead teacher, room, and total seats available. The clickable Time Block grid lives on the next tab.</HelpCopy>
               </div>
               <button
                 type="button"
@@ -1507,7 +1509,7 @@ function SetupContent() {
                   type="button"
                   disabled={!registrationReady || saving}
                   onClick={() => saveCamp({ registrationOpen: true, status: "published" })}
-                  className="rounded-xl bg-forest-500 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-forest-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {registrationOpen ? "Registration is open" : saving ? "Opening..." : "Open registration"}
                 </button>

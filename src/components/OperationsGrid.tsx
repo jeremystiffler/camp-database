@@ -132,8 +132,8 @@ export function foldBlocks(blocks: GridBlock[]): {
     ),
   ].sort((a, b) => a - b);
 
-  // Every period must run on every active day for the days to be redundant.
-  const everyPeriodRunsEveryDay =
+  // Every time block must run on every active day for the days to be redundant.
+  const everyBlockRunsEveryDay =
     activeDays.length > 1 &&
     [...byTime.values()].every((group) => {
       const days = new Set(
@@ -144,7 +144,7 @@ export function foldBlocks(blocks: GridBlock[]): {
       return days.size === activeDays.length;
     });
 
-  if (!everyPeriodRunsEveryDay) {
+  if (!everyBlockRunsEveryDay) {
     const showDay = new Set(blocks.map((block) => block.dayOfWeek ?? -1)).size > 1;
     return {
       columns: blocks.map((block) => ({

@@ -73,7 +73,7 @@ export default function SamplePage() {
           <OperationsGrid courses={courses} blocks={blocks} ageGroups={ageGroups} interactive onAddSession={addSession} onRemoveSession={removeSession} />
         </section>
 
-        <div className="mt-8 flex flex-col items-center rounded-2xl bg-[var(--info)] p-8 text-center text-white sm:flex-row sm:justify-between sm:text-left">
+        <div className="mt-8 flex flex-col items-center rounded-xl bg-[var(--brand-primary)] p-8 text-center text-white sm:flex-row sm:justify-between sm:text-left">
           <div><h2 className="text-2xl font-extrabold">Ready to build your own event?</h2><p className="mt-1 text-white/85">Your 14-day trial needs no credit card.</p></div>
           <Link href="/signup" className="mt-5 rounded-xl bg-white px-5 py-3 font-extrabold text-slate-950 shadow-sm sm:mt-0">Start free trial</Link>
         </div>

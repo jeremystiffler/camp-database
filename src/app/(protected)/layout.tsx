@@ -8,6 +8,7 @@ import { SSPLogo } from "@/components/SSPLogo";
 import { Suspense } from "react";
 import { HelpModeToggle } from "@/components/HelpMode";
 import { themeTokens } from "@/lib/programPalettes";
+import { eventRoleLabel } from "@/lib/eventRoles";
 import { getJson, invalidateJson } from "@/lib/request-cache";
 import { resolveAccessibleCamp } from "@/lib/camp-selection";
 
@@ -300,13 +301,12 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                 {activeCamp?.name || "Select an event"}
               </p>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 mt-1">
-                {activeCamp?.status || "No active event"}{activeCamp?.myRole ? ` • event access: ${activeCamp.myRole}` : ""}
+                {activeCamp?.status || "No active event"}{activeCamp?.myRole ? ` • event access: ${eventRoleLabel(activeCamp.myRole)}` : ""}
               </p>
               <button
                 type="button"
                 onClick={() => setCampSwitcherOpen((open) => !open)}
-                className="mt-3 w-full rounded-xl px-3 py-2 text-xs font-extrabold text-white shadow-sm hover:brightness-105 transition-all"
-                style={{ background: `linear-gradient(135deg, ${activeCamp?.primaryColor || "#075985"}, ${activeCamp?.accentColor || "#0284C7"})` }}
+                className="mt-3 w-full rounded-xl bg-slate-900 px-3 py-2 text-xs font-extrabold text-white shadow-sm transition-colors hover:bg-slate-800"
               >
                 Switch events
               </button>
@@ -325,7 +325,7 @@ function ProtectedLayoutInner({ children }: { children: React.ReactNode }) {
                     >
                       <span className="block text-sm font-extrabold leading-tight">{camp.name}</span>
                       <span className={`block text-[11px] mt-0.5 ${selected ? "text-slate-600" : "text-slate-500"}`}>
-                        {selected ? `Active now • ${camp.myRole || "viewer"}` : `Switch to ${camp.status} • ${camp.myRole || "viewer"}`}
+                        {selected ? `Active now • ${eventRoleLabel(camp.myRole)}` : `Switch to ${camp.status} • ${eventRoleLabel(camp.myRole)}`}
                       </span>
                     </button>
                   );

@@ -695,7 +695,7 @@ function MandatorySessionModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Time Slot *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Time Block *</label>
               <select value={sessionTemplateId} onChange={e => setSessionTemplateId(e.target.value)} required
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30">
                 {sessionTemplates.map(st => <option key={st.id} value={st.id}>{st.dayOfWeek == null ? "All" : DAYS[st.dayOfWeek]} · {st.label ? `${st.label} — ` : ""}{st.startTime}–{st.endTime}</option>)}

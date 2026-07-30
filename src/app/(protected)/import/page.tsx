@@ -626,7 +626,7 @@ function ImportContent() {
       <div className="camp-card p-6 border-sky-100 bg-sky-50/60">
         <h2 className="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
           <span className="w-6 h-6 rounded-full bg-sky-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">→</span>
-          Time Slot Assignment Moved
+          Time Block Assignment Moved
         </h2>
         <p className="text-sm text-slate-600 ml-8">
           Rooms, session checkboxes, and capacity balancing now live on the <strong>Activities</strong> tab, right beside the activity list. Import stays focused on bulk upload only.

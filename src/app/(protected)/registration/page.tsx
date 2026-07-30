@@ -549,8 +549,7 @@ function RegistrationContent() {
               <HelpCopy title="Registration settings" className="mt-1 text-sm text-slate-500">Choose a section on the left, adjust only what matters, then save.</HelpCopy>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-bold">
-              <span className={`rounded-full px-3 py-1 ${formStatus === "draft" ? "bg-slate-100 text-slate-600" : formStatus === "linkOnly" ? "bg-sky-100 text-sky-700" : "bg-forest-100 text-forest-700"}`}>{formStatus === "draft" ? "Draft" : formStatus === "linkOnly" ? "Link only" : "Public"}</span>
-              <span className={`rounded-full px-3 py-1 ${formIsAcceptingRegistrations ? "bg-forest-100 text-forest-700" : "bg-amber-100 text-amber-800"}`}>{formIsAcceptingRegistrations ? "Registration accepting" : "Registration closed"}</span>
+              <span className={`rounded-full px-3 py-1 ${formIsAcceptingRegistrations ? "bg-forest-100 text-forest-700" : formIsShareable ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-600"}`}>{registrationStateLabel}</span>
               <span className={`rounded-full px-3 py-1 ${classChoicesEnabled ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500"}`}>{classChoicesEnabled ? "Class choices on" : "Simple intake"}</span>
               <span className={`rounded-full px-3 py-1 ${familyRegistrationEnabled ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{familyRegistrationEnabled ? "Family mode" : "One participant"}</span>
             </div>

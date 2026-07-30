@@ -354,12 +354,12 @@ function CampCard({ camp, active, onCopy, onDelete, onColorChange }: { camp: Cam
             title="Change event color"
             aria-expanded={colorOpen}
             className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-extrabold shadow-sm transition hover:scale-105 hover:ring-2 hover:ring-slate-300"
-            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
+            style={{ background: `linear-gradient(rgba(15,23,42,.45), rgba(15,23,42,.45)), linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}
           >
             {campInitials(camp.name)}
           </button>
         ) : (
-          <div className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-extrabold shadow-sm" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}>
+          <div className="w-10 h-10 rounded-xl border border-white/40 flex items-center justify-center text-white text-xs font-extrabold shadow-sm" style={{ background: `linear-gradient(rgba(15,23,42,.45), rgba(15,23,42,.45)), linear-gradient(135deg, ${primaryColor}, ${accentColor})` }}>
             {campInitials(camp.name)}
           </div>
         )}

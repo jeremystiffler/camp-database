@@ -70,10 +70,10 @@ const audiences = [
 ] as const;
 
 const sampleBlocks: GridBlock[] = [
-  { id: "sample-1", label: "Period 1", startTime: "09:00", endTime: "09:40" },
-  { id: "sample-2", label: "Period 2", startTime: "09:45", endTime: "10:25" },
-  { id: "sample-3", label: "Period 3", startTime: "10:30", endTime: "11:10" },
-  { id: "sample-4", label: "Period 4", startTime: "11:15", endTime: "11:55" },
+  { id: "sample-1", label: "Time Block 1", startTime: "09:00", endTime: "09:40" },
+  { id: "sample-2", label: "Time Block 2", startTime: "09:45", endTime: "10:25" },
+  { id: "sample-3", label: "Time Block 3", startTime: "10:30", endTime: "11:10" },
+  { id: "sample-4", label: "Time Block 4", startTime: "11:15", endTime: "11:55" },
 ];
 
 const sampleAgeGroups: GridAgeGroup[] = [
@@ -103,7 +103,7 @@ function FeatureIcon({ name }: { name: (typeof features)[number]["icon"] }) {
 function FeatureCard({ icon, title, desc }: (typeof features)[number]) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 text-white shadow-sm"><FeatureIcon name={icon} /></div>
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-white shadow-sm"><FeatureIcon name={icon} /></div>
       <h3 className="text-lg font-extrabold text-slate-900">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{desc}</p>
     </div>
@@ -184,16 +184,12 @@ export default function LandingPage() {
           <a href="#features" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 sm:inline-block">Features</a>
           <a href="#pricing" className="hidden rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900 sm:inline-block">Pricing</a>
           <Link href="/login" className="rounded-xl px-3 py-2 text-sm font-bold text-slate-600 hover:bg-white hover:text-slate-900">Log in</Link>
-          <Link href="/signup" className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">Start Free</Link>
+          <Link href="/signup" className="rounded-xl bg-[var(--brand-primary)] px-4 py-2 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[var(--brand-primary-hover)] hover:shadow-lg">Start Free</Link>
         </div>
       </nav>
 
       <section className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 pb-16 pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:pb-24 lg:pt-24">
         <div>
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-white px-4 py-2 text-sm font-extrabold text-indigo-600 shadow-sm">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            14-day free trial • no credit card required
-          </div>
           <h1 className="max-w-4xl text-[clamp(2.75rem,5vw,3.5rem)] font-bold leading-[1.02] tracking-[-0.032em] text-slate-950">
             Registration, scheduling, and check-in — finally in one place.
           </h1>
@@ -201,7 +197,7 @@ export default function LandingPage() {
             Simple Schedule Pro gives youth events, workshops, leagues, and classes a single command center for family sign-ups, class choices, conflict-safe schedules, rosters, badges, pickup cards, and payments — no spreadsheet required.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/signup" className="rounded-2xl bg-[var(--info)] px-7 py-4 text-center text-base font-extrabold text-white shadow-xl shadow-indigo-200 transition hover:-translate-y-1">Start Free Trial</Link>
+            <Link href="/signup" className="rounded-xl bg-[var(--brand-primary)] px-7 py-4 text-center text-base font-extrabold text-white shadow-xl shadow-slate-200 transition hover:-translate-y-1 hover:bg-[var(--brand-primary-hover)]">Start Free Trial</Link>
             <Link href="/sample" className="rounded-2xl border border-slate-200 bg-transparent px-7 py-4 text-center text-base font-extrabold text-slate-700 transition hover:border-slate-300 hover:bg-white">Try it with sample data</Link>
           </div>
         </div>
@@ -284,8 +280,8 @@ export default function LandingPage() {
         </div>
         <div className="mb-7 flex flex-col items-center gap-3">
           <div className="inline-flex rounded-2xl border border-[var(--border)] bg-white p-1 shadow-sm" role="group" aria-label="Billing period">
-            <button type="button" aria-pressed={billingPeriod === "annual"} onClick={() => setBillingPeriod("annual")} className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${billingPeriod === "annual" ? "bg-[var(--brand-strong)] text-white" : "text-[var(--text-muted)] hover:bg-[var(--canvas-sunk)]"}`}>Annual <span className={billingPeriod === "annual" ? "text-white/80" : "text-[var(--brand-ink)]"}>· Save 2 months</span></button>
-            <button type="button" aria-pressed={billingPeriod === "monthly"} onClick={() => setBillingPeriod("monthly")} className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${billingPeriod === "monthly" ? "bg-[var(--brand-strong)] text-white" : "text-[var(--text-muted)] hover:bg-[var(--canvas-sunk)]"}`}>Monthly</button>
+            <button type="button" aria-pressed={billingPeriod === "annual"} onClick={() => setBillingPeriod("annual")} className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${billingPeriod === "annual" ? "bg-[var(--brand-primary)] text-white" : "text-[var(--text-muted)] hover:bg-[var(--canvas-sunk)]"}`}>Annual <span className={billingPeriod === "annual" ? "text-white/80" : "text-[var(--accent)]"}>· Save 2 months</span></button>
+            <button type="button" aria-pressed={billingPeriod === "monthly"} onClick={() => setBillingPeriod("monthly")} className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${billingPeriod === "monthly" ? "bg-[var(--brand-primary)] text-white" : "text-[var(--text-muted)] hover:bg-[var(--canvas-sunk)]"}`}>Monthly</button>
           </div>
           <p className="text-sm font-semibold text-[var(--text-muted)]">14-day free trial · no credit card required</p>
         </div>
@@ -305,7 +301,7 @@ export default function LandingPage() {
       </section>
 
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-20 text-center">
-        <div className="rounded-[2rem] bg-[var(--info)] p-10 text-white shadow-2xl shadow-indigo-200">
+        <div className="rounded-xl bg-[var(--brand-primary)] p-10 text-white shadow-2xl shadow-slate-200">
           <h2 className="text-4xl font-extrabold tracking-tight">Ready to run your event without the spreadsheet circus?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/85">Start your 14-day no-card trial today. Build the event, test registration, and invite your team before choosing a plan.</p>
           <Link href="/signup" className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 text-base font-extrabold text-slate-950 shadow-lg transition hover:-translate-y-1">Start Free Trial</Link>

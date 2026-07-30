@@ -508,7 +508,9 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   );
 
   const pageStyle = { background: `linear-gradient(135deg, ${appearance.primaryColor}18, ${appearance.accentColor}18)`, fontFamily: `${appearance.fontFamily}, ${appearance.fontFamily === "Georgia" || appearance.fontFamily === "Merriweather" ? "serif" : "sans-serif"}` };
-  const brandStyle = { background: `linear-gradient(135deg, ${appearance.primaryColor}, ${appearance.accentColor})` };
+  // A fixed scrim keeps white labels readable even when an organizer selects a
+  // very light event palette. The color remains recognizable beneath it.
+  const brandStyle = { background: `linear-gradient(rgba(15,23,42,.48), rgba(15,23,42,.48)), linear-gradient(135deg, ${appearance.primaryColor}, ${appearance.accentColor})` };
 
   if (!regOpen) return (
     <div className="min-h-screen flex items-center justify-center p-4" style={pageStyle}>

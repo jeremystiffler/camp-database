@@ -4,10 +4,25 @@ import { getSession } from "@/lib/auth";
 import { checkSchedulingConflicts } from "@/lib/scheduling-conflicts";
 import { effectiveCapacity, syncCourseSessionCapacities } from "@/lib/capacity";
 
+async function accessibleCourse(userId: string, campId: string, courseId: string) {
+  const member = await prisma.campMember.findFirst({
+    where: { campId, userId },
+    select: { id: true },
+  });
+  if (!member) return null;
+  return prisma.course.findFirst({
+    where: { id: courseId, campId },
+    select: { id: true },
+  });
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ campId: string; id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
+  if (!await accessibleCourse(session.userId, campId, id)) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
 
   const { ageGroupIds, teacherIds, sessionTemplateIds, attentionDismissals, ...data } = await req.json();
 
@@ -147,7 +162,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ campId: string; id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id } = await params;
+  const { campId, id } = await params;
+  if (!await accessibleCourse(session.userId, campId, id)) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
   await prisma.course.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

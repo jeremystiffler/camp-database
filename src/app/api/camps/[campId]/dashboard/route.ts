@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { effectiveCapacity } from "@/lib/capacity-rules";
 import { canOpenRegistration, countsByCode, detectIssues, issueCounts } from "@/lib/issues";
+import { countTimeBlockGroups } from "@/lib/timeBlocks";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -114,7 +115,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       teachers: camp._count.persons,
       ageGroups: camp._count.ageGroups,
       rooms: camp._count.rooms,
-      scheduleBlocks: camp._count.sessionTemplates,
+      scheduleBlocks: countTimeBlockGroups(timeBlocks),
       paymentCollectedCents: paidPayments._sum.amountCents || 0,
       paidPaymentCount: paidPayments._count,
       pendingPaymentCount: pendingPayments,

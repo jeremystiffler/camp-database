@@ -246,20 +246,20 @@ textarea { border-radius: var(--radius-sm, 8px); }
 /* ===================== Clean Playground Admin Color System ===================== */
 :root {
   /* Product design tokens: semantic roles, not page-specific colors. */
-  /* Base fallbacks, used only before an event's theme wrapper mounts. Set to
-     the default preset (Harbor) rather than the raw blues the done-gate
-     forbids — an unthemed flash should still be a real palette colour. */
-  --brand-primary: #2F6FB8;
-  --brand-primary-hover: #1B4470;
-  --accent: #7FB6D4;
-  --success: #16a34a;
-  --danger: #dc2626;
-  --text-strong: #0f172a;
+  /* Product-wide action tokens. Event palettes tint decorative surfaces only. */
+  --brand-primary: #0F172A;
+  --brand-primary-hover: #1E293B;
+  --accent: #0369A1;
+  --success: #036B4E;
+  --success-action: #16A34A;
+  --danger: #DC2626;
+  --on-primary: #FFFFFF;
+  --text-strong: #0F172A;
   --text: #334155;
-  --text-muted: #64748b;
-  --border: #dbe3ec;
-  --surface: #f8fafc;
-  --surface-alt: #f1f5f9;
+  --text-muted: #64748B;
+  --border: #E2E8F0;
+  --surface: #FFFFFF;
+  --surface-alt: #F1F5F9;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-full: 9999px;
@@ -284,7 +284,7 @@ textarea { border-radius: var(--radius-sm, 8px); }
   position: relative;
   background: var(--brand-wash);
   border: 1px solid color-mix(in srgb, var(--brand-rail) 24%, transparent);
-  border-radius: 1.5rem;
+  border-radius: var(--radius-md);
   padding: 20px 24px;
   overflow: hidden;
 }
@@ -323,8 +323,8 @@ textarea { border-radius: var(--radius-sm, 8px); }
   margin: 6px 0 0;
 }
 .page-banner__action {
-  background: var(--brand-strong);
-  color: var(--brand-onstrong);
+  background: var(--brand-primary);
+  color: var(--on-primary);
   font-size: 14px;
   line-height: 1;
   font-weight: 600;
@@ -342,14 +342,15 @@ textarea { border-radius: var(--radius-sm, 8px); }
   border: 1px solid color-mix(in srgb, var(--brand-rail) 40%, transparent);
 }
 
-/* Primary dark utility controls are event actions, so they follow the event palette too. */
+/* Primary actions are product actions, not event decoration. Event palettes may
+   tint banners and rails, but never change what a primary button means. */
 button[class*="bg-slate-900"],
 a[class*="bg-slate-900"] {
   background-color: var(--brand-primary);
 }
 button[class*="bg-slate-900"]:hover,
 a[class*="bg-slate-900"]:hover {
-  background-color: var(--accent);
+  background-color: var(--brand-primary-hover);
 }
 
 /* Legacy indigo utilities are palette-aware banners and callouts. */
@@ -361,9 +362,13 @@ a[class*="bg-slate-900"]:hover {
 [class*="text-indigo-500"], [class*="text-indigo-600"], [class*="text-indigo-700"], [class*="text-indigo-800"] { color: var(--brand-primary); }
 
 .bg-forest-500, .bg-forest-600 { background-color: var(--brand-primary); }
-.bg-emerald-500, .bg-emerald-600 { background-color: var(--success); }
-.bg-sky-500, .bg-sky-600 { background-color: #6f8da8; }
-.bg-berry-500, .bg-berry-600 { background-color: #796fa4; }
+.bg-emerald-500, .bg-emerald-600 { background-color: var(--success-action); }
+.bg-sky-500, .bg-sky-600 { background-color: var(--brand-primary); }
+.bg-berry-500, .bg-berry-600 { background-color: var(--brand-primary); }
+[class*="hover:bg-forest-"]:hover,
+[class*="hover:bg-sky-"]:hover,
+[class*="hover:bg-berry-"]:hover,
+[class*="hover:bg-indigo-"]:hover { background-color: var(--brand-primary-hover); }
 .bg-sunset-500, .bg-sunset-600, .bg-orange-500 { background-color: var(--danger); }
 .bg-amber-500 { background-color: var(--warning); }
 .bg-red-500, .bg-red-600 { background-color: var(--danger); }
@@ -484,13 +489,21 @@ a[class*="bg-slate-900"]:hover {
 /* ===================== Simple Schedule Pro design system ===================== */
 :root {
   --canvas: #FFFFFF; --canvas-sunk: #F7F8FA; --canvas-raised: #FFFFFF;
-  --border-hair: #E8ECF1; --border: #DCE2EA; --border-strong: #C3CCD8;
-  --text-strong: #0B1220; --text: #37414F; --text-muted: #646F7E; --text-faint: #9AA4B2;
-  --success: #067647; --success-wash: #E8F6EF; --warning: #A65E00; --warning-wash: #FFF4E2;
+  --border-hair: #E8ECF1; --border: #E2E8F0; --border-strong: #CBD5E1;
+  --text-strong: #0F172A; --text: #334155; --text-muted: #646F7E; --text-faint: #94A3B8;
+  --success: #036B4E; --success-action: #16A34A; --success-wash: #E8F6EF; --warning: #A65E00; --warning-wash: #FFF4E2;
   --danger: #C42B2B; --danger-wash: #FDECEC; --info: #1D4FD8; --info-wash: #EBF1FE;
-  --radius-xs: 6px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 9999px;
+  --radius-sm: 8px; --radius-md: 12px; --radius-full: 9999px;
+  --radius-xs: var(--radius-sm); --radius-lg: var(--radius-md);
   --shadow-sm: 0 1px 2px rgba(11,18,32,.04); --shadow-md: 0 2px 8px rgba(11,18,32,.06); --shadow-lift: 0 8px 24px rgba(11,18,32,.10);
   --control-h: 40px; --control-h-sm: 32px;
+
+  --type-display-size: clamp(2.75rem, 5vw, 3.5rem);
+  --type-h1-size: 2rem; --type-h1-line: 1.15; --type-h1-weight: 700;
+  --type-h2-size: 1.5rem; --type-h2-line: 1.2; --type-h2-weight: 700;
+  --type-h3-size: 1.125rem; --type-h3-line: 1.3; --type-h3-weight: 700;
+  --type-body-size: 0.875rem; --type-body-line: 1.5;
+  --type-caption-size: 0.75rem; --type-caption-line: 1.4;
 
   --font-display: var(--font-heading), 'DM Sans', ui-sans-serif, system-ui, sans-serif;
   --act-indigo-rail:#6366F1; --act-indigo-wash:#EFF0FE; --act-indigo-ink:#3730A3;
@@ -507,6 +520,29 @@ a[class*="bg-slate-900"]:hover {
   --act-slate-rail:#64748B; --act-slate-wash:#F1F3F6; --act-slate-ink:#334155;
 }
 body { background: var(--canvas-sunk); color: var(--text); font-family: var(--font-body); }
+
+/* Component geometry is token-owned. Tailwind utilities may control spacing,
+   but they do not create a second form library or a fourth card radius. */
+.protected-shell input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+.protected-shell select {
+  min-height: var(--control-h);
+  border-color: var(--border);
+  border-radius: var(--radius-sm);
+}
+.protected-shell textarea {
+  border-color: var(--border);
+  border-radius: var(--radius-sm);
+}
+.protected-shell button:not([class*="rounded-full"]):not([role="switch"]),
+.protected-shell a[class*="button"] {
+  border-radius: var(--radius-md);
+}
+[role="dialog"],
+.rounded-2xl,
+.rounded-3xl,
+[class*="rounded-["] {
+  border-radius: var(--radius-md);
+}
 .camp-card { background: var(--canvas); border-color: var(--border); box-shadow: var(--shadow-sm); }
 .camp-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
 /* Shared top-level heading for sidebar workspaces. Previously declared twice —
