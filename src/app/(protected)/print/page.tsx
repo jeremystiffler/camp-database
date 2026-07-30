@@ -7,6 +7,7 @@ import { DEFAULT_PROGRAM_PALETTE } from "@/lib/programPalettes";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/OperationalUI";
 import ParticipantScannableCode from "@/components/ParticipantScannableCode";
+import { getJson as getCachedJson } from "@/lib/request-cache";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Print center — reduction build. Six hardcoded jobs, one options drawer
@@ -244,9 +245,8 @@ function PrintContent() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/camps")
-      .then(r => r.ok ? r.json() : [])
-      .then(camps => {
+    getCachedJson<CampOption[]>("/api/camps")
+      .then(({ data: camps }) => {
         if (cancelled) return;
         const available: CampOption[] = Array.isArray(camps) ? camps : [];
         const savedCampId = typeof window !== "undefined" ? localStorage.getItem("activeCampId") : "";
@@ -700,7 +700,7 @@ function PrintContent() {
             <p className="text-base font-extrabold text-slate-900">Print everything for opening day</p>
             <p className="mt-0.5 text-sm text-[var(--text-muted)]"><span className="t-data">5 documents · {packetSheets} sheets</span>{printLog.dayPacket ? ` · Last printed ${formatLogTime(printLog.dayPacket)}` : ""}</p>
           </div>
-          <button type="button" onClick={() => setTask({ job: "dayPacket" })} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-extrabold text-white hover:bg-slate-700">Print</button>
+          <button type="button" aria-label="Print opening day packet" onClick={() => setTask({ job: "dayPacket" })} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-extrabold text-white hover:bg-slate-700">Print</button>
         </div>
 
         <p className="text-xs font-semibold uppercase tracking-[.12em] text-[var(--text-muted)]">Or print one thing</p>
@@ -717,6 +717,7 @@ function PrintContent() {
                 <div className="mt-auto flex items-center gap-2 pt-2">
                   <button
                     type="button"
+                    aria-label={`Print ${job.title}`}
                     onClick={() => empty ? alert("There is nothing to print yet for this document. Add the data in Setup first.") : setTask({ job: job.id })}
                     className={`rounded-xl px-4 py-2 text-sm font-extrabold ${empty ? "bg-slate-100 text-slate-500" : "bg-slate-900 text-white hover:bg-slate-700"}`}
                   >
@@ -792,8 +793,8 @@ function PrintContent() {
               <p className="t-data text-sm text-[var(--text-muted)]">{badgeRecipients.length} badges · {badgeSheetCount} sheets · about {badgeMinutes} minute{badgeMinutes === 1 ? "" : "s"}</p>
 
               <div className="flex items-center justify-between gap-2 border-t border-[var(--border-hair)] pt-4">
-                <button type="button" onClick={() => { setDrawerOpen(false); setTask({ job: "badges", testPage: true }); }} className="rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Print one test page</button>
-                <button type="button" onClick={() => { setDrawerOpen(false); setTask({ job: "badges" }); }} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-extrabold text-white hover:bg-slate-700">Print all</button>
+                <button type="button" aria-label="Print one test page for badges and lanyards" onClick={() => { setDrawerOpen(false); setTask({ job: "badges", testPage: true }); }} className="rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Print one test page</button>
+                <button type="button" aria-label="Print all badges and lanyards" onClick={() => { setDrawerOpen(false); setTask({ job: "badges" }); }} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-extrabold text-white hover:bg-slate-700">Print all</button>
               </div>
             </div>
           </div>

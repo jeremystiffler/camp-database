@@ -111,3 +111,15 @@ describe("badge geometry names the long edge first", () => {
     expect(source).toContain('"6x4": { w: 4, h: 6');
   });
 });
+
+describe("print actions have specific accessible names", () => {
+  it("names the opening-day and per-document actions", () => {
+    expect(source).toContain('aria-label="Print opening day packet"');
+    expect(source).toContain('aria-label={`Print ${job.title}`}');
+  });
+
+  it("names both badge drawer print actions", () => {
+    expect(source).toContain('aria-label="Print one test page for badges and lanyards"');
+    expect(source).toContain('aria-label="Print all badges and lanyards"');
+  });
+});

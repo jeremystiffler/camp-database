@@ -43,7 +43,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const campDate = dayStart(req.nextUrl.searchParams.get("date"));
   if (!campDate) return NextResponse.json({ error: "Invalid date" }, { status: 400 });
@@ -57,7 +57,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can update attendance" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can update attendance" }, { status: 403 });
 
   try {
     const body = await req.json().catch(() => ({}));

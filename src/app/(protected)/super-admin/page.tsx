@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { PageBanner } from "@/components/PageBanner";
 import { useConfirmation } from "@/components/ConfirmDialog";
+import { getJson } from "@/lib/request-cache";
 
 type Admin = { id: string; email: string; name: string | null; root: boolean };
 type Promotion = { id: string; code: string; active: boolean; timesRedeemed: number; maxRedemptions: number | null; expiresAt: string | null; firstTimeTransaction: boolean; percentOff: number | null; amountOff: number | null; currency: string | null; duration: string };
@@ -19,11 +20,12 @@ export default function SuperAdminPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ code: "", discountType: "percent", percentOff: "100", amountOffCents: "", duration: "once", durationInMonths: "1", maxRedemptions: "", expiresAt: "", firstTimeOnly: true });
   const load = async () => {
-    const me = await fetch("/api/auth/me").then(r => r.json());
-    if (!me.user?.isSuperAdmin) { setAllowed(false); return; }
+    const { data: me } = await getJson<{ user?: { isSuperAdmin?: boolean; isRootSuperAdmin?: boolean } }>("/api/auth/me", 30_000);
+    const currentUser = me?.user;
+    if (!currentUser?.isSuperAdmin) { setAllowed(false); return; }
     setAllowed(true);
-    setRoot(!!me.user.isRootSuperAdmin);
-    if (me.user.isRootSuperAdmin) {
+    setRoot(!!currentUser.isRootSuperAdmin);
+    if (currentUser.isRootSuperAdmin) {
       const adminResult = await fetch("/api/platform/admins").then(r => r.json());
       if (!adminResult.error) setAdmins(adminResult.admins || []);
     }

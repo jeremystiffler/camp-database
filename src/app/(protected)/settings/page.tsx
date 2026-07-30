@@ -5,6 +5,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { RowDeleteButton } from "@/components/InlineEditing";
+import { getJson } from "@/lib/request-cache";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -129,13 +130,13 @@ function SettingsContent() {
 
   useEffect(() => {
     // Load user profile
-    fetch("/api/auth/me")
-      .then(r => r.json())
-      .then(d => {
-        if (d.user) {
-          setUser(d.user);
-          setProfileName(d.user.name || "");
-          setProfileEmail(d.user.email || "");
+    getJson<{ user?: UserProfile }>("/api/auth/me", 30_000)
+      .then(({ data: d }) => {
+        const profile = d?.user;
+        if (profile) {
+          setUser(profile);
+          setProfileName(profile.name || "");
+          setProfileEmail(profile.email || "");
         }
       });
 

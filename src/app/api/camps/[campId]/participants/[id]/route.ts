@@ -92,7 +92,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can edit participants" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can edit participants" }, { status: 403 });
 
   const existing = await prisma.participant.findFirst({ where: { id, campId }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Participant not found" }, { status: 404 });
@@ -152,7 +153,8 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "admin")) return NextResponse.json({ error: "Only admins and owners can delete participants" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(member.role, "admin")) return NextResponse.json({ error: "Only admins and owners can delete participants" }, { status: 403 });
 
   const existing = await prisma.participant.findFirst({ where: { id, campId }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Participant not found" }, { status: 404 });

@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const { campId } = await params;
 
   const member = await prisma.campMember.findFirst({ where: { campId, userId: session.userId } });
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const { rows } = await req.json() as { rows: ImportRow[] };
   if (!Array.isArray(rows) || rows.length === 0) {

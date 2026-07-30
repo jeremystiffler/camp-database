@@ -15,7 +15,7 @@ export async function GET(
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const data = await buildScheduleData(campId, id);
   if (!data) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
@@ -30,7 +30,7 @@ export async function POST(
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const data = await buildScheduleData(campId, id);
   if (!data) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });

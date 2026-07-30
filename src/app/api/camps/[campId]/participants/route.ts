@@ -92,7 +92,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
   const items = await prisma.participant.findMany({ where: { campId }, include: participantInclude, orderBy: { lastName: "asc" } });
   return NextResponse.json(items);
 }
@@ -102,7 +102,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can add participants" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(member.role, "editor")) return NextResponse.json({ error: "Editors and above can add participants" }, { status: 403 });
 
   try {
     const data = await req.json();

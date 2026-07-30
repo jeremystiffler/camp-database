@@ -33,7 +33,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "editor")) {
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(member.role, "editor")) {
     return NextResponse.json({ error: "Editors and above can edit rooms" }, { status: 403 });
   }
 
@@ -80,7 +81,8 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "editor")) {
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(member.role, "editor")) {
     return NextResponse.json({ error: "Editors and above can delete rooms" }, { status: 403 });
   }
 

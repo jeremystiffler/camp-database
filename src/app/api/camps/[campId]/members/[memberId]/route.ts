@@ -17,7 +17,8 @@ export async function PATCH(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, memberId } = await params;
   const myRole = await getMemberRole(session.userId, campId);
-  if (!myRole || !hasPermission(myRole, "admin")) {
+  if (!myRole) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(myRole, "admin")) {
     return NextResponse.json({ error: "Only admins can change roles" }, { status: 403 });
   }
 
@@ -49,7 +50,8 @@ export async function DELETE(
   // Check if memberId is an invite token
   const invite = await prisma.campInvite.findFirst({ where: { id: memberId, campId } });
   if (invite) {
-    if (!myRole || !hasPermission(myRole, "admin")) {
+    if (!myRole) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    if (!hasPermission(myRole, "admin")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     await prisma.campInvite.delete({ where: { id: memberId } });
@@ -64,7 +66,8 @@ export async function DELETE(
 
   // Can remove yourself, or admin can remove others
   if (member.userId !== session.userId) {
-    if (!myRole || !hasPermission(myRole, "admin")) {
+    if (!myRole) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    if (!hasPermission(myRole, "admin")) {
       return NextResponse.json({ error: "Only admins can remove members" }, { status: 403 });
     }
   }

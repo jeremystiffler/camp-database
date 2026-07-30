@@ -7,7 +7,7 @@ import { connectStateFromOrganization, publicConnectState, syncConnectedAccount 
 
 async function contextFor(userId: string, campId: string) {
   const member = await prisma.campMember.findFirst({ where: { campId, userId } });
-  if (!member || !hasPermission(member.role, "admin")) return null;
+  if (!member) return null;
   const camp = await prisma.camp.findUnique({
     where: { id: campId },
     select: { organization: true },
@@ -20,7 +20,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const context = await contextFor(session.userId, campId);
-  if (!context) return NextResponse.json({ error: "Only admins can manage payouts" }, { status: 403 });
+  if (!context) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(context.member.role, "admin")) return NextResponse.json({ error: "Only admins can manage payouts" }, { status: 403 });
 
   const stripe = getStripe();
   let state = connectStateFromOrganization(context.organization);
@@ -39,7 +40,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const context = await contextFor(session.userId, campId);
-  if (!context) return NextResponse.json({ error: "Only admins can manage payouts" }, { status: 403 });
+  if (!context) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(context.member.role, "admin")) return NextResponse.json({ error: "Only admins can manage payouts" }, { status: 403 });
 
   const stripe = getStripe();
   if (!stripe) return NextResponse.json({ error: "Stripe Connect is not configured yet" }, { status: 503 });

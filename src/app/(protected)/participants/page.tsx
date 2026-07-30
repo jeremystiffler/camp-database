@@ -7,6 +7,7 @@ import ParticipantScannableCode from "@/components/ParticipantScannableCode";
 import { RowDeleteButton } from "@/components/InlineEditing";
 import { EmptyState } from "@/components/OperationalUI";
 import { useConfirmation } from "@/components/ConfirmDialog";
+import { getJson } from "@/lib/request-cache";
 
 interface AgeGroup {
   id: string;
@@ -669,7 +670,7 @@ function ParticipantsContent() {
   useEffect(() => { load(); }, [campId]);
   useEffect(() => {
     if (!campId) return;
-    fetch("/api/camps").then(r => r.ok ? r.json() : []).then((programs) => {
+    getJson<{ id: string; myRole?: string }[]>("/api/camps").then(({ data: programs }) => {
       const active = Array.isArray(programs) ? programs.find((program: { id: string; myRole?: string }) => program.id === campId) : null;
       setMyRole(active?.myRole || "viewer");
     }).catch(() => setMyRole("viewer"));

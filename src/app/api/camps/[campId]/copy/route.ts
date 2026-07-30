@@ -13,7 +13,7 @@ export async function POST(
 
   // Verify user has access to source camp
   const member = await prisma.campMember.findFirst({ where: { campId: sourceCampId, userId: session.userId } });
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const {
     name,

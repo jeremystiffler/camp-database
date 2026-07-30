@@ -33,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const existing = await prisma.person.findFirst({ where: { id, campId }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
@@ -84,7 +84,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const existing = await prisma.person.findFirst({ where: { id, campId }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });

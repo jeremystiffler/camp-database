@@ -63,4 +63,17 @@ describe("GET /api/camps/[campId] consolidated read model", () => {
       courseSessionTemplates: expect.any(Object),
     });
   });
+
+  it("returns 404 without querying event data when the user is not a member", async () => {
+    mocks.findMember.mockResolvedValue(null);
+
+    const response = await GET(
+      new NextRequest("http://localhost/api/camps/someone-elses-event"),
+      { params: Promise.resolve({ campId: "someone-elses-event" }) },
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Not found" });
+    expect(mocks.findCamp).not.toHaveBeenCalled();
+  });
 });

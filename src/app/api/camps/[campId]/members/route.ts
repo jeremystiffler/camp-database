@@ -14,7 +14,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const role = await getMemberRole(session.userId, campId);
-  if (!role) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!role) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const members = await prisma.campMember.findMany({
     where: { campId },
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const role = await getMemberRole(session.userId, campId);
-  if (!role || !hasPermission(role, "admin")) {
+  if (!role) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(role, "admin")) {
     return NextResponse.json({ error: "Only admins can invite members" }, { status: 403 });
   }
 

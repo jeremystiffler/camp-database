@@ -11,7 +11,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
   const items = await prisma.enrollment.findMany({
     where: { campId },
     include: { participant: true, session: true },
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
   const data = await req.json();
   const { participantId, sessionId, status } = data;
 

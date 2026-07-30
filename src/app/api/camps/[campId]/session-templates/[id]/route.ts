@@ -10,7 +10,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
   const data = await req.json();
   const allowed = {
     ...(typeof data.label === "string" ? { label: data.label } : {}),
@@ -43,7 +43,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
   const deleted = await prisma.sessionTemplate.deleteMany({ where: { id, campId } });
   if (deleted.count === 0) return NextResponse.json({ error: "Session not found" }, { status: 404 });
   return NextResponse.json({ success: true });

@@ -13,7 +13,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
   const member = await getMember(session.userId, campId);
-  if (!member || !hasPermission(member.role, "admin")) {
+  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!hasPermission(member.role, "admin")) {
     return NextResponse.json({ error: "Only admins can manage billing" }, { status: 403 });
   }
 

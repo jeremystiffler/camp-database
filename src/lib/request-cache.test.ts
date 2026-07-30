@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getJson, invalidateJson } from "@/lib/request-cache";
+import fs from "node:fs";
+import path from "node:path";
 
 describe("short-lived request cache", () => {
   afterEach(() => {
@@ -39,5 +41,24 @@ describe("short-lived request cache", () => {
     await getJson("/api/camps/camp-1/dashboard");
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("protected shell request deduplication", () => {
+  it("does not bypass the shared cache for auth or event-list GETs", () => {
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const child = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(child);
+        else if (entry.name.endsWith(".tsx")) files.push(child);
+      }
+    };
+    walk("src/app/(protected)");
+
+    for (const file of files) {
+      const source = fs.readFileSync(file, "utf8");
+      expect(source, file).not.toMatch(/fetch\("\/api\/(?:auth\/me|camps)"\)/);
+    }
   });
 });
