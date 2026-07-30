@@ -110,14 +110,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-night-900 flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,.28),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(37,99,235,.18),transparent_38%),linear-gradient(135deg,#eff6ff,#f8fbff)] flex items-center justify-center p-6">
+      <div className="w-full max-w-md rounded-3xl border border-blue-100 bg-white/95 p-8 shadow-2xl shadow-blue-200/60 backdrop-blur">
         <div className="text-center mb-8">
           <span className="mb-4 block"><SSPLogo size={48} /></span>
-          <h1 className="font-heading font-bold text-2xl text-cream mb-2">Welcome back</h1>
-          <p className="text-muted">Sign in to your Simple Schedule Pro account</p>
+          <h1 className="font-heading font-bold text-2xl text-slate-950 mb-2">Welcome back</h1>
+          <p className="text-slate-600">Sign in to your Simple Schedule Pro account</p>
           {inviteNext?.startsWith("/invite/") && (
-            <p className="mt-3 rounded-xl border border-ember-500/30 bg-ember-500/10 px-4 py-2 text-sm text-cream">
+            <p className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-900">
               Sign in first, then we’ll take you right back to accept your invitation.
             </p>
           )}
@@ -131,9 +131,9 @@ export default function LoginPage() {
 
         {/* Divider */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="flex-1 h-px bg-night-600" />
-          <span className="text-muted text-xs">or sign in with email</span>
-          <div className="flex-1 h-px bg-night-600" />
+          <div className="flex-1 h-px bg-blue-100" />
+          <span className="text-slate-500 text-xs">or sign in with email</span>
+          <div className="flex-1 h-px bg-blue-100" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -144,25 +144,25 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="block text-sm text-muted mb-1.5">Email</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2.5 bg-night-800 border border-night-500 rounded-xl text-cream text-sm placeholder:text-muted/40 focus:border-ember-500 focus:outline-none"
+              className="w-full rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-muted mb-1.5">Password</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2.5 bg-night-800 border border-night-500 rounded-xl text-cream text-sm placeholder:text-muted/40 focus:border-ember-500 focus:outline-none"
+              className="w-full rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
               placeholder="••••••••"
             />
           </div>
@@ -170,15 +170,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+            className="w-full rounded-xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-200 transition-colors hover:bg-[var(--brand-primary-hover)] disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
-        <p className="text-center text-muted text-sm mt-6">
+        <p className="text-center text-slate-600 text-sm mt-6">
           Don&apos;t have an account?{" "}
-          <Link href={inviteNext ? `/signup?next=${encodeURIComponent(inviteNext)}` : "/signup"} className="text-ember-400 hover:text-ember-300 underline">
+          <Link href={inviteNext ? `/signup?next=${encodeURIComponent(inviteNext)}` : "/signup"} className="font-semibold text-blue-600 hover:text-blue-700 underline">
             Sign up free
           </Link>
         </p>

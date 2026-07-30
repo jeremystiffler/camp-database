@@ -20,7 +20,7 @@ export type ProgramPalette = {
 // Every preset clears AAA (7:1) for ink-on-wash and AA (4.5:1) for white-on-strong.
 // No free hex input anywhere: arbitrary colors cannot guarantee these ratios.
 export const PROGRAM_PALETTES: readonly ProgramPalette[] = [
-  { id: "harbor", name: "Harbor", primaryColor: "#2F6FB8", accentColor: "#7FB6D4", wash: "#EEF4FA", ink: "#1B4470", rail: "#4F8CC9", onStrong: "#FFFFFF", preview: ["#2F6FB8", "#7FB6D4"] },
+  { id: "harbor", name: "Harbor Blue", primaryColor: "#2563EB", accentColor: "#38BDF8", wash: "#EFF6FF", ink: "#1E3A8A", rail: "#3B82F6", onStrong: "#FFFFFF", preview: ["#2563EB", "#38BDF8"] },
   { id: "evergreen", name: "Evergreen", primaryColor: "#2E7D63", accentColor: "#8CC0AB", wash: "#EDF5F1", ink: "#1B4A3A", rail: "#4E9B7E", onStrong: "#FFFFFF", preview: ["#2E7D63", "#8CC0AB"] },
   { id: "plum", name: "Plum", primaryColor: "#6B4E9E", accentColor: "#B3A0D8", wash: "#F2EFF8", ink: "#402E63", rail: "#8A6DBF", onStrong: "#FFFFFF", preview: ["#6B4E9E", "#B3A0D8"] },
   { id: "ember", name: "Ember", primaryColor: "#A85832", accentColor: "#E0A87C", wash: "#FBF1EA", ink: "#7A3D1F", rail: "#C2683C", onStrong: "#FFFFFF", preview: ["#A85832", "#E0A87C"] },
@@ -33,7 +33,7 @@ export const DEFAULT_PROGRAM_PALETTE = PROGRAM_PALETTES[0];
 // Legacy saved colors (pre-preset) map to the nearest softened preset by hue family
 // (§4.7 migration table plus the retired 16-palette set).
 const LEGACY_PRESET_MAP: Record<string, string> = {
-  "#075985": "harbor", "#1E3A8A": "harbor", "#1E40AF": "harbor", "#2563EB": "harbor", "#155E75": "harbor",
+  "#075985": "harbor", "#1E3A8A": "harbor", "#1E40AF": "harbor", "#2563EB": "harbor", "#2F6FB8": "harbor", "#155E75": "harbor",
   "#166534": "evergreen", "#0F766E": "evergreen",
   "#5B21B6": "plum", "#701A75": "plum", "#9D174D": "plum",
   "#C2410C": "ember", "#A16207": "ember", "#9A3412": "ember", "#F0894A": "ember",

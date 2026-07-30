@@ -247,8 +247,8 @@ textarea { border-radius: var(--radius-sm, 8px); }
 :root {
   /* Product design tokens: semantic roles, not page-specific colors. */
   /* Product-wide action tokens. Event palettes tint decorative surfaces only. */
-  --brand-primary: #0F172A;
-  --brand-primary-hover: #1E293B;
+  --brand-primary: #2563EB;
+  --brand-primary-hover: #1D4ED8;
   --accent: #0369A1;
   --success: #036B4E;
   --success-action: #16A34A;
@@ -269,11 +269,11 @@ textarea { border-radius: var(--radius-sm, 8px); }
   /* Brand tokens: defaults only. The theme wrapper overrides all of these with
      literal hex values per event (programPalettes.themeTokens). Never alias
      these into other :root variables — aliases freeze at :root and go stale. */
-  --brand-wash: #EEF4FA;
-  --brand-ink: #1B4470;
-  --brand-rail: #4F8CC9;
-  --brand-strong: #2F6FB8;
-  --brand-accent: #7FB6D4;
+  --brand-wash: #EFF6FF;
+  --brand-ink: #1E3A8A;
+  --brand-rail: #60A5FA;
+  --brand-strong: #2563EB;
+  --brand-accent: #38BDF8;
   --brand-onstrong: #FFFFFF;
 }
 
@@ -488,11 +488,11 @@ a[class*="bg-slate-900"]:hover {
 
 /* ===================== Simple Schedule Pro design system ===================== */
 :root {
-  --canvas: #FFFFFF; --canvas-sunk: #F7F8FA; --canvas-raised: #FFFFFF;
-  --border-hair: #E8ECF1; --border: #E2E8F0; --border-strong: #CBD5E1;
+  --canvas: #FFFFFF; --canvas-sunk: #F3F7FD; --canvas-raised: #FFFFFF;
+  --border-hair: #E5EDF8; --border: #D8E4F2; --border-strong: #B9CDE5;
   --text-strong: #0F172A; --text: #334155; --text-muted: #646F7E; --text-faint: #94A3B8;
   --success: #036B4E; --success-action: #16A34A; --success-wash: #E8F6EF; --warning: #A65E00; --warning-wash: #FFF4E2;
-  --danger: #C42B2B; --danger-wash: #FDECEC; --info: #1D4FD8; --info-wash: #EBF1FE;
+  --danger: #C42B2B; --danger-wash: #FDECEC; --info: #1D4ED8; --info-wash: #EAF2FF;
   --radius-sm: 8px; --radius-md: 12px; --radius-full: 9999px;
   --radius-xs: var(--radius-sm); --radius-lg: var(--radius-md);
   --shadow-sm: 0 1px 2px rgba(11,18,32,.04); --shadow-md: 0 2px 8px rgba(11,18,32,.06); --shadow-lift: 0 8px 24px rgba(11,18,32,.10);
@@ -915,19 +915,19 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
   display: flex; align-items: center; gap: 4px; padding-right: 4px;
   border-radius: var(--radius-md);
 }
-.setupnav__row.is-active { background: #e2e8f0; }
+.setupnav__row.is-active { background: #dbeafe; }
 .setupnav__main {
   display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;
   padding: 10px 12px; border-radius: var(--radius-md);
   font-size: 14px; font-weight: 600; color: #475569; text-decoration: none;
 }
-.setupnav__row.is-active .setupnav__main { color: #0f172a; }
-.setupnav__main:hover { color: #0f172a; }
+.setupnav__row.is-active .setupnav__main { color: #1e3a8a; }
+.setupnav__main:hover { color: #1d4ed8; }
 .setupnav__icon {
   display: flex; align-items: center; justify-content: center; flex: none;
-  width: 24px; height: 24px; border-radius: 8px; background: #f1f5f9; color: #64748b;
+  width: 24px; height: 24px; border-radius: 8px; background: #dbeafe; color: #1d4ed8;
 }
-.setupnav__row.is-active .setupnav__icon { background: #fff; color: #334155; }
+.setupnav__row.is-active .setupnav__icon { background: var(--brand-primary); color: #fff; }
 .setupnav__count {
   flex: none; font-size: 10px; font-weight: 800; padding: 2px 6px;
   border-radius: 999px; background: var(--brand-primary); color: #fff;
@@ -938,13 +938,13 @@ body { background: var(--canvas-sunk); color: var(--text); font-family: var(--fo
 }
 .setupnav__toggle:hover { color: #0f172a; }
 .setupnav__toggle:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; border-radius: 4px; }
-.setupnav__list { list-style: none; margin: 0 0 0 18px; padding: 0 0 0 10px; border-left: 1px solid #e2e8f0; display: grid; gap: 1px; }
+.setupnav__list { list-style: none; margin: 0 0 0 18px; padding: 0 0 0 10px; border-left: 1px solid #bfdbfe; display: grid; gap: 1px; }
 .setupnav__item {
   display: flex; align-items: center; gap: 8px; padding: 6px 8px;
   border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
   color: #64748b; text-decoration: none;
 }
-.setupnav__item:hover { background: #f1f5f9; color: #0f172a; }
+.setupnav__item:hover { background: #eff6ff; color: #1d4ed8; }
 .setupnav__dot {
   display: flex; align-items: center; justify-content: center; flex: none;
   width: 14px; height: 14px; border-radius: 50%; font-size: 9px; font-weight: 800; color: #fff;

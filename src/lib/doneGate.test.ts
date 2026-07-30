@@ -64,6 +64,7 @@ describe("§7 colour gate", () => {
   it("#2563EB and #0EA5E9 appear only where they are definitions, not styling", () => {
     const allowed = [
       "programPalettes.ts", // legacy → preset migration table
+      "globals.css", // authoritative semantic product-action token
       "activity-color.ts", // legacy hex → hue lookup
       "SSPLogo.tsx", // the product mark itself
       "route.ts", // age-group swatch seeds

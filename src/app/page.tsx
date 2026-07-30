@@ -102,7 +102,7 @@ function FeatureIcon({ name }: { name: (typeof features)[number]["icon"] }) {
 
 function FeatureCard({ icon, title, desc }: (typeof features)[number]) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+    <div className="rounded-3xl border border-blue-100 bg-white p-6 shadow-sm shadow-blue-100/50 transition hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/70">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--brand-primary)] text-white shadow-sm"><FeatureIcon name={icon} /></div>
       <h3 className="text-lg font-extrabold text-slate-900">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{desc}</p>
@@ -153,8 +153,8 @@ function Check({ children }: { children: React.ReactNode }) {
 
 function ProductMockup() {
   return (
-    <div className="relative mx-auto min-w-0 max-w-2xl rounded-[2rem] border border-slate-200 bg-white p-3 shadow-2xl shadow-indigo-100/70">
-      <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50 p-4">
+    <div className="relative mx-auto min-w-0 max-w-2xl rounded-[2rem] border border-blue-200 bg-white p-3 shadow-2xl shadow-blue-200/70">
+      <div className="rounded-[1.5rem] border border-blue-100 bg-blue-50/60 p-4">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="inline-flex rounded-md bg-[var(--brand-wash)] px-1.5 py-0.5 text-xs font-extrabold uppercase tracking-wide text-[var(--brand-ink)]">Live sample event</p>
@@ -172,8 +172,8 @@ export default function LandingPage() {
   const [billingPeriod, setBillingPeriod] = useState<"annual" | "monthly">("annual");
 
   return (
-    <div className="min-h-screen overflow-hidden bg-slate-50 text-slate-900">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top_left,rgba(47,111,184,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(127,182,212,0.26),transparent_30%),linear-gradient(180deg,#ffffff,rgba(248,250,252,0))]" />
+    <div className="min-h-screen overflow-hidden bg-[#f5f9ff] text-slate-900">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[580px] bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.30),transparent_36%),radial-gradient(circle_at_top_right,rgba(37,99,235,0.20),transparent_32%),linear-gradient(180deg,#ffffff,rgba(239,246,255,0))]" />
 
       <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link href="/" className="flex items-center gap-3">

@@ -593,7 +593,7 @@ function CheckInContent() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-48 rounded-[2rem] bg-slate-950 p-8 text-left text-white shadow-lg shadow-slate-900/20 transition hover:-translate-y-0.5 hover:bg-slate-800">
+          <button onClick={() => { setScannerOpen(true); setScanError(""); setScanMessage(""); }} className="min-h-48 rounded-[2rem] bg-[var(--brand-primary)] p-8 text-left text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-[var(--brand-primary-hover)]">
             <span className="text-5xl">▣</span>
             <span className="mt-5 block text-2xl font-extrabold">Scan QR Code</span>
             <span className="mt-2 block text-sm font-semibold text-white/70">Scans check in if not arrived, or check out if already checked in.</span>
@@ -650,7 +650,7 @@ function CheckInContent() {
               {kioskExitError && <p className="mt-2 text-sm font-bold text-rose-600">{kioskExitError}</p>}
               <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button onClick={() => { setShowKioskExitPrompt(false); setKioskExitPassword(""); setKioskExitError(""); }} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-extrabold text-slate-600 hover:bg-slate-50">Cancel</button>
-                <button onClick={exitKioskMode} className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white hover:bg-slate-800">Exit kiosk</button>
+                <button onClick={exitKioskMode} className="rounded-2xl bg-[var(--brand-primary)] px-5 py-3 text-sm font-extrabold text-white hover:bg-[var(--brand-primary-hover)]">Exit kiosk</button>
               </div>
             </div>
           </div>
@@ -679,7 +679,7 @@ function CheckInContent() {
       <PageBanner
         eyebrow="Day-of operations"
         title="Fast Check-In / Check-Out"
-        actions={<div className="flex flex-wrap gap-2"><input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" /><button onClick={startKioskSetup} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800">Start kiosk mode</button></div>}
+        actions={<div className="flex flex-wrap gap-2"><input type="date" value={campDate} onChange={e => setCampDate(e.target.value)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm" /><button onClick={startKioskSetup} className="rounded-2xl bg-[var(--brand-primary)] px-4 py-3 text-sm font-extrabold text-white shadow-sm hover:bg-[var(--brand-primary-hover)]">Start kiosk mode</button></div>}
       >
         <HelpCopy title="Check in/out workflow" className="mt-2 text-sm">Use Check In for arrivals. Once a child is checked in, they immediately move to Check Out so staff can release them from the still-on-campus list.</HelpCopy>
       </PageBanner>

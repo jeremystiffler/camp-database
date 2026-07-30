@@ -81,8 +81,8 @@ describe("deep audit shared system regressions", () => {
   it("defines one action palette and prevents event themes from overriding it", () => {
     const css = read("src/app/globals.css");
     const palettes = read("src/lib/programPalettes.ts");
-    expect(css).toContain("--brand-primary: #0F172A");
-    expect(css).toContain("--brand-primary-hover: #1E293B");
+    expect(css).toContain("--brand-primary: #2563EB");
+    expect(css).toContain("--brand-primary-hover: #1D4ED8");
     expect(css).toContain("--accent: #0369A1");
     expect(css).toContain("--success: #036B4E");
     expect(css).toContain("--success-action: #16A34A");
@@ -97,7 +97,7 @@ describe("deep audit shared system regressions", () => {
   it("keeps approved small-text token pairs above WCAG AA", () => {
     expect(contrast("#036B4E", "#DCFCE7")).toBeGreaterThanOrEqual(4.5);
     expect(contrast("#64748B", "#FFFFFF")).toBeGreaterThanOrEqual(4.5);
-    expect(contrast("#0F172A", "#FFFFFF")).toBeGreaterThanOrEqual(4.5);
+    expect(contrast("#2563EB", "#FFFFFF")).toBeGreaterThanOrEqual(4.5);
   });
 
   it("uses effective registration status instead of contradictory public and closed badges", () => {
@@ -131,6 +131,17 @@ describe("deep audit shared system regressions", () => {
     expect(landing).toContain('border border-slate-300 bg-transparent px-4');
     expect(landing).not.toContain("bg-gradient-to-br from-indigo-500 to-sky-500");
     expect(coverage).not.toMatch(/Coverage by period|Spare places per period|Every period|period needs|periods need/i);
+  });
+
+  it("keeps public entry points bright and blue instead of using the retired night theme", () => {
+    const login = read("src/app/(auth)/login/page.tsx");
+    const signup = read("src/app/(auth)/signup/page.tsx");
+    const landing = read("src/app/page.tsx");
+    expect(login).not.toContain("bg-night-900");
+    expect(signup).not.toContain("bg-night-900");
+    expect(login).toContain("rgba(56,189,248,.28)");
+    expect(signup).toContain("rgba(56,189,248,.28)");
+    expect(landing).toContain('bg-[#f5f9ff]');
   });
 
   it("adds a contrast scrim to user-selectable gradient surfaces", () => {
