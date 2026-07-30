@@ -42,10 +42,27 @@ describe("task-list contrast and access regressions", () => {
     expect(schedule).not.toContain("text-[var(--text-faint)]");
   });
 
-  it("uses the required high-contrast hero mock treatments", () => {
-    expect(landing.match(/bg-\[var\(--brand-wash\)\]/g)).toHaveLength(2);
-    expect(landing.match(/text-\[var\(--brand-ink\)\]/g)).toHaveLength(2);
-    expect(landing).toContain('text-[13px] font-bold text-slate-600">printable packets');
-    expect(landing).toContain('text-[13px] font-bold text-slate-600">schedule conflicts');
+  it("renders the real shared operations grid in the hero with four sample colours", () => {
+    expect(landing).toContain("<OperationsGrid courses={sampleCourses}");
+    expect(landing).toContain("Activity × time grid");
+    const sampleSection = landing.slice(landing.indexOf("const sampleCourses"), landing.indexOf("function FeatureCard"));
+    expect(new Set(sampleSection.match(/color: \"#[0-9A-F]{6}\"/g))).toHaveLength(4);
+  });
+
+  it("shows exactly one toggle-controlled price per tier", () => {
+    expect(landing).toContain('useState<"annual" | "monthly">("annual")');
+    expect(landing).toContain("Save 2 months");
+    expect(landing).toContain("14-day free trial · no credit card required");
+    expect(landing).not.toContain("founding:");
+    expect(landing).not.toContain("paid registrations/year");
+    expect(landing.match(/"Unlimited participants"/g)).toHaveLength(3);
+  });
+
+  it("uses next/image and configured modern formats for licensed photos", () => {
+    const config = fs.readFileSync("next.config.ts", "utf8");
+    expect(landing).not.toContain("<img ");
+    expect(landing.match(/<Image /g)).toHaveLength(3);
+    expect(config).toContain('formats: ["image/avif", "image/webp"]');
+    expect(config).toContain('hostname: "images.unsplash.com"');
   });
 });
