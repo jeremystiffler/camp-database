@@ -412,7 +412,7 @@ function ParticipantDrawer({
           <div className="flex items-center gap-2">
             {canEdit && !editing && <button onClick={() => setEditing(true)} className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100">Edit Participant</button>}
             {canEdit && !editing && !isNew && <button onClick={remove} disabled={deleting} className="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 disabled:opacity-50">{deleting ? "Deleting…" : "Delete"}</button>}
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">✕</button>
+            <button aria-label="Close participant dialog" onClick={onClose} className="p-2 rounded-lg hover:bg-slate-100 text-slate-500">✕</button>
           </div>
         </div>
 

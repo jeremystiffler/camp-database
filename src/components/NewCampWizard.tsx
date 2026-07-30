@@ -171,7 +171,7 @@ function Step2({
                   </span>
                 )}
               </div>
-              <button onClick={() => remove(i)} className="text-slate-300 hover:text-red-500 transition-colors text-sm">✕</button>
+              <button aria-label={`Remove age group ${g.name || i + 1}`} onClick={() => remove(i)} className="text-slate-300 hover:text-red-500 transition-colors text-sm">✕</button>
             </div>
           ))}
         </div>
@@ -298,7 +298,7 @@ function Step3({
                   className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
                 />
               </label>
-              <button onClick={() => remove(i)} className="text-slate-300 hover:text-red-500 transition-colors text-sm sm:pb-2" title="Remove room">✕</button>
+              <button aria-label={`Remove room ${r.name || i + 1}`} onClick={() => remove(i)} className="text-slate-300 hover:text-red-500 transition-colors text-sm sm:pb-2" title="Remove room">✕</button>
             </div>
           ))}
         </div>
@@ -409,6 +409,7 @@ function Step4({
                   </div>
                 </div>
                 <button
+                  aria-label={`Remove time block ${first.label || first.startTime}`}
                   onClick={() => {
                     // remove all slots matching this group
                     setSlots(slots.filter((s) => !(s.label === first.label && s.startTime === first.startTime && s.endTime === first.endTime)));

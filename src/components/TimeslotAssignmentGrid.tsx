@@ -483,7 +483,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">/</span>
               <input type="text" value={activityFilter} onChange={e => setActivityFilter(e.target.value)} placeholder="Search activity, teacher, room, or age…" className="w-full pl-8 pr-8 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-400/30 bg-white" />
-              {activityFilter && <button onClick={() => setActivityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 text-xs">✕</button>}
+              {activityFilter && <button aria-label="Clear activity search" onClick={() => setActivityFilter("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 text-xs">✕</button>}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <select value={rowSort} onChange={e => setRowSort(e.target.value as "name" | "teacher" | "ageGroup")} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30">
@@ -524,7 +524,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                     <p className="text-xs text-red-700 mt-1">{conflictToast.message}</p>
                   </div>
                 </div>
-                <button onClick={() => setConflictToast(null)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-lg leading-none">✕</button>
+                <button aria-label="Dismiss scheduling conflict" onClick={() => setConflictToast(null)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-lg leading-none">✕</button>
               </div>
             </div>
           )}
@@ -587,7 +587,7 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                                     <p className="text-xs text-red-700 mt-1">{rowConflict.message}</p>
                                   </div>
                                 </div>
-                                <button onClick={() => setConflictToast(null)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-lg leading-none">✕</button>
+                                <button aria-label="Dismiss scheduling conflict" onClick={() => setConflictToast(null)} className="text-red-400 hover:text-red-600 flex-shrink-0 text-lg leading-none">✕</button>
                               </div>
                             </div>
                           </td>

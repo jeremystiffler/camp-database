@@ -228,7 +228,7 @@ function SendScheduleModal({ person, campId, onClose }: {
                 : <span className="text-amber-600 font-medium"> No email on file — edit teacher to add one</span>}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 text-lg">✕</button>
+          <button aria-label="Close teacher dialog" onClick={onClose} className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 text-lg">✕</button>
         </div>
 
         {/* Body */}

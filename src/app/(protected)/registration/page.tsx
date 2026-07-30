@@ -760,7 +760,7 @@ function RegistrationContent() {
                               </select>
                               <span className="flex-1 text-sm font-extrabold text-slate-800">{EMAIL_BLOCK_LABELS[block.type]}</span>
                               <label className="flex items-center gap-1 text-[11px] font-bold text-slate-500"><input type="checkbox" checked={block.enabled !== false} onChange={e => updateEmailBlock(block.id, { enabled: e.target.checked })} /> Show</label>
-                              <button type="button" onClick={() => removeEmailBlock(block.id)} className="text-sm text-slate-300 hover:text-red-500">✕</button>
+                              <button type="button" aria-label={`Remove email block ${EMAIL_BLOCK_LABELS[block.type]}`} onClick={() => removeEmailBlock(block.id)} className="text-sm text-slate-300 hover:text-red-500">✕</button>
                             </div>
                             {editableTitle && (
                               <input value={block.title || ""} onChange={e => updateEmailBlock(block.id, { title: e.target.value })} placeholder="Section title" className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-400/30" />

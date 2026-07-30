@@ -230,7 +230,7 @@ function QuickAddPerson({
           className="px-3 py-1.5 bg-forest-500 text-white text-xs rounded-lg font-semibold hover:bg-forest-600 disabled:opacity-40">
           {saving ? "..." : "Add"}
         </button>
-        <button type="button" onClick={() => { setOpen(false); setError(""); }}
+        <button type="button" aria-label="Cancel adding teacher" onClick={() => { setOpen(false); setError(""); }}
           className="text-slate-500 hover:text-red-400 text-xs px-1">✕</button>
       </div>
     </div>
