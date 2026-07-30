@@ -102,10 +102,15 @@ describe("deep audit shared system regressions", () => {
 
   it("uses effective registration status instead of contradictory public and closed badges", () => {
     const registration = read("src/app/(protected)/registration/page.tsx");
+    const publicRegistration = read("src/app/api/camps/[campId]/public-registration/route.ts");
+    const registrationForm = read("src/app/api/camps/[campId]/registration-form/route.ts");
     const badgeArea = registration.slice(registration.indexOf("flex flex-wrap gap-2 text-xs font-bold"), registration.indexOf("flex flex-wrap gap-2 text-xs font-bold") + 1200);
     expect(badgeArea).toContain("registrationStateLabel");
     expect(badgeArea).not.toContain('>Public</span>');
     expect(registration).toContain("formIsAcceptingRegistrations = formIsShareable && regOpen");
+    expect(publicRegistration).toContain("effectiveRegistrationState({");
+    expect(publicRegistration).toContain("if (!registrationState.open)");
+    expect(registrationForm).toContain("effectiveRegistrationState({");
   });
 
   it("keeps names and modal headings as the primary identity copy", () => {
@@ -118,12 +123,14 @@ describe("deep audit shared system regressions", () => {
 
   it("keeps marketing hierarchy and terminology aligned with the app", () => {
     const landing = read("src/app/page.tsx");
+    const coverage = read("src/components/CoverageMatrixView.tsx");
     expect(landing).not.toContain('label: "Period');
     expect(landing).toContain('label: "Time Block 1"');
     expect(landing.indexOf("14-day free trial")).toBeGreaterThan(landing.indexOf('id="pricing"'));
     expect(landing).toContain('bg-[var(--brand-primary)] px-7 py-4');
     expect(landing).toContain('border border-slate-300 bg-transparent px-4');
     expect(landing).not.toContain("bg-gradient-to-br from-indigo-500 to-sky-500");
+    expect(coverage).not.toMatch(/Coverage by period|Spare places per period|Every period|period needs|periods need/i);
   });
 
   it("adds a contrast scrim to user-selectable gradient surfaces", () => {

@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { getBaseUrl, getStripe } from "@/lib/billing";
-import { connectReady, syncConnectedAccount } from "@/lib/stripe-connect";
+import { connectReady, connectStateFromOrganization, syncConnectedAccount } from "@/lib/stripe-connect";
+import { blockingIssues, detectIssues } from "@/lib/issues";
+import { effectiveRegistrationState } from "@/lib/registrationState";
 import { failPendingRegistrationPayment } from "@/lib/registration-payment-lifecycle";
 import { calculateRegistrationTotal, couponAllowsEmail, normalizeCouponCode, type PricingCoupon } from "@/lib/registration-pricing";
 import { generateParticipantScanCode } from "@/lib/participant-identity";
@@ -424,13 +426,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
           stripeConnectPayoutsEnabled: true,
           stripeConnectCardPaymentsActive: true,
           stripeConnectDisabledReason: true,
+          stripeConnectCountry: true,
         },
       },
     },
   });
   if (!camp) return NextResponse.json({ error: "Event not found" }, { status: 404 });
-  if (!camp.registrationOpen) return NextResponse.json({ error: "Registration is closed" }, { status: 403 });
-
   const ref = slugRef(data.formRef);
   const selectedForm = ref
     ? await prisma.registrationForm.findFirst({
@@ -441,6 +442,38 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
         where: { campId, isDefault: true, status: "public" },
         select: { classChoicesEnabled: true, familyRegistrationEnabled: true, mandatoryClassRules: true, confirmationEmailSubject: true, confirmationEmailIntro: true, confirmationEmailTemplate: true, adminNotificationEmails: true, confirmationIncludeGuardian: true, confirmationIncludeStudents: true, confirmationIncludeClasses: true, confirmationIncludeEmergency: true, confirmationIncludePayment: true },
       });
+  const [registrationCourses, registrationBlocks] = await Promise.all([
+    prisma.course.findMany({
+      where: { campId },
+      select: {
+        id: true,
+        name: true,
+        cap: true,
+        heldSeats: true,
+        room: { select: { id: true, name: true, capacity: true } },
+        ageGroupId: true,
+        courseAgeGroups: { select: { ageGroupId: true } },
+        courseSessionTemplates: { select: { sessionTemplateId: true } },
+        sessions: { select: { id: true, sessionTemplateId: true, enrolledCount: true } },
+      },
+    }),
+    prisma.sessionTemplate.findMany({
+      where: { campId },
+      select: { id: true, label: true, dayOfWeek: true, startTime: true, endTime: true, mandatory: true },
+    }),
+  ]);
+  const capacityBlocked = blockingIssues(detectIssues({ courses: registrationCourses, blocks: registrationBlocks })).length > 0;
+  const paidRegistration = camp.billingMode === "participantFee" && camp.participantPriceCents > 0;
+  const paymentReady = !paidRegistration || Boolean(getStripe() && connectReady(connectStateFromOrganization(camp.organization)));
+  const registrationState = effectiveRegistrationState({
+    eventOpen: camp.registrationOpen,
+    formStatus: selectedForm ? "eligible" : null,
+    capacityBlocked,
+    paymentReady,
+  });
+  if (!registrationState.open) {
+    return NextResponse.json({ error: registrationState.reason || "Registration is closed." }, { status: 403 });
+  }
   const classChoicesEnabled = selectedForm?.classChoicesEnabled !== false;
   const familyRegistrationEnabled = Boolean(selectedForm?.familyRegistrationEnabled);
   const mandatoryClassRules = parseMandatoryClassRules(selectedForm?.mandatoryClassRules);

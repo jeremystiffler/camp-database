@@ -54,12 +54,12 @@ export function CoverageMatrixView({
     matrix.cells.find((cell) => cell.columnKey === columnKey && cell.groupId === groupId);
 
   return (
-    <section className={`cov cov--${variant}`} aria-label="Coverage by period and age group">
+    <section className={`cov cov--${variant}`} aria-label="Coverage by time block and age group">
       {variant === "panel" && (
         <header className="cov__head">
           <h2 className="cov__title">{summary.headline}</h2>
           {summary.periods > 0 && (
-            <p className="cov__sub">Spare places per period, per age group. A period with room but only one class is fragile.</p>
+            <p className="cov__sub">Spare places per time block, per age group. A time block with room but only one class is fragile.</p>
           )}
         </header>
       )}

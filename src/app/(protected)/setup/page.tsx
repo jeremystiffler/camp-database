@@ -130,7 +130,6 @@ type SetupStep = {
   shortLabel: string;
   icon: string;
   help: string;
-  question: string;
   done: boolean;
   actionLabel?: string;
 };
@@ -763,15 +762,15 @@ function SetupContent() {
   const registrationReady = detailsDone && ageGroups.length > 0 && rooms.length > 0 && sessionRows.length > 0 && teachersDone && activitiesDone && scheduleDone;
 
   const setupSteps: SetupStep[] = [
-    { key: "details", label: "Event Info", shortLabel: "Info", icon: "1", help: "Name, dates, registration status, and basic identity.", question: "What event am I building?", done: detailsDone, actionLabel: "Set event info" },
-    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this event serving?", question: "Who is coming?", done: ageGroups.length > 0, actionLabel: "Add age groups" },
-    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", question: "Where can things happen?", done: rooms.length > 0, actionLabel: "Add rooms" },
-    { key: "times", label: "Time Blocks", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", question: "When do things happen?", done: sessionRows.length > 0, actionLabel: "Build day schedule" },
-    { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning activities.", question: "Who is helping run this?", done: teachersDone, actionLabel: "Add teachers" },
-    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of activities.", question: "What are we offering?", done: activitiesDone, actionLabel: "Create activities" },
-    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time blocks with room, teacher, and capacity visible.", question: "When/where/who for each activity?", done: scheduleDone, actionLabel: "Schedule activities" },
-    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", question: "How do families register?", done: registrationOpen && registrationReady, actionLabel: "Prepare registration" },
-    { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", question: "Are we ready to open?", done: registrationOpen && registrationReady, actionLabel: registrationOpen ? "Review live event" : "Open registration" },
+    { key: "details", label: "Event Info", shortLabel: "Info", icon: "1", help: "Name, dates, registration status, and basic identity.", done: detailsDone, actionLabel: "Set event info" },
+    { key: "ages", label: "Age Groups", shortLabel: "Ages", icon: "2", help: "Who is this event serving?", done: ageGroups.length > 0, actionLabel: "Add age groups" },
+    { key: "rooms", label: "Rooms", shortLabel: "Rooms", icon: "3", help: "Where can activities happen?", done: rooms.length > 0, actionLabel: "Add rooms" },
+    { key: "times", label: "Time Blocks", shortLabel: "Times", icon: "4", help: "Build the skeleton of each day.", done: sessionRows.length > 0, actionLabel: "Build day schedule" },
+    { key: "teachers", label: "Teachers", shortLabel: "Teachers", icon: "5", help: "Add staff before assigning activities.", done: teachersDone, actionLabel: "Add teachers" },
+    { key: "activities", label: "Activities", shortLabel: "Activities", icon: "6", help: "Create the catalog of activities.", done: activitiesDone, actionLabel: "Create activities" },
+    { key: "schedule", label: "Schedule Grid", shortLabel: "Schedule", icon: "7", help: "Assign activities to time blocks with room, teacher, and capacity visible.", done: scheduleDone, actionLabel: "Schedule activities" },
+    { key: "registration", label: "Registration Form", shortLabel: "Form", icon: "8", help: "Preview the public form and decide what families fill out.", done: registrationOpen && registrationReady, actionLabel: "Prepare registration" },
+    { key: "review", label: "Review & Open", shortLabel: "Open", icon: "9", help: "Run the readiness checklist before families see it.", done: registrationOpen && registrationReady, actionLabel: registrationOpen ? "Review live event" : "Open registration" },
   ];
   // NO HARD LOCKS (§5.3). Every section stays reachable: a volunteer may
   // legitimately enter activities before rooms, and a disabled link cannot

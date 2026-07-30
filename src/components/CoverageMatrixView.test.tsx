@@ -73,7 +73,7 @@ describe("one component, two placements (§4.3)", () => {
   it("renders as a panel with a headline", () => {
     const html = render(<CoverageMatrixView matrix={matrix} courses={courses} variant="panel" />);
     expect(html).toContain("cov--panel");
-    expect(html).toMatch(/period(s)? need/);
+    expect(html).toMatch(/time block(s)? need/);
   });
 
   it("uses the same table markup in both", () => {
@@ -205,7 +205,7 @@ describe("nothing to report", () => {
       participantsByAgeGroup: { older: 5, younger: 5 },
     });
     const html = render(<CoverageMatrixView matrix={m} courses={healthy} variant="panel" />);
-    expect(html).toContain("Every period has room and a choice");
+    expect(html).toContain("Every time block has room and a choice");
     expect(html).not.toContain("cov__listbtn");
   });
 });

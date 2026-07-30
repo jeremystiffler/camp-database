@@ -325,8 +325,8 @@ function ScheduleContent() {
     .sort((a, b) => a.enrolledCount - b.enrolledCount || capacityPercent(a) - capacityPercent(b) || sessionTitle(a).localeCompare(sessionTitle(b)))
     .slice(0, 3);
   const scheduleSummary = activeDays.length > 0
-    ? `${dayRangeLabel(activeDays)} · ${timeSlots.length} time block${timeSlots.length === 1 ? "" : "s"}${duplicateDayCount > 0 ? ` · ${duplicateDayCount} duplicate day${duplicateDayCount === 1 ? "" : "s"} hidden` : ""}`
-    : `${timeSlots.length} time block${timeSlots.length === 1 ? "" : "s"}`;
+    ? `${dayRangeLabel(activeDays)} · ${timeBlockCount} time block${timeBlockCount === 1 ? "" : "s"}${duplicateDayCount > 0 ? ` · ${duplicateDayCount} duplicate day${duplicateDayCount === 1 ? "" : "s"} hidden` : ""}`
+    : `${timeBlockCount} time block${timeBlockCount === 1 ? "" : "s"}`;
 
   // Operations grid input (build order 18d). Built from the RAW sessions, not the
   // deduped display list: the grid folds repeating days itself, and feeding it

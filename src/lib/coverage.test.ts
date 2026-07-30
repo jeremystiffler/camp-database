@@ -202,7 +202,7 @@ describe("worst-first ordering and copy (§4.3)", () => {
   });
 
   it("never reports a tight cell as if it were good news", () => {
-    // "47 spare" inside a list headed "6 periods need attention" undercuts the
+    // "47 spare" inside a list headed "6 time blocks need attention" undercuts the
     // warning it belongs to.
     const tight = cells[0];
     const line = coverageLine(tight, "11:25am");
@@ -232,7 +232,7 @@ describe("worst-first ordering and copy (§4.3)", () => {
 
   it("says so plainly when nothing needs attention", () => {
     expect(coverageSummary({ columns: [], groups: [], cells: [], flagged: [] }).headline).toBe(
-      "Every period has room and a choice",
+      "Every time block has room and a choice",
     );
   });
 });

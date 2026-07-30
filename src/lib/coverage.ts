@@ -314,9 +314,9 @@ export function coverageSummary(matrix: CoverageMatrix): {
   headline: string;
 } {
   const periods = new Set(matrix.flagged.map((cell) => cell.columnKey)).size;
-  if (periods === 0) return { periods: 0, headline: "Every period has room and a choice" };
+  if (periods === 0) return { periods: 0, headline: "Every time block has room and a choice" };
   return {
     periods,
-    headline: `${periods} ${periods === 1 ? "period needs" : "periods need"} attention`,
+    headline: `${periods} ${periods === 1 ? "time block needs" : "time blocks need"} attention`,
   };
 }

@@ -5,6 +5,7 @@ import { blockingIssues, detectIssues } from "@/lib/issues";
 import { getSession } from "@/lib/auth";
 import { getStripe } from "@/lib/billing";
 import { connectReady, connectStateFromOrganization } from "@/lib/stripe-connect";
+import { effectiveRegistrationState } from "@/lib/registrationState";
 
 async function checkAccess(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -269,18 +270,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ camp
     .map((issue) => issue.message);
   const paidRegistration = camp.billingMode === "participantFee" && camp.participantPriceCents > 0;
   const paymentReady = !paidRegistration || Boolean(getStripe() && connectReady(connectStateFromOrganization(camp.organization)));
-  const formOpen = selectedForm ? camp.registrationOpen && selectedForm.status !== "draft" && capacityViolations.length === 0 && paymentReady : false;
+  const registrationState = effectiveRegistrationState({
+    eventOpen: camp.registrationOpen,
+    formStatus: selectedForm?.status,
+    capacityBlocked: capacityViolations.length > 0,
+    paymentReady,
+  });
   return NextResponse.json({
     campName: camp.name,
     primaryColor: camp.primaryColor,
     accentColor: camp.accentColor,
     fontFamily: camp.fontFamily,
-    registrationOpen: formOpen,
-    registrationBlockedReason: capacityViolations.length
-      ? "Registration is paused until event capacity issues are resolved."
-      : !paymentReady
-        ? "Registration is paused until the event organizer finishes Stripe payout setup."
-        : null,
+    registrationOpen: registrationState.open,
+    registrationBlockedReason: registrationState.reason,
     paymentReady,
     capacityWarnings,
     billingMode: camp.billingMode,
