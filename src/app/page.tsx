@@ -53,13 +53,21 @@ const pricingPlans = [
 ];
 
 const features = [
-  { icon: "👨‍👩‍👧‍👦", title: "Family Registration", desc: "One guardian can register multiple students, choose age groups and classes per participant, and pay once." },
-  { icon: "🗓️", title: "Schedule Builder", desc: "Rooms, teachers, time blocks, required blocks, capacity limits, and conflict checks stay tied together." },
-  { icon: "🎨", title: "Activity Catalog", desc: "Build classes by age group, location, teacher, capacity, and schedule block without duct-taping spreadsheets." },
-  { icon: "✅", title: "Check in/out", desc: "Run day-of operations with QR/name lookup, family pickup numbers, and staff-friendly attendance state." },
-  { icon: "🖨️", title: "Print Center", desc: "Generate rosters, teacher packets, participant class choices, pickup cards, and QR schedule lanyards." },
-  { icon: "💳", title: "Payments", desc: "Choose whether your event pays the platform or families pay registration plus a transparent platform fee." },
-];
+  { icon: "family", title: "Family Registration", desc: "One guardian registers every child, chooses classes, and pays once." },
+  { icon: "calendar", title: "Schedule Builder", desc: "Keep rooms, teachers, time blocks, capacity, and conflicts in one schedule." },
+  { icon: "activity", title: "Activity Catalog", desc: "Create classes by age group, location, teacher, limit, and time block." },
+  { icon: "check", title: "Check in/out", desc: "Find families by QR code or name and keep pickup clear for every volunteer." },
+  { icon: "print", title: "Print Center", desc: "Print rosters, teacher packets, badges, pickup cards, and QR schedules." },
+  { icon: "payment", title: "Payments", desc: "Let your event or the registering family cover the transparent platform fee." },
+] as const;
+
+const audiences = [
+  { title: "VBS & Church Programs", caption: "Craft rotations, age groups, volunteers, and pickup in one plan.", image: "/images/audiences/vbs-crafts.jpg", alt: "Child making a paper craft with adults at a workshop table", credit: "MIKI Yoshihito · CC BY 2.0", creditHref: "https://commons.wikimedia.org/wiki/File:SAKURAKO_attended_a_workshop._(8707727596).jpg" },
+  { title: "Summer & Day Camps", caption: "Keep active groups moving safely from one block to the next.", image: "/images/audiences/camps-game.jpg", alt: "Children and adult leaders playing a cooperative parachute game outdoors", credit: "U.S. Marine Corps · Public domain", creditHref: "https://commons.wikimedia.org/wiki/File:USMC-100401-M-5728E-055.jpg" },
+  { title: "Homeschool Co-ops", caption: "Make class choices and shared-room schedules easy for every family.", image: "/images/audiences/homeschool-coops.jpg", alt: "Students learning together around classroom tables", credit: "Unsplash", creditHref: "https://unsplash.com/license" },
+  { title: "Conferences & Workshops", caption: "Coordinate sessions, rooms, leaders, attendance, and printed packets.", image: "/images/audiences/conferences.jpg", alt: "Large workshop audience watching a presenter on stage", credit: "Unsplash", creditHref: "https://unsplash.com/license" },
+  { title: "Small Groups & Classes", caption: "Give every facilitator and participant one clear place to be.", image: "/images/audiences/small-groups.jpg", alt: "Adults discussing a project together around a table", credit: "Unsplash", creditHref: "https://unsplash.com/license" },
+] as const;
 
 const sampleBlocks: GridBlock[] = [
   { id: "sample-1", label: "Period 1", startTime: "09:00", endTime: "09:40" },
@@ -80,10 +88,22 @@ const sampleCourses: GridCourse[] = [
   { id: "science", name: "Discovery Lab", cap: 12, color: "#347A65", ageGroupId: "older", room: { id: "lab", name: "Lab", capacity: 12 }, sessions: [{ id: "science-4", sessionTemplateId: "sample-4", enrolledCount: 12 }] },
 ];
 
-function FeatureCard({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+function FeatureIcon({ name }: { name: (typeof features)[number]["icon"] }) {
+  const paths = {
+    family: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18M8 15h.01M12 15h.01M16 15h.01" /></>,
+    activity: <><path d="M12 3v18M3 12h18" /><circle cx="12" cy="12" r="9" /><path d="m8 8 8 8M16 8l-8 8" /></>,
+    check: <><path d="M20 6 9 17l-5-5" /><path d="M21 12a9 9 0 1 1-5.3-8.2" /></>,
+    print: <><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="7" /></>,
+    payment: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20M6 15h2" /></>,
+  };
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">{paths[name]}</svg>;
+}
+
+function FeatureCard({ icon, title, desc }: (typeof features)[number]) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 text-xl shadow-sm">{icon}</div>
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 text-white shadow-sm"><FeatureIcon name={icon} /></div>
       <h3 className="text-lg font-extrabold text-slate-900">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{desc}</p>
     </div>
@@ -174,7 +194,7 @@ export default function LandingPage() {
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             14-day free trial • no credit card required
           </div>
-          <h1 className="max-w-4xl text-5xl font-extrabold tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
+          <h1 className="max-w-4xl text-[clamp(2.75rem,5vw,3.5rem)] font-bold leading-[1.02] tracking-[-0.032em] text-slate-950">
             Registration, scheduling, and check-in — finally in one place.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-600 sm:text-xl">
@@ -182,7 +202,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/signup" className="rounded-2xl bg-[var(--info)] px-7 py-4 text-center text-base font-extrabold text-white shadow-xl shadow-indigo-200 transition hover:-translate-y-1">Start Free Trial</Link>
-            <a href="#pricing" className="rounded-2xl border border-slate-200 bg-transparent px-7 py-4 text-center text-base font-extrabold text-slate-700 transition hover:border-slate-300 hover:bg-white">See pricing</a>
+            <Link href="/sample" className="rounded-2xl border border-slate-200 bg-transparent px-7 py-4 text-center text-base font-extrabold text-slate-700 transition hover:border-slate-300 hover:bg-white">Try it with sample data</Link>
           </div>
         </div>
         <ProductMockup />
@@ -199,23 +219,58 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section aria-labelledby="comparison-heading" className="relative z-10 mx-auto max-w-7xl px-6 py-12">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[var(--brand-ink)]">See the difference</p>
+          <h2 id="comparison-heading" className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">Your spreadsheet was never built for this.</h2>
+          <p className="mt-4 text-slate-600">The same morning schedule: one version needs decoding, the other shows the answer.</p>
+        </div>
+        <div className="mt-10 grid items-start gap-6 xl:grid-cols-2">
+          <article className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm" aria-labelledby="spreadsheet-heading">
+            <div className="border-b border-slate-200 bg-slate-100 px-4 py-3">
+              <h3 id="spreadsheet-heading" className="font-extrabold text-slate-900">Spreadsheet</h3>
+              <p className="text-sm text-slate-600">Narrow columns, duplicate labels, and one conflict hiding in plain sight.</p>
+            </div>
+            <div className="overflow-x-auto p-3">
+              <table className="min-w-[620px] border-collapse text-[11px] text-slate-700">
+                <thead><tr>{["Group", "9:00", "9:45", "10:30", "11:15", "Room", "Leader"].map(label => <th key={label} className="border border-slate-300 bg-slate-100 px-2 py-2 text-left font-bold">{label}</th>)}</tr></thead>
+                <tbody>
+                  <tr><td className="border border-slate-300 px-2 py-2">Younger</td><td className="border border-slate-300 px-2 py-2">Art</td><td className="border border-slate-300 px-2 py-2">Music</td><td className="border border-slate-300 px-2 py-2">Art</td><td className="border border-slate-300 px-2 py-2">Games</td><td className="border border-slate-300 px-2 py-2">101</td><td className="border border-slate-300 px-2 py-2">Jamie</td></tr>
+                  <tr><td className="border border-slate-300 px-2 py-2">Older</td><td className="border border-slate-300 px-2 py-2">Lab</td><td className="border border-slate-300 bg-red-100 px-2 py-2 font-bold text-red-800">Games — Field?</td><td className="border border-slate-300 px-2 py-2">Music</td><td className="border border-slate-300 px-2 py-2">Lab</td><td className="border border-slate-300 bg-red-100 px-2 py-2 font-bold text-red-800">101 / Field</td><td className="border border-slate-300 px-2 py-2">Jamie</td></tr>
+                  <tr><td className="border border-slate-300 px-2 py-2">Older B</td><td className="border border-slate-300 px-2 py-2">Lab</td><td className="border border-slate-300 px-2 py-2">Games</td><td className="border border-slate-300 px-2 py-2">Music</td><td className="border border-slate-300 px-2 py-2">Lab</td><td className="border border-slate-300 px-2 py-2">Lab</td><td className="border border-slate-300 px-2 py-2">J. Smith</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="border-t border-slate-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">Which room is double-booked? Time to compare cells.</p>
+          </article>
+          <article className="rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm" aria-labelledby="ssp-comparison-heading">
+            <div className="mb-4">
+              <h3 id="ssp-comparison-heading" className="font-extrabold text-slate-900">Simple Schedule Pro</h3>
+              <p className="text-sm text-slate-600">Activities, time blocks, enrollment, rooms, and conflicts in one shared view.</p>
+            </div>
+            <OperationsGrid courses={sampleCourses} blocks={sampleBlocks} ageGroups={sampleAgeGroups} />
+            <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">No room conflict. Every activity has one clear place.</p>
+          </article>
+        </div>
+      </section>
+
       <section aria-labelledby="real-programs-heading" className="relative z-10 mx-auto max-w-7xl px-6 py-10">
-        <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
-          <div className="grid md:grid-cols-[0.9fr_1.1fr]">
-            <div className="flex flex-col justify-center p-8 lg:p-12">
-              <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-sky-600">Made for real people</p>
-              <h2 id="real-programs-heading" className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">Less time wrestling spreadsheets. More time running the day.</h2>
-              <p className="mt-4 leading-7 text-slate-600">From the first welcome to the final pickup, your team gets one clear schedule and families get a smoother experience.</p>
-            </div>
-            <div className="grid min-h-80 grid-cols-2 gap-2 bg-[var(--canvas-sunk)] p-2">
-              <Image src="https://images.unsplash.com/photo-1472162072942-cd5147eb3902?auto=format&fit=crop&w=900&q=82" alt="Child enjoying a story during an outdoor program" width={900} height={675} sizes="(min-width: 768px) 36vw, 50vw" className="h-full min-h-80 w-full rounded-2xl bg-[var(--canvas-sunk)] object-cover" />
-              <div className="grid gap-2">
-                <Image src="https://images.unsplash.com/photo-1504151932400-72d4384f04b3?auto=format&fit=crop&w=700&q=82" alt="Parent reading with a young child" width={700} height={525} sizes="(min-width: 768px) 28vw, 50vw" className="h-full min-h-0 w-full rounded-2xl bg-[var(--canvas-sunk)] object-cover" />
-                <Image src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=700&q=82" alt="Friends gathered together outdoors" width={700} height={525} sizes="(min-width: 768px) 28vw, 50vw" className="h-full min-h-0 w-full rounded-2xl bg-[var(--canvas-sunk)] object-cover" />
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-sky-600">Made for real programs</p>
+          <h2 id="real-programs-heading" className="mt-3 text-4xl font-extrabold tracking-tight text-slate-950">One clear operating plan, whatever you organize.</h2>
+          <p className="mt-4 text-slate-600">Simple Schedule Pro fits recurring classes and high-energy event days without forcing either one into a spreadsheet-shaped box.</p>
+        </div>
+        <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {audiences.map(audience => (
+            <article key={audience.title} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+              <Image src={audience.image} alt={audience.alt} width={640} height={420} sizes="(min-width: 1024px) 20vw, (min-width: 640px) 50vw, 100vw" className="aspect-[4/3] w-full bg-[var(--canvas-sunk)] object-cover transition duration-300 group-hover:scale-[1.02]" />
+              <div className="p-4">
+                <h3 className="font-extrabold text-slate-950">{audience.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{audience.caption}</p>
+                <a href={audience.creditHref} target="_blank" rel="noreferrer" className="mt-3 block text-[10px] font-semibold text-slate-500 underline decoration-slate-300 underline-offset-2">Photo: {audience.credit}</a>
               </div>
-            </div>
-          </div>
-          <p className="px-5 py-2 text-right text-[10px] font-semibold text-slate-500">Photography via <a href="https://unsplash.com/license" target="_blank" rel="noreferrer" className="underline">Unsplash</a></p>
+            </article>
+          ))}
         </div>
       </section>
 
