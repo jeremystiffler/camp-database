@@ -837,7 +837,7 @@ function SetupContent() {
     <button
       type="button"
       onClick={advanceToFollowingStep}
-      className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-slate-700"
+      className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-blue-700"
     >
       {continueLabel(stepLabel(followingStep))}
     </button>
@@ -908,18 +908,18 @@ function SetupContent() {
           <div>
             <label htmlFor="setup-event-name" className="block text-sm font-medium text-slate-700 mb-1.5">Event Name</label>
             <input id="setup-event-name" type="text" value={campName} onChange={e => setCampName(e.target.value)}
-              className="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400" />
+              className="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500" />
           </div>
           <div className="grid grid-cols-2 gap-4 max-w-md">
             <div>
               <label htmlFor="setup-start-date" className="block text-sm font-medium text-slate-700 mb-1.5">Start Date</label>
               <input id="setup-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30" />
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
             </div>
             <div>
               <label htmlFor="setup-end-date" className="block text-sm font-medium text-slate-700 mb-1.5">End Date</label>
               <input id="setup-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30" />
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
             </div>
           </div>
           <div className="flex max-w-md flex-wrap items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
@@ -933,7 +933,7 @@ function SetupContent() {
             <div>
               <label htmlFor="setup-event-status" className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
               <select id="setup-event-status" value={status} onChange={e => setStatus(e.target.value)}
-                className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30">
+                className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
                 <option value="archived">Archived</option>
@@ -942,14 +942,14 @@ function SetupContent() {
             <div className="flex items-center gap-2 mt-5">
               <button type="button" role="switch" aria-label="Registration open" aria-checked={registrationOpen}
                 onClick={() => setRegistrationOpen(v => !v)}
-                className={`relative w-10 h-5 rounded-full transition-colors ${registrationOpen ? "bg-slate-900" : "bg-slate-200"}`}>
+                className={`relative w-10 h-5 rounded-full transition-colors ${registrationOpen ? "bg-blue-600" : "bg-slate-200"}`}>
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${registrationOpen ? "translate-x-5" : ""}`} />
               </button>
               <span className="text-sm font-medium text-slate-700">Registration Open</span>
             </div>
           </div>
           <button onClick={() => saveCamp()} disabled={saving}
-            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-slate-900 text-white" : "bg-slate-900 text-white hover:bg-slate-800"} disabled:opacity-60`}>
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? "bg-emerald-600 text-white" : "bg-blue-600 text-white hover:bg-blue-700"} disabled:opacity-60`}>
             {saved ? "Saved" : saving ? "Saving..." : "Save Changes"}
           </button>
           <SaveState saving={saving} saved={saved} error={saveError} />
@@ -1444,7 +1444,7 @@ function SetupContent() {
               <button
                 type="button"
                 onClick={() => refreshAndGo("schedule")}
-                className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700"
+                className="shrink-0 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-blue-700"
               >
                 Save and continue to Schedule Grid →
               </button>
@@ -1457,7 +1457,7 @@ function SetupContent() {
             <button
               type="button"
               onClick={() => refreshAndGo("schedule")}
-              className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700"
+              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-blue-700"
             >
               Save and continue →
             </button>
@@ -1482,7 +1482,7 @@ function SetupContent() {
               <button
                 type="button"
                 onClick={() => refreshAndGo("registration")}
-                className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700"
+                className="shrink-0 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-blue-700"
               >
                 Save and continue to Registration Form →
               </button>
@@ -1495,7 +1495,7 @@ function SetupContent() {
             <button
               type="button"
               onClick={() => refreshAndGo("registration")}
-              className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700"
+              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-blue-700"
             >
               Save and continue →
             </button>
@@ -1514,7 +1514,7 @@ function SetupContent() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 lg:justify-end">
-              <Link href={`/registration?campId=${campId}`} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-slate-700">Manage form →</Link>
+              <Link href={`/registration?campId=${campId}`} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm hover:bg-blue-700">Manage form →</Link>
               <Link href={`/register/${campId}`} target="_blank" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Preview public form</Link>
             </div>
           </div>

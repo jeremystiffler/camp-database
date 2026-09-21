@@ -223,5 +223,7 @@ describe("§5.4 acceptance, against the live setup page", () => {
     expect(page).toContain('id="setup-age-group-name"');
     expect(page).toContain('role="alert"');
     expect(page).toContain("newAgeNameRef.current?.focus()");
+    expect(page).toContain("bg-blue-600");
+    expect(page).toContain("bg-emerald-600");
   });
 });
