@@ -60,6 +60,13 @@ describe("deep audit functional regressions", () => {
     expect(courseRoute).toContain("accessibleCourse(session.userId, campId, id)");
     expect(courseRoute).toContain('where: { id: courseId, campId }');
   });
+
+  it("renders a clear unavailable state for a missing public registration event", () => {
+    const registration = read("src/app/register/[campId]/page.tsx");
+    expect(registration).toContain('if (!r.ok) throw new Error(data.error || "This registration form is unavailable.")');
+    expect(registration).toContain("Registration Unavailable");
+    expect(registration).toContain("const [loadError, setLoadError]");
+  });
 });
 
 describe("deep audit shared system regressions", () => {

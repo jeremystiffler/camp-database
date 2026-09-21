@@ -186,6 +186,7 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   const [couponMsg, setCouponMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [paymentNotice, setPaymentNotice] = useState("");
   const [loading, setLoading]       = useState(true);
+  const [loadError, setLoadError]   = useState("");
   const [values, setValues]         = useState<Record<string, FieldValue>>({});
   const [students, setStudents] = useState<StudentState[]>(() => [makeStudent(1)]);
   const [activeStudentIndex, setActiveStudentIndex] = useState(0);
@@ -204,7 +205,11 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
       const formRef = searchParams.get("form") || "";
       setFormRef(formRef);
       fetch(`/api/camps/${p.campId}/registration-form${formRef ? `?form=${encodeURIComponent(formRef)}` : ""}`)
-        .then(r => r.json())
+        .then(async r => {
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || "This registration form is unavailable.");
+          return data;
+        })
         .then(d => {
           setCampName(d.campName || "Camp");
           setAppearance({
@@ -232,7 +237,10 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
           } catch { setFields([]); }
           setLoading(false);
         })
-        .catch(() => setLoading(false));
+        .catch((error) => {
+          setLoadError(error instanceof Error ? error.message : "This registration form is unavailable.");
+          setLoading(false);
+        });
     });
   }, [params, searchParams]);
 
@@ -504,6 +512,16 @@ function PublicRegistrationContent({ params }: { params: Promise<{ campId: strin
   if (loading) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="w-10 h-10 border-2 border-forest-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (loadError) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
+        <span className="mb-4 block text-5xl" aria-hidden="true">⚠️</span>
+        <h1 className="mb-2 text-xl font-bold text-slate-800">Registration Unavailable</h1>
+        <p className="text-sm text-slate-500">{loadError}</p>
+      </div>
     </div>
   );
 
