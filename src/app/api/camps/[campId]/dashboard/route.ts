@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { effectiveCapacity } from "@/lib/capacity-rules";
 import { canOpenRegistration, countsByCode, detectIssues, issueCounts } from "@/lib/issues";
 import { countTimeBlockGroups } from "@/lib/timeBlocks";
-import { teacherCoverageDone } from "@/lib/setupPhases";
+import { activityScheduleDone, teacherCoverageDone } from "@/lib/setupPhases";
 
 async function getMember(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -111,7 +111,9 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ campId
       teacherCount: course.courseTeachers.length,
     })),
   );
-  const scheduleReady = activitiesReady && courses.every((course) => course.courseSessionTemplates.length > 0);
+  const scheduleReady = activityScheduleDone(
+    courses.map((course) => ({ scheduled: course.courseSessionTemplates.length > 0 })),
+  );
   const registrationReady = Boolean(
     detailsReady &&
     camp._count.ageGroups > 0 &&

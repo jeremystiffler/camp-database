@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import {
+  activityScheduleDone,
   continueLabel,
   firstIncompleteSection,
   remainingLine,
@@ -76,6 +77,17 @@ describe("teacher coverage controls the Teachers checkmark", () => {
 
   it("still requires someone on the roster", () => {
     expect(teacherCoverageDone(0, [])).toBe(false);
+  });
+});
+
+describe("activity schedule readiness", () => {
+  it("does not call an unscheduled activity ready", () => {
+    expect(activityScheduleDone([{ scheduled: true }, { scheduled: false }])).toBe(false);
+  });
+
+  it("requires at least one activity and a saved time assignment for each one", () => {
+    expect(activityScheduleDone([])).toBe(false);
+    expect(activityScheduleDone([{ scheduled: true }])).toBe(true);
   });
 });
 

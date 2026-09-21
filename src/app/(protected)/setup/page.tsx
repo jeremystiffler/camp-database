@@ -6,6 +6,7 @@ import {
   continueLabel,
   firstIncompleteSection,
   remainingLine,
+  totalRemaining,
   teacherCoverageDone,
 
   type SetupSection,
@@ -159,7 +160,7 @@ function SetupContent() {
   const [persons,   setPersons]   = useState<PersonSummary[]>([]);
   const [courses,   setCourses]   = useState<CourseSummary[]>([]);
   const [mandatorySessions, setMandatorySessions] = useState<MandatorySessionSummary[]>([]);
-  const [readinessCount, setReadinessCount] = useState(0);
+
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -220,7 +221,7 @@ function SetupContent() {
       setPersons(Array.isArray(c?.persons) ? c.persons : []);
       setCourses(Array.isArray(c?.courses) ? c.courses : []);
       setMandatorySessions(Array.isArray(c?.mandatorySessions) ? c.mandatorySessions : []);
-      setReadinessCount(Number(dashboard?.issueSummary?.warning || 0));
+
       window.dispatchEvent(new CustomEvent("camp:setup-changed", { detail: { campId } }));
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -783,7 +784,9 @@ function SetupContent() {
     label: step.label,
     done: Boolean(step.done),
   }));
-  const remainingCount = readinessCount;
+  // Match the sidebar exactly: incomplete setup sections, not a differently
+  // scoped issue-engine warning tally.
+  const remainingCount = totalRemaining(setupSections);
   // Kept in a ref so the routing effect can read the latest completion state
   // without re-running every time a count changes.
   setupSectionsRef.current = setupSections;

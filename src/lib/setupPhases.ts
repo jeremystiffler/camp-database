@@ -50,6 +50,17 @@ export function teacherCoverageDone(
 }
 
 /**
+ * Scheduling is the final requirement for an activity to be genuinely ready.
+ * Keep this predicate shared: an unscheduled activity must never receive a
+ * green "Ready" badge while setup still asks the organiser to schedule it.
+ */
+export function activityScheduleDone(
+  courses: Array<{ scheduled: boolean }>,
+): boolean {
+  return courses.length > 0 && courses.every((course) => course.scheduled);
+}
+
+/**
  * The status line (§5.2a).
  *
  * THE TRIPWIRE, recorded because it is easy to violate by accident: this is a

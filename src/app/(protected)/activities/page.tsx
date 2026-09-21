@@ -967,6 +967,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
     if (!course.room) return { label: "Needs room", tone: "bg-orange-50 text-orange-700 border-orange-200", priority: "needs" };
     if (!course.courseTeachers || course.courseTeachers.length === 0) return { label: "Needs teacher", tone: "bg-rose-50 text-rose-700 border-rose-200", priority: "needs" };
     if (!course.courseAgeGroups || course.courseAgeGroups.length === 0) return { label: "Needs ages", tone: "bg-sky-50 text-sky-700 border-sky-200", priority: "needs" };
+    if (!(course.courseSessionTemplates?.length || course.sessions?.length)) return { label: "Needs time", tone: "bg-orange-50 text-orange-700 border-orange-200", priority: "needs" };
     return { label: "Ready", tone: "bg-emerald-50 text-emerald-700 border-emerald-200", priority: "ready" };
   };
 
