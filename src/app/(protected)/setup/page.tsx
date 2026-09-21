@@ -191,6 +191,8 @@ function SetupContent() {
   const [newAgeMin,   setNewAgeMin]   = useState("");
   const [newAgeMax,   setNewAgeMax]   = useState("");
   const [newAgeColor, setNewAgeColor] = useState("#6B7D5F");
+  const [ageGroupError, setAgeGroupError] = useState("");
+  const newAgeNameRef = useRef<HTMLInputElement>(null);
 
   // Age group inline editing
   const [editingAgeGroupId, setEditingAgeGroupId] = useState<string | null>(null);
@@ -499,12 +501,28 @@ function SetupContent() {
 
   const addAgeGroup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const name = newAgeName.trim();
+    const minAge = newAgeMin ? Number(newAgeMin) : undefined;
+    const maxAge = newAgeMax ? Number(newAgeMax) : undefined;
+    if (!name) {
+      setAgeGroupError("Add a group name before saving.");
+      newAgeNameRef.current?.focus();
+      return;
+    }
+    if ((minAge !== undefined && (!Number.isInteger(minAge) || minAge < 1)) ||
+        (maxAge !== undefined && (!Number.isInteger(maxAge) || maxAge < 1)) ||
+        (minAge !== undefined && maxAge !== undefined && minAge > maxAge)) {
+      setAgeGroupError("Enter a valid age range: the minimum age cannot be higher than the maximum.");
+      return;
+    }
+    setAgeGroupError("");
     const res = await fetch(`/api/camps/${campId}/age-groups`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newAgeName, minAge: newAgeMin ? parseInt(newAgeMin) : undefined, maxAge: newAgeMax ? parseInt(newAgeMax) : undefined, color: newAgeColor, displayOrder: ageGroups.length }),
+      body: JSON.stringify({ name, minAge, maxAge, color: newAgeColor, displayOrder: ageGroups.length }),
     });
     if (res.ok) { setNewAgeName(""); setNewAgeMin(""); setNewAgeMax(""); load(); }
+    else setAgeGroupError("Could not save this age group. Please try again.");
   };
 
   const startEditAgeGroup = (ageGroup: AgeGroup) => {
@@ -736,8 +754,16 @@ function SetupContent() {
       load();
       return;
     }
+    const createdSlots = await Promise.all(responses.map(response => response.json()));
+    if (createdSlots.some(slot => !slot?.id)) {
+      alert("The session block did not finish saving. Please try again.");
+      await load();
+      return;
+    }
+    // Completion follows API-confirmed records, never draft state.
+    setSlots(prev => [...prev, ...createdSlots]);
     setDraftRows(prev => prev.filter(d => d.id !== draft.id));
-    load();
+    await load();
   };
 
   if (!campId) return <EmptyState title="Choose an event first" description="Setup is saved per event. Choose an event from the dashboard to continue." actionHref="/dashboard" actionLabel="Go to dashboard" />;
@@ -880,19 +906,19 @@ function SetupContent() {
       <Section title="Event Details" footer={nextCardButton}>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Event Name</label>
-            <input type="text" value={campName} onChange={e => setCampName(e.target.value)}
+            <label htmlFor="setup-event-name" className="block text-sm font-medium text-slate-700 mb-1.5">Event Name</label>
+            <input id="setup-event-name" type="text" value={campName} onChange={e => setCampName(e.target.value)}
               className="w-full max-w-md px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30 focus:border-berry-400" />
           </div>
           <div className="grid grid-cols-2 gap-4 max-w-md">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Start Date</label>
-              <input type="date" aria-label="Start date" value={startDate} onChange={e => setStartDate(e.target.value)}
+              <label htmlFor="setup-start-date" className="block text-sm font-medium text-slate-700 mb-1.5">Start Date</label>
+              <input id="setup-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">End Date</label>
-              <input type="date" aria-label="End date" value={endDate} onChange={e => setEndDate(e.target.value)}
+              <label htmlFor="setup-end-date" className="block text-sm font-medium text-slate-700 mb-1.5">End Date</label>
+              <input id="setup-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30" />
             </div>
           </div>
@@ -905,8 +931,8 @@ function SetupContent() {
           {setupNotice && <p className="max-w-md rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">{setupNotice}</p>}
           <div className="flex items-center gap-4 flex-wrap">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
-              <select value={status} onChange={e => setStatus(e.target.value)}
+              <label htmlFor="setup-event-status" className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
+              <select id="setup-event-status" value={status} onChange={e => setStatus(e.target.value)}
                 className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-berry-500/30">
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -914,7 +940,7 @@ function SetupContent() {
               </select>
             </div>
             <div className="flex items-center gap-2 mt-5">
-              <button type="button" role="switch" aria-checked={registrationOpen}
+              <button type="button" role="switch" aria-label="Registration open" aria-checked={registrationOpen}
                 onClick={() => setRegistrationOpen(v => !v)}
                 className={`relative w-10 h-5 rounded-full transition-colors ${registrationOpen ? "bg-slate-900" : "bg-slate-200"}`}>
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${registrationOpen ? "translate-x-5" : ""}`} />
@@ -1071,30 +1097,31 @@ function SetupContent() {
               </div>
             ))}
         </div>
-        <form onSubmit={addAgeGroup} className="flex gap-3 items-end flex-wrap">
+        <form onSubmit={addAgeGroup} noValidate className="flex gap-3 items-end flex-wrap">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Group Name</label>
-            <input type="text" value={newAgeName} onChange={e => setNewAgeName(e.target.value)} required placeholder="e.g. Younger Participants"
-              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+            <label htmlFor="setup-age-group-name" className="block text-xs font-medium text-slate-500 mb-1">Group Name</label>
+            <input id="setup-age-group-name" ref={newAgeNameRef} type="text" value={newAgeName} onChange={e => { setNewAgeName(e.target.value); setAgeGroupError(""); }} aria-invalid={Boolean(ageGroupError)} aria-describedby={ageGroupError ? "setup-age-group-error" : undefined} placeholder="e.g. Younger Participants"
+              className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Min Age</label>
-            <input type="number" value={newAgeMin} onChange={e => setNewAgeMin(e.target.value)} min={1} placeholder="6"
-              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+            <label htmlFor="setup-age-group-min" className="block text-xs font-medium text-slate-500 mb-1">Min Age</label>
+            <input id="setup-age-group-min" type="number" value={newAgeMin} onChange={e => { setNewAgeMin(e.target.value); setAgeGroupError(""); }} min={1} placeholder="6"
+              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Max Age</label>
-            <input type="number" value={newAgeMax} onChange={e => setNewAgeMax(e.target.value)} min={1} placeholder="12"
-              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-forest-500/30" />
+            <label htmlFor="setup-age-group-max" className="block text-xs font-medium text-slate-500 mb-1">Max Age</label>
+            <input id="setup-age-group-max" type="number" value={newAgeMax} onChange={e => { setNewAgeMax(e.target.value); setAgeGroupError(""); }} min={1} placeholder="12"
+              className="w-16 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-[#636363] focus:outline-none focus:ring-2 focus:ring-sky-500/30" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Color</label>
-            <input type="color" value={newAgeColor} onChange={e => setNewAgeColor(e.target.value)}
+            <label htmlFor="setup-age-group-color" className="block text-xs font-medium text-slate-500 mb-1">Color</label>
+            <input id="setup-age-group-color" type="color" value={newAgeColor} onChange={e => setNewAgeColor(e.target.value)}
               className="w-10 h-9 border border-slate-200 rounded-xl cursor-pointer" />
           </div>
           <button type="submit" className="minimal-button-primary">
             + Add Group
           </button>
+          {ageGroupError && <p id="setup-age-group-error" role="alert" className="basis-full text-sm font-semibold text-red-700">{ageGroupError}</p>}
         </form>
       </Section>
       )}

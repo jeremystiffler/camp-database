@@ -149,6 +149,11 @@ describe("keyboard model (§3)", () => {
     expect(html).toContain('id="ops-r1-c1"');
   });
 
+  it("gives each interactive schedule cell a descriptive accessible name", () => {
+    expect(html).toContain('aria-label="Open Choir at 9:20am"');
+    expect(html).toContain('aria-label="Open Drum Set at 9:45am"');
+  });
+
   it("tells a screen reader how to drive the grid", () => {
     expect(html).toContain("arrow keys");
   });

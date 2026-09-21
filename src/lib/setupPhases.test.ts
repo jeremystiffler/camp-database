@@ -216,4 +216,12 @@ describe("§5.4 acceptance, against the live setup page", () => {
     expect(page).not.toContain("activePhase");
     expect(page).not.toContain("setupphase");
   });
+
+  it("labels setup fields and provides visible age-group validation recovery", () => {
+    expect(page).toContain('htmlFor="setup-event-name"');
+    expect(page).toContain('aria-label="Registration open"');
+    expect(page).toContain('id="setup-age-group-name"');
+    expect(page).toContain('role="alert"');
+    expect(page).toContain("newAgeNameRef.current?.focus()");
+  });
 });

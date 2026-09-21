@@ -1091,6 +1091,7 @@ export function OperationsGrid({
                               type="button"
                               id={cellDomId(rowIndex, colIndex)}
                               className="ops-cellbtn"
+                              aria-label={`Open ${course.name} at ${column.label || `${column.startTime}–${column.endTime}`}`}
                               onClick={(event) => openCell(course, column, event.currentTarget)}
                               onFocus={() => setFocus({ row: rowIndex, col: colIndex })}
                             >
