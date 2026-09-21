@@ -976,7 +976,8 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
     const hasFullSession = Boolean(course.cap && (course.sessions || []).some(session => (session.enrolledCount || 0) >= course.cap!));
     return [
       ...(!course.courseTeachers?.length && !dismissed.has("teacher") ? [{ key: "teacher" as const, label: "No teacher assigned" }] : []),
-      ...(!(course.courseSessionTemplates?.length || course.sessions?.length) && !dismissed.has("schedule") ? [{ key: "schedule" as const, label: "Not on the schedule" }] : []),
+      // Schedule readiness is the single orange status badge above. Do not repeat
+      // the same defect as a second red warning.
       ...(hasFullSession && !dismissed.has("capacity") ? [{ key: "capacity" as const, label: "At capacity" }] : []),
     ];
   };
