@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { ASSIGNABLE_ROLES, hasPermission } from "@/lib/permissions";
 
 async function getMemberRole(userId: string, campId: string): Promise<string | null> {
   const m = await prisma.campMember.findFirst({ where: { campId, userId } });
@@ -29,6 +29,9 @@ export async function PATCH(
   if (member.role === "owner") return NextResponse.json({ error: "Cannot change owner role" }, { status: 403 });
   // Can't promote someone higher than yourself
   const { role } = await req.json();
+  if (!ASSIGNABLE_ROLES.includes(role)) {
+    return NextResponse.json({ error: "Choose a valid assignable role" }, { status: 400 });
+  }
   if (hasPermission(role, "admin") && !hasPermission(myRole, "admin")) {
     return NextResponse.json({ error: "Cannot grant a role higher than your own" }, { status: 403 });
   }

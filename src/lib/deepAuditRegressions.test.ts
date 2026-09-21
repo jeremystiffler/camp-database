@@ -143,6 +143,19 @@ describe("deep audit shared system regressions", () => {
     expect(scheduleGrid).toContain("Open the full activity editor");
   });
 
+  it("limits team role mutations to assignable roles and reports failures", () => {
+    const membersRoute = read("src/app/api/camps/[campId]/members/route.ts");
+    const memberRoute = read("src/app/api/camps/[campId]/members/[memberId]/route.ts");
+    const team = read("src/app/(protected)/team/page.tsx");
+    expect(membersRoute).toContain("ASSIGNABLE_ROLES.includes(inviteRole)");
+    expect(memberRoute).toContain("ASSIGNABLE_ROLES.includes(role)");
+    expect(membersRoute).toContain("Choose a valid assignable role");
+    expect(memberRoute).toContain("Choose a valid assignable role");
+    expect(team).toContain('aria-label="Invite role"');
+    expect(team).toContain("aria-label={`Role for ${m.user.name || m.user.email}`}");
+    expect(team).toContain("Could not change this person's role.");
+  });
+
   it("keeps marketing hierarchy and terminology aligned with the app", () => {
     const landing = read("src/app/page.tsx");
     const coverage = read("src/components/CoverageMatrixView.tsx");

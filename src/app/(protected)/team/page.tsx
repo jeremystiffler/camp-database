@@ -98,23 +98,36 @@ function TeamContent() {
   };
 
   const changeRole = async (memberId: string, role: string) => {
-    await fetch(`/api/camps/${campId}/members/${memberId}`, {
+    setInviteMsg(null);
+    const res = await fetch(`/api/camps/${campId}/members/${memberId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setInviteMsg({ type: "error", text: data.error || "Could not change this person's role." });
+    }
     load();
   };
 
   const removeMember = async (memberId: string) => {
     if (!(await confirm({ title: "Remove this person?", description: "They will lose access to this event.", confirmLabel: "Remove person", destructive: true }))) return;
-    await fetch(`/api/camps/${campId}/members/${memberId}`, { method: "DELETE" });
+    const res = await fetch(`/api/camps/${campId}/members/${memberId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setInviteMsg({ type: "error", text: data.error || "Could not remove this person." });
+    }
     load();
   };
 
   const cancelInvite = async (inviteId: string) => {
     if (!(await confirm({ title: "Cancel this invite?", description: "The invitation link will stop working.", confirmLabel: "Cancel invite", destructive: true }))) return;
-    await fetch(`/api/camps/${campId}/members/${inviteId}`, { method: "DELETE" });
+    const res = await fetch(`/api/camps/${campId}/members/${inviteId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setInviteMsg({ type: "error", text: data.error || "Could not cancel this invite." });
+    }
     load();
   };
 
@@ -151,6 +164,7 @@ function TeamContent() {
               className="flex-1 min-w-48 px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-forest-500/30 focus:border-forest-400"
             />
             <select
+              aria-label="Invite role"
               value={inviteRole}
               onChange={e => setInviteRole(e.target.value as CampRole)}
               className="px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-forest-500/30"
@@ -219,6 +233,7 @@ function TeamContent() {
                     {/* Role selector */}
                     {canManage && !isOwner && !isMe ? (
                       <select
+                        aria-label={`Role for ${m.user.name || m.user.email}`}
                         value={m.role}
                         onChange={e => changeRole(m.id, e.target.value)}
                         className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-forest-500/30"

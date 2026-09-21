@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { ASSIGNABLE_ROLES, hasPermission } from "@/lib/permissions";
 
 async function getMemberRole(userId: string, campId: string): Promise<string | null> {
   const m = await prisma.campMember.findFirst({ where: { campId, userId } });
@@ -43,6 +43,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
 
   const { email, inviteRole = "editor" } = await req.json();
   if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
+  if (!ASSIGNABLE_ROLES.includes(inviteRole)) {
+    return NextResponse.json({ error: "Choose a valid assignable role" }, { status: 400 });
+  }
 
   // Check if already a member
   const existing = await prisma.user.findUnique({ where: { email } });
