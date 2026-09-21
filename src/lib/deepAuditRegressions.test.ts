@@ -121,6 +121,11 @@ describe("deep audit shared system regressions", () => {
     expect(participants).toContain('{isNew ? "Add Participant" : currentName}');
   });
 
+  it("allows protected workspace content to shrink instead of widening the mobile page", () => {
+    const layout = read("src/app/(protected)/layout.tsx");
+    expect(layout).toContain("flex-1 min-w-0 min-h-dvh flex justify-center");
+  });
+
   it("keeps marketing hierarchy and terminology aligned with the app", () => {
     const landing = read("src/app/page.tsx");
     const coverage = read("src/components/CoverageMatrixView.tsx");
