@@ -1120,7 +1120,15 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
 
       {workspaceTab === "schedule" && (
       <div id="activity-schedule-grid" className="scroll-mt-6">
-        <TimeslotAssignmentGrid campId={campId} />
+        <TimeslotAssignmentGrid
+          campId={campId}
+          onEditActivity={(courseId) => {
+            const course = courses.find((item) => item.id === courseId);
+            if (!course) return;
+            setEditingCourse(course);
+            setShowModal(true);
+          }}
+        />
       </div>
       )}
         </>
@@ -1394,7 +1402,11 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
           sessionTemplates={sessionTemplates}
           prefill={prefillBlock}
           onClose={() => { setShowModal(false); setEditingCourse(undefined); setPrefillBlock(null); }}
-          onSaved={() => { load(); onActivitiesChanged?.(); }}
+          onSaved={() => {
+            load();
+            window.dispatchEvent(new CustomEvent("camp:activity-changed", { detail: { campId } }));
+            onActivitiesChanged?.();
+          }}
           onPersonsChanged={setPersons}
         />
       )}

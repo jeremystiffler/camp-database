@@ -133,6 +133,16 @@ describe("deep audit shared system regressions", () => {
     expect(layout).toContain("flex-1 min-w-0 min-h-dvh flex justify-center");
   });
 
+  it("lets schedule context launch the canonical activity editor", () => {
+    const activities = read("src/app/(protected)/activities/page.tsx");
+    const scheduleGrid = read("src/components/TimeslotAssignmentGrid.tsx");
+    expect(activities).toContain("onEditActivity={(courseId) => {");
+    expect(activities).toContain('new CustomEvent("camp:activity-changed"');
+    expect(scheduleGrid).toContain("onEditActivity?: (courseId: string) => void");
+    expect(scheduleGrid).toContain('window.addEventListener("camp:activity-changed"');
+    expect(scheduleGrid).toContain("Open the full activity editor");
+  });
+
   it("keeps marketing hierarchy and terminology aligned with the app", () => {
     const landing = read("src/app/page.tsx");
     const coverage = read("src/components/CoverageMatrixView.tsx");

@@ -26,7 +26,14 @@ type CellAvailability = { status: "scheduled" | "available" | "blocked"; label: 
 
 const DAYS = ["S","M","T","W","T","F","S"];
 
-export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
+export default function TimeslotAssignmentGrid({
+  campId,
+  onEditActivity,
+}: {
+  campId: string;
+  /** Launch the canonical Activity editor while preserving schedule context. */
+  onEditActivity?: (courseId: string) => void;
+}) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [persons, setPersons] = useState<Person[]>([]);
@@ -64,6 +71,14 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
   };
 
   useEffect(() => { loadGridData(); }, [campId]);
+  useEffect(() => {
+    const refreshAfterCanonicalEdit = (event: Event) => {
+      const changedCampId = (event as CustomEvent<{ campId?: string }>).detail?.campId;
+      if (!changedCampId || changedCampId === campId) loadGridData();
+    };
+    window.addEventListener("camp:activity-changed", refreshAfterCanonicalEdit);
+    return () => window.removeEventListener("camp:activity-changed", refreshAfterCanonicalEdit);
+  }, [campId]);
 
   const allSessionGroups = useMemo((): SessionGroup[] => {
     const map = new Map<string, SessionGroup>();
@@ -595,7 +610,18 @@ export default function TimeslotAssignmentGrid({ campId }: { campId: string }) {
                       )}
                       <tr className={`${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} hover:bg-stone-50 transition-colors`}>
                       <td className={`sticky left-0 z-10 py-2 px-3 border-b border-slate-100 ${i % 2 === 0 ? "bg-white" : "bg-slate-50"}`}>
-                        <div className="font-semibold text-slate-800 text-xs">{course.name}</div>
+                        {onEditActivity ? (
+                          <button
+                            type="button"
+                            onClick={() => onEditActivity(course.id)}
+                            className="rounded px-1 text-left text-xs font-semibold text-slate-800 hover:bg-sky-100 hover:text-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
+                            title="Open the full activity editor"
+                          >
+                            {course.name}
+                          </button>
+                        ) : (
+                          <div className="font-semibold text-slate-800 text-xs">{course.name}</div>
+                        )}
                         {course.courseAgeGroups.length > 0 && <div className="text-xs text-slate-500 font-medium mt-0.5">{course.courseAgeGroups.map(cag => cag.ageGroup.name).join(" · ")}</div>}
                       </td>
                       <td className="py-2 px-2 border-b border-slate-100">
