@@ -156,6 +156,14 @@ describe("deep audit shared system regressions", () => {
     expect(team).toContain("Could not change this person's role.");
   });
 
+  it("keeps failed activity bulk mutations selected and visible for recovery", () => {
+    const activities = read("src/app/(protected)/activities/page.tsx");
+    expect(activities).toContain("const failedIds = results.filter(({ response }) => !response.ok).map(({ id }) => id);");
+    expect(activities).toContain("setSelectedCourseIds(new Set(failedIds))");
+    expect(activities).toContain("Your selected activities were kept.");
+    expect(activities).toContain('role="alert"');
+  });
+
   it("keeps marketing hierarchy and terminology aligned with the app", () => {
     const landing = read("src/app/page.tsx");
     const coverage = read("src/components/CoverageMatrixView.tsx");

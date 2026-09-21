@@ -772,6 +772,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
   const [inlineConflicts, setInlineConflicts]   = useState<SchedulingConflict[]>([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const [bulkWorking, setBulkWorking]           = useState(false);
+  const [bulkError, setBulkError]               = useState("");
   // Which block/group a coverage flag asked for, so the new-class form opens
   // already carrying that context (§4.4).
   const [prefillBlock, setPrefillBlock]         = useState<{ blockId: string; ageGroupId: string } | null>(null);
@@ -863,10 +864,18 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
     if (ids.length === 0) return;
     if (!(await confirm({ title: "Delete selected activities?", description: `This permanently deletes ${ids.length} selected activit${ids.length === 1 ? "y" : "ies"}.`, confirmLabel: "Delete activities", destructive: true }))) return;
     setBulkWorking(true);
-    await Promise.all(ids.map(id => fetch(`/api/camps/${campId}/courses/${id}`, { method: "DELETE" })));
-    setSelectedCourseIds(new Set());
-    setBulkWorking(false);
-    load();
+    setBulkError("");
+    try {
+      const results = await Promise.all(ids.map(async (id) => ({ id, response: await fetch(`/api/camps/${campId}/courses/${id}`, { method: "DELETE" }) })));
+      const failedIds = results.filter(({ response }) => !response.ok).map(({ id }) => id);
+      setSelectedCourseIds(new Set(failedIds));
+      if (failedIds.length) setBulkError(`${failedIds.length} activit${failedIds.length === 1 ? "y could" : "ies could"} not be deleted. They remain selected so you can review them.`);
+      load();
+    } catch {
+      setBulkError("Could not complete the bulk delete. Your selected activities were kept.");
+    } finally {
+      setBulkWorking(false);
+    }
   };
 
   const deleteCourse = async (course: Course) => {
@@ -880,23 +889,34 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
     const selected = courses.filter(course => selectedCourseIds.has(course.id));
     if (selected.length === 0) return;
     setBulkWorking(true);
-    await Promise.all(selected.map(course => fetch(`/api/camps/${campId}/courses`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: `${course.name} Copy`,
-        description: course.description || undefined,
-        cap: course.cap || 20,
-        color: course.color || "#64748B",
-        icon: course.icon || "A",
-        roomId: course.room?.id || null,
-        ageGroupIds: course.courseAgeGroups?.map(cag => cag.ageGroup.id) || [],
-        teacherIds: course.courseTeachers?.map(ct => ct.person.id) || [],
-      }),
-    })));
-    setSelectedCourseIds(new Set());
-    setBulkWorking(false);
-    load();
+    setBulkError("");
+    try {
+      const results = await Promise.all(selected.map(async (course) => ({
+        id: course.id,
+        response: await fetch(`/api/camps/${campId}/courses`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: `${course.name} Copy`,
+            description: course.description || undefined,
+            cap: course.cap || 20,
+            color: course.color || "#64748B",
+            icon: course.icon || "A",
+            roomId: course.room?.id || null,
+            ageGroupIds: course.courseAgeGroups?.map(cag => cag.ageGroup.id) || [],
+            teacherIds: course.courseTeachers?.map(ct => ct.person.id) || [],
+          }),
+        }),
+      })));
+      const failedIds = results.filter(({ response }) => !response.ok).map(({ id }) => id);
+      setSelectedCourseIds(new Set(failedIds));
+      if (failedIds.length) setBulkError(`${failedIds.length} activit${failedIds.length === 1 ? "y could" : "ies could"} not be duplicated. They remain selected so you can try again.`);
+      load();
+    } catch {
+      setBulkError("Could not complete the bulk duplicate. Your selected activities were kept.");
+    } finally {
+      setBulkWorking(false);
+    }
   };
 
   const replaceCourse = (updated: Course) => {
@@ -1215,6 +1235,7 @@ export function ActivitiesContent({ simpleCatalog = false, onActivitiesChanged }
               </div>
             </div>
           )}
+          {bulkError && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{bulkError}</p>}
 
           {loading ? (
             <div className="flex h-48 items-center justify-center rounded-2xl border border-slate-200 bg-white">
