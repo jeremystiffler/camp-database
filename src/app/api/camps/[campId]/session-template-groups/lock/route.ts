@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCampRole } from "@/lib/camp-write-guards";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
@@ -18,7 +19,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  const denial = await requireCampRole(session.userId, campId);
+  if (denial) return denial;
 
   const data = await req.json().catch(() => ({}));
   const mandatory = Boolean(data.mandatory);

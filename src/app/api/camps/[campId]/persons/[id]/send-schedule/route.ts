@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCampRole } from "@/lib/camp-write-guards";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { getResend, FROM_EMAIL } from "@/lib/email";
@@ -30,7 +31,8 @@ export async function POST(
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  const denial = await requireCampRole(session.userId, campId);
+  if (denial) return denial;
 
   const data = await buildScheduleData(campId, id);
   if (!data) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });

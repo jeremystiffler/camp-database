@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCampRole } from "@/lib/camp-write-guards";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
@@ -11,9 +12,9 @@ export async function POST(
 
   const { campId: sourceCampId } = await params;
 
-  // Verify user has access to source camp
-  const member = await prisma.campMember.findFirst({ where: { campId: sourceCampId, userId: session.userId } });
-  if (!member) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  // Only editors can copy this event.
+  const denial = await requireCampRole(session.userId, sourceCampId);
+  if (denial) return denial;
 
   const {
     name,

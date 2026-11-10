@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCampRole } from "@/lib/camp-write-guards";
 import { prisma } from "@/lib/db";
 import { publicCapacity } from "@/lib/capacity";
 import { blockingIssues, detectIssues } from "@/lib/issues";
@@ -307,7 +308,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  const denial = await requireCampRole(session.userId, campId);
+  if (denial) return denial;
 
   const body = await req.json().catch(() => ({}));
   const title = typeof body.title === "string" && body.title.trim() ? body.title.trim() : "New Registration Form";
@@ -332,7 +334,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ camp
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  const denial = await requireCampRole(session.userId, campId);
+  if (denial) return denial;
 
   const { formId, fields, title, slug, status, isDefault, classChoicesEnabled, familyRegistrationEnabled, confirmationEmailSubject, confirmationEmailIntro, confirmationEmailTemplate, adminNotificationEmails, confirmationIncludeGuardian, confirmationIncludeStudents, confirmationIncludeClasses, confirmationIncludeEmergency, confirmationIncludePayment, mandatoryClassRules } = await req.json();
   if (!Array.isArray(fields)) return NextResponse.json({ error: "fields must be an array" }, { status: 400 });

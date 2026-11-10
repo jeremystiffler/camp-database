@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCampRole } from "@/lib/camp-write-guards";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
@@ -33,7 +34,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  const denial = await requireCampRole(session.userId, campId);
+  if (denial) return denial;
 
   const existing = await prisma.person.findFirst({ where: { id, campId }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
@@ -84,7 +86,8 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  const denial = await requireCampRole(session.userId, campId);
+  if (denial) return denial;
 
   const existing = await prisma.person.findFirst({ where: { id, campId }, select: { id: true } });
   if (!existing) return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
