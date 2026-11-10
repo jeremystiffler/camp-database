@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkSchedulingConflicts } from "@/lib/scheduling-conflicts";
 import { effectiveCapacity } from "@/lib/capacity";
+import { allowedBody, COURSE_FIELDS, courseFields, requireCampRole, validCourseReferences } from "@/lib/camp-write-guards";
 
 async function checkAccess(userId: string, campId: string) {
   return prisma.campMember.findFirst({ where: { campId, userId } });
@@ -13,9 +14,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId } = await params;
-  if (!await checkAccess(session.userId, campId)) return NextResponse.json({ error: "Event not found" }, { status: 404 });
-
-  const { ageGroupIds, teacherIds, sessionTemplateIds, ...data } = await req.json();
+  const denied = await requireCampRole(session.userId, campId);
+  if (denied) return denied;
+  const body: unknown = await req.json();
+  if (!allowedBody(body, COURSE_FIELDS)) return NextResponse.json({ error: "Invalid activity fields" }, { status: 400 });
+  const { ageGroupIds, teacherIds, sessionTemplateIds } = body;
+  const data = courseFields(body);
+  if (!data || !data.name) return NextResponse.json({ error: "Activity name is required" }, { status: 400 });
+  if (!await validCourseReferences(campId, body)) return NextResponse.json({ error: "Invalid or foreign activity references" }, { status: 400 });
+  if (body.attentionDismissals !== undefined) return NextResponse.json({ error: "Attention dismissals cannot be set during creation" }, { status: 400 });
 
   if (data.roomId) {
     const room = await prisma.room.findFirst({ where: { id: data.roomId, campId }, select: { name: true, capacity: true } });
@@ -25,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   // Cap validation runs whether or not a room is assigned. The class cap is the
   // only limit on enrollment; room capacity is advisory and never blocks a class.
   {
-    const cap = data.cap === null || data.cap === undefined || data.cap === "" ? null : Number(data.cap);
+    const cap = data.cap ?? null;
     const heldSeats = data.heldSeats === undefined ? 0 : Number(data.heldSeats);
     if (cap !== null && (!Number.isInteger(cap) || cap < 1)) return NextResponse.json({ error: "Class limit must be a positive whole number." }, { status: 400 });
     const capacity = effectiveCapacity({ cap, heldSeats });
@@ -48,7 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  const course = await prisma.course.create({ data: { ...data, campId } });
+  const course = await prisma.course.create({ data: { ...data, name: data.name, campId } });
 
   if (Array.isArray(ageGroupIds) && ageGroupIds.length > 0) {
     for (const ageGroupId of ageGroupIds) {

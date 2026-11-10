@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { checkSchedulingConflicts } from "@/lib/scheduling-conflicts";
 import { effectiveCapacity, syncCourseSessionCapacities } from "@/lib/capacity";
+import { allowedBody, COURSE_FIELDS, courseFields, requireCampRole, validCourseReferences } from "@/lib/camp-write-guards";
 
 async function accessibleCourse(userId: string, campId: string, courseId: string) {
   const member = await prisma.campMember.findFirst({
@@ -20,11 +21,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
+  const denied = await requireCampRole(session.userId, campId);
+  if (denied) return denied;
   if (!await accessibleCourse(session.userId, campId, id)) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
-  const { ageGroupIds, teacherIds, sessionTemplateIds, attentionDismissals, ...data } = await req.json();
+  const body: unknown = await req.json();
+  if (!allowedBody(body, COURSE_FIELDS)) return NextResponse.json({ error: "Invalid activity fields" }, { status: 400 });
+  const { ageGroupIds, teacherIds, sessionTemplateIds, attentionDismissals } = body;
+  const data = courseFields(body);
+  if (!data) return NextResponse.json({ error: "Invalid activity fields" }, { status: 400 });
+  if (!await validCourseReferences(campId, body)) return NextResponse.json({ error: "Invalid or foreign activity references" }, { status: 400 });
+  if (attentionDismissals !== undefined && (!Array.isArray(attentionDismissals) || attentionDismissals.some(value => typeof value !== "string"))) return NextResponse.json({ error: "Invalid attention dismissals" }, { status: 400 });
 
   // ── Load current course state for conflict check ───────────────────────────
   // The caller may only send ONE of {roomId, teacherIds, sessionTemplateIds}.
@@ -53,7 +62,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
   const nextRoom = resolvedRoomId
     ? await prisma.room.findFirst({ where: { id: resolvedRoomId, campId }, select: { id: true, name: true, capacity: true } })
     : null;
-  const nextCap = "cap" in data ? (data.cap === null || data.cap === "" ? null : Number(data.cap)) : existing.cap;
+  const nextCap = "cap" in data ? (data.cap ?? null) : existing.cap;
   const nextHeldSeats = "heldSeats" in data ? Number(data.heldSeats) : existing.heldSeats;
   const capacityEdit = "roomId" in data || "cap" in data || "heldSeats" in data;
   if (capacityEdit) {
@@ -163,6 +172,8 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ cam
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { campId, id } = await params;
+  const denied = await requireCampRole(session.userId, campId);
+  if (denied) return denied;
   if (!await accessibleCourse(session.userId, campId, id)) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
