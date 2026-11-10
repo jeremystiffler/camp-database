@@ -173,9 +173,9 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={12}
               className="w-full rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
-              placeholder="Min 6 characters"
+              placeholder="At least 12 characters"
             />
           </div>
 

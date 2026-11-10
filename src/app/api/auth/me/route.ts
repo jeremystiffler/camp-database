@@ -15,9 +15,7 @@ export async function GET() {
     if (!user) return NextResponse.json({ user: null }, { status: 401 });
     return NextResponse.json({ user: { ...user, isSuperAdmin: isRootSuperAdminEmail(user.email) || user.platformRole === "super_admin", isRootSuperAdmin: isRootSuperAdminEmail(user.email) } });
   } catch {
-    return NextResponse.json({
-      user: { id: session.userId, email: session.email, name: session.name, role: "owner", organizationId: session.organizationId || null, isSuperAdmin: isRootSuperAdminEmail(session.email), isRootSuperAdmin: isRootSuperAdminEmail(session.email) },
-    });
+    return NextResponse.json({ error: "Unable to verify account" }, { status: 503 });
   }
 }
 
@@ -33,21 +31,22 @@ export async function PATCH(req: NextRequest) {
 
   const updates: Record<string, string | boolean> = {};
 
-  if (name?.trim()) updates.name = name.trim();
+  if (typeof name === "string" && name.trim()) updates.name = name.trim().slice(0, 100);
 
-  if (email?.trim() && email.trim() !== user.email) {
-    const existing = await prisma.user.findUnique({ where: { email: email.trim() } });
+  if (typeof email === "string" && email.trim().toLowerCase() !== user.email) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return NextResponse.json({ error: "Enter a valid email" }, { status: 400 });
+    if (!user.passwordHash || typeof currentPassword !== "string" || !await verifyPassword(currentPassword, user.passwordHash)) return NextResponse.json({ error: "Current password required to change email" }, { status: 403 });
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) return NextResponse.json({ error: "That email is already in use" }, { status: 409 });
-    updates.email = email.trim();
+    updates.email = normalizedEmail;
   }
 
   if (newPassword) {
-    if (!currentPassword) return NextResponse.json({ error: "Current password required to set a new one" }, { status: 400 });
-    if (user.passwordHash) {
-      const valid = await verifyPassword(currentPassword, user.passwordHash);
-      if (!valid) return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
+    if (!user.passwordHash || typeof currentPassword !== "string" || !await verifyPassword(currentPassword, user.passwordHash)) {
+      return NextResponse.json({ error: "Current password required to set a new one" }, { status: 403 });
     }
-    if (newPassword.length < 6) return NextResponse.json({ error: "New password must be at least 6 characters" }, { status: 400 });
+    if (typeof newPassword !== "string" || newPassword.length < 12 || newPassword.length > 1024) return NextResponse.json({ error: "New password must be at least 12 characters" }, { status: 400 });
     updates.passwordHash = await hashPassword(newPassword);
   }
 

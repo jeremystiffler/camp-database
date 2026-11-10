@@ -92,6 +92,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cam
     } else if (action === "shirt_picked_up") {
       data = { shirtPickedUpAt: now, notes: note };
     } else if (action === "mark_paid" || action === "mark_comped") {
+      if (!hasPermission(member.role, "admin")) return NextResponse.json({ error: "Only admins and owners may record payment changes" }, { status: 403 });
       await prisma.participant.update({ where: { id: participantId }, data: { paymentStatus: action === "mark_paid" ? "paid" : "comped" } });
       data = { notes: note };
       eventType = "payment_collected";

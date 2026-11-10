@@ -106,7 +106,7 @@ interface Participant {
 }
 
 const TSHIRT_SIZES = ["YXS", "YS", "YM", "YL", "AS", "AM", "AL", "AXL", "A2XL"];
-const PAYMENT_STATUSES = ["not_required", "unpaid", "paid", "refunded", "comped"];
+
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function age(dob: string) {
@@ -280,13 +280,7 @@ function ParticipantDrawer({
     medicalNotes: participant.medicalNotes || "",
     dietaryNotes: participant.dietaryNotes || "",
     customData: participant.customData || "",
-    couponCode: participant.couponCode || "",
-    campPriceCents: String(participant.campPriceCents || 0),
-    discountCents: String(participant.discountCents || 0),
-    platformFeeCents: String(participant.platformFeeCents || 0),
-    totalPaidCents: String(participant.totalPaidCents || 0),
-    paymentStatus: participant.paymentStatus || "not_required",
-    pickupNumber: participant.pickupNumber || "",
+
   });
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>((participant.enrollments || []).map(e => e.sessionId));
   const [selectedChoiceKeys, setSelectedChoiceKeys] = useState<string[]>((participant.enrollments || []).map(e => sessionChoiceKey(e.session)).filter(key => key && key !== "missing" && !key.startsWith("mandatory|")));
@@ -345,14 +339,7 @@ function ParticipantDrawer({
         medicalNotes: form.medicalNotes.trim() || null,
         dietaryNotes: form.dietaryNotes.trim() || null,
         customData: form.customData.trim() || null,
-        couponCode: form.couponCode.trim() || null,
-        campPriceCents: Number(form.campPriceCents) || 0,
-        discountCents: Number(form.discountCents) || 0,
-        platformFeeCents: Number(form.platformFeeCents) || 0,
-        totalPaidCents: Number(form.totalPaidCents) || 0,
-        paymentStatus: form.paymentStatus,
-        pickupNumber: form.pickupNumber.trim() || null,
-        scanCode: participant.scanCode || null,
+
         sessionIds: selectedSessionIds,
         sessionChoices: selectedChoiceKeys.map(key => {
           const [courseId, sessionTemplateId] = key.split("|");
@@ -473,11 +460,7 @@ function ParticipantDrawer({
               </div>
               {!isNew && <button type="button" onClick={() => manageIdentity("ensure_identity")} disabled={saving} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-60">Ensure codes</button>}
             </div>
-            {editing ? (
-              <label className="mt-3 block text-xs font-bold text-slate-500">Pickup number
-                <input className={inputCls + " mt-1"} placeholder="e.g. 104" value={form.pickupNumber} onChange={e => update("pickupNumber", e.target.value)} />
-              </label>
-            ) : (
+            {!editing && (
               <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
                 <div className="space-y-2 text-sm">
                   <Info label="Pickup #" value={participant.pickupNumber || "—"} tone="sky" />
@@ -584,15 +567,7 @@ function ParticipantDrawer({
           <section className="rounded-2xl border border-slate-200 p-4">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Payment and Custom Data</h3>
             {editing ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input className={inputCls} placeholder="Coupon code" value={form.couponCode} onChange={e => update("couponCode", e.target.value)} />
-                <select className={inputCls} value={form.paymentStatus} onChange={e => update("paymentStatus", e.target.value)}>{PAYMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select>
-                <input className={inputCls} type="number" placeholder="Event price cents" value={form.campPriceCents} onChange={e => update("campPriceCents", e.target.value)} />
-                <input className={inputCls} type="number" placeholder="Discount cents" value={form.discountCents} onChange={e => update("discountCents", e.target.value)} />
-                <input className={inputCls} type="number" placeholder="Platform fee cents" value={form.platformFeeCents} onChange={e => update("platformFeeCents", e.target.value)} />
-                <input className={inputCls} type="number" placeholder="Total paid cents" value={form.totalPaidCents} onChange={e => update("totalPaidCents", e.target.value)} />
-                <textarea className={inputCls + " resize-none sm:col-span-2 font-mono"} rows={4} placeholder='Custom form data JSON' value={form.customData} onChange={e => update("customData", e.target.value)} />
-              </div>
+              <textarea className={inputCls + " resize-none font-mono"} rows={4} placeholder='Custom form data JSON' value={form.customData} onChange={e => update("customData", e.target.value)} />
             ) : (
               <div className="space-y-3">
                 <div className="grid sm:grid-cols-2 gap-2.5">

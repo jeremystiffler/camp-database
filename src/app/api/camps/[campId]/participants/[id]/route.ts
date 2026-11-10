@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { generateParticipantScanCode, normalizePickupNumber } from "@/lib/participant-identity";
+
 import { CapacityError, claimSeat, storedCapacity, releaseParticipantEnrollments, releaseEnrollment } from "@/lib/capacity";
 
 async function getMember(userId: string, campId: string) {
@@ -11,10 +11,7 @@ async function getMember(userId: string, campId: string) {
 function nullableString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
-function intValue(value: unknown) {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.round(n) : 0;
-}
+
 function parseSessionIds(value: unknown) {
   return Array.isArray(value) ? [...new Set(value.filter((id): id is string => typeof id === "string" && id.trim().length > 0).map((id) => id.trim()))] : undefined;
 }
@@ -100,6 +97,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
 
   try {
     const data = await req.json();
+    if (["couponCode", "campPriceCents", "discountCents", "platformFeeCents", "totalPaidCents", "paymentStatus", "pickupNumber", "scanCode", "scanCodeGeneratedAt"].some(key => key in data)) {
+      return NextResponse.json({ error: "Payment and identity fields require their dedicated workflows" }, { status: 400 });
+    }
     const firstName = nullableString(data.firstName);
     const lastName = nullableString(data.lastName);
     if (!firstName || !lastName) return NextResponse.json({ error: "Participant first and last name are required" }, { status: 400 });
@@ -126,15 +126,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ca
         medicalNotes: nullableString(data.medicalNotes),
         dietaryNotes: nullableString(data.dietaryNotes),
         customData: nullableString(data.customData),
-        couponCode: nullableString(data.couponCode),
-        campPriceCents: intValue(data.campPriceCents),
-        discountCents: intValue(data.discountCents),
-        platformFeeCents: intValue(data.platformFeeCents),
-        totalPaidCents: intValue(data.totalPaidCents),
-        paymentStatus: nullableString(data.paymentStatus) || "not_required",
-        pickupNumber: normalizePickupNumber(data.pickupNumber),
-        scanCode: nullableString(data.scanCode) || generateParticipantScanCode(),
-        scanCodeGeneratedAt: nullableString(data.scanCode) ? undefined : new Date(),
+
       },
     });
     const sessionIds = parseSessionIds(data.sessionIds);

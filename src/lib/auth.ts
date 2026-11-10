@@ -1,13 +1,26 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { OAuth2Client } from "google-auth-library";
+import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+
 import { prisma } from "./db";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "camp-creator-dev-secret-change-in-production"
-);
-
+const derivePassword = (password: string, salt: Buffer) => new Promise<Buffer>((resolve, reject) => {
+  scryptCallback(password, salt, 64, { N: 16384, r: 8, p: 1 }, (error, derived) => error ? reject(error) : resolve(derived));
+});
 const COOKIE_NAME = "camp_session";
+const HASH_PREFIX = "scrypt:v1:16384:";
+const encoder = new TextEncoder();
+function signingKey() {
+  const key = process.env.AUTH_SECRET || (process.env.NODE_ENV !== "production" ? process.env.JWT_SECRET : undefined);
+  if (!key || key.length < 32) throw new Error("AUTH_SECRET must be at least 32 characters");
+  return encoder.encode(key);
+}
+function legacyKey() {
+  const key = process.env.LEGACY_PASSWORD_SECRET || process.env.JWT_SECRET;
+  if (!key) throw new Error("Legacy authentication secret is not configured");
+  return key;
+}
 
 export interface JWTPayload {
   userId: string;
@@ -25,15 +38,21 @@ export async function signToken(payload: Omit<JWTPayload, "iat" | "exp">): Promi
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("7d")
     .setIssuedAt()
-    .sign(JWT_SECRET);
+    .sign(signingKey());
 }
 
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, signingKey());
     return payload as unknown as JWTPayload;
   } catch {
-    return null;
+    // Keep sessions signed with the previous key valid until their existing expiry.
+    try {
+      const { payload } = await jwtVerify(token, encoder.encode(legacyKey()), { algorithms: ["HS256"] });
+      return payload as unknown as JWTPayload;
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -61,23 +80,25 @@ export async function getSession(): Promise<JWTPayload | null> {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    JWT_SECRET,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(password));
-  const bytes = new Uint8Array(sig);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
+  const salt = randomBytes(32);
+  const derived = await derivePassword(password, salt);
+  return `${HASH_PREFIX}${salt.toString("base64url")}:${derived.toString("base64url")}`;
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const computed = await hashPassword(password);
-  return computed === hash;
+  if (hash.startsWith(HASH_PREFIX)) {
+    const parts = hash.slice(HASH_PREFIX.length).split(":");
+    if (parts.length !== 2 || !/^[A-Za-z0-9_-]{43}$/.test(parts[0]) || !/^[A-Za-z0-9_-]{86}$/.test(parts[1])) return false;
+    const actual = Buffer.from(parts[1], "base64url");
+    const derived = await derivePassword(password, Buffer.from(parts[0], "base64url"));
+    return actual.length === derived.length && timingSafeEqual(actual, derived);
+  }
+  // Legacy HMAC was keyed with JWT_SECRET. Only use it to authenticate old accounts,
+  // then upgrade the hash on successful login; never issue another legacy hash.
+  if (!/^[A-Za-z0-9+/]{43}=$/.test(hash)) return false;
+  const expected = Buffer.from(hash, "base64");
+  const actual = createHmac("sha256", legacyKey()).update(password).digest();
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 export async function verifyGoogleToken(credential: string): Promise<{
@@ -93,7 +114,7 @@ export async function verifyGoogleToken(credential: string): Promise<{
       audience: process.env.GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
-    if (!payload?.email) return null;
+    if (!payload?.email || !payload.email_verified) return null;
     return {
       email: payload.email,
       name: payload.name || payload.email.split("@")[0],
@@ -105,5 +126,4 @@ export async function verifyGoogleToken(credential: string): Promise<{
   }
 }
 
-// Keep prisma import used (suppress unused warning)
 export { prisma };

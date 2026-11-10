@@ -7,6 +7,15 @@ datasource db {
   provider = "postgresql"
 }
 
+// Hashed IP/identity windows only; no raw credentials or addresses are retained.
+model AuthThrottle {
+  id         String   @id
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+
+  @@index([expiresAt])
+}
+
 model Organization {
   id                              String    @id @default(cuid())
   name                            String

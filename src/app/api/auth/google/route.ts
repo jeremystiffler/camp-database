@@ -1,61 +1,56 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { randomBytes } from "node:crypto";
 import { DEFAULT_PROGRAM_PALETTE } from "@/lib/programPalettes";
 import { prisma } from "@/lib/db";
 import { signToken, setSessionCookie, verifyGoogleToken } from "@/lib/auth";
+import { checkAuthThrottle } from "@/lib/auth-throttle";
 import { sendWelcomeTrialEmail } from "@/lib/trial-emails";
 
 export async function POST(req: NextRequest) {
+  const created: { orgId?: string; userId?: string; campId?: string; complete?: boolean } = {};
   try {
     const { credential } = await req.json();
-    if (!credential) return NextResponse.json({ error: "Missing credential" }, { status: 400 });
-
+    if (typeof credential !== "string" || credential.length > 10000 || !credential) return NextResponse.json({ error: "Missing credential" }, { status: 400 });
+    // Validate the Google token before looking up an account or creating records.
     const googleUser = await verifyGoogleToken(credential);
     if (!googleUser) return NextResponse.json({ error: "Invalid Google token" }, { status: 401 });
-
-    let user = await prisma.user.findUnique({ where: { email: googleUser.email } });
-
+    const email = googleUser.email.trim().toLowerCase();
+    let user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      const slug = googleUser.name.toLowerCase().replace(/[^a-z0-9]/g, "-") + "-" + Date.now();
+      if (!await checkAuthThrottle(req, email, "signup")) return NextResponse.json({ error: "Too many sign-up attempts. Try again in 15 minutes." }, { status: 429 });
+      const suffix = randomBytes(8).toString("hex");
+      const slug = googleUser.name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").slice(0, 50).replace(/-$/, "") + "-" + suffix;
       const org = await prisma.organization.create({ data: { name: googleUser.name, slug } });
-
-      user = await prisma.user.create({
-        data: {
-          email: googleUser.email,
-          name: googleUser.name,
-          avatar: googleUser.picture,
-          role: "owner",
-          organizationId: org.id,
-                  },
+      created.orgId = org.id;
+      user = await prisma.user.create({ data: { email, name: googleUser.name, avatar: googleUser.picture, role: "owner", organizationId: org.id } });
+      created.userId = user.id;
+      const newCamp = await prisma.camp.create({ data: {
+        organizationId: org.id, name: "My Event", slug: "my-event-" + suffix,
+        status: "draft", themePreset: DEFAULT_PROGRAM_PALETTE.id,
+        primaryColor: DEFAULT_PROGRAM_PALETTE.primaryColor, accentColor: DEFAULT_PROGRAM_PALETTE.accentColor,
+      } });
+      created.campId = newCamp.id;
+      await prisma.campMember.create({ data: { campId: newCamp.id, userId: user.id, role: "owner" } });
+      const token = await signToken({ userId: user.id, email, name: user.name || email, organizationId: org.id });
+      await setSessionCookie(token);
+      created.complete = true;
+      after(async () => {
+        try {
+          await sendWelcomeTrialEmail({ ...user!, organization: { ...org, camps: [{ ...newCamp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], participants: [] }] } });
+        } catch (err) { console.error("Welcome email failed:", err instanceof Error ? err.message : String(err)); }
       });
-      const campSlug = "my-event-" + Date.now();
-      const newCamp = await prisma.camp.create({
-        data: {
-          organizationId: org.id,
-          name: "My Event",
-          slug: campSlug,
-          status: "draft",
-          themePreset: DEFAULT_PROGRAM_PALETTE.id,
-          primaryColor: DEFAULT_PROGRAM_PALETTE.primaryColor,
-          accentColor: DEFAULT_PROGRAM_PALETTE.accentColor,
-        },
-      });
-      await prisma.campMember.create({
-        data: { campId: newCamp.id, userId: user.id, role: "admin" },
-      });
-      await sendWelcomeTrialEmail({ ...user, organization: { ...org, camps: [{ ...newCamp, ageGroups: [], courses: [], sessionTemplates: [], registrationForms: [], participants: [] }] } });
+    } else {
+      const token = await signToken({ userId: user.id, email: user.email, name: user.name || email, organizationId: user.organizationId || undefined });
+      await setSessionCookie(token);
     }
-
-    const token = await signToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name || googleUser.email,
-      organizationId: user.organizationId || undefined,
-    });
-
-    await setSessionCookie(token);
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Google auth error:", err);
+    if (!created.complete) {
+      if (created.campId) await prisma.camp.delete({ where: { id: created.campId } }).catch(() => {});
+      if (created.userId) await prisma.user.delete({ where: { id: created.userId } }).catch(() => {});
+      if (created.orgId) await prisma.organization.delete({ where: { id: created.orgId } }).catch(() => {});
+    }
+    console.error("Google auth error:", err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: "Google auth failed" }, { status: 500 });
   }
 }
